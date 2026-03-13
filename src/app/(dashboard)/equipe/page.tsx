@@ -1,9 +1,24 @@
+
 "use client"
 
 import { useState } from "react"
-import { UserCircle, Mail, Shield, Plus, MoreHorizontal, Settings, Activity } from "lucide-react"
+import { 
+  Users, 
+  Plus, 
+  Search, 
+  Shield, 
+  Activity, 
+  Filter,
+  Building2,
+  History,
+  ArrowRight
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Input } from "@/components/ui/input"
+import { DepartmentManagement } from "@/components/team/department-management"
+import { ActionHistoryList } from "@/components/team/action-history-list"
 import { 
   Table, 
   TableBody, 
@@ -22,128 +37,166 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
+import { MoreHorizontal, Settings, Mail } from "lucide-react"
 
 const MOCK_TEAM = [
-  { id: '1', name: 'Ricardo Santos', email: 'ricardo@contahub.com.br', profile: 'SÓCIO', department: 'Diretoria', status: 'ATIVO' },
-  { id: '2', name: 'Fernanda Oliveira', email: 'fernanda@contahub.com.br', profile: 'ADMINISTRADOR', department: 'Operacional', status: 'ATIVO' },
-  { id: '3', name: 'Ana Souza', email: 'ana@contahub.com.br', profile: 'CONTADOR/GESTOR', department: 'Fiscal', status: 'ATIVO' },
-  { id: '4', name: 'Bruno Lima', email: 'bruno@contahub.com.br', profile: 'ASSISTENTE', department: 'Contábil', status: 'ATIVO' },
-  { id: '5', name: 'Carla Dias', email: 'carla@contahub.com.br', profile: 'ASSISTENTE', department: 'DP / RH', status: 'INATIVO' },
+  { id: '1', name: 'Ricardo Santos', email: 'ricardo@prosperare.com.br', profile: 'SÓCIO', department: 'Diretoria', status: 'ATIVO' },
+  { id: '2', name: 'Fernanda Oliveira', email: 'fernanda@prosperare.com.br', profile: 'ADMINISTRADOR', department: 'Administrativo', status: 'ATIVO' },
+  { id: '3', name: 'Ana Souza', email: 'ana@prosperare.com.br', profile: 'CONTADOR/GESTOR', department: 'Fiscal', status: 'ATIVO' },
+  { id: '4', name: 'Bruno Lima', email: 'bruno@prosperare.com.br', profile: 'ASSISTENTE', department: 'Pessoal', status: 'ATIVO' },
+  { id: '5', name: 'Carla Dias', email: 'carla@prosperare.com.br', profile: 'ASSISTENTE', department: 'Comercial', status: 'INATIVO' },
 ]
 
 export default function EquipePage() {
+  const [searchTerm, setSearchTerm] = useState("")
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-primary">Gestão da Equipe</h1>
-          <p className="text-muted-foreground">Controle de usuários, permissões e acessos ao sistema.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">Gestão da Equipe</h1>
+          <p className="text-[#98A7AA] font-medium">Controle de membros, departamentos e auditoria do sistema.</p>
         </div>
-        <Button className="bg-primary hover:bg-secondary gap-2">
-          <Plus className="h-4 w-4" /> Convidar Membro
-        </Button>
+        <div className="flex gap-2">
+          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2">
+            <Plus className="h-4 w-4" /> Convidar Membro
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Usuários Ativos</CardTitle>
-            <Activity className="h-4 w-4 text-chart-1" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">12 / 15</div>
-            <p className="text-xs text-muted-foreground">3 licenças disponíveis</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="border-[#D2D7DB]">
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="p-3 bg-[#2C4156]/10 rounded-lg"><Users className="h-6 w-6 text-[#2C4156]" /></div>
+            <div>
+              <p className="text-[10px] font-bold text-[#98A7AA] uppercase">Membros Ativos</p>
+              <p className="text-2xl font-black text-[#2C4156]">12 / 15</p>
+            </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Níveis de Acesso</CardTitle>
-            <Shield className="h-4 w-4 text-accent" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">4 Perfis</div>
-            <p className="text-xs text-muted-foreground">Políticas de segurança aplicadas</p>
+        <Card className="border-[#D2D7DB]">
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="p-3 bg-[#1FA67A]/10 rounded-lg"><Building2 className="h-6 w-6 text-[#1FA67A]" /></div>
+            <div>
+              <p className="text-[10px] font-bold text-[#98A7AA] uppercase">Departamentos</p>
+              <p className="text-2xl font-black text-[#2C4156]">5 Estruturas</p>
+            </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Logs de Acesso</CardTitle>
-            <Activity className="h-4 w-4 text-info" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">Hoje</div>
-            <p className="text-xs text-muted-foreground">Último login há 5 min</p>
+        <Card className="border-[#D2D7DB]">
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="p-3 bg-[#F2B705]/10 rounded-lg"><Activity className="h-6 w-6 text-[#F2B705]" /></div>
+            <div>
+              <p className="text-[10px] font-bold text-[#98A7AA] uppercase">Ações Hoje</p>
+              <p className="text-2xl font-black text-[#2C4156]">142 Logs</p>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Membros do Escritório</CardTitle>
-          <CardDescription>Gerencie quem tem acesso e quais módulos podem visualizar.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader className="bg-primary/5">
-              <TableRow>
-                <TableHead>Membro</TableHead>
-                <TableHead>Perfil</TableHead>
-                <TableHead>Departamento</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {MOCK_TEAM.map((member) => (
-                <TableRow key={member.id} className="hover:bg-muted/50">
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarFallback className="bg-primary text-primary-foreground font-bold">
-                          {member.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-semibold text-sm">{member.name}</span>
-                        <span className="text-xs text-muted-foreground truncate">{member.email}</span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="bg-accent/5 text-accent border-accent/20">
-                      {member.profile}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm">{member.department}</TableCell>
-                  <TableCell>
-                    <Badge className={member.status === 'ATIVO' ? 'bg-chart-1' : 'bg-muted text-muted-foreground'}>
-                      {member.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                        <DropdownMenuItem className="gap-2"><Settings className="h-4 w-4" /> Editar Acessos</DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2"><Mail className="h-4 w-4" /> Resetar Senha</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="gap-2 text-destructive">
-                          {member.status === 'ATIVO' ? 'Desativar Usuário' : 'Reativar Usuário'}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="membros" className="space-y-6">
+        <TabsList className="bg-[#D2D7DB]/30 p-1">
+          <TabsTrigger value="membros" className="data-[state=active]:bg-white font-bold gap-2">
+            <Users className="h-4 w-4" /> Membros
+          </TabsTrigger>
+          <TabsTrigger value="departamentos" className="data-[state=active]:bg-white font-bold gap-2">
+            <Building2 className="h-4 w-4" /> Departamentos
+          </TabsTrigger>
+          <TabsTrigger value="historico" className="data-[state=active]:bg-white font-bold gap-2">
+            <History className="h-4 w-4" /> Histórico de Ações
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="membros" className="space-y-4 m-0">
+          <Card className="border-[#D2D7DB]">
+            <CardHeader className="pb-3">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
+                  <Input
+                    placeholder="Buscar membro por nome, e-mail ou departamento..."
+                    className="pl-9 bg-[#F7F7F7] border-[#D2D7DB]"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Button variant="outline" className="border-[#D2D7DB] gap-2">
+                  <Filter className="h-4 w-4" /> Filtros
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader className="bg-[#2C4156]">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-white font-bold uppercase text-[10px]">Membro</TableHead>
+                    <TableHead className="text-white font-bold uppercase text-[10px]">Perfil</TableHead>
+                    <TableHead className="text-white font-bold uppercase text-[10px]">Departamento</TableHead>
+                    <TableHead className="text-white font-bold uppercase text-[10px]">Status</TableHead>
+                    <TableHead className="text-white font-bold uppercase text-[10px] text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {MOCK_TEAM.map((member) => (
+                    <TableRow key={member.id} className="hover:bg-[#F7F7F7]">
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9 border-2 border-[#D2D7DB]">
+                            <AvatarFallback className="bg-[#2C4156] text-white font-bold">
+                              {member.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-sm text-[#2C4156]">{member.name}</span>
+                            <span className="text-xs text-[#98A7AA] truncate">{member.email}</span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="bg-[#39586D]/5 text-[#39586D] border-[#39586D]/20 font-bold text-[10px]">
+                          {member.profile}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm font-medium text-[#39586D]">{member.department}</TableCell>
+                      <TableCell>
+                        <Badge className={member.status === 'ATIVO' ? 'bg-[#7ED6B5] text-[#1FA67A] border-none' : 'bg-[#D2D7DB] text-[#98A7AA] border-none'}>
+                          {member.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="border-[#D2D7DB]">
+                            <DropdownMenuLabel className="text-[#2C4156] text-[10px] uppercase">Gerenciar Membro</DropdownMenuLabel>
+                            <DropdownMenuItem className="gap-2 text-xs font-bold text-[#2C4156]"><Settings className="h-4 w-4 text-[#1FA67A]" /> Editar Acessos</DropdownMenuItem>
+                            <DropdownMenuItem className="gap-2 text-xs font-bold text-[#2C4156]"><Mail className="h-4 w-4 text-[#2574A9]" /> Resetar Senha</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="gap-2 text-xs font-bold text-[#E74C3C]">
+                              {member.status === 'ATIVO' ? 'Desativar Usuário' : 'Reativar Usuário'}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="departamentos" className="m-0">
+          <DepartmentManagement />
+        </TabsContent>
+
+        <TabsContent value="historico" className="m-0">
+          <ActionHistoryList />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
