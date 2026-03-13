@@ -23,7 +23,14 @@ import {
   Mail,
   MessageSquare,
   Lock,
-  CreditCard
+  CreditCard,
+  History,
+  Building2,
+  Calendar,
+  Palette,
+  Link as LinkIcon,
+  LogOut,
+  User as UserIcon
 } from "lucide-react"
 
 import {
@@ -51,10 +58,11 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
 const items = [
   {
-    title: "Painel Principal",
+    title: "Dashboard",
     url: "/dashboard",
     icon: LayoutDashboard,
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
@@ -70,14 +78,25 @@ const items = [
     url: "/processos",
     icon: Files,
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
-    badge: 5
+    badge: 5,
+    isCollapsible: true,
+    subItems: [
+      { title: "Todos os Processos", url: "/processos", icon: Files },
+      { title: "Calendário de Prazos", url: "/processos/calendario", icon: Calendar },
+      { title: "Modelos", url: "/processos/modelos", icon: FileText },
+    ]
   },
   {
     title: "Certidões",
     url: "/certidoes",
     icon: ShieldCheck,
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR"],
-    badge: 2
+    badge: 2,
+    isCollapsible: true,
+    subItems: [
+      { title: "Painel Geral", url: "/certidoes", icon: PieChart },
+      { title: "Por Empresa", url: "/certidoes", icon: Building },
+    ]
   },
   {
     title: "Financeiro",
@@ -104,6 +123,13 @@ const items = [
     url: "/equipe",
     icon: UserCircle,
     profiles: ["ADMINISTRADOR"],
+    isCollapsible: true,
+    subItems: [
+      { title: "Membros", url: "/equipe", icon: Users },
+      { title: "Departamentos", url: "/equipe/departamentos", icon: Building2 },
+      { title: "Permissões", url: "/equipe/permissoes", icon: Lock },
+      { title: "Histórico de Ações", url: "/equipe/historico", icon: History },
+    ]
   },
   {
     title: "Configurações",
@@ -114,17 +140,19 @@ const items = [
     subItems: [
       { title: "Meus Dados", url: "/configuracoes/meus-dados", icon: Building },
       { title: "Certificado Digital", url: "/configuracoes/certificado", icon: Key },
-      { title: "Agendamento Auto", url: "/configuracoes/agendamento", icon: CalendarClock },
+      { title: "Agendamento Automático", url: "/configuracoes/agendamento", icon: CalendarClock },
       { title: "E-mail de Disparo", url: "/configuracoes/email", icon: Mail },
       { title: "WhatsApp", url: "/configuracoes/whatsapp", icon: MessageSquare },
-      { title: "Segurança e Logs", url: "/configuracoes/seguranca", icon: Lock },
+      { title: "Segurança", url: "/configuracoes/seguranca", icon: Lock },
+      { title: "Aparência", url: "/configuracoes/aparencia", icon: Palette },
+      { title: "Integrações", url: "/configuracoes/integracoes", icon: LinkIcon },
       { title: "Plano e Assinatura", url: "/configuracoes/plano", icon: CreditCard },
     ]
   },
 ]
 
 export function AppSidebar() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const pathname = usePathname()
   
   const filteredItems = items.filter(item => 
@@ -150,24 +178,28 @@ export function AppSidebar() {
             <SidebarMenu>
               {filteredItems.map((item) => (
                 item.isCollapsible ? (
-                  <Collapsible key={item.title} className="group/collapsible" defaultOpen={pathname.startsWith(item.url)}>
+                  <Collapsible 
+                    key={item.title} 
+                    className="group/collapsible" 
+                    defaultOpen={pathname.startsWith(item.url)}
+                  >
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton className={cn(
-                          "hover:bg-[#39586D] transition-all py-6 text-white",
+                          "hover:bg-[#39586D] transition-all py-6 text-white group-data-[state=open]/collapsible:bg-[#39586D]/50",
                           pathname.startsWith(item.url) && "bg-[#39586D] border-l-[3px] border-[#1FA67A]"
                         )}>
                           <item.icon className="h-5 w-5" />
                           <span className="text-sm font-medium">{item.title}</span>
-                          <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                          <ChevronDown className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <SidebarMenuSub className="border-l border-white/10 ml-4">
+                      <CollapsibleContent className="animate-in slide-in-from-top-1 duration-200">
+                        <SidebarMenuSub className="border-l border-white/10 ml-4 space-y-1 py-1">
                           {item.subItems?.map((sub) => (
                             <SidebarMenuSubItem key={sub.title}>
-                              <SidebarMenuSubButton asChild isActive={pathname === sub.url} className="text-white/80 hover:text-white">
-                                <Link href={sub.url} className="flex items-center gap-2 py-2">
+                              <SidebarMenuSubButton asChild isActive={pathname === sub.url} className="text-white/70 hover:text-white h-9">
+                                <Link href={sub.url} className="flex items-center gap-2">
                                   <sub.icon className={cn("h-4 w-4 opacity-70", pathname === sub.url && "text-[#1FA67A] opacity-100")} />
                                   <span className={cn(pathname === sub.url && "text-[#1FA67A] font-semibold")}>{sub.title}</span>
                                 </Link>
@@ -207,19 +239,27 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="p-4 bg-[#39586D]/30 border-t border-white/10">
         {user && (
-          <div className="flex items-center gap-3">
-            <Avatar className="h-9 w-9 border-2 border-[#1FA67A]/50">
-              <AvatarImage src={user.avatarUrl} />
-              <AvatarFallback className="bg-white text-[#2C4156] font-bold">
-                {user.name.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col min-w-0">
-              <span className="text-sm font-semibold text-white truncate">{user.name}</span>
-              <span className="text-[10px] text-[#98A7AA] font-medium uppercase tracking-wider truncate">
-                {user.profile}
-              </span>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="relative">
+                <Avatar className="h-9 w-9 border-2 border-[#1FA67A]/50">
+                  <AvatarImage src={user.avatarUrl} />
+                  <AvatarFallback className="bg-white text-[#2C4156] font-bold">
+                    {user.name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#1FA67A] border-2 border-[#39586D] rounded-full" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-semibold text-white truncate">{user.name}</span>
+                <span className="text-[10px] text-[#98A7AA] font-medium uppercase tracking-wider truncate">
+                  {user.profile}
+                </span>
+              </div>
             </div>
+            <Button variant="ghost" size="icon" className="text-white/50 hover:text-[#E74C3C] hover:bg-transparent" onClick={logout}>
+              <LogOut className="h-5 w-5" />
+            </Button>
           </div>
         )}
       </SidebarFooter>
