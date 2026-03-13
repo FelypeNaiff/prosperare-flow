@@ -1,0 +1,8 @@
+export const firebaseConfig = {
+  "projectId": "studio-4435305402-8a684",
+  "appId": "1:74851282547:web:995714a7c556f863968406",
+  "apiKey": "AIzaSyDqm7fU0neoA_Q7ENQRwZ-xUlWTfJgGTM8",
+  "authDomain": "studio-4435305402-8a684.firebaseapp.com",
+  "measurementId": "",
+  "messagingSenderId": "74851282547"
+};
