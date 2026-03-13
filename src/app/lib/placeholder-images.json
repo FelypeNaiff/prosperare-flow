@@ -1,0 +1,16 @@
+{
+  "placeholderImages": [
+    {
+      "id": "office-banner",
+      "description": "Escritório de contabilidade moderno",
+      "imageUrl": "https://picsum.photos/seed/office1/1200/400",
+      "imageHint": "accounting office"
+    },
+    {
+      "id": "team-member-1",
+      "description": "Avatar de membro da equipe",
+      "imageUrl": "https://picsum.photos/seed/team1/200/200",
+      "imageHint": "professional person"
+    }
+  ]
+}
