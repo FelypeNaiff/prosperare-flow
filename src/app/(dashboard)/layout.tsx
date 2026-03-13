@@ -1,9 +1,10 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/layout/app-sidebar"
-import { Bell, Search, User, TrendingUp } from "lucide-react"
+import { Search, User } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { 
@@ -14,14 +15,14 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/hooks/use-auth-mock"
+import { ChatWidget } from "@/components/collaboration/chat-widget"
+import { NotificationBell } from "@/components/collaboration/notification-bell"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, logout } = useAuth()
+  const { logout } = useAuth()
   const [mounted, setMounted] = useState(false)
 
-  // Previne erros de hidratação garantindo que o componente montou no cliente
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -32,7 +33,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset className="bg-[#F7F7F7]">
-        <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-white px-6">
+        <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-white px-6 sticky top-0 z-40">
           <SidebarTrigger className="text-[#2C4156]" />
           <div className="flex items-center gap-2 md:hidden">
             <span className="font-bold text-sm tracking-tight">
@@ -51,21 +52,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
           <div className="ml-auto flex items-center gap-4">
-            <div className="relative">
-              <Button variant="ghost" size="icon" className="relative text-[#2C4156]">
-                <Bell className="h-5 w-5" />
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-[#E74C3C] border-2 border-white">
-                  3
-                </Badge>
-              </Button>
-            </div>
+            <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full border-2 border-[#D2D7DB]">
                   <User className="h-5 w-5 text-[#2C4156]" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-56 shadow-xl border-[#D2D7DB]">
                 <DropdownMenuLabel className="text-[#2C4156]">Minha Conta</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Perfil</DropdownMenuItem>
@@ -83,6 +77,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <footer className="h-12 border-t bg-white flex items-center justify-center px-6 text-[11px] text-[#98A7AA] font-medium">
           Prosperare Flow © 2026 — Sistema de Gestão Contábil
         </footer>
+        <ChatWidget />
       </SidebarInset>
     </SidebarProvider>
   )

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -14,15 +15,28 @@ import {
   User, 
   AlertCircle,
   MoreVertical,
-  CheckSquare
+  CheckSquare,
+  RefreshCw,
+  History,
+  MessageSquare,
+  ArrowRightLeft,
+  CheckCircle2,
+  FileText
 } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { toast } from "@/hooks/use-toast"
 
 const COLUMNS = [
-  { id: 'todo', title: 'A Fazer', color: 'border-t-muted' },
-  { id: 'progress', title: 'Em Progresso', color: 'border-t-chart-3' },
-  { id: 'review', title: 'Em Revisão', color: 'border-t-chart-2' },
-  { id: 'done', title: 'Concluído', color: 'border-t-chart-1' },
+  { id: 'todo', title: 'A Fazer', color: 'border-t-[#98A7AA]' },
+  { id: 'progress', title: 'Em Progresso', color: 'border-t-[#2574A9]' },
+  { id: 'review', title: 'Em Revisão', color: 'border-t-[#F2B705]' },
+  { id: 'done', title: 'Concluído', color: 'border-t-[#1FA67A]' },
 ]
 
 const MOCK_TASKS = [
@@ -34,25 +48,42 @@ const MOCK_TASKS = [
 ]
 
 export default function ProcessosPage() {
+  const [selectedTask, setSelectedTask] = useState<any>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isHandoffOpen, setIsHandoffOpen] = useState(false)
+
+  const handleOpenTask = (task: any) => {
+    setSelectedTask(task)
+    setIsModalOpen(true)
+  }
+
+  const handleConfirmHandoff = () => {
+    setIsHandoffOpen(false)
+    toast({
+      title: "Bastão Passado!",
+      description: `A responsabilidade da tarefa foi transferida com sucesso.`,
+    })
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Processos e Tarefas</h1>
-          <p className="text-muted-foreground">Gerencie o fluxo de trabalho do escritório e prazos fiscais.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">Processos e Tarefas</h1>
+          <p className="text-[#98A7AA] font-medium">Gerencie o fluxo de trabalho do escritório e prazos fiscais.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] hover:bg-[#F7F7F7]">
             <CalendarIcon className="mr-2 h-4 w-4" /> Calendário
           </Button>
-          <Button className="bg-primary">
+          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90">
             <Plus className="mr-2 h-4 w-4" /> Novo Processo
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-         <SummaryCard label="Total" value={142} />
+         <SummaryCard label="Total" value={142} color="primary" />
          <SummaryCard label="Em Multa" value={3} color="destructive" />
          <SummaryCard label="A Fazer" value={54} color="muted" />
          <SummaryCard label="Em Progresso" value={28} color="info" />
@@ -61,9 +92,9 @@ export default function ProcessosPage() {
 
       <Tabs defaultValue="kanban">
         <div className="flex items-center justify-between">
-          <TabsList>
-            <TabsTrigger value="kanban"><LayoutGrid className="mr-2 h-4 w-4" /> Kanban</TabsTrigger>
-            <TabsTrigger value="lista"><TableIcon className="mr-2 h-4 w-4" /> Lista</TabsTrigger>
+          <TabsList className="bg-[#D2D7DB]/30">
+            <TabsTrigger value="kanban" className="data-[state=active]:bg-white font-bold"><LayoutGrid className="mr-2 h-4 w-4" /> Kanban</TabsTrigger>
+            <TabsTrigger value="lista" className="data-[state=active]:bg-white font-bold"><TableIcon className="mr-2 h-4 w-4" /> Lista</TabsTrigger>
           </TabsList>
         </div>
 
@@ -72,36 +103,46 @@ export default function ProcessosPage() {
             {COLUMNS.map(col => (
               <div key={col.id} className="flex flex-col gap-4">
                 <div className="flex items-center justify-between px-2">
-                  <h3 className="font-bold flex items-center gap-2">
+                  <h3 className="font-extrabold text-[#2C4156] flex items-center gap-2 text-sm uppercase tracking-wider">
                     {col.title}
-                    <Badge variant="secondary" className="rounded-full px-1.5 h-5 min-w-5 flex items-center justify-center">
+                    <Badge variant="secondary" className="rounded-full px-1.5 h-5 min-w-5 flex items-center justify-center text-[10px] bg-[#D2D7DB] text-[#39586D]">
                       {MOCK_TASKS.filter(t => t.status === col.id).length}
                     </Badge>
                   </h3>
-                  <Button variant="ghost" size="icon" className="h-8 w-8"><Plus className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA] hover:text-[#1FA67A]"><Plus className="h-4 w-4" /></Button>
                 </div>
                 
                 <ScrollArea className="h-[calc(100vh-350px)]">
-                  <div className="flex flex-col gap-3 pr-4">
+                  <div className="flex flex-col gap-3 pr-4 pb-4">
                     {MOCK_TASKS.filter(t => t.status === col.id).map(task => (
-                      <Card key={task.id} className={`border-t-4 ${col.color} hover:shadow-md transition-shadow cursor-pointer`}>
+                      <Card 
+                        key={task.id} 
+                        className={cn(
+                          "border-t-4 hover:shadow-lg transition-all cursor-pointer bg-white group",
+                          col.color
+                        )}
+                        onClick={() => handleOpenTask(task)}
+                      >
                         <CardContent className="p-4 space-y-3">
                           <div className="flex justify-between items-start">
-                            <span className="text-[10px] font-bold text-primary uppercase tracking-wider">{task.client}</span>
-                            <Badge variant={task.priority === 'Urgente' ? 'destructive' : 'outline'} className="text-[10px] px-1 h-4">
+                            <span className="text-[10px] font-bold text-[#1FA67A] uppercase tracking-widest">{task.client}</span>
+                            <Badge className={cn(
+                              "text-[10px] px-1.5 h-4 uppercase font-extrabold",
+                              task.priority === 'Urgente' ? 'bg-[#FEE2E2] text-[#E74C3C]' : 'bg-[#F7F7F7] text-[#98A7AA]'
+                            )}>
                               {task.priority}
                             </Badge>
                           </div>
-                          <p className="text-sm font-semibold leading-tight">{task.title}</p>
-                          <div className="flex items-center justify-between pt-2">
-                            <div className="flex items-center gap-1 text-muted-foreground">
+                          <p className="text-sm font-bold text-[#2C4156] leading-snug group-hover:text-[#1FA67A] transition-colors">{task.title}</p>
+                          <div className="flex items-center justify-between pt-2 border-t border-[#F7F7F7]">
+                            <div className="flex items-center gap-1 text-[#98A7AA]">
                               <Clock className="h-3 w-3" />
-                              <span className="text-xs">{task.due}</span>
+                              <span className="text-[10px] font-bold">{task.due}</span>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs text-muted-foreground">{task.responsible}</span>
-                              <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                                <User className="h-3 w-3 text-primary" />
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-bold text-[#39586D]">{task.responsible}</span>
+                              <div className="w-6 h-6 rounded-full bg-[#2C4156]/10 flex items-center justify-center border border-[#D2D7DB]">
+                                <User className="h-3 w-3 text-[#2C4156]" />
                               </div>
                             </div>
                           </div>
@@ -115,23 +156,249 @@ export default function ProcessosPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Detalhes da Tarefa / Processo */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-4xl p-0 h-[85vh] flex flex-col overflow-hidden">
+          <DialogHeader className="p-6 bg-[#F7F7F7] border-b">
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-[#1FA67A] text-white text-[10px] uppercase font-bold">Processo Digital</Badge>
+                  <span className="text-xs text-[#98A7AA] font-mono">ID: {selectedTask?.id}</span>
+                </div>
+                <DialogTitle className="text-2xl font-extrabold text-[#2C4156]">{selectedTask?.title}</DialogTitle>
+                <DialogDescription className="font-medium text-[#39586D]">
+                  Cliente: <span className="font-bold text-[#1FA67A]">{selectedTask?.client}</span>
+                </DialogDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  className="gap-2 border-[#D2D7DB] font-bold text-[#2C4156]"
+                  onClick={() => setIsHandoffOpen(true)}
+                >
+                  <ArrowRightLeft className="h-4 w-4 text-[#1FA67A]" /> Passar Bastão
+                </Button>
+                <Button className="bg-[#1FA67A] gap-2 font-bold">
+                  <CheckCircle2 className="h-4 w-4" /> Concluir Etapa
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <Tabs defaultValue="detalhes" className="flex-1 flex flex-col overflow-hidden">
+            <TabsList className="px-6 h-12 bg-white border-b rounded-none justify-start gap-6">
+              <TabsTrigger value="detalhes" className="data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none h-full px-0 font-bold text-xs uppercase">Detalhes</TabsTrigger>
+              <TabsTrigger value="checklist" className="data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none h-full px-0 font-bold text-xs uppercase">Checklist</TabsTrigger>
+              <TabsTrigger value="comentarios" className="data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none h-full px-0 font-bold text-xs uppercase flex gap-2">
+                Comentários <Badge className="bg-[#1FA67A]/10 text-[#1FA67A] h-4 min-w-4 p-1">2</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="historico" className="data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none h-full px-0 font-bold text-xs uppercase flex gap-2">
+                Histórico <History className="h-3 w-3" />
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="flex-1 overflow-hidden">
+              <ScrollArea className="h-full p-6">
+                <TabsContent value="detalhes" className="m-0 space-y-6">
+                  <div className="grid grid-cols-3 gap-6">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase font-extrabold text-[#98A7AA]">Responsável Atual</Label>
+                      <div className="flex items-center gap-2 p-2 bg-[#F7F7F7] rounded-lg border">
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className="bg-[#2C4156] text-white text-[10px]">{selectedTask?.responsible.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-bold text-[#2C4156]">{selectedTask?.responsible} Santos</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase font-extrabold text-[#98A7AA]">Prazo Fatal</Label>
+                      <div className="flex items-center gap-2 p-2 bg-[#FEE2E2]/30 rounded-lg border border-[#E74C3C]/20">
+                        <Clock className="h-4 w-4 text-[#E74C3C]" />
+                        <span className="text-sm font-bold text-[#E74C3C]">20/10/2024 às 18:00</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase font-extrabold text-[#98A7AA]">Prioridade</Label>
+                      <div className="p-2">
+                        <Badge className="bg-[#E74C3C] font-bold uppercase text-[10px]">{selectedTask?.priority}</Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase font-extrabold text-[#98A7AA]">Descrição do Processo</Label>
+                    <div className="p-4 bg-[#F7F7F7] rounded-lg border text-sm text-[#39586D] leading-relaxed">
+                      Execução da folha de pagamento mensal referente à competência de Setembro/2024. 
+                      Inclui apuração de horas extras, benefícios, geração de holerites e guias de encargos (FGTS/INSS).
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="font-bold text-[#2C4156] text-sm uppercase flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-[#1FA67A]" /> Documentos Vinculados
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      {['Relatorio_Horas.pdf', 'Planilha_Beneficios.xlsx'].map((doc, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 border rounded-lg hover:bg-[#F7F7F7] cursor-pointer transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-[#2C4156]/5 rounded-lg"><FileText className="h-4 w-4 text-[#2C4156]" /></div>
+                            <span className="text-xs font-bold text-[#39586D]">{doc}</span>
+                          </div>
+                          <Badge variant="outline" className="text-[9px]">Ver</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="historico" className="m-0">
+                  <div className="relative pl-8 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-[#D2D7DB]">
+                    <TimelineItem 
+                      icon={Plus} 
+                      color="bg-[#2C4156]" 
+                      title="Tarefa Criada" 
+                      user="Fernanda Oliveira" 
+                      time="20/10/2024 - 09:30" 
+                      details="Processo de folha de pagamento iniciado para o cliente Posto Sul." 
+                    />
+                    <TimelineItem 
+                      icon={RefreshCw} 
+                      color="bg-[#2574A9]" 
+                      title="Mudança de Status" 
+                      user="Ricardo Santos" 
+                      time="20/10/2024 - 10:15" 
+                      details="Status alterado de 'A Fazer' para 'Em Progresso'." 
+                    />
+                    <TimelineItem 
+                      icon={ArrowRightLeft} 
+                      color="bg-[#F2B705]" 
+                      title="Bastão Passado" 
+                      user="Ricardo → Ana" 
+                      time="21/10/2024 - 14:00" 
+                      details="Ricardo passou para Ana finalizar os cálculos de encargos." 
+                    />
+                    <TimelineItem 
+                      icon={AtSign} 
+                      color="bg-[#1FA67A]" 
+                      title="Menção em Comentário" 
+                      user="Ana Souza" 
+                      time="Hoje - 11:20" 
+                      details="Ana mencionou @Ricardo Santos: 'Favor revisar o cálculo do FGTS Digital'." 
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="comentarios" className="m-0 space-y-4">
+                  <div className="space-y-4 pb-20">
+                    <div className="flex gap-3">
+                      <Avatar className="h-8 w-8"><AvatarImage src="https://picsum.photos/seed/ana/40/40" /></Avatar>
+                      <div className="flex-1 p-3 bg-[#F7F7F7] rounded-lg border space-y-1">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-[#2C4156]">Ana Souza</span>
+                          <span className="text-[10px] text-[#98A7AA]">Há 2h</span>
+                        </div>
+                        <p className="text-sm text-[#39586D]">@Ricardo Santos, já subi a planilha de horas extras. Pode validar?</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t">
+                    <div className="relative">
+                      <AtSign className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
+                      <Input placeholder="Adicionar comentário... (@mencionar)" className="pl-9 pr-12 h-10" />
+                      <Button size="icon" className="absolute right-1 top-1 h-8 w-8 bg-[#1FA67A]">
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+              </ScrollArea>
+            </div>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Passagem de Bastão */}
+      <Dialog open={isHandoffOpen} onOpenChange={setIsHandoffOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <div className="w-12 h-12 rounded-full bg-[#1FA67A]/10 flex items-center justify-center mb-2">
+              <ArrowRightLeft className="h-6 w-6 text-[#1FA67A]" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-[#2C4156]">Passagem de Bastão</DialogTitle>
+            <DialogDescription>
+              Transfira a responsabilidade desta tarefa detalhando o progresso atual.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label className="font-bold text-[#2C4156]">Transferir para:</Label>
+              <Select defaultValue="ana">
+                <SelectTrigger><SelectValue placeholder="Selecione o membro" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ana">Ana Souza (Fiscal)</SelectItem>
+                  <SelectItem value="fernanda">Fernanda Oliveira (Gestora)</SelectItem>
+                  <SelectItem value="bruno">Bruno Lima (Assistente)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="font-bold text-[#2C4156]">O que já foi feito?</Label>
+              <Textarea placeholder="Descreva as etapas concluídas..." className="h-20" />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-bold text-[#2C4156]">O que falta fazer?</Label>
+              <Textarea placeholder="Orientações para o próximo responsável..." className="h-20" />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-bold text-[#2C4156]">Prazo da próxima etapa</Label>
+              <Input type="datetime-local" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsHandoffOpen(false)}>Cancelar</Button>
+            <Button className="bg-[#1FA67A]" onClick={handleConfirmHandoff}>Confirmar Transferência</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
-function SummaryCard({ label, value, color }: { label: string, value: number, color?: string }) {
+function SummaryCard({ label, value, color }: { label: string, value: number, color: string }) {
+  const colorClasses = {
+    primary: "text-[#2C4156] border-l-[#2C4156]",
+    destructive: "text-[#E74C3C] border-l-[#E74C3C]",
+    muted: "text-[#98A7AA] border-l-[#98A7AA]",
+    info: "text-[#2574A9] border-l-[#2574A9]",
+    success: "text-[#1FA67A] border-l-[#1FA67A]",
+  }
+
   return (
-    <Card className="border-none shadow-sm bg-white">
+    <Card className={cn("border-none shadow-sm bg-white border-l-4", colorClasses[color as keyof typeof colorClasses])}>
       <CardContent className="p-4 text-center space-y-1">
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{label}</p>
-        <p className={`text-2xl font-bold ${color === 'destructive' ? 'text-destructive' : color === 'success' ? 'text-chart-1' : color === 'info' ? 'text-chart-3' : 'text-primary'}`}>
-          {value}
-        </p>
+        <p className="text-[10px] font-extrabold text-[#98A7AA] uppercase tracking-widest">{label}</p>
+        <p className="text-2xl font-black">{value}</p>
       </CardContent>
     </Card>
   )
 }
 
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(' ');
+function TimelineItem({ icon: Icon, color, title, user, time, details }: any) {
+  return (
+    <div className="relative">
+      <div className={cn("absolute -left-[27px] top-0 w-6 h-6 rounded-full flex items-center justify-center text-white shadow-md z-10", color)}>
+        <Icon className="h-3 w-3" />
+      </div>
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <h5 className="text-sm font-bold text-[#2C4156]">{title}</h5>
+          <span className="text-[10px] text-[#98A7AA] font-medium">{time}</span>
+        </div>
+        <p className="text-xs text-[#39586D] font-bold">Por: {user}</p>
+        <p className="text-xs text-[#98A7AA] leading-relaxed">{details}</p>
+      </div>
+    </div>
+  )
 }
