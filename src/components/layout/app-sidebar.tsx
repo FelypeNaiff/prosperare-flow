@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -9,7 +10,15 @@ import {
   DollarSign, 
   FolderOpen, 
   UserCircle, 
-  Settings
+  Settings,
+  ChevronDown,
+  ArrowUpRight,
+  ArrowDownRight,
+  FileText,
+  PieChart,
+  LineChart,
+  CreditCard,
+  PlusCircle
 } from "lucide-react"
 
 import {
@@ -22,7 +31,15 @@ import {
   SidebarMenuItem,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/components/ui/sidebar"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import { useAuth } from "@/hooks/use-auth-mock"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -61,6 +78,16 @@ const items = [
     url: "/financeiro",
     icon: DollarSign,
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR"],
+    isCollapsible: true,
+    subItems: [
+      { title: "Contas a Receber", url: "/financeiro/receber", icon: ArrowUpRight },
+      { title: "Contas a Pagar", url: "/financeiro/pagar", icon: ArrowDownRight },
+      { title: "Contratos", url: "/financeiro/contratos", icon: FileText },
+      { title: "DRE Gerencial", url: "/financeiro/dre", icon: PieChart },
+      { title: "Fluxo de Caixa", url: "/financeiro/fluxo", icon: LineChart },
+      { title: "Boletos Bancários", url: "/financeiro/boletos", icon: CreditCard },
+      { title: "Opções Auxiliares", url: "/financeiro/auxiliar", icon: Settings },
+    ]
   },
   {
     title: "Documentos",
@@ -105,23 +132,51 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {filteredItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={pathname === item.url}
-                    className="hover:bg-sidebar-accent transition-all py-6"
-                  >
-                    <Link href={item.url}>
-                      <item.icon className="h-5 w-5" />
-                      <span className="text-sm font-medium">{item.title}</span>
-                      {item.badge && (
-                        <Badge variant="destructive" className="ml-auto px-1.5 h-5 min-w-5 flex items-center justify-center text-[10px]">
-                          {item.badge}
-                        </Badge>
-                      )}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                item.isCollapsible ? (
+                  <Collapsible key={item.title} className="group/collapsible" defaultOpen={pathname.startsWith(item.url)}>
+                    <SidebarMenuItem>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton className="hover:bg-sidebar-accent transition-all py-6">
+                          <item.icon className="h-5 w-5" />
+                          <span className="text-sm font-medium">{item.title}</span>
+                          <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          {item.subItems?.map((sub) => (
+                            <SidebarMenuSubItem key={sub.title}>
+                              <SidebarMenuSubButton asChild isActive={pathname === sub.url}>
+                                <Link href={sub.url} className="flex items-center gap-2 py-2">
+                                  <sub.icon className="h-4 w-4 opacity-70" />
+                                  <span>{sub.title}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </SidebarMenuItem>
+                  </Collapsible>
+                ) : (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={pathname === item.url}
+                      className="hover:bg-sidebar-accent transition-all py-6"
+                    >
+                      <Link href={item.url}>
+                        <item.icon className="h-5 w-5" />
+                        <span className="text-sm font-medium">{item.title}</span>
+                        {item.badge && (
+                          <Badge variant="destructive" className="ml-auto px-1.5 h-5 min-w-5 flex items-center justify-center text-[10px]">
+                            {item.badge}
+                          </Badge>
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
