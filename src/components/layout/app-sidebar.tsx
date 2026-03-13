@@ -9,8 +9,7 @@ import {
   DollarSign, 
   FolderOpen, 
   UserCircle, 
-  Settings,
-  Menu
+  Settings
 } from "lucide-react"
 
 import {
@@ -22,9 +21,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarGroupContent,
-  useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/hooks/use-auth-mock"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -34,7 +31,7 @@ import { usePathname } from "next/navigation"
 
 const items = [
   {
-    title: "Dashboard",
+    title: "Painel Principal",
     url: "/dashboard",
     icon: LayoutDashboard,
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],

@@ -1,47 +1,47 @@
 'use server';
 /**
- * @fileOverview An AI assistant for drafting personalized email communications to clients.
+ * @fileOverview Um assistente de IA para redigir comunicações personalizadas por e-mail para clientes.
  *
- * - draftClientCommunication - A function that generates a personalized email draft for a client.
- * - DraftClientCommunicationInput - The input type for the draftClientCommunication function.
- * - DraftClientCommunicationOutput - The return type for the draftClientCommunication function.
+ * - draftClientCommunication - Função que gera um rascunho de e-mail personalizado para um cliente.
+ * - DraftClientCommunicationInput - O tipo de entrada para a função draftClientCommunication.
+ * - DraftClientCommunicationOutput - O tipo de retorno para a função draftClientCommunication.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const DraftClientCommunicationInputSchema = z.object({
-  clientName: z.string().describe('The full name of the client.'),
-  clientEmail: z.string().email().describe('The email address of the client.'),
+  clientName: z.string().describe('O nome completo do cliente.'),
+  clientEmail: z.string().email().describe('O endereço de e-mail do cliente.'),
   communicationPurpose: z
     .string()
     .describe(
-      'The main reason for the email (e.g., "upcoming fiscal deadline", "process update", "document request").'
+      'O motivo principal do e-mail (ex: "vencimento fiscal próximo", "atualização de processo", "solicitação de documentos").'
     ),
   specificDetails: z
     .string()
     .optional()
     .describe(
-      'Any specific details relevant to the communication, such as specific deadlines, missing documents, or process status updates.'
+      'Quaisquer detalhes específicos relevantes para a comunicação, como prazos específicos, documentos ausentes ou atualizações de status.'
     ),
   clientRegime: z
     .string()
     .optional()
     .describe(
-      'The client\'s tax regime (e.g., MEI, Simples Nacional, Lucro Presumido, Lucro Real) for additional context.'
+      'O regime tributário do cliente (ex: MEI, Simples Nacional, Lucro Presumido, Lucro Real) para contexto adicional.'
     ),
-  dueDate: z.string().optional().describe('A specific due date relevant to the communication, if any.'),
+  dueDate: z.string().optional().describe('Uma data de vencimento específica relevante, se houver.'),
   documentsNeeded: z
     .array(z.string())
     .optional()
-    .describe('A list of specific documents the client needs to provide.'),
-  processStatus: z.string().optional().describe('The current status of a specific process for the client.'),
+    .describe('Uma lista de documentos específicos que o cliente precisa fornecer.'),
+  processStatus: z.string().optional().describe('O status atual de um processo específico do cliente.'),
 });
 export type DraftClientCommunicationInput = z.infer<typeof DraftClientCommunicationInputSchema>;
 
 const DraftClientCommunicationOutputSchema = z.object({
-  subject: z.string().describe('The suggested subject line for the email.'),
-  body: z.string().describe('The drafted body content of the email.'),
+  subject: z.string().describe('A linha de assunto sugerida para o e-mail.'),
+  body: z.string().describe('O conteúdo do corpo do e-mail rascunhado.'),
 });
 export type DraftClientCommunicationOutput = z.infer<typeof DraftClientCommunicationOutputSchema>;
 
@@ -55,22 +55,22 @@ const prompt = ai.definePrompt({
   name: 'draftClientCommunicationPrompt',
   input: {schema: DraftClientCommunicationInputSchema},
   output: {schema: DraftClientCommunicationOutputSchema},
-  prompt: `You are an AI assistant for a tax accounting office (Contabilidade). Your task is to draft a professional, clear, and compliant email to a client based on the provided information.
+  prompt: `Você é um assistente de IA para um escritório de contabilidade (ContaHub). Sua tarefa é redigir um e-mail profissional, claro e em conformidade para um cliente com base nas informações fornecidas.
 
-Client Name: {{{clientName}}}
-Client Email: {{{clientEmail}}}
-Communication Purpose: {{{communicationPurpose}}}
+Nome do Cliente: {{{clientName}}}
+E-mail do Cliente: {{{clientEmail}}}
+Objetivo da Comunicação: {{{communicationPurpose}}}
 
-Consider the following additional details:
-{{#if clientRegime}}Client Tax Regime: {{{clientRegime}}}{{/if}}
-{{#if dueDate}}Specific Due Date: {{{dueDate}}}{{/if}}
-{{#if documentsNeeded}}Documents Needed: {{#each documentsNeeded}}- {{{this}}}{{/each}}{{/if}}
-{{#if processStatus}}Process Status: {{{processStatus}}}{{/if}}
-{{#if specificDetails}}Additional Specific Details: {{{specificDetails}}}{{/if}}
+Considere os seguintes detalhes adicionais:
+{{#if clientRegime}}Regime Tributário: {{{clientRegime}}}{{/if}}
+{{#if dueDate}}Data de Vencimento: {{{dueDate}}}{{/if}}
+{{#if documentsNeeded}}Documentos Necessários: {{#each documentsNeeded}}- {{{this}}}{{/each}}{{/if}}
+{{#if processStatus}}Status do Processo: {{{processStatus}}}{{/if}}
+{{#if specificDetails}}Detalhes Específicos Adicionais: {{{specificDetails}}}{{/if}}
 
-Draft a concise and professional email. The tone should be helpful and informative. Ensure all relevant details are included.
+Redija um e-mail conciso e profissional. O tom deve ser prestativo e informativo. Certifique-se de que todos os detalhes relevantes foram incluídos e que a linguagem seja apropriada para o contexto contábil brasileiro.
 
-Based on the above, generate a suitable email subject line and body.`,
+Com base no exposto, gere um assunto e um corpo de e-mail adequados em português brasileiro.`,
 });
 
 const draftClientCommunicationFlow = ai.defineFlow(
