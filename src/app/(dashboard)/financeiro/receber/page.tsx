@@ -10,11 +10,12 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Search, 
-  Filter, 
   MoreVertical,
   Repeat,
-  ExternalLink,
-  ArrowUpRight
+  ArrowUpRight,
+  FileSpreadsheet,
+  Upload,
+  Check
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -34,10 +35,22 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { toast } from "@/hooks/use-toast"
 
-const MOCK_RECEIVABLES = [
+const INITIAL_RECEIVABLES = [
   { id: '1', descricao: 'Honorário Contábil - Out/24', cliente: 'Padaria Central', pagamento: 'Boleto', data: '10/10/2024', situacao: 'Confirmado', valor: 1250.00, recorrente: true },
   { id: '2', descricao: 'Consultoria Tributária', cliente: 'Oficina do João', pagamento: 'PIX Online', data: '12/10/2024', situacao: 'Pendente', valor: 450.00, recorrente: false },
   { id: '3', descricao: 'Abertura de Empresa', cliente: 'Tech Solutions ME', pagamento: 'Cartão 3x', data: '05/10/2024', situacao: 'Atrasado', valor: 2800.00, recorrente: false },
@@ -45,17 +58,55 @@ const MOCK_RECEIVABLES = [
   { id: '5', descricao: 'Honorário Contábil - Out/24', cliente: 'Consultoria ABC', pagamento: 'Débito', data: '10/10/2024', situacao: 'Cancelado', valor: 900.00, recorrente: true },
 ]
 
-export default function ContasAReceberPage() {
-  const [searchTerm, setSearchTerm] = useState("")
+const STATUS_OPTIONS = [
+  { label: 'Confirmado', value: 'Confirmado', color: 'bg-emerald-500' },
+  { label: 'Pendente', value: 'Pendente', color: 'bg-yellow-500 text-black' },
+  { label: 'Atrasado', value: 'Atrasado', color: 'bg-red-500' },
+  { label: 'Cancelado', value: 'Cancelado', color: 'bg-slate-400' },
+]
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Confirmado': return <Badge className="bg-emerald-500">Confirmado</Badge>
-      case 'Atrasado': return <Badge variant="destructive">Atrasado</Badge>
-      case 'Pendente': return <Badge className="bg-yellow-500 text-black">Pendente</Badge>
-      case 'Cancelado': return <Badge variant="secondary">Cancelado</Badge>
-      default: return <Badge variant="outline">{status}</Badge>
-    }
+export default function ContasAReceberPage() {
+  const [items, setItems] = useState(INITIAL_RECEIVABLES)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isImportOpen, setIsImportOpen] = useState(false)
+
+  const handleStatusChange = (id: string, newStatus: string) => {
+    setItems(prev => prev.map(item => 
+      item.id === id ? { ...item, situacao: newStatus } : item
+    ))
+    toast({
+      title: "Status Atualizado",
+      description: `O lançamento foi marcado como ${newStatus}.`
+    })
+  }
+
+  const getStatusBadge = (status: string, id: string) => {
+    const option = STATUS_OPTIONS.find(o => o.value === status) || STATUS_OPTIONS[1]
+    
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Badge className={cn("cursor-pointer hover:opacity-80 transition-opacity", option.color)}>
+            {status}
+          </Badge>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="center">
+          <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">Alterar Situação</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {STATUS_OPTIONS.map(opt => (
+            <DropdownMenuItem 
+              key={opt.value} 
+              onClick={() => handleStatusChange(id, opt.value)}
+              className="gap-2"
+            >
+              <div className={cn("w-2 h-2 rounded-full", opt.color.split(' ')[0])} />
+              {opt.label}
+              {status === opt.value && <Check className="ml-auto h-3 w-3" />}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
   }
 
   return (
@@ -73,12 +124,50 @@ export default function ContasAReceberPage() {
           </div>
           <div className="flex gap-2">
             <Button className="bg-primary hover:bg-secondary gap-2"><Plus className="h-4 w-4" /> Nova Conta</Button>
+            
+            <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <FileSpreadsheet className="h-4 w-4" /> Importar Planilha
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Importar Contas a Receber</DialogTitle>
+                  <DialogDescription>
+                    Suba sua planilha de Excel ou CSV para processamento em lote.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-6 py-4">
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 gap-4 hover:bg-muted/50 transition-colors cursor-pointer">
+                    <Upload className="h-10 w-10 text-muted-foreground" />
+                    <div className="text-center">
+                      <p className="text-sm font-medium">Arraste sua planilha ou clique para selecionar</p>
+                      <p className="text-xs text-muted-foreground mt-1">Formatos suportados: .xlsx, .xls, .csv</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold uppercase text-muted-foreground">Recomendação:</p>
+                    <Button variant="outline" className="w-full gap-2 border-accent text-accent hover:bg-accent/5">
+                      <Download className="h-4 w-4" /> Baixar Planilha Modelo (.xlsx)
+                    </Button>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setIsImportOpen(false)}>Cancelar</Button>
+                  <Button className="bg-primary" onClick={() => {
+                    setIsImportOpen(false)
+                    toast({ title: "Importação Iniciada", description: "O sistema está processando os dados da planilha." })
+                  }}>Iniciar Importação</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">Mais Ações</Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem><Download className="mr-2 h-4 w-4" /> Importar Planilha</DropdownMenuItem>
                 <DropdownMenuItem><RefreshCw className="mr-2 h-4 w-4" /> Gerar Mês</DropdownMenuItem>
                 <DropdownMenuItem className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Excluir em Lote</DropdownMenuItem>
               </DropdownMenuContent>
@@ -133,7 +222,7 @@ export default function ContasAReceberPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {MOCK_RECEIVABLES.map((item) => (
+                  {items.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
@@ -144,7 +233,7 @@ export default function ContasAReceberPage() {
                       <TableCell>{item.cliente}</TableCell>
                       <TableCell>{item.pagamento}</TableCell>
                       <TableCell>{item.data}</TableCell>
-                      <TableCell>{getStatusBadge(item.situacao)}</TableCell>
+                      <TableCell>{getStatusBadge(item.situacao, item.id)}</TableCell>
                       <TableCell className="text-right font-bold">R$ {item.valor.toFixed(2)}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
