@@ -13,9 +13,9 @@ const data = [
 ]
 
 const config = {
-  concluido: { label: "Concluído", color: "hsl(var(--chart-1))" },
-  pendente: { label: "Pendente", color: "hsl(var(--chart-2))" },
-  atrasado: { label: "Atrasado", color: "hsl(var(--chart-4))" },
+  concluido: { label: "Concluído", color: "#1FA67A" },
+  pendente: { label: "Pendente", color: "#F2B705" },
+  atrasado: { label: "Atrasado", color: "#E74C3C" },
 }
 
 export function ObligationChart() {
@@ -34,10 +34,10 @@ export function ObligationChart() {
             tickLine={false} 
             axisLine={false} 
             width={80}
-            className="text-xs font-medium"
+            className="text-[10px] font-bold text-[#39586D] uppercase"
           />
           <ChartTooltip content={<ChartTooltipContent />} />
-          <Bar dataKey="concluido" stackId="a" fill="var(--color-concluido)" radius={[0, 0, 0, 0]} barSize={20} />
+          <Bar dataKey="concluido" stackId="a" fill="var(--color-concluido)" radius={[0, 0, 0, 0]} barSize={24} />
           <Bar dataKey="pendente" stackId="a" fill="var(--color-pendente)" radius={[0, 0, 0, 0]} />
           <Bar dataKey="atrasado" stackId="a" fill="var(--color-atrasado)" radius={[0, 4, 4, 0]} />
         </BarChart>

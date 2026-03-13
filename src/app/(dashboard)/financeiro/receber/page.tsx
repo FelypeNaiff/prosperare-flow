@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -59,10 +58,10 @@ const INITIAL_RECEIVABLES = [
 ]
 
 const STATUS_OPTIONS = [
-  { label: 'Confirmado', value: 'Confirmado', color: 'bg-emerald-500' },
-  { label: 'Pendente', value: 'Pendente', color: 'bg-yellow-500 text-black' },
-  { label: 'Atrasado', value: 'Atrasado', color: 'bg-red-500' },
-  { label: 'Cancelado', value: 'Cancelado', color: 'bg-slate-400' },
+  { label: 'Confirmado', value: 'Confirmado', bg: 'bg-[#7ED6B5]', text: 'text-[#1FA67A]' },
+  { label: 'Pendente', value: 'Pendente', bg: 'bg-[#FEF3C7]', text: 'text-[#F2B705]' },
+  { label: 'Atrasado', value: 'Atrasado', bg: 'bg-[#FEE2E2]', text: 'text-[#E74C3C]' },
+  { label: 'Cancelado', value: 'Cancelado', bg: 'bg-[#F3F4F6]', text: 'text-[#98A7AA]' },
 ]
 
 export default function ContasAReceberPage() {
@@ -86,12 +85,12 @@ export default function ContasAReceberPage() {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Badge className={cn("cursor-pointer hover:opacity-80 transition-opacity", option.color)}>
+          <Badge className={cn("cursor-pointer hover:opacity-80 transition-opacity border-none font-bold text-[10px] uppercase", option.bg, option.text)}>
             {status}
           </Badge>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="center">
-          <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">Alterar Situação</DropdownMenuLabel>
+          <DropdownMenuLabel className="text-[10px] uppercase text-[#98A7AA]">Alterar Situação</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {STATUS_OPTIONS.map(opt => (
             <DropdownMenuItem 
@@ -99,8 +98,8 @@ export default function ContasAReceberPage() {
               onClick={() => handleStatusChange(id, opt.value)}
               className="gap-2"
             >
-              <div className={cn("w-2 h-2 rounded-full", opt.color.split(' ')[0])} />
-              {opt.label}
+              <div className={cn("w-2 h-2 rounded-full", opt.bg)} />
+              <span className="text-xs font-medium">{opt.label}</span>
               {status === opt.value && <Check className="ml-auto h-3 w-3" />}
             </DropdownMenuItem>
           ))}
@@ -113,138 +112,129 @@ export default function ContasAReceberPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-primary">Contas a Receber</h1>
-          <p className="text-muted-foreground">Gestão de honorários e receitas do escritório.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">Contas a Receber</h1>
+          <p className="text-[#98A7AA] font-medium">Gestão de honorários e receitas do escritório.</p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center bg-white border rounded-lg px-3 py-1 text-sm font-medium">
-            <Button variant="ghost" size="icon" className="h-8 w-8"><ChevronLeft className="h-4 w-4" /></Button>
+          <div className="flex items-center bg-white border border-[#D2D7DB] rounded-lg px-3 py-1 text-sm font-bold text-[#2C4156]">
+            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#F7F7F7]"><ChevronLeft className="h-4 w-4" /></Button>
             <span className="px-4">Outubro 2024</span>
-            <Button variant="ghost" size="icon" className="h-8 w-8"><ChevronRight className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#F7F7F7]"><ChevronRight className="h-4 w-4" /></Button>
           </div>
           <div className="flex gap-2">
-            <Button className="bg-primary hover:bg-secondary gap-2"><Plus className="h-4 w-4" /> Nova Conta</Button>
+            <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-bold"><Plus className="h-4 w-4" /> Nova Conta</Button>
             
             <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2 border-[#D2D7DB] text-[#39586D] hover:bg-[#F7F7F7] font-bold">
                   <FileSpreadsheet className="h-4 w-4" /> Importar Planilha
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle>Importar Contas a Receber</DialogTitle>
+                  <DialogTitle className="text-[#2C4156]">Importar Contas a Receber</DialogTitle>
                   <DialogDescription>
                     Suba sua planilha de Excel ou CSV para processamento em lote.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-6 py-4">
-                  <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 gap-4 hover:bg-muted/50 transition-colors cursor-pointer">
-                    <Upload className="h-10 w-10 text-muted-foreground" />
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-[#D2D7DB] rounded-lg p-8 gap-4 hover:bg-[#F7F7F7] transition-colors cursor-pointer">
+                    <Upload className="h-10 w-10 text-[#98A7AA]" />
                     <div className="text-center">
-                      <p className="text-sm font-medium">Arraste sua planilha ou clique para selecionar</p>
-                      <p className="text-xs text-muted-foreground mt-1">Formatos suportados: .xlsx, .xls, .csv</p>
+                      <p className="text-sm font-bold text-[#2C4156]">Selecione o arquivo de importação</p>
+                      <p className="text-xs text-[#98A7AA] mt-1">Formatos: .xlsx, .xls, .csv</p>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-xs font-bold uppercase text-muted-foreground">Recomendação:</p>
-                    <Button variant="outline" className="w-full gap-2 border-accent text-accent hover:bg-accent/5">
+                    <p className="text-[10px] font-bold uppercase text-[#98A7AA]">Recomendação:</p>
+                    <Button variant="outline" className="w-full gap-2 border-[#1FA67A] text-[#1FA67A] hover:bg-[#1FA67A]/5 font-bold">
                       <Download className="h-4 w-4" /> Baixar Planilha Modelo (.xlsx)
                     </Button>
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="ghost" onClick={() => setIsImportOpen(false)}>Cancelar</Button>
-                  <Button className="bg-primary" onClick={() => {
+                  <Button variant="ghost" onClick={() => setIsImportOpen(false)} className="text-[#98A7AA] font-bold">Cancelar</Button>
+                  <Button className="bg-[#1FA67A]" onClick={() => {
                     setIsImportOpen(false)
                     toast({ title: "Importação Iniciada", description: "O sistema está processando os dados da planilha." })
                   }}>Iniciar Importação</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">Mais Ações</Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem><RefreshCw className="mr-2 h-4 w-4" /> Gerar Mês</DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Excluir em Lote</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <SummaryCard label="Vencidos" value="R$ 3.200,00" color="bg-red-500" icon={ArrowUpRight} />
-        <SummaryCard label="Vencem Hoje" value="R$ 1.450,00" color="bg-orange-500" icon={ArrowUpRight} />
-        <SummaryCard label="A Vencer" value="R$ 12.800,00" color="bg-slate-500" icon={ArrowUpRight} />
-        <SummaryCard label="Recebidos" value="R$ 32.400,00" color="bg-emerald-500" icon={ArrowUpRight} />
-        <SummaryCard label="Total" value="R$ 49.850,00" color="bg-black" icon={ArrowUpRight} />
+        <SummaryCard label="Vencidos" value="R$ 3.200,00" color="bg-[#E74C3C]" icon={ArrowUpRight} />
+        <SummaryCard label="Vencem Hoje" value="R$ 1.450,00" color="bg-[#F2B705]" icon={ArrowUpRight} />
+        <SummaryCard label="A Vencer" value="R$ 12.800,00" color="bg-[#98A7AA]" icon={ArrowUpRight} />
+        <SummaryCard label="Recebidos" value="R$ 32.400,00" color="bg-[#1FA67A]" icon={ArrowUpRight} />
+        <SummaryCard label="Total" value="R$ 49.850,00" color="bg-[#2C4156]" icon={ArrowUpRight} />
       </div>
 
-      <Card>
+      <Card className="border-[#D2D7DB] shadow-sm overflow-hidden bg-white">
         <CardContent className="p-0">
           <Tabs defaultValue="todos" className="w-full">
-            <div className="flex items-center justify-between p-4 border-b">
-              <TabsList className="bg-muted/50">
-                <TabsTrigger value="todos">Todos</TabsTrigger>
-                <TabsTrigger value="pendente">Pendente</TabsTrigger>
-                <TabsTrigger value="pago">Pago</TabsTrigger>
-                <TabsTrigger value="vencido">Vencido</TabsTrigger>
+            <div className="flex items-center justify-between p-4 border-b border-[#D2D7DB] bg-[#F7F7F7]/50">
+              <TabsList className="bg-[#D2D7DB]/30">
+                <TabsTrigger value="todos" className="data-[state=active]:bg-white data-[state=active]:text-[#2C4156] font-bold text-xs">Todos</TabsTrigger>
+                <TabsTrigger value="pendente" className="data-[state=active]:bg-white data-[state=active]:text-[#2C4156] font-bold text-xs">Pendente</TabsTrigger>
+                <TabsTrigger value="pago" className="data-[state=active]:bg-white data-[state=active]:text-[#2C4156] font-bold text-xs">Pago</TabsTrigger>
+                <TabsTrigger value="vencido" className="data-[state=active]:bg-white data-[state=active]:text-[#2C4156] font-bold text-xs">Vencido</TabsTrigger>
               </TabsList>
               <div className="flex items-center gap-4">
                 <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
                   <Input 
                     placeholder="Buscar cliente..." 
-                    className="pl-9 h-9 w-[200px]" 
+                    className="pl-9 h-9 w-[250px] bg-white border-[#D2D7DB] focus-visible:ring-[#1FA67A]" 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <div className="text-sm font-bold">Total: R$ 49.850,00</div>
+                <div className="text-sm font-extrabold text-[#2C4156]">TOTAL MÊS: R$ 49.850,00</div>
               </div>
             </div>
 
             <TabsContent value="todos" className="m-0">
               <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Entidade/Cliente</TableHead>
-                    <TableHead>Pagamento</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Situação</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                <TableHeader className="bg-[#2C4156]">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-white uppercase text-[10px] font-bold">Descrição</TableHead>
+                    <TableHead className="text-white uppercase text-[10px] font-bold">Entidade/Cliente</TableHead>
+                    <TableHead className="text-white uppercase text-[10px] font-bold">Pagamento</TableHead>
+                    <TableHead className="text-white uppercase text-[10px] font-bold">Data</TableHead>
+                    <TableHead className="text-white uppercase text-[10px] font-bold text-center">Situação</TableHead>
+                    <TableHead className="text-white uppercase text-[10px] font-bold text-right">Valor</TableHead>
+                    <TableHead className="text-white uppercase text-[10px] font-bold text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {items.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">
+                    <TableRow key={item.id} className="hover:bg-[#F7F7F7]">
+                      <TableCell className="font-bold text-[#2C4156] py-4">
                         <div className="flex items-center gap-2">
                           {item.descricao}
-                          {item.recorrente && <Repeat className="h-3 w-3 text-primary" title="Recorrente" />}
+                          {item.recorrente && <Repeat className="h-3 w-3 text-[#1FA67A]" title="Recorrente" />}
                         </div>
                       </TableCell>
-                      <TableCell>{item.cliente}</TableCell>
-                      <TableCell>{item.pagamento}</TableCell>
-                      <TableCell>{item.data}</TableCell>
-                      <TableCell>{getStatusBadge(item.situacao, item.id)}</TableCell>
-                      <TableCell className="text-right font-bold">R$ {item.valor.toFixed(2)}</TableCell>
+                      <TableCell className="text-[#39586D]">{item.cliente}</TableCell>
+                      <TableCell className="text-[#98A7AA] text-xs font-medium">{item.pagamento}</TableCell>
+                      <TableCell className="text-[#39586D] font-mono text-xs">{item.data}</TableCell>
+                      <TableCell className="text-center">{getStatusBadge(item.situacao, item.id)}</TableCell>
+                      <TableCell className="text-right font-extrabold text-[#1FA67A]">R$ {item.valor.toFixed(2)}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]"><MoreVertical className="h-4 w-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>Ver Detalhes</DropdownMenuItem>
-                            <DropdownMenuItem>Editar</DropdownMenuItem>
-                            <DropdownMenuItem>Baixar PDF</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">Excluir</DropdownMenuItem>
+                            <DropdownMenuItem className="text-xs font-bold text-[#2C4156]">Ver Detalhes</DropdownMenuItem>
+                            <DropdownMenuItem className="text-xs font-bold text-[#2C4156]">Editar Lançamento</DropdownMenuItem>
+                            <DropdownMenuItem className="text-xs font-bold text-[#2C4156]">Baixar PDF</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-xs font-bold text-[#E74C3C]">Excluir Registro</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -262,12 +252,12 @@ export default function ContasAReceberPage() {
 
 function SummaryCard({ label, value, color, icon: Icon }: { label: string, value: string, color: string, icon: any }) {
   return (
-    <div className={cn("p-4 rounded-lg text-white flex justify-between items-start shadow-sm", color)}>
+    <div className={cn("p-4 rounded-xl text-white flex justify-between items-start shadow-sm border-none", color)}>
       <div className="space-y-1">
-        <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">{label}</p>
-        <p className="text-xl font-bold">{value}</p>
+        <p className="text-[10px] font-extrabold uppercase tracking-widest opacity-80">{label}</p>
+        <p className="text-xl font-extrabold">{value}</p>
       </div>
-      <div className="p-1.5 bg-white/20 rounded-md">
+      <div className="p-1.5 bg-white/20 rounded-lg">
         <Icon className="h-4 w-4" />
       </div>
     </div>

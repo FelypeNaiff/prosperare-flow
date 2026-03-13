@@ -43,6 +43,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
 
 const items = [
   {
@@ -114,16 +115,15 @@ export function AppSidebar() {
   )
 
   return (
-    <Sidebar className="border-r-0">
-      <SidebarHeader className="h-20 flex items-center px-6 justify-between">
-        <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-primary opacity-20" />
-            <TrendingUp className="w-6 h-6 text-primary z-10" />
-          </div>
+    <Sidebar className="border-r-0 bg-[#2C4156] text-white">
+      <SidebarHeader className="h-24 flex flex-col items-start px-6 justify-center">
+        <div className="flex items-center gap-2">
           <div className="flex flex-col">
-            <span className="text-white font-bold text-lg leading-tight tracking-tight uppercase">Prosperare</span>
-            <span className="text-emerald-400 font-bold text-sm leading-tight tracking-widest uppercase">Flow</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-white font-bold text-xl leading-none tracking-tight">PROSPERARE</span>
+              <span className="text-[#1FA67A] font-bold text-xl leading-none tracking-tight">FLOW</span>
+            </div>
+            <span className="text-[#98A7AA] text-[10px] uppercase font-bold tracking-[0.2em] mt-1">Sistema Contábil</span>
           </div>
         </div>
       </SidebarHeader>
@@ -136,20 +136,23 @@ export function AppSidebar() {
                   <Collapsible key={item.title} className="group/collapsible" defaultOpen={pathname.startsWith(item.url)}>
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
-                        <SidebarMenuButton className="hover:bg-sidebar-accent transition-all py-6">
+                        <SidebarMenuButton className={cn(
+                          "hover:bg-[#39586D] transition-all py-6 text-white",
+                          pathname.startsWith(item.url) && "bg-[#39586D] border-l-[3px] border-[#1FA67A]"
+                        )}>
                           <item.icon className="h-5 w-5" />
                           <span className="text-sm font-medium">{item.title}</span>
                           <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <SidebarMenuSub>
+                        <SidebarMenuSub className="border-l border-white/10 ml-4">
                           {item.subItems?.map((sub) => (
                             <SidebarMenuSubItem key={sub.title}>
-                              <SidebarMenuSubButton asChild isActive={pathname === sub.url}>
+                              <SidebarMenuSubButton asChild isActive={pathname === sub.url} className="text-white/80 hover:text-white">
                                 <Link href={sub.url} className="flex items-center gap-2 py-2">
-                                  <sub.icon className="h-4 w-4 opacity-70" />
-                                  <span>{sub.title}</span>
+                                  <sub.icon className={cn("h-4 w-4 opacity-70", pathname === sub.url && "text-[#1FA67A] opacity-100")} />
+                                  <span className={cn(pathname === sub.url && "text-[#1FA67A] font-semibold")}>{sub.title}</span>
                                 </Link>
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
@@ -163,13 +166,16 @@ export function AppSidebar() {
                     <SidebarMenuButton 
                       asChild 
                       isActive={pathname === item.url}
-                      className="hover:bg-sidebar-accent transition-all py-6"
+                      className={cn(
+                        "hover:bg-[#39586D] transition-all py-6 text-white",
+                        pathname === item.url && "bg-[#39586D] border-l-[3px] border-[#1FA67A]"
+                      )}
                     >
                       <Link href={item.url}>
-                        <item.icon className="h-5 w-5" />
-                        <span className="text-sm font-medium">{item.title}</span>
+                        <item.icon className={cn("h-5 w-5", pathname === item.url && "text-[#1FA67A]")} />
+                        <span className={cn("text-sm font-medium", pathname === item.url && "font-bold")}>{item.title}</span>
                         {item.badge && (
-                          <Badge variant="destructive" className="ml-auto px-1.5 h-5 min-w-5 flex items-center justify-center text-[10px]">
+                          <Badge variant="destructive" className="ml-auto px-1.5 h-5 min-w-5 flex items-center justify-center text-[10px] bg-[#E74C3C]">
                             {item.badge}
                           </Badge>
                         )}
@@ -182,18 +188,18 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4 bg-sidebar-accent/50 border-t border-sidebar-border">
+      <SidebarFooter className="p-4 bg-[#39586D]/30 border-t border-white/10">
         {user && (
           <div className="flex items-center gap-3">
-            <Avatar className="h-9 w-9 border-2 border-white/20">
+            <Avatar className="h-9 w-9 border-2 border-[#1FA67A]/50">
               <AvatarImage src={user.avatarUrl} />
-              <AvatarFallback className="bg-primary-foreground text-primary font-bold">
+              <AvatarFallback className="bg-white text-[#2C4156] font-bold">
                 {user.name.charAt(0)}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-semibold text-white truncate">{user.name}</span>
-              <span className="text-[10px] text-white/60 font-medium uppercase tracking-wider truncate">
+              <span className="text-[10px] text-[#98A7AA] font-medium uppercase tracking-wider truncate">
                 {user.profile}
               </span>
             </div>

@@ -10,34 +10,34 @@
     --card-foreground: 210 32% 15%;
     --popover: 0 0% 100%;
     --popover-foreground: 210 32% 15%;
-    --primary: 210 32% 25%; /* #2C4156 */
+    --primary: 210 32% 25%; /* #2C4156 - Azul Institucional */
     --primary-foreground: 0 0% 100%;
-    --secondary: 203 31% 33%; /* #39586D */
+    --secondary: 203 31% 33%; /* #39586D - Azul Petróleo */
     --secondary-foreground: 0 0% 100%;
-    --muted: 210 10% 90%;
-    --muted-foreground: 210 10% 40%;
-    --accent: 204 64% 41%; /* #2574A9 Info Blue */
+    --muted: 188 9% 63%; /* #98A7AA - Cinza Médio */
+    --muted-foreground: 188 9% 40%;
+    --accent: 161 68% 39%; /* #1FA67A - Verde Flow */
     --accent-foreground: 0 0% 100%;
-    --destructive: 6 63% 46%; /* #C0392B */
+    --destructive: 6 78% 57%; /* #E74C3C - Vermelho Alerta */
     --destructive-foreground: 0 0% 100%;
-    --border: 208 10% 84%; /* #D2D7DB */
+    --border: 208 10% 84%; /* #D2D7DB - Cinza Claro */
     --input: 208 10% 84%;
-    --ring: 210 32% 25%;
-    --chart-1: 152 55% 40%; /* Success Green */
-    --chart-2: 40 73% 44%; /* Warning Yellow */
-    --chart-3: 204 64% 41%; /* Info Blue */
-    --chart-4: 6 63% 46%; /* Destructive Red */
-    --chart-5: 210 32% 35%;
+    --ring: 161 68% 39%;
+    --chart-1: 161 68% 39%; /* Verde Flow */
+    --chart-2: 203 31% 33%; /* Azul Petróleo */
+    --chart-3: 45 96% 48%;  /* Amarelo Alerta */
+    --chart-4: 6 78% 57%;   /* Vermelho Alerta */
+    --chart-5: 204 64% 41%; /* Azul Info */
     --radius: 0.6rem;
     
     --sidebar-background: 210 32% 25%; /* #2C4156 */
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 210 32% 25%;
-    --sidebar-accent: 203 31% 33%;
+    --sidebar-primary: 161 68% 39%; /* #1FA67A */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 203 31% 33%; /* #39586D */
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 210 32% 20%;
-    --sidebar-ring: 0 0% 100%;
+    --sidebar-ring: 161 68% 39%;
   }
 }
 
@@ -46,7 +46,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-body antialiased;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-headline font-bold text-primary;
@@ -62,5 +62,11 @@
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/30;
+  @apply bg-muted/20 rounded-full hover:bg-muted/30;
 }
+
+/* Custom classes for rebranding */
+.text-flow { color: #1FA67A; }
+.bg-flow { background-color: #1FA67A; }
+.text-prosperare { color: #2C4156; }
+.bg-prosperare { background-color: #2C4156; }

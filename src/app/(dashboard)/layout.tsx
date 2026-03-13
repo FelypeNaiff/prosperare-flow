@@ -31,53 +31,58 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset className="bg-background">
+      <SidebarInset className="bg-[#F7F7F7]">
         <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-white px-6">
-          <SidebarTrigger />
+          <SidebarTrigger className="text-[#2C4156]" />
           <div className="flex items-center gap-2 md:hidden">
-            <TrendingUp className="w-6 h-6 text-primary" />
-            <span className="font-bold text-sm uppercase">Prosperare Flow</span>
+            <span className="font-bold text-sm tracking-tight">
+              <span className="text-[#2C4156]">PROSPERARE</span>
+              <span className="text-[#1FA67A] ml-1">FLOW</span>
+            </span>
           </div>
           <div className="flex-1 max-w-md hidden md:block">
             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
               <Input
                 type="search"
                 placeholder="Buscar cliente, tarefa ou documento..."
-                className="pl-9 bg-background/50 border-none shadow-none focus-visible:ring-1"
+                className="pl-9 bg-[#F7F7F7] border-none shadow-none focus-visible:ring-1 focus-visible:ring-[#1FA67A]"
               />
             </div>
           </div>
           <div className="ml-auto flex items-center gap-4">
             <div className="relative">
-              <Button variant="ghost" size="icon" className="relative">
+              <Button variant="ghost" size="icon" className="relative text-[#2C4156]">
                 <Bell className="h-5 w-5" />
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-destructive border-2 border-white">
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-[#E74C3C] border-2 border-white">
                   3
                 </Badge>
               </Button>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <User className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="rounded-full border-2 border-[#D2D7DB]">
+                  <User className="h-5 w-5 text-[#2C4156]" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="text-[#2C4156]">Minha Conta</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Perfil</DropdownMenuItem>
                 <DropdownMenuItem>Minhas Tarefas</DropdownMenuItem>
                 <DropdownMenuItem>Configurações</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout}>Sair</DropdownMenuItem>
+                <DropdownMenuItem onClick={logout} className="text-[#E74C3C]">Sair do Sistema</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </header>
-        <main className="p-4 md:p-8">
+        <main className="p-4 md:p-8 flex-1">
           {children}
         </main>
+        <footer className="h-12 border-t bg-white flex items-center justify-center px-6 text-[11px] text-[#98A7AA] font-medium">
+          Prosperare Flow © 2026 — Sistema de Gestão Contábil
+        </footer>
       </SidebarInset>
     </SidebarProvider>
   )

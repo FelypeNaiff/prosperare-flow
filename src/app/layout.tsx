@@ -2,7 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'PROSPERARE FLOW - Gestão e Fluxo de Tarefas',
+  title: 'Prosperare Flow - Sistema de Gestão Contábil',
   description: 'Sistema de gestão e fluxo de tarefas para escritórios de contabilidade',
 };
 
