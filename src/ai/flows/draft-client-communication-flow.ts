@@ -68,9 +68,9 @@ Considere os seguintes detalhes adicionais:
 {{#if processStatus}}Status do Processo: {{{processStatus}}}{{/if}}
 {{#if specificDetails}}Detalhes Específicos Adicionais: {{{specificDetails}}}{{/if}}
 
-Redija um e-mail conciso e profissional. O tom deve ser prestativo e informativo. Certifique-se de que todos os detalhes relevantes foram incluídos e que a linguagem seja apropriada para o contexto contábil brasileiro.
+Redija um e-mail conciso e profissional em português brasileiro (PT-BR). O tom deve ser prestativo, formal e informativo. Certifique-se de que todos os detalhes relevantes foram incluídos e que a linguagem seja apropriada para o contexto contábil brasileiro.
 
-Com base no exposto, gere um assunto e um corpo de e-mail adequados em português brasileiro.`,
+Com base no exposto, gere um assunto e um corpo de e-mail adequados.`,
 });
 
 const draftClientCommunicationFlow = ai.defineFlow(
