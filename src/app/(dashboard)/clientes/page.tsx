@@ -2,7 +2,22 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Search, Filter, MoreHorizontal, FileText, Activity, Trash2, Edit, ShieldCheck, CreditCard, Database, Building2 } from "lucide-react"
+import { 
+  Plus, 
+  Search, 
+  MoreHorizontal, 
+  FileText, 
+  Trash2, 
+  Edit, 
+  ShieldCheck, 
+  Building2, 
+  Key, 
+  FileSignature, 
+  ArrowUpRight,
+  AlertTriangle,
+  CheckCircle2,
+  Clock
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { 
@@ -22,28 +37,96 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ClientCertificatesTable } from "@/components/certificates/client-certificates-table"
 import { Label } from "@/components/ui/label"
 import { ClientCommunicationTool } from "@/components/clients/client-communication-tool"
+import { ClientCertificatesTable } from "@/components/certificates/client-certificates-table"
+import { DigitalCertificateTab } from "@/components/clients/digital-certificate-tab"
+import { AccessDataTab } from "@/components/clients/access-data-tab"
+import { ProcurationTab } from "@/components/clients/procuration-tab"
+import { KpiCard } from "@/components/dashboard/kpi-card"
+import { useAuth } from "@/hooks/use-auth-mock"
 
 const MOCK_CLIENTS = [
-  { id: '1', empresa: 'Padaria Central', cnpj: '12.345.678/0001-90', regime: 'Simples Nacional', responsavel: 'Maria Silva', certidao: 'Válida', score: 95, email: 'maria@padariacentral.com.br' },
-  { id: '2', empresa: 'Oficina do João', cnpj: '98.765.432/0001-21', regime: 'MEI', responsavel: 'João Souza', certidao: 'A Vencer', score: 65, email: 'joao@oficina.com.br' },
-  { id: '3', empresa: 'Consultoria Tech', cnpj: '11.222.333/0001-44', regime: 'Lucro Presumido', responsavel: 'Ana Pereira', certidao: 'Vencida', score: 40, email: 'ana@tech.com.br' },
-  { id: '4', empresa: 'Agro Vale', cnpj: '55.444.333/0001-00', regime: 'Produtor Rural', responsavel: 'Carlos Rocha', certidao: 'Válida', score: 88, email: 'carlos@agro.com.br' },
+  { 
+    id: '1', 
+    empresa: 'Padaria Central', 
+    cnpj: '12.345.678/0001-90', 
+    regime: 'Simples Nacional', 
+    responsavel: 'Maria Silva', 
+    certidao: 'Válida', 
+    score: 95, 
+    email: 'maria@padariacentral.com.br',
+    certificadoStatus: 'Válido',
+    procuracaoStatus: 'Ativa'
+  },
+  { 
+    id: '2', 
+    empresa: 'Oficina do João', 
+    cnpj: '98.765.432/0001-21', 
+    regime: 'MEI', 
+    responsavel: 'João Souza', 
+    certidao: 'A Vencer', 
+    score: 65, 
+    email: 'joao@oficina.com.br',
+    certificadoStatus: 'Vencendo',
+    procuracaoStatus: 'Expirando'
+  },
+  { 
+    id: '3', 
+    empresa: 'Consultoria Tech', 
+    cnpj: '11.222.333/0001-44', 
+    regime: 'Lucro Presumido', 
+    responsavel: 'Ana Pereira', 
+    certidao: 'Vencida', 
+    score: 40, 
+    email: 'ana@tech.com.br',
+    certificadoStatus: 'Vencido',
+    procuracaoStatus: 'Expirada'
+  },
+  { 
+    id: '4', 
+    empresa: 'Agro Vale', 
+    cnpj: '55.444.333/0001-00', 
+    regime: 'Produtor Rural', 
+    responsavel: 'Carlos Rocha', 
+    certidao: 'Válida', 
+    score: 88, 
+    email: 'carlos@agro.com.br',
+    certificadoStatus: 'Não integrado',
+    procuracaoStatus: 'Sem procuração'
+  },
 ]
 
 export default function ClientesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedClient, setSelectedClient] = useState<any>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const { user } = useAuth()
 
   const handleOpenDetail = (client: any) => {
     setSelectedClient(client)
     setIsDetailOpen(true)
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'Válido':
+      case 'Ativa':
+      case 'Válida':
+        return <Badge className="bg-emerald-500">{status}</Badge>
+      case 'Vencendo':
+      case 'Expirando':
+      case 'A Vencer':
+        return <Badge className="bg-yellow-500 text-black">{status}</Badge>
+      case 'Vencido':
+      case 'Expirada':
+      case 'Vencida':
+        return <Badge variant="destructive">{status}</Badge>
+      default:
+        return <Badge variant="secondary">{status}</Badge>
+    }
   }
 
   return (
@@ -59,6 +142,14 @@ export default function ClientesPage() {
             <Plus className="mr-2 h-4 w-4" /> Novo Cliente
           </Button>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <KpiCard label="Total de Clientes" value="42" icon={Building2} color="info" />
+        <KpiCard label="Certificados Ativos" value="35" icon={ShieldCheck} color="success" />
+        <KpiCard label="Vencendo (30 dias)" value="4" icon={Clock} color="warning" />
+        <KpiCard label="Procurações Ativas" value="38" icon={FileSignature} color="success" />
+        <KpiCard label="Sem Certificado" value="3" icon={AlertTriangle} color="destructive" />
       </div>
 
       <Card>
@@ -82,8 +173,8 @@ export default function ClientesPage() {
                 <TableHead>Empresa</TableHead>
                 <TableHead>Regime</TableHead>
                 <TableHead>Responsável</TableHead>
-                <TableHead>Saúde</TableHead>
-                <TableHead>Certidão</TableHead>
+                <TableHead>Certificado Digital</TableHead>
+                <TableHead>Procuração e-CAC</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -100,20 +191,8 @@ export default function ClientesPage() {
                     <Badge variant="outline" className="font-medium">{client.regime}</Badge>
                   </TableCell>
                   <TableCell>{client.responsavel}</TableCell>
-                  <TableCell className="w-[150px]">
-                    <div className="flex items-center gap-2">
-                      <Progress value={client.score} className="h-2" />
-                      <span className="text-xs font-bold">{client.score}%</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={
-                      client.certidao === 'Válida' ? 'bg-emerald-500' : 
-                      client.certidao === 'A Vencer' ? 'bg-yellow-500 text-black' : 'bg-red-500'
-                    }>
-                      {client.certidao}
-                    </Badge>
-                  </TableCell>
+                  <TableCell>{getStatusBadge(client.certificadoStatus)}</TableCell>
+                  <TableCell>{getStatusBadge(client.procuracaoStatus)}</TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -138,7 +217,7 @@ export default function ClientesPage() {
 
       {/* Diálogo de Detalhes do Cliente */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="p-6 border-b bg-muted/30">
             <div className="flex justify-between items-start">
               <div>
@@ -156,9 +235,9 @@ export default function ClientesPage() {
                   email: selectedClient?.email || '', 
                   regime: selectedClient?.regime || '' 
                 }} />
-                <div className="text-right">
-                  <p className="text-[10px] font-bold uppercase text-muted-foreground">Score de Saúde</p>
-                  <p className={`text-2xl font-bold ${selectedClient?.score > 80 ? 'text-emerald-500' : 'text-orange-500'}`}>
+                <div className="text-right px-4 py-2 bg-background rounded-lg border">
+                  <p className="text-[10px] font-bold uppercase text-muted-foreground">Score Fiscal</p>
+                  <p className={`text-xl font-bold ${selectedClient?.score > 80 ? 'text-emerald-500' : 'text-orange-500'}`}>
                     {selectedClient?.score}%
                   </p>
                 </div>
@@ -167,20 +246,26 @@ export default function ClientesPage() {
           </DialogHeader>
 
           <Tabs defaultValue="dados" className="flex-1 flex flex-col">
-            <TabsList className="px-6 border-b bg-transparent h-12 gap-6 rounded-none">
+            <TabsList className="px-6 border-b bg-transparent h-12 gap-6 rounded-none overflow-x-auto justify-start">
               <TabsTrigger value="dados" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0">Dados Gerais</TabsTrigger>
               <TabsTrigger value="certidoes" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0 flex gap-2">
                 <ShieldCheck className="h-4 w-4" /> Certidões (CNDs)
               </TabsTrigger>
-              <TabsTrigger value="senhas" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0 flex gap-2">
-                <Database className="h-4 w-4" /> Banco de Dados/Senhas
+              <TabsTrigger value="certificado" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0 flex gap-2">
+                <Key className="h-4 w-4" /> Certificado Digital
+              </TabsTrigger>
+              <TabsTrigger value="procuracao" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0 flex gap-2">
+                <FileSignature className="h-4 w-4" /> Procuração e-CAC
+              </TabsTrigger>
+              <TabsTrigger value="acessos" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0 flex gap-2">
+                <ShieldCheck className="h-4 w-4" /> Dados de Acesso
               </TabsTrigger>
               <TabsTrigger value="documentos" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0">Documentos</TabsTrigger>
             </TabsList>
 
             <div className="flex-1 overflow-y-auto p-6">
               <TabsContent value="dados" className="m-0 space-y-6">
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
                     <h3 className="font-bold border-b pb-2">Informações Cadastrais</h3>
                     <div className="grid grid-cols-2 gap-4 text-sm">
@@ -227,44 +312,19 @@ export default function ClientesPage() {
               </TabsContent>
 
               <TabsContent value="certidoes" className="m-0">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-bold">Painel de Regularidade</h3>
-                    <Button size="sm" className="bg-accent gap-2">
-                      <RefreshCw className="h-4 w-4" /> Atualizar Todas
-                    </Button>
-                  </div>
-                  <ClientCertificatesTable clientId={selectedClient?.id || ''} />
-                </div>
+                <ClientCertificatesTable clientId={selectedClient?.id || ''} />
               </TabsContent>
 
-              <TabsContent value="senhas" className="m-0">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-bold">Acessos e Senhas</h3>
-                    <Button size="sm" variant="outline" className="gap-2">
-                      <Plus className="h-4 w-4" /> Novo Acesso
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                      { site: 'e-CAC (RFB)', user: '12.345.678/0001-90', pass: '********' },
-                      { site: 'SEFAZ - AP', user: '22911002', pass: '********' },
-                      { site: 'Prefeitura Macapá', user: 'macapa_cont', pass: '********' },
-                      { site: 'Conectividade Social', user: 'certificado_padaria', pass: '********' },
-                    ].map((acesso, i) => (
-                      <Card key={i}>
-                        <CardContent className="p-4 flex justify-between items-center">
-                          <div className="space-y-1">
-                            <p className="font-bold text-sm">{acesso.site}</p>
-                            <p className="text-xs text-muted-foreground">User: {acesso.user}</p>
-                          </div>
-                          <Button variant="ghost" size="sm">Copiar Senha</Button>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
+              <TabsContent value="certificado" className="m-0">
+                <DigitalCertificateTab clientId={selectedClient?.id || ''} />
+              </TabsContent>
+
+              <TabsContent value="procuracao" className="m-0">
+                <ProcurationTab clientId={selectedClient?.id || ''} />
+              </TabsContent>
+
+              <TabsContent value="acessos" className="m-0">
+                <AccessDataTab clientId={selectedClient?.id || ''} />
               </TabsContent>
             </div>
           </Tabs>
