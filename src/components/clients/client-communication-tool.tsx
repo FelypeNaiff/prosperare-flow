@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -89,9 +88,9 @@ export function ClientCommunicationTool({ client, trigger, initialPurpose }: Cli
       }}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-primary">
               <Sparkles className="h-5 w-5 text-accent" />
-              Assistente de Comunicação ContaHub
+              Assistente Prosperare Flow
             </DialogTitle>
             <DialogDescription>
               Crie rascunhos de e-mails profissionais para {client.name} em segundos.

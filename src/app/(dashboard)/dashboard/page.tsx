@@ -14,13 +14,14 @@ import {
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Painel de Controle</h1>
-        <p className="text-muted-foreground">Bem-vindo ao ContaHub. Aqui está um resumo da sua operação.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Painel Prosperare Flow</h1>
+        <p className="text-muted-foreground">Bem-vindo. Aqui está o fluxo atual da sua operação contábil.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -174,8 +175,4 @@ export default function DashboardPage() {
       </div>
     </div>
   )
-}
-
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(' ');
 }

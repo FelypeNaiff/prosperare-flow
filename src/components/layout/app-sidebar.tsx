@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -17,8 +16,7 @@ import {
   FileText,
   PieChart,
   LineChart,
-  CreditCard,
-  PlusCircle
+  TrendingUp
 } from "lucide-react"
 
 import {
@@ -85,8 +83,6 @@ const items = [
       { title: "Contratos", url: "/financeiro/contratos", icon: FileText },
       { title: "DRE Gerencial", url: "/financeiro/dre", icon: PieChart },
       { title: "Fluxo de Caixa", url: "/financeiro/fluxo", icon: LineChart },
-      { title: "Boletos Bancários", url: "/financeiro/boletos", icon: CreditCard },
-      { title: "Opções Auxiliares", url: "/financeiro/auxiliar", icon: Settings },
     ]
   },
   {
@@ -119,15 +115,19 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r-0">
-      <SidebarHeader className="h-16 flex items-center px-6 justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-white rounded flex items-center justify-center">
-            <span className="text-primary font-bold text-xl">C</span>
+      <SidebarHeader className="h-20 flex items-center px-6 justify-between">
+        <div className="flex items-center gap-3">
+          <div className="relative w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-primary opacity-20" />
+            <TrendingUp className="w-6 h-6 text-primary z-10" />
           </div>
-          <span className="text-white font-bold text-xl tracking-tight">ContaHub</span>
+          <div className="flex flex-col">
+            <span className="text-white font-bold text-lg leading-tight tracking-tight uppercase">Prosperare</span>
+            <span className="text-emerald-400 font-bold text-sm leading-tight tracking-widest uppercase">Flow</span>
+          </div>
         </div>
       </SidebarHeader>
-      <SidebarContent className="px-2">
+      <SidebarContent className="px-2 mt-4">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>

@@ -2,8 +2,8 @@ import type {Metadata} from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'ContaHub - ERP Contábil',
-  description: 'Sistema completo para escritórios de contabilidade',
+  title: 'PROSPERARE FLOW - Gestão e Fluxo de Tarefas',
+  description: 'Sistema de gestão e fluxo de tarefas para escritórios de contabilidade',
 };
 
 export default function RootLayout({

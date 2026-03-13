@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -12,7 +11,8 @@ import {
   MoreHorizontal,
   FileCheck,
   Building2,
-  Calendar
+  Calendar,
+  TrendingUp
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -239,13 +239,19 @@ export default function ContratosPage() {
             <DialogTitle>Visualização do Contrato</DialogTitle>
           </DialogHeader>
           <div className="p-12 bg-white shadow-lg mx-auto w-full min-h-[800px] text-slate-800 text-sm leading-relaxed space-y-6">
+            <div className="flex justify-center mb-8">
+              <div className="flex items-center gap-2 text-primary">
+                <TrendingUp className="w-8 h-8" />
+                <span className="text-xl font-bold uppercase tracking-tighter">Prosperare Flow</span>
+              </div>
+            </div>
             <div className="text-center space-y-2 border-b pb-6">
               <h2 className="text-xl font-bold uppercase">CONTRATO DE PRESTAÇÃO DE SERVIÇOS CONTÁBEIS</h2>
               <p className="text-xs text-muted-foreground">REF: CONTRATO Nº 2024/{selectedContract?.id?.padStart(4, '0')}</p>
             </div>
             
             <div className="space-y-4">
-              <p><strong>CONTRATADA:</strong> CONTAHUB SOLUÇÕES CONTÁBEIS LTDA, inscrita no CNPJ sob o nº 12.345.678/0001-90, com sede em Macapá - AP.</p>
+              <p><strong>CONTRATADA:</strong> PROSPERARE FLOW SOLUÇÕES CONTÁBEIS LTDA, inscrita no CNPJ sob o nº 12.345.678/0001-90, com sede em Macapá - AP.</p>
               <p><strong>CONTRATANTE:</strong> {selectedContract?.empresa?.toUpperCase()}, inscrita no CNPJ sob o nº {selectedContract?.cnpj}, sediada em Macapá - AP.</p>
             </div>
 
@@ -261,7 +267,7 @@ export default function ContratosPage() {
 
             <div className="pt-20 flex justify-between gap-12">
               <div className="flex-1 text-center space-y-1">
-                <div className="border-t border-slate-400 pt-1">CONTAHUB SOLUÇÕES</div>
+                <div className="border-t border-slate-400 pt-1">PROSPERARE FLOW</div>
                 <p className="text-xs">Contratada</p>
               </div>
               <div className="flex-1 text-center space-y-1">

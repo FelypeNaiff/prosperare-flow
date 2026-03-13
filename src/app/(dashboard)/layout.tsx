@@ -1,8 +1,9 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/layout/app-sidebar"
-import { Bell, Search, User } from "lucide-react"
+import { Bell, Search, User, TrendingUp } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { 
@@ -18,6 +19,14 @@ import { useAuth } from "@/hooks/use-auth-mock"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth()
+  const [mounted, setMounted] = useState(false)
+
+  // Previne erros de hidratação garantindo que o componente montou no cliente
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) return null
 
   return (
     <SidebarProvider>
@@ -25,6 +34,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <SidebarInset className="bg-background">
         <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-white px-6">
           <SidebarTrigger />
+          <div className="flex items-center gap-2 md:hidden">
+            <TrendingUp className="w-6 h-6 text-primary" />
+            <span className="font-bold text-sm uppercase">Prosperare Flow</span>
+          </div>
           <div className="flex-1 max-w-md hidden md:block">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
