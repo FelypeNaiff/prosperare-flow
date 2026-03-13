@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -16,7 +17,13 @@ import {
   FileText,
   PieChart,
   LineChart,
-  TrendingUp
+  Building,
+  Key,
+  CalendarClock,
+  Mail,
+  MessageSquare,
+  Lock,
+  CreditCard
 } from "lucide-react"
 
 import {
@@ -103,6 +110,16 @@ const items = [
     url: "/configuracoes",
     icon: Settings,
     profiles: ["ADMINISTRADOR"],
+    isCollapsible: true,
+    subItems: [
+      { title: "Meus Dados", url: "/configuracoes/meus-dados", icon: Building },
+      { title: "Certificado Digital", url: "/configuracoes/certificado", icon: Key },
+      { title: "Agendamento Auto", url: "/configuracoes/agendamento", icon: CalendarClock },
+      { title: "E-mail de Disparo", url: "/configuracoes/email", icon: Mail },
+      { title: "WhatsApp", url: "/configuracoes/whatsapp", icon: MessageSquare },
+      { title: "Segurança e Logs", url: "/configuracoes/seguranca", icon: Lock },
+      { title: "Plano e Assinatura", url: "/configuracoes/plano", icon: CreditCard },
+    ]
   },
 ]
 
