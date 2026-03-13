@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -22,13 +23,15 @@ interface ClientCommunicationToolProps {
     name: string;
     email: string;
     regime: string;
-  }
+  };
+  trigger?: React.ReactNode;
+  initialPurpose?: string;
 }
 
-export function ClientCommunicationTool({ client }: ClientCommunicationToolProps) {
+export function ClientCommunicationTool({ client, trigger, initialPurpose }: ClientCommunicationToolProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [purpose, setPurpose] = useState("")
+  const [purpose, setPurpose] = useState(initialPurpose || "")
   const [result, setResult] = useState<DraftClientCommunicationOutput | null>(null)
   const [copied, setCopied] = useState(false)
 
@@ -68,12 +71,22 @@ export function ClientCommunicationTool({ client }: ClientCommunicationToolProps
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2">
-        <Sparkles className="h-4 w-4 text-accent" />
-        Redigir com IA
-      </Button>
+      <div onClick={() => setOpen(true)}>
+        {trigger || (
+          <Button variant="outline" size="sm" className="gap-2">
+            <Sparkles className="h-4 w-4 text-accent" />
+            Redigir com IA
+          </Button>
+        )}
+      </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) {
+          setResult(null);
+          if (!initialPurpose) setPurpose("");
+        }
+      }}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -91,7 +104,7 @@ export function ClientCommunicationTool({ client }: ClientCommunicationToolProps
                 <div className="space-y-2">
                   <Label>Qual o objetivo da mensagem?</Label>
                   <Textarea 
-                    placeholder="Ex: Solicitar documentos da folha de pagamento, avisar sobre prazo do PGDAS, etc."
+                    placeholder="Ex: Enviar certidão federal, avisar sobre prazo do PGDAS, etc."
                     value={purpose}
                     onChange={(e) => setPurpose(e.target.value)}
                     rows={3}
@@ -113,11 +126,11 @@ export function ClientCommunicationTool({ client }: ClientCommunicationToolProps
                 </div>
                 <div className="space-y-2">
                   <Label>Corpo do E-mail</Label>
-                  <Textarea readOnly value={result.body} rows={8} className="text-sm bg-muted/50" />
+                  <Textarea readOnly value={result.body} rows={10} className="text-sm bg-muted/50" />
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1" onClick={() => setResult(null)}>
-                    Novo rascunho
+                    Refinar rascunho
                   </Button>
                   <Button className="flex-1 gap-2" onClick={handleCopy}>
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
