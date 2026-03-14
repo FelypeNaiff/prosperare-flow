@@ -2,7 +2,7 @@
 "use client"
 
 import * as React from "react"
-import { Search, Command, ArrowRight, History, Zap, PlusCircle } from "lucide-react"
+import { Search, Command, ArrowRight, History, Zap, PlusCircle, AlertCircle, Clock } from "lucide-react"
 import { useRouter } from "next/navigation"
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 const PAGES = [
@@ -18,10 +19,10 @@ const PAGES = [
   { title: "Inteligência (BI)", url: "/inteligencia", category: "Estratégico", keywords: "graficos analise dados" },
   { title: "Agenda de Reuniões", url: "/agenda", category: "Estratégico", keywords: "compromissos calendario google" },
   { title: "Gestão de Clientes", url: "/clientes", category: "Relacionamento", keywords: "empresas base cadsatro" },
-  { title: "Central de Atendimentos", url: "/atendimentos", category: "Relacionamento", keywords: "tickets suporte chamados" },
+  { title: "Central de Atendimentos", url: "/atendimentos", category: "Relacionamento", keywords: "tickets suporte chamados whatsapp", alert: "3 novos" },
   { title: "Repositório de Documentos", url: "/documentos", category: "Relacionamento", keywords: "arquivos cloud cloud drive" },
-  { title: "Todos os Processos", url: "/processos", category: "Produção", keywords: "tarefas obrigações entregas" },
-  { title: "IRPF 2026", url: "/processos/irpf", category: "Produção", keywords: "imposto renda cpf" },
+  { title: "Todos os Processos", url: "/processos", category: "Produção", keywords: "tarefas obrigações entregas", status: "8 atrasados" },
+  { title: "IRPF 2026", url: "/processos/irpf", category: "Produção", keywords: "imposto renda cpf", alert: "14 pendentes" },
   { title: "Contas a Receber", url: "/financeiro/receber", category: "Financeiro", keywords: "ganhos faturamento honorarios" },
   { title: "Contas a Pagar", url: "/financeiro/pagar", category: "Financeiro", keywords: "custos despesas boletos" },
   { title: "DRE Gerencial", url: "/financeiro/dre", category: "Financeiro", keywords: "lucro prejuizo resultado" },
@@ -50,7 +51,6 @@ export function GlobalSearch() {
     }
     document.addEventListener("keydown", down)
     
-    // Carregar recentes do localStorage
     const saved = localStorage.getItem("prosperare_recent_pages")
     if (saved) setRecent(JSON.parse(saved))
 
@@ -72,7 +72,6 @@ export function GlobalSearch() {
       )
 
   const handleSelect = (page: {title: string, url: string}) => {
-    // Salvar no histórico
     const newRecent = [page, ...recent.filter(r => r.url !== page.url)].slice(0, 3)
     setRecent(newRecent)
     localStorage.setItem("prosperare_recent_pages", JSON.stringify(newRecent))
@@ -101,7 +100,7 @@ export function GlobalSearch() {
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-[#98A7AA]" />
               <Input
-                placeholder="Busque por páginas, ações ou palavras-chave..."
+                placeholder="Busque por páginas, ações ou pendências..."
                 className="pl-10 h-10 bg-white border-[#D2D7DB] focus-visible:ring-[#1FA67A] font-medium"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -152,24 +151,6 @@ export function GlobalSearch() {
                 </div>
               ) : (
                 <div className="p-2 space-y-4">
-                  {filteredActions.length > 0 && (
-                    <div className="space-y-1">
-                      <h4 className="px-2 text-[9px] font-black uppercase text-[#1FA67A] tracking-[0.2em]">Ações</h4>
-                      {filteredActions.map((action) => (
-                        <button
-                          key={action.title}
-                          onClick={() => handleSelect(action)}
-                          className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-[#1FA67A]/5 group transition-all"
-                        >
-                          <action.icon className="h-4 w-4 text-[#1FA67A]" />
-                          <div className="flex flex-col text-left">
-                            <span className="text-sm font-black text-[#2C4156] uppercase">{action.title}</span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
                   <div className="space-y-1">
                     <h4 className="px-2 text-[9px] font-black uppercase text-[#98A7AA] tracking-[0.2em]">Páginas e Módulos</h4>
                     {filteredPages.length === 0 && filteredActions.length === 0 ? (
@@ -184,7 +165,19 @@ export function GlobalSearch() {
                           className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-[#1FA67A]/5 group transition-all"
                         >
                           <div className="flex flex-col text-left">
-                            <span className="text-sm font-bold text-[#2C4156] group-hover:text-[#1FA67A]">{page.title}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-[#2C4156] group-hover:text-[#1FA67A]">{page.title}</span>
+                              {page.status && (
+                                <Badge className="bg-[#FEE2E2] text-[#E74C3C] border-none text-[8px] h-4 px-1.5 font-black uppercase">
+                                  {page.status}
+                                </Badge>
+                              )}
+                              {page.alert && (
+                                <Badge className="bg-[#FEF3C7] text-[#F2B705] border-none text-[8px] h-4 px-1.5 font-black uppercase">
+                                  {page.alert}
+                                </Badge>
+                              )}
+                            </div>
                             <span className="text-[9px] uppercase font-bold text-[#98A7AA] tracking-tighter">{page.category}</span>
                           </div>
                           <ArrowRight className="h-4 w-4 text-[#D2D7DB] group-hover:text-[#1FA67A] translate-x-[-10px] opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all" />
@@ -197,7 +190,7 @@ export function GlobalSearch() {
             </ScrollArea>
           </div>
           <div className="p-3 border-t bg-[#F7F7F7] flex items-center justify-between text-[9px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">
-            <span>Prosperare Navigator v2.0</span>
+            <span>Prosperare Navigator v3.0</span>
             <div className="flex gap-4">
               <span className="flex items-center gap-1"><kbd className="bg-white px-1 rounded border">ESC</kbd> fechar</span>
               <span className="flex items-center gap-1"><kbd className="bg-white px-1 rounded border">↵</kbd> selecionar</span>
