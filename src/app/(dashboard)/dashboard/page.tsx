@@ -18,7 +18,8 @@ import {
   Clock,
   Mail,
   Heart,
-  Video
+  Video,
+  CreditCard
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -93,6 +94,29 @@ export default function DashboardPage() {
         </Card>
 
         <div className="lg:col-span-4 space-y-6">
+          <Card className="border-[#D2D7DB] bg-[#F7F7F7]/50">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Alertas de Parcelamento</CardTitle>
+                <CardDescription className="text-[10px] font-bold text-[#98A7AA]">Vencendo esta semana.</CardDescription>
+              </div>
+              <div className="p-2 bg-[#FEF3C7] rounded-full">
+                <CreditCard className="h-4 w-4 text-[#F2B705]" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-[#F2B705]/20 shadow-sm">
+                <div>
+                  <p className="text-xs font-black text-[#2C4156]">8 Parcelas Pendentes</p>
+                  <p className="text-[10px] text-[#98A7AA]">Total: R$ 4.250,00</p>
+                </div>
+                <Button asChild variant="ghost" size="sm" className="h-7 text-[10px] font-black uppercase text-[#F2B705] hover:text-[#F2B705] hover:bg-[#F2B705]/5">
+                  <Link href="/processos/parcelamentos">Ver Tudo</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="border-[#D2D7DB] shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div>

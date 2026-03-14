@@ -17,7 +17,9 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
-  Layers
+  Layers,
+  Lock,
+  CreditCard as InstallmentIcon
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -49,6 +51,8 @@ import { AccessDataTab } from "@/components/clients/access-data-tab"
 import { ProcurationTab } from "@/components/clients/procuration-tab"
 import { KpiCard } from "@/components/dashboard/kpi-card"
 import { useAuth } from "@/hooks/use-auth-mock"
+import { ClientInstallmentsTab } from "@/components/installments/client-installments-tab"
+import { cn } from "@/lib/utils"
 
 const MOCK_CLIENTS = [
   { 
@@ -261,7 +265,10 @@ export default function ClientesPage() {
             <TabsList className="px-6 h-12 bg-white border-b rounded-none justify-start gap-6 overflow-x-auto">
               <TabsTrigger value="dados" className="data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none h-full px-0 font-bold text-xs uppercase">Dados Gerais</TabsTrigger>
               <TabsTrigger value="grupos" className="data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none h-full px-0 font-bold text-xs uppercase flex gap-2">
-                <Layers className="h-4 w-4" /> Grupos de Obrigações
+                <Layers className="h-4 w-4" /> Grupos
+              </TabsTrigger>
+              <TabsTrigger value="parcelamentos" className="data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none h-full px-0 font-bold text-xs uppercase flex gap-2">
+                <InstallmentIcon className="h-4 w-4" /> Parcelamentos
               </TabsTrigger>
               <TabsTrigger value="certidoes" className="data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none h-full px-0 font-bold text-xs uppercase flex gap-2">
                 <ShieldCheck className="h-4 w-4" /> Certidões
@@ -359,6 +366,10 @@ export default function ClientesPage() {
                     ))}
                   </div>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="parcelamentos" className="m-0 h-full overflow-y-auto p-6">
+                <ClientInstallmentsTab clientId={selectedClient?.id || ''} />
               </TabsContent>
 
               <TabsContent value="certidoes" className="m-0 h-full overflow-y-auto p-6">
