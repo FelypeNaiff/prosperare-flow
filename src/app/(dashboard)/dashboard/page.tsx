@@ -3,6 +3,7 @@
 
 import { KpiCard } from "@/components/dashboard/kpi-card"
 import { ObligationChart } from "@/components/dashboard/obligation-chart"
+import { AttendanceChart } from "@/components/dashboard/attendance-chart"
 import { 
   Users, 
   CheckCircle2, 
@@ -15,7 +16,8 @@ import {
   MessageSquare,
   FileSignature,
   Clock,
-  Mail
+  Mail,
+  Heart
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -70,10 +72,10 @@ export default function DashboardPage() {
           color="warning" 
         />
         <KpiCard 
-          label="Receita do Mês" 
-          value="R$ 42.500" 
-          icon={TrendingUp} 
-          trend={8} 
+          label="Satisfação (NPS)" 
+          value="9.2" 
+          icon={Heart} 
+          trend={2} 
           color="success" 
         />
       </div>
@@ -139,8 +141,8 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="lg:col-span-2 border-[#D2D7DB]">
           <CardHeader>
-            <CardTitle className="text-[#2C4156]">Obrigações a Vencer (Próximos 5 dias)</CardTitle>
-            <CardDescription className="text-[#98A7AA]">Fique atento aos prazos fatais da semana.</CardDescription>
+            <CardTitle className="text-[#2C4156]">Próximos Vencimentos Fatais</CardTitle>
+            <CardDescription className="text-[#98A7AA]">Fique atento aos prazos da semana para evitar multas.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -187,28 +189,11 @@ export default function DashboardPage() {
         
         <Card className="lg:col-span-2 border-[#D2D7DB]">
           <CardHeader>
-             <CardTitle className="text-[#2C4156]">Distribuição de Atendimentos</CardTitle>
-             <CardDescription className="text-[#98A7AA]">Chamados por departamento.</CardDescription>
+             <CardTitle className="text-[#2C4156]">Demanda por Departamento</CardTitle>
+             <CardDescription className="text-[#98A7AA]">Distribuição de atendimentos em aberto.</CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center h-[200px] items-center">
-             <div className="flex flex-wrap justify-center gap-6">
-                {[
-                  { label: 'Pessoal', value: 8, color: '#2574A9' },
-                  { label: 'Fiscal', value: 5, color: '#1FA67A' },
-                  { label: 'Contábil', value: 3, color: '#C0392B' },
-                  { label: 'Adm', value: 2, color: '#39586D' },
-                ].map((item, i) => (
-                  <div key={i} className="flex flex-col items-center gap-2 group cursor-default">
-                    <div 
-                      className={cn("w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-sm transition-transform group-hover:scale-110")}
-                      style={{ backgroundColor: item.color }}
-                    >
-                      {item.value}
-                    </div>
-                    <span className="text-[10px] font-bold text-[#98A7AA] uppercase tracking-tighter text-center max-w-[60px]">{item.label}</span>
-                  </div>
-                ))}
-             </div>
+          <CardContent className="flex justify-center items-center">
+             <AttendanceChart />
           </CardContent>
         </Card>
       </div>
