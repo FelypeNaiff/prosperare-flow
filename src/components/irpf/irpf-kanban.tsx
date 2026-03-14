@@ -52,14 +52,6 @@ export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
     setIsDrawerOpen(true)
   }
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text)
-    toast({
-      title: "Copiado!",
-      description: `${label} copiado para a área de transferência.`
-    })
-  }
-
   const getTagColor = (tagName: string) => {
     switch (tagName) {
       case 'AGUARDANDO RETORNO...': return 'bg-[#F2B705] text-white';
@@ -104,10 +96,15 @@ export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
                     <CardContent className="p-3 space-y-3">
                       <div className="flex flex-wrap gap-1">
                         {card.tags.map(tag => (
-                          <div key={tag} className={cn(
-                            "h-2 w-10 rounded-full",
-                            getTagColor(tag).split(' ')[0]
-                          )} />
+                          <Badge 
+                            key={tag} 
+                            className={cn(
+                              "text-[8px] px-1.5 h-4 uppercase font-black border-none",
+                              getTagColor(tag)
+                            )}
+                          >
+                            {tag}
+                          </Badge>
                         ))}
                       </div>
 

@@ -42,7 +42,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { cn, formatCurrency } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import {
   Popover,
@@ -72,14 +72,14 @@ const CHECKLIST = [
 ]
 
 const AVAILABLE_TAGS = [
-  { name: 'AGUARDANDO RETORNO...', color: 'bg-[#F2B705]' },
-  { name: 'MALHA FISCAL', color: 'bg-[#E74C3C]' },
-  { name: 'NÃO PAGO', color: 'bg-[#A569BD]' },
-  { name: 'FINALIZADO!', color: 'bg-[#3498DB]' },
-  { name: 'PAGO', color: 'bg-[#2E86C1]' },
-  { name: '2 FATORES', color: 'bg-[#5DADE2]' },
-  { name: 'EM PROCESSAMENTO', color: 'bg-[#1FA67A]' },
-  { name: 'GOV', color: 'bg-[#566573]' },
+  { name: 'AGUARDANDO RETORNO...', color: 'bg-[#F2B705] text-white' },
+  { name: 'MALHA FISCAL', color: 'bg-[#E74C3C] text-white' },
+  { name: 'NÃO PAGO', color: 'bg-[#A569BD] text-white' },
+  { name: 'FINALIZADO!', color: 'bg-[#3498DB] text-white' },
+  { name: 'PAGO', color: 'bg-[#2E86C1] text-white' },
+  { name: '2 FATORES', color: 'bg-[#5DADE2] text-white' },
+  { name: 'EM PROCESSAMENTO', color: 'bg-[#1FA67A] text-white' },
+  { name: 'GOV', color: 'bg-[#566573] text-white' },
 ]
 
 export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
@@ -138,27 +138,27 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                   {activeTags.map((tagName: string) => {
                     const tag = AVAILABLE_TAGS.find(t => t.name === tagName)
                     return (
-                      <div 
+                      <Badge 
                         key={tagName} 
                         className={cn(
-                          "px-3 py-1.5 rounded text-[11px] font-black text-white uppercase tracking-wide shadow-sm min-w-[40px] text-center",
-                          tag?.color || "bg-slate-400"
+                          "px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-wide shadow-sm border-none",
+                          tag?.color || "bg-slate-400 text-white"
                         )}
                       >
                         {tagName}
-                      </div>
+                      </Badge>
                     )
                   })}
                   
                   <Popover>
                     <PopoverTrigger asChild>
-                      <button className="h-8 w-8 rounded bg-[#EBEDF0] hover:bg-[#D2D7DB] flex items-center justify-center transition-colors">
+                      <button className="h-8 w-8 rounded bg-[#EBEDF0] hover:bg-[#D2D7DB] flex items-center justify-center transition-colors shadow-sm">
                         <Plus className="h-4 w-4 text-[#172B4D]" />
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-72 p-0 bg-white border-[#D2D7DB] shadow-2xl" align="start">
                       <div className="p-3 border-b flex items-center justify-between bg-[#F4F5F7]">
-                        <span className="text-xs font-bold text-[#5E6C84] uppercase text-center w-full">Etiquetas</span>
+                        <span className="text-xs font-bold text-[#5E6C84] uppercase text-center w-full">Gerenciar Etiquetas</span>
                         <PopoverTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-6 w-6"><X className="h-3 w-3" /></Button>
                         </PopoverTrigger>
@@ -169,7 +169,7 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                           <Input placeholder="Buscar etiquetas..." className="pl-7 h-8 text-xs bg-[#F4F5F7] border-none" />
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] font-black text-[#5E6C84] uppercase tracking-widest">Etiquetas</p>
+                          <p className="text-[10px] font-black text-[#5E6C84] uppercase tracking-widest">Selecione para aplicar</p>
                           <div className="space-y-1 max-h-[250px] overflow-y-auto pr-1">
                             {AVAILABLE_TAGS.map((tag) => (
                               <div key={tag.name} className="flex items-center gap-2 group">
@@ -181,7 +181,7 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                                 <button
                                   onClick={() => toggleTag(tag.name)}
                                   className={cn(
-                                    "flex-1 flex items-center justify-between px-3 py-2 rounded text-[11px] font-black text-white uppercase tracking-wide transition-all hover:brightness-90",
+                                    "flex-1 flex items-center justify-between px-3 py-2 rounded text-[10px] font-black uppercase tracking-wide transition-all hover:brightness-90",
                                     tag.color
                                   )}
                                 >
@@ -369,7 +369,7 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
 
 function HeaderAction({ icon: Icon, label }: any) {
   return (
-    <Button variant="secondary" size="sm" className="bg-[#EBEDF0] hover:bg-[#D2D7DB] text-[#172B4D] font-bold text-xs h-8 gap-2 px-3 border-none">
+    <Button variant="secondary" size="sm" className="bg-[#EBEDF0] hover:bg-[#D2D7DB] text-[#172B4D] font-bold text-xs h-8 gap-2 px-3 border-none shadow-sm">
       <Icon className="h-3.5 w-3.5" /> {label}
     </Button>
   )
