@@ -33,8 +33,7 @@ import {
   TrendingUp,
   ClipboardList,
   Layers,
-  TicketCheck,
-  FileSignature
+  TicketCheck
 } from "lucide-react"
 
 import {
@@ -110,12 +109,6 @@ const items = [
       { title: "Painel Geral", url: "/certidoes", icon: PieChart },
       { title: "Por Empresa", url: "/certidoes", icon: Building },
     ]
-  },
-  {
-    title: "Protocolos",
-    url: "/protocolos",
-    icon: FileSignature,
-    profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
   },
   {
     title: "Financeiro",

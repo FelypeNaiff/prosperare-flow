@@ -25,7 +25,10 @@ import {
   AtSign,
   Send,
   Layers,
-  ChevronDown
+  ChevronDown,
+  Copy,
+  MailCheck,
+  Sparkles
 } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -36,6 +39,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ClientCommunicationTool } from "@/components/clients/client-communication-tool"
 
 const COLUMNS = [
   { id: 'todo', title: 'A Fazer', color: 'border-t-[#98A7AA]' },
@@ -279,6 +284,9 @@ export default function ProcessosPage() {
             <TabsList className="px-6 h-12 bg-white border-b rounded-none justify-start gap-6">
               <TabsTrigger value="detalhes" className="data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none h-full px-0 font-bold text-xs uppercase">Detalhes</TabsTrigger>
               <TabsTrigger value="checklist" className="data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none h-full px-0 font-bold text-xs uppercase">Checklist</TabsTrigger>
+              <TabsTrigger value="finalizacao" className="data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none h-full px-0 font-bold text-xs uppercase flex gap-2">
+                Protocolo <MailCheck className="h-3 w-3" />
+              </TabsTrigger>
               <TabsTrigger value="comentarios" className="data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none h-full px-0 font-bold text-xs uppercase flex gap-2">
                 Comentários <Badge className="bg-[#1FA67A]/10 text-[#1FA67A] h-4 min-w-4 p-1">2</Badge>
               </TabsTrigger>
@@ -337,6 +345,52 @@ export default function ProcessosPage() {
                           <Badge variant="outline" className="text-[9px]">Ver</Badge>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="finalizacao" className="m-0 space-y-6">
+                  <div className="space-y-4">
+                    <div className="p-4 bg-[#E3F0F9]/30 border border-[#2574A9]/20 rounded-xl space-y-3">
+                      <div className="flex items-center gap-2 text-[#2574A9]">
+                        <MailCheck className="h-5 w-5" />
+                        <h4 className="font-bold text-sm uppercase">Envio Externo</h4>
+                      </div>
+                      <p className="text-xs text-[#39586D]">
+                        Como o envio é feito por e-mail externo, use as ferramentas abaixo para facilitar o processo e manter o histórico.
+                      </p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 border rounded-xl bg-white shadow-sm">
+                        <div className="space-y-0.5">
+                          <Label className="text-sm font-bold text-[#2C4156]">E-mail enviado ao cliente</Label>
+                          <p className="text-[10px] text-[#98A7AA]">Marque este item após enviar o e-mail pelo seu Outlook/Gmail.</p>
+                        </div>
+                        <Checkbox className="h-6 w-6" />
+                      </div>
+
+                      <div className="p-4 border rounded-xl bg-[#F7F7F7] space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h5 className="text-xs font-bold text-[#2C4156] uppercase flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 text-[#1FA67A]" /> Sugestão de Texto para E-mail
+                          </h5>
+                          <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold gap-1" onClick={() => {
+                            navigator.clipboard.writeText(`Olá, segue a guia de ${selectedTask?.title} para pagamento.`);
+                            toast({ title: "Copiado!" });
+                          }}>
+                            <Copy className="h-3 w-3" /> Copiar Texto
+                          </Button>
+                        </div>
+                        <div className="bg-white p-3 border rounded-lg text-xs font-mono text-[#39586D] leading-relaxed">
+                          Assunto: Envio de Documento - {selectedTask?.client} - {selectedTask?.title}<br/><br/>
+                          Olá, Sr(a). Responsável,<br/><br/>
+                          Seguem em anexo os documentos referentes ao processo de <strong>{selectedTask?.title}</strong>.<br/>
+                          Por favor, confirme o recebimento deste e-mail.<br/><br/>
+                          Atenciosamente,<br/>
+                          Equipe Prosperare Flow.
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </TabsContent>

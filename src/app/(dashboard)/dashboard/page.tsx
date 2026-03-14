@@ -13,7 +13,9 @@ import {
   ArrowRight,
   TrendingDown,
   MessageSquare,
-  FileSignature
+  FileSignature,
+  Clock,
+  Mail
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -61,9 +63,9 @@ export default function DashboardPage() {
           color="info" 
         />
         <KpiCard 
-          label="Protocolos Pendentes" 
+          label="Honorários Pendentes" 
           value="12" 
-          icon={FileSignature} 
+          icon={Clock} 
           trend={0} 
           color="warning" 
         />
@@ -137,8 +139,8 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="lg:col-span-2 border-[#D2D7DB]">
           <CardHeader>
-            <CardTitle className="text-[#2C4156]">Protocolos Urgentes</CardTitle>
-            <CardDescription className="text-[#98A7AA]">Documentos enviados há mais de 48h não visualizados.</CardDescription>
+            <CardTitle className="text-[#2C4156]">Obrigações a Vencer (Próximos 5 dias)</CardTitle>
+            <CardDescription className="text-[#98A7AA]">Fique atento aos prazos fatais da semana.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -146,17 +148,17 @@ export default function DashboardPage() {
                  <table className="w-full text-sm">
                    <thead>
                      <tr className="text-left text-[#98A7AA] border-b border-[#D2D7DB] pb-2 uppercase text-[10px] font-bold">
-                       <th className="pb-2">Documento</th>
+                       <th className="pb-2">Obrigação</th>
                        <th className="pb-2">Cliente</th>
-                       <th className="pb-2">Atraso</th>
+                       <th className="pb-2">Vencimento</th>
                        <th className="pb-2">Ações</th>
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-[#D2D7DB]">
                      {[
-                       { doc: 'Guia DAS', cliente: 'ConstruMais Ltda', atraso: '3 dias', status: 'danger' },
-                       { doc: 'Holerites', cliente: 'Restaurante Sabor', atraso: '2 dias', status: 'warning' },
-                       { doc: 'Relatório', cliente: 'Loja Variedades', atraso: '2 dias', status: 'warning' },
+                       { doc: 'Guia DAS', cliente: 'ConstruMais Ltda', data: '20/10', status: 'danger' },
+                       { doc: 'FGTS Digital', cliente: 'Restaurante Sabor', data: '20/10', status: 'warning' },
+                       { doc: 'eSocial', cliente: 'Loja Variedades', data: '22/10', status: 'warning' },
                      ].map((p, i) => (
                        <tr key={i} className="hover:bg-[#F7F7F7] transition-colors group cursor-pointer">
                          <td className="py-3 font-bold text-[#2C4156] group-hover:text-[#1FA67A]">{p.doc}</td>
@@ -168,7 +170,7 @@ export default function DashboardPage() {
                                p.status === 'danger' ? 'bg-[#FEE2E2] text-[#E74C3C]' : 'bg-[#FEF3C7] text-[#F2B705]'
                              )}
                            >
-                             {p.atraso}
+                             {p.data}
                            </Badge>
                          </td>
                          <td className="py-3">
