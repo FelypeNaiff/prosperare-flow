@@ -2,7 +2,7 @@
 "use client"
 
 import { useState } from "react"
-import { Building, Save, Upload, Info, MapPin, Loader2, CheckCircle2 } from "lucide-react"
+import { Building, Save, Upload, Info, MapPin, Loader2, CheckCircle2, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,16 @@ import { toast } from "@/hooks/use-toast"
 export default function MeusDadosPage() {
   const [isDirty, setIsDirty] = useState(false)
   const [isLoadingCep, setIsLoadingCep] = useState(false)
+  const [isLoadingCnpj, setIsLoadingCnpj] = useState(false)
+  
+  const [officeData, setOfficeData] = useState({
+    razaoSocial: "Prosperare Flow Soluções Contábeis Ltda",
+    nomeFantasia: "Prosperare Flow",
+    cnpj: "12.345.678/0001-90",
+    telefone: "(96) 98122-3344",
+    email: "contato@prosperare.com.br"
+  })
+
   const [address, setAddress] = useState({
     cep: "",
     rua: "Av. FAB, 1000",
@@ -30,13 +40,58 @@ export default function MeusDadosPage() {
     setIsDirty(false)
   }
 
+  const lookupCnpj = async (cnpjValue: string) => {
+    const cleanCnpj = cnpjValue.replace(/\D/g, "")
+    if (cleanCnpj.length !== 14) return
+
+    setIsLoadingCnpj(true)
+    try {
+      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`)
+      if (!response.ok) throw new Error("CNPJ não encontrado")
+      
+      const data = await response.json()
+      
+      setOfficeData({
+        ...officeData,
+        cnpj: cnpjValue,
+        razaoSocial: data.razao_social || officeData.razaoSocial,
+        nomeFantasia: data.nome_fantasia || data.razao_social || officeData.nomeFantasia,
+      })
+      
+      // Também podemos aproveitar e preencher o endereço se a API retornar
+      if (data.cep) {
+        setAddress({
+          ...address,
+          cep: data.cep,
+          rua: data.logradouro || address.rua,
+          bairro: data.bairro || address.bairro,
+          cidade: data.municipio || address.cidade,
+          uf: data.uf || address.uf
+        })
+      }
+
+      setIsDirty(true)
+      toast({
+        title: "CNPJ Localizado!",
+        description: "Dados da empresa sincronizados via Brasil API."
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro na consulta de CNPJ",
+        description: "Não foi possível localizar os dados deste CNPJ."
+      })
+    } finally {
+      setIsLoadingCnpj(false)
+    }
+  }
+
   const lookupCep = async (cepValue: string) => {
     const cleanCep = cepValue.replace(/\D/g, "")
     if (cleanCep.length !== 8) return
 
     setIsLoadingCep(true)
     try {
-      // Usando ViaCEP ou Brasil API como fallback
       const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`)
       const data = await response.json()
 
@@ -58,7 +113,7 @@ export default function MeusDadosPage() {
         setIsDirty(true)
         toast({
           title: "Endereço Localizado!",
-          description: "Dados preenchidos via API."
+          description: "Dados preenchidos via ViaCEP."
         })
       }
     } catch (error) {
@@ -102,20 +157,35 @@ export default function MeusDadosPage() {
 
             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black text-[#98A7AA] tracking-widest">Razão Social / Nome</Label>
-                <Input defaultValue="Prosperare Flow Soluções Contábeis Ltda" onChange={() => setIsDirty(true)} className="border-[#D2D7DB] font-bold" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black text-[#98A7AA] tracking-widest">Nome Fantasia</Label>
-                <Input defaultValue="Prosperare Flow" onChange={() => setIsDirty(true)} className="border-[#D2D7DB] font-bold" />
-              </div>
-              <div className="space-y-2">
                 <Label className="text-[10px] uppercase font-black text-[#98A7AA] tracking-widest">CNPJ / CPF</Label>
-                <Input defaultValue="12.345.678/0001-90" onChange={() => setIsDirty(true)} className="border-[#D2D7DB] font-mono font-bold" />
+                <div className="relative">
+                  <Input 
+                    value={officeData.cnpj} 
+                    onChange={(e) => {
+                      setOfficeData({...officeData, cnpj: e.target.value});
+                      setIsDirty(true);
+                    }}
+                    onBlur={(e) => lookupCnpj(e.target.value)}
+                    className="border-[#D2D7DB] font-mono font-bold pr-10" 
+                  />
+                  {isLoadingCnpj ? (
+                    <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-[#1FA67A]" />
+                  ) : (
+                    <Search className="absolute right-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
+                  )}
+                </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase font-black text-[#98A7AA] tracking-widest">Celular do Responsável</Label>
-                <Input defaultValue="(96) 98122-3344" onChange={() => setIsDirty(true)} className="border-[#D2D7DB] font-bold" />
+                <Input value={officeData.telefone} onChange={(e) => {setOfficeData({...officeData, telefone: e.target.value}); setIsDirty(true)}} className="border-[#D2D7DB] font-bold" />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label className="text-[10px] uppercase font-black text-[#98A7AA] tracking-widest">Razão Social / Nome</Label>
+                <Input value={officeData.razaoSocial} onChange={(e) => {setOfficeData({...officeData, razaoSocial: e.target.value}); setIsDirty(true)}} className="border-[#D2D7DB] font-bold" />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label className="text-[10px] uppercase font-black text-[#98A7AA] tracking-widest">Nome Fantasia</Label>
+                <Input value={officeData.nomeFantasia} onChange={(e) => {setOfficeData({...officeData, nomeFantasia: e.target.value}); setIsDirty(true)}} className="border-[#D2D7DB] font-bold" />
               </div>
             </div>
           </div>
@@ -161,7 +231,7 @@ export default function MeusDadosPage() {
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase font-black text-[#98A7AA] tracking-widest">E-mail Principal</Label>
-                <Input defaultValue="contato@prosperare.com.br" onChange={() => setIsDirty(true)} className="border-[#D2D7DB] font-bold" />
+                <Input value={officeData.email} onChange={(e) => {setOfficeData({...officeData, email: e.target.value}); setIsDirty(true)}} className="border-[#D2D7DB] font-bold" />
               </div>
             </div>
           </div>
@@ -176,7 +246,7 @@ export default function MeusDadosPage() {
       <div className="flex items-center gap-3 p-4 bg-[#E3F0F9] border border-[#2574A9]/20 rounded-xl text-[#2574A9]">
         <CheckCircle2 className="h-5 w-5 shrink-0" />
         <p className="text-xs font-bold leading-relaxed">
-          Sincronização Ativa: Seus dados estão sendo validados em tempo real pelas APIs do Brasil API e ViaCEP para garantir conformidade documental.
+          Sincronização Ativa: Seus dados de CNPJ e Endereço são validados em tempo real pelas APIs do Brasil API e ViaCEP para garantir conformidade documental.
         </p>
       </div>
     </div>
