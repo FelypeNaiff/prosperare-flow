@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -65,6 +66,8 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
+import { PlaceHolderImages } from "@/lib/placeholder-images"
 
 const items = [
   {
@@ -180,16 +183,19 @@ export function AppSidebar() {
     return active ? active.title : null
   })
 
-  const filteredItems = items.filter(item => 
-    userData && item.profiles.includes(userData.profile)
-  )
+  const filteredItems = React.useMemo(() => {
+    if (!userData) return []
+    return items.filter(item => item.profiles.includes(userData.profile))
+  }, [userData])
+
+  const avatarUrl = user?.photoURL || PlaceHolderImages.find(i => i.id === 'user-avatar-placeholder')?.imageUrl
 
   return (
     <Sidebar className="border-r-0 bg-[#2C4156] text-white">
       <SidebarHeader className="h-24 flex flex-col items-start px-6 justify-center">
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-[#1FA67A] rounded-lg shadow-lg">
-            <TrendingUp className="h-6 w-6 text-white" />
+          <div className="p-2 bg-[#1FA67A] rounded-lg shadow-lg relative w-10 h-10 flex items-center justify-center">
+            <TrendingUp className="h-6 w-6 text-white z-10" />
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
@@ -262,9 +268,9 @@ export function AppSidebar() {
         {user && userData && (
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="relative">
+              <div className="relative w-9 h-9">
                 <Avatar className="h-9 w-9 border-2 border-[#1FA67A]/50">
-                  <AvatarImage src={user.photoURL || undefined} />
+                  <AvatarImage src={avatarUrl} alt={userData.fullName || "User"} />
                   <AvatarFallback className="bg-white text-[#2C4156] font-bold">
                     {userData.fullName?.charAt(0) || user.email?.charAt(0)}
                   </AvatarFallback>
