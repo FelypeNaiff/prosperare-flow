@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -75,7 +76,7 @@ export default function InteligenciaPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 border-[#D2D7DB] shadow-sm">
+        <Card className="lg:col-span-2 border-[#D2D7DB] shadow-sm bg-white">
           <CardHeader className="bg-[#F7F7F7]/30 border-b">
             <CardTitle className="text-xs font-black text-[#2C4156] uppercase tracking-widest flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-[#1FA67A]" />
@@ -105,7 +106,7 @@ export default function InteligenciaPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-[#D2D7DB] shadow-sm">
+        <Card className="border-[#D2D7DB] shadow-sm bg-white">
           <CardHeader className="bg-[#F7F7F7]/30 border-b">
             <CardTitle className="text-xs font-black text-[#2C4156] uppercase tracking-widest flex items-center gap-2">
               <PieIcon className="h-4 w-4 text-[#2574A9]" />

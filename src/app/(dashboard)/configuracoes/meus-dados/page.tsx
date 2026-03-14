@@ -2,7 +2,7 @@
 "use client"
 
 import { useState } from "react"
-import { Building, Save, Upload, Info, MapPin, Loader2, CheckCircle2, Search } from "lucide-react"
+import { Building, Save, Upload, Info, MapPin, Loader2, CheckCircle2, Search, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,11 +10,13 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/hooks/use-toast"
+import { formatCNPJ, validateCNPJ } from "@/lib/utils"
 
 export default function MeusDadosPage() {
   const [isDirty, setIsDirty] = useState(false)
   const [isLoadingCep, setIsLoadingCep] = useState(false)
   const [isLoadingCnpj, setIsLoadingCnpj] = useState(false)
+  const [cnpjError, setCnpjError] = useState(false)
   
   const [officeData, setOfficeData] = useState({
     razaoSocial: "Prosperare Flow Soluções Contábeis Ltda",
@@ -33,8 +35,16 @@ export default function MeusDadosPage() {
   })
 
   const handleSave = () => {
+    if (cnpjError) {
+      toast({
+        variant: "destructive",
+        title: "Erro no Cadastro",
+        description: "O CNPJ informado é inválido."
+      })
+      return
+    }
     toast({
-      title: "Configurações salvas com sucesso!",
+      title: "Configurações salvas!",
       className: "bg-[#1FA67A] text-white border-none",
     })
     setIsDirty(false)
@@ -42,8 +52,23 @@ export default function MeusDadosPage() {
 
   const lookupCnpj = async (cnpjValue: string) => {
     const cleanCnpj = cnpjValue.replace(/\D/g, "")
-    if (cleanCnpj.length !== 14) return
+    
+    if (cleanCnpj.length !== 14) {
+      setCnpjError(true)
+      return
+    }
 
+    if (!validateCNPJ(cleanCnpj)) {
+      setCnpjError(true)
+      toast({
+        variant: "destructive",
+        title: "CNPJ Inválido",
+        description: "Verifique os dígitos verificadores."
+      })
+      return
+    }
+
+    setCnpjError(false)
     setIsLoadingCnpj(true)
     try {
       const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`)
@@ -51,35 +76,33 @@ export default function MeusDadosPage() {
       
       const data = await response.json()
       
-      setOfficeData({
-        ...officeData,
-        cnpj: cnpjValue,
-        razaoSocial: data.razao_social || officeData.razaoSocial,
-        nomeFantasia: data.nome_fantasia || data.razao_social || officeData.nomeFantasia,
-      })
+      setOfficeData(prev => ({
+        ...prev,
+        razaoSocial: data.razao_social || prev.razaoSocial,
+        nomeFantasia: data.nome_fantasia || data.razao_social || prev.nomeFantasia,
+      }))
       
-      // Também podemos aproveitar e preencher o endereço se a API retornar
       if (data.cep) {
-        setAddress({
-          ...address,
+        setAddress(prev => ({
+          ...prev,
           cep: data.cep,
-          rua: data.logradouro || address.rua,
-          bairro: data.bairro || address.bairro,
-          cidade: data.municipio || address.cidade,
-          uf: data.uf || address.uf
-        })
+          rua: data.logradouro || prev.rua,
+          bairro: data.bairro || prev.bairro,
+          cidade: data.municipio || prev.cidade,
+          uf: data.uf || prev.uf
+        }))
       }
 
       setIsDirty(true)
       toast({
-        title: "CNPJ Localizado!",
-        description: "Dados da empresa sincronizados via Brasil API."
+        title: "Dados Sincronizados!",
+        description: "Razão social e endereço atualizados via Brasil API."
       })
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Erro na consulta de CNPJ",
-        description: "Não foi possível localizar os dados deste CNPJ."
+        title: "Atenção",
+        description: "Não foi possível buscar dados extras, mas o CNPJ é válido."
       })
     } finally {
       setIsLoadingCnpj(false)
@@ -111,10 +134,7 @@ export default function MeusDadosPage() {
           uf: data.uf
         })
         setIsDirty(true)
-        toast({
-          title: "Endereço Localizado!",
-          description: "Dados preenchidos via ViaCEP."
-        })
+        toast({ title: "Endereço Localizado!" })
       }
     } catch (error) {
       console.error("Erro na busca de CEP:", error)
@@ -137,7 +157,7 @@ export default function MeusDadosPage() {
         )}
       </div>
 
-      <Card className="border-[#D2D7DB] shadow-sm">
+      <Card className="border-[#D2D7DB] shadow-sm bg-white">
         <CardHeader className="border-b bg-[#F7F7F7]/50">
           <CardTitle className="text-lg font-black text-[#2C4156] uppercase flex items-center gap-2">
             <Building className="h-5 w-5 text-[#1FA67A]" />
@@ -157,16 +177,24 @@ export default function MeusDadosPage() {
 
             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black text-[#98A7AA] tracking-widest">CNPJ / CPF</Label>
+                <Label className="text-[10px] uppercase font-black text-[#98A7AA] tracking-widest flex items-center justify-between">
+                  CNPJ / CPF
+                  {cnpjError && <span className="text-[#E74C3C] text-[8px]">Inválido</span>}
+                </Label>
                 <div className="relative">
                   <Input 
                     value={officeData.cnpj} 
                     onChange={(e) => {
-                      setOfficeData({...officeData, cnpj: e.target.value});
+                      const formatted = formatCNPJ(e.target.value)
+                      setOfficeData({...officeData, cnpj: formatted});
                       setIsDirty(true);
+                      setCnpjError(false);
                     }}
                     onBlur={(e) => lookupCnpj(e.target.value)}
-                    className="border-[#D2D7DB] font-mono font-bold pr-10" 
+                    className={cn(
+                      "border-[#D2D7DB] font-mono font-bold pr-10",
+                      cnpjError && "border-[#E74C3C] focus-visible:ring-[#E74C3C]"
+                    )}
                   />
                   {isLoadingCnpj ? (
                     <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-[#1FA67A]" />

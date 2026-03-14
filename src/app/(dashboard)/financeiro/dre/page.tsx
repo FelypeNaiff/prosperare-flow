@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Download, FileSpreadsheet, ChevronLeft, ChevronRight, PieChart } from "lucide-react"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { cn } from "@/lib/utils"
 
 const DRE_DATA = [
@@ -50,7 +50,7 @@ const chartData = [
 const chartConfig = {
   receitas: { label: "Receitas", color: "#1FA67A" },
   despesas: { label: "Despesas", color: "#E74C3C" },
-}
+} satisfies ChartConfig
 
 export default function DreGerencialPage() {
   return (
@@ -78,7 +78,7 @@ export default function DreGerencialPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 border-[#D2D7DB]">
+        <Card className="lg:col-span-2 border-[#D2D7DB] bg-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-black text-[#2C4156] uppercase flex items-center gap-2">
               <PieChart className="h-4 w-4 text-[#1FA67A]" />
@@ -87,11 +87,11 @@ export default function DreGerencialPage() {
             <CardDescription className="text-xs font-bold text-[#98A7AA]">Histórico de faturamento vs custos operacionais.</CardDescription>
           </CardHeader>
           <CardContent className="h-[350px] pt-4">
-            <ChartContainer config={chartConfig}>
+            <ChartContainer config={chartConfig} className="h-full w-full">
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
-                <XAxis dataKey="mes" tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} />
-                <YAxis tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} />
+                <XAxis dataKey="mes" tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} axisLine={false} tickLine={false} />
+                <YAxis tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} axisLine={false} tickLine={false} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Legend iconType="circle" />
                 <Bar dataKey="receitas" fill="var(--color-receitas)" radius={[4, 4, 0, 0]} />
@@ -126,7 +126,7 @@ export default function DreGerencialPage() {
         </Card>
       </div>
 
-      <Card className="border-[#D2D7DB]">
+      <Card className="border-[#D2D7DB] bg-white">
         <CardHeader className="bg-[#F7F7F7]/50 border-b">
           <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Detalhamento Analítico</CardTitle>
           <CardDescription className="text-xs font-bold text-[#98A7AA]">Visão por categoria de receita e despesa.</CardDescription>

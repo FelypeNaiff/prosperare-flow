@@ -9,7 +9,8 @@ import {
   Legend,
   AreaChart,
   Area,
-  Line
+  Line,
+  LineChart
 } from "recharts"
 import { 
   Table, 
@@ -21,7 +22,7 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Calendar, Download, Filter, TrendingUp, TrendingDown, Landmark } from "lucide-react"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { cn } from "@/lib/utils"
 
 const FLOW_DATA = [
@@ -46,7 +47,7 @@ const chartConfig = {
   entradas: { label: "Entradas", color: "#1FA67A" },
   saidas: { label: "Saídas", color: "#E74C3C" },
   saldo: { label: "Saldo Acumulado", color: "#2C4156" },
-}
+} satisfies ChartConfig
 
 export default function FluxoDeCaixaPage() {
   return (
@@ -91,7 +92,7 @@ export default function FluxoDeCaixaPage() {
           <CardDescription className="text-xs font-bold text-[#98A7AA]">Saldo acumulado vs. volume diário de transações.</CardDescription>
         </CardHeader>
         <CardContent className="h-[400px] pt-4">
-          <ChartContainer config={chartConfig}>
+          <ChartContainer config={chartConfig} className="h-full w-full">
             <AreaChart data={FLOW_DATA}>
               <defs>
                 <linearGradient id="colorSaldo" x1="0" y1="0" x2="0" y2="1">
@@ -100,13 +101,13 @@ export default function FluxoDeCaixaPage() {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
-              <XAxis dataKey="dia" tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} />
-              <YAxis tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} />
+              <XAxis dataKey="dia" tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} axisLine={false} tickLine={false} />
+              <YAxis tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} axisLine={false} tickLine={false} />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Legend iconType="circle" />
               <Area type="monotone" dataKey="saldo" stroke="#2C4156" fillOpacity={1} fill="url(#colorSaldo)" strokeWidth={3} />
-              <Line type="monotone" dataKey="entradas" stroke="#1FA67A" strokeWidth={2} dot={true} />
-              <Line type="monotone" dataKey="saidas" stroke="#E74C3C" strokeWidth={2} dot={true} />
+              <Area type="monotone" dataKey="entradas" stroke="#1FA67A" fill="transparent" strokeWidth={2} dot={true} />
+              <Area type="monotone" dataKey="saidas" stroke="#E74C3C" fill="transparent" strokeWidth={2} dot={true} />
             </AreaChart>
           </ChartContainer>
         </CardContent>
@@ -168,7 +169,7 @@ export default function FluxoDeCaixaPage() {
 
 function SummaryCard({ label, value, color, icon: Icon }: any) {
   return (
-    <Card className="border-[#D2D7DB] hover:shadow-md transition-shadow">
+    <Card className="border-[#D2D7DB] hover:shadow-md transition-shadow bg-white">
       <CardContent className="p-6 flex justify-between items-center h-full">
         <div>
           <p className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">{label}</p>
