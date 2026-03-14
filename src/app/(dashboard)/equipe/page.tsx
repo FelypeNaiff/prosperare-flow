@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -6,21 +5,18 @@ import {
   Users, 
   Plus, 
   Search, 
-  Shield, 
   Activity, 
-  Filter,
-  Building2,
-  History,
-  ArrowRight,
-  Trash2,
-  Edit,
-  MoreHorizontal,
-  Settings,
-  Mail,
-  AlertTriangle
+  Building2, 
+  History, 
+  Trash2, 
+  Settings, 
+  Mail, 
+  AlertTriangle,
+  Save,
+  ShieldCheck
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { DepartmentManagement } from "@/components/team/department-management"
@@ -34,7 +30,7 @@ import {
   TableRow 
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -43,6 +39,16 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,24 +61,39 @@ import {
 } from "@/components/ui/alert-dialog"
 import { toast } from "@/hooks/use-toast"
 
-const MOCK_TEAM: any[] = []
-
 export default function EquipePage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [team, setTeam] = useState(MOCK_TEAM)
+  const [isInviteOpen, setIsInviteOpen] = useState(false)
+  const [team, setTeam] = useState<any[]>([])
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [memberToDelete, setMemberToDelete] = useState<any>(null)
+
+  const [newMember, setNewMember] = useState({
+    name: "",
+    email: "",
+    profile: "",
+    department: "",
+    status: "ATIVO"
+  })
+
+  const handleInvite = () => {
+    if (!newMember.name || !newMember.email) {
+      toast({ title: "Erro", description: "Preencha os campos obrigatórios.", variant: "destructive" })
+      return
+    }
+    const member = { ...newMember, id: Math.random().toString(36).substr(2, 9) }
+    setTeam([...team, member])
+    setIsInviteOpen(false)
+    setNewMember({ name: "", email: "", profile: "", department: "", status: "ATIVO" })
+    toast({ title: "Convite Enviado!", description: "O colaborador recebeu as instruções por e-mail." })
+  }
 
   const handleDeleteMember = () => {
     if (memberToDelete) {
       setTeam(prev => prev.filter(m => m.id !== memberToDelete.id))
       setIsDeleteDialogOpen(false)
       setMemberToDelete(null)
-      toast({
-        title: "Membro excluído",
-        description: "O acesso do colaborador foi removido permanentemente.",
-        variant: "destructive"
-      })
+      toast({ title: "Membro excluído", variant: "destructive" })
     }
   }
 
@@ -81,13 +102,11 @@ export default function EquipePage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">Gestão da Equipe</h1>
-          <p className="text-[#98A7AA] font-medium">Controle de membros, departamentos e auditoria do sistema.</p>
+          <p className="text-[#98A7AA] font-medium">Controle de membros e acessos do sistema.</p>
         </div>
-        <div className="flex gap-2">
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2">
-            <Plus className="h-4 w-4" /> Convidar Membro
-          </Button>
-        </div>
+        <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2" onClick={() => setIsInviteOpen(true)}>
+          <Plus className="h-4 w-4" /> Convidar Membro
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -96,7 +115,7 @@ export default function EquipePage() {
             <div className="p-3 bg-[#2C4156]/10 rounded-lg"><Users className="h-6 w-6 text-[#2C4156]" /></div>
             <div>
               <p className="text-[10px] font-bold text-[#98A7AA] uppercase">Membros Ativos</p>
-              <p className="text-2xl font-black text-[#2C4156]">{team.filter(m => m.status === 'ATIVO').length} / {team.length}</p>
+              <p className="text-2xl font-black text-[#2C4156]">{team.length}</p>
             </div>
           </CardContent>
         </Card>
@@ -105,7 +124,7 @@ export default function EquipePage() {
             <div className="p-3 bg-[#1FA67A]/10 rounded-lg"><Building2 className="h-6 w-6 text-[#1FA67A]" /></div>
             <div>
               <p className="text-[10px] font-bold text-[#98A7AA] uppercase">Departamentos</p>
-              <p className="text-2xl font-black text-[#2C4156]">5 Estruturas</p>
+              <p className="text-2xl font-black text-[#2C4156]">5</p>
             </div>
           </CardContent>
         </Card>
@@ -113,8 +132,8 @@ export default function EquipePage() {
           <CardContent className="p-6 flex items-center gap-4">
             <div className="p-3 bg-[#F2B705]/10 rounded-lg"><Activity className="h-6 w-6 text-[#F2B705]" /></div>
             <div>
-              <p className="text-[10px] font-bold text-[#98A7AA] uppercase">Ações Hoje</p>
-              <p className="text-2xl font-black text-[#2C4156]">0 Logs</p>
+              <p className="text-[10px] font-bold text-[#98A7AA] uppercase">Logs Hoje</p>
+              <p className="text-2xl font-black text-[#2C4156]">0</p>
             </div>
           </CardContent>
         </Card>
@@ -129,23 +148,21 @@ export default function EquipePage() {
             <Building2 className="h-4 w-4" /> Departamentos
           </TabsTrigger>
           <TabsTrigger value="historico" className="data-[state=active]:bg-white font-bold gap-2">
-            <History className="h-4 w-4" /> Histórico de Ações
+            <History className="h-4 w-4" /> Histórico
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="membros" className="space-y-4 m-0">
+        <TabsContent value="membros" className="m-0">
           <Card className="border-[#D2D7DB]">
             <CardHeader className="pb-3">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
-                  <Input
-                    placeholder="Buscar membro por nome, e-mail ou departamento..."
-                    className="pl-9 bg-[#F7F7F7] border-[#D2D7DB]"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
+                <Input
+                  placeholder="Buscar membro..."
+                  className="pl-9 bg-[#F7F7F7] border-[#D2D7DB]"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
             </CardHeader>
             <CardContent>
@@ -165,48 +182,34 @@ export default function EquipePage() {
                       <TableRow key={member.id} className="hover:bg-[#F7F7F7]">
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-9 w-9 border-2 border-[#D2D7DB]">
-                              <AvatarFallback className="bg-[#2C4156] text-white font-bold">
-                                {member.name.charAt(0)}
-                              </AvatarFallback>
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="bg-[#2C4156] text-white text-[10px]">{member.name.charAt(0)}</AvatarFallback>
                             </Avatar>
-                            <div className="flex flex-col min-w-0">
+                            <div className="flex flex-col">
                               <span className="font-bold text-sm text-[#2C4156]">{member.name}</span>
-                              <span className="text-xs text-[#98A7AA] truncate">{member.email}</span>
+                              <span className="text-[10px] text-[#98A7AA]">{member.email}</span>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="bg-[#39586D]/5 text-[#39586D] border-[#39586D]/20 font-bold text-[10px]">
-                            {member.profile}
-                          </Badge>
+                          <Badge variant="outline" className="text-[9px] font-black uppercase">{member.profile}</Badge>
                         </TableCell>
-                        <TableCell className="text-sm font-medium text-[#39586D]">{member.department}</TableCell>
+                        <TableCell className="text-xs font-bold text-[#39586D]">{member.department}</TableCell>
                         <TableCell>
-                          <Badge className={member.status === 'ATIVO' ? 'bg-[#7ED6B5] text-[#1FA67A] border-none' : 'bg-[#D2D7DB] text-[#98A7AA] border-none'}>
-                            {member.status}
-                          </Badge>
+                          <Badge className="bg-[#7ED6B5] text-[#1FA67A] border-none text-[9px] font-black">ATIVO</Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8"><Settings className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="border-[#D2D7DB]">
-                              <DropdownMenuLabel className="text-[#2C4156] text-[10px] uppercase">Gerenciar Membro</DropdownMenuLabel>
-                              <DropdownMenuItem className="gap-2 text-xs font-bold text-[#2C4156]"><Settings className="h-4 w-4 text-[#1FA67A]" /> Editar Acessos</DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2 text-xs font-bold text-[#2C4156]"><Mail className="h-4 w-4 text-[#2574A9]" /> Resetar Senha</DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                className="gap-2 text-xs font-bold text-[#E74C3C]"
-                                onClick={() => {
-                                  setMemberToDelete(member);
-                                  setIsDeleteDialogOpen(true);
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" /> Excluir Colaborador
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem className="text-xs font-bold"><Edit className="h-3 w-3 mr-2" /> Editar</DropdownMenuItem>
+                              <DropdownMenuItem className="text-xs font-bold text-[#E74C3C]" onClick={() => {
+                                setMemberToDelete(member);
+                                setIsDeleteDialogOpen(true);
+                              }}>
+                                <Trash2 className="h-3 w-3 mr-2" /> Excluir
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -226,34 +229,70 @@ export default function EquipePage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="departamentos" className="m-0">
-          <DepartmentManagement />
-        </TabsContent>
-
-        <TabsContent value="historico" className="m-0">
-          <ActionHistoryList />
-        </TabsContent>
+        <TabsContent value="departamentos" className="m-0"><DepartmentManagement /></TabsContent>
+        <TabsContent value="historico" className="m-0"><ActionHistoryList /></TabsContent>
       </Tabs>
+
+      {/* MODAL CONVIDAR MEMBRO */}
+      <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black text-[#2C4156]">Convidar Colaborador</DialogTitle>
+            <DialogDescription>Envie um convite para o e-mail corporativo do novo membro.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-[#98A7AA]">Nome Completo</Label>
+              <Input placeholder="Ex: João da Silva" value={newMember.name} onChange={(e) => setNewMember({...newMember, name: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-[#98A7AA]">E-mail (Gmail)</Label>
+              <Input type="email" placeholder="nome@gmail.com" value={newMember.email} onChange={(e) => setNewMember({...newMember, email: e.target.value})} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-[#98A7AA]">Perfil de Acesso</Label>
+                <Select onValueChange={(v) => setNewMember({...newMember, profile: v})}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SÓCIO">Sócio</SelectItem>
+                    <SelectItem value="CONTADOR/GESTOR">Contador / Gestor</SelectItem>
+                    <SelectItem value="ASSISTENTE">Assistente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-[#98A7AA]">Departamento</Label>
+                <Select onValueChange={(v) => setNewMember({...newMember, department: v})}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Fiscal">Fiscal</SelectItem>
+                    <SelectItem value="Pessoal">Pessoal</SelectItem>
+                    <SelectItem value="Contábil">Contábil</SelectItem>
+                    <SelectItem value="Diretoria">Diretoria</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="bg-[#F7F7F7] -mx-6 -mb-6 p-6 border-t">
+            <Button variant="outline" onClick={() => setIsInviteOpen(false)}>Cancelar</Button>
+            <Button className="bg-[#1FA67A] font-bold gap-2" onClick={handleInvite}>
+              <Mail className="h-4 w-4" /> Enviar Convite
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-[#E74C3C]">
-              <AlertTriangle className="h-6 w-6" />
-              Confirmar Exclusão de Colaborador?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Você está prestes a excluir <strong>{memberToDelete?.name}</strong>. Esta ação é irreversível e removerá todo o acesso deste usuário ao sistema imediatamente.
-            </AlertDialogDescription>
+            <AlertDialogTitle className="text-[#E74C3C]">Excluir Colaborador?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação removerá o acesso de <strong>{memberToDelete?.name}</strong> permanentemente.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setMemberToDelete(null)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteMember}
-              className="bg-[#E74C3C] text-white hover:bg-[#E74C3C]/90"
-            >
-              Sim, Excluir Definitivamente
-            </AlertDialogAction>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-[#E74C3C]" onClick={handleDeleteMember}>Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

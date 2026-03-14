@@ -4,8 +4,6 @@ import { useState } from "react"
 import { 
   Plus, 
   Download, 
-  Trash2, 
-  RefreshCw, 
   ChevronLeft, 
   ChevronRight, 
   Search, 
@@ -14,7 +12,8 @@ import {
   ArrowUpRight,
   FileSpreadsheet,
   Upload,
-  Check
+  Check,
+  Save
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -46,36 +45,52 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
-
-const INITIAL_RECEIVABLES: any[] = []
 
 const STATUS_OPTIONS = [
   { label: 'Confirmado', value: 'Confirmado', bg: 'bg-[#7ED6B5]', text: 'text-[#1FA67A]' },
   { label: 'Pendente', value: 'Pendente', bg: 'bg-[#FEF3C7]', text: 'text-[#F2B705]' },
   { label: 'Atrasado', value: 'Atrasado', bg: 'bg-[#FEE2E2]', text: 'text-[#E74C3C]' },
-  { label: 'Cancelado', value: 'Cancelado', bg: 'bg-[#F3F4F6]', text: 'text-[#98A7AA]' },
 ]
 
 export default function ContasAReceberPage() {
-  const [items, setItems] = useState(INITIAL_RECEIVABLES)
+  const [items, setItems] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+  const [isNewAccountOpen, setIsNewAccountOpen] = useState(false)
   const [isImportOpen, setIsImportOpen] = useState(false)
 
+  const [newAccount, setNewAccount] = useState({
+    descricao: "",
+    cliente: "",
+    pagamento: "PIX",
+    data: "",
+    valor: 0,
+    situacao: "Pendente",
+    recorrente: false
+  })
+
+  const handleCreateAccount = () => {
+    if (!newAccount.descricao || !newAccount.cliente || !newAccount.valor) {
+      toast({ title: "Erro", description: "Preencha os dados da conta.", variant: "destructive" })
+      return
+    }
+    const entry = { ...newAccount, id: Math.random().toString(36).substr(2, 9) }
+    setItems([entry, ...items])
+    setIsNewAccountOpen(false)
+    setNewAccount({ descricao: "", cliente: "", pagamento: "PIX", data: "", valor: 0, situacao: "Pendente", recorrente: false })
+    toast({ title: "Honorário Lançado!", description: "O registro de entrada foi criado." })
+  }
+
   const handleStatusChange = (id: string, newStatus: string) => {
-    setItems(prev => prev.map(item => 
-      item.id === id ? { ...item, situacao: newStatus } : item
-    ))
-    toast({
-      title: "Status Atualizado",
-      description: `O lançamento foi marcado como ${newStatus}.`
-    })
+    setItems(prev => prev.map(item => item.id === id ? { ...item, situacao: newStatus } : item))
+    toast({ title: "Status Atualizado" })
   }
 
   const getStatusBadge = (status: string, id: string) => {
     const option = STATUS_OPTIONS.find(o => o.value === status) || STATUS_OPTIONS[1]
-    
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -84,17 +99,9 @@ export default function ContasAReceberPage() {
           </Badge>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="center">
-          <DropdownMenuLabel className="text-[10px] uppercase text-[#98A7AA]">Alterar Situação</DropdownMenuLabel>
-          <DropdownMenuSeparator />
           {STATUS_OPTIONS.map(opt => (
-            <DropdownMenuItem 
-              key={opt.value} 
-              onClick={() => handleStatusChange(id, opt.value)}
-              className="gap-2"
-            >
-              <div className={cn("w-2 h-2 rounded-full", opt.bg)} />
-              <span className="text-xs font-medium">{opt.label}</span>
-              {status === opt.value && <Check className="ml-auto h-3 w-3" />}
+            <DropdownMenuItem key={opt.value} onClick={() => handleStatusChange(id, opt.value)}>
+              <div className={cn("w-2 h-2 rounded-full mr-2", opt.bg)} /> {opt.label}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
@@ -103,166 +110,148 @@ export default function ContasAReceberPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">Contas a Receber</h1>
-          <p className="text-[#98A7AA] font-medium">Gestão de honorários e receitas do escritório.</p>
+          <p className="text-[#98A7AA] font-medium">Gestão de honorários e faturamento do escritório.</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center bg-white border border-[#D2D7DB] rounded-lg px-3 py-1 text-sm font-bold text-[#2C4156]">
-            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#F7F7F7]"><ChevronLeft className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8"><ChevronLeft className="h-4 w-4" /></Button>
             <span className="px-4">Outubro 2024</span>
-            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#F7F7F7]"><ChevronRight className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8"><ChevronRight className="h-4 w-4" /></Button>
           </div>
           <div className="flex gap-2">
-            <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-bold"><Plus className="h-4 w-4" /> Nova Conta</Button>
-            
-            <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2 border-[#D2D7DB] text-[#39586D] hover:bg-[#F7F7F7] font-bold">
-                  <FileSpreadsheet className="h-4 w-4" /> Importar Planilha
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle className="text-[#2C4156]">Importar Contas a Receber</DialogTitle>
-                  <DialogDescription>
-                    Suba sua planilha de Excel ou CSV para processamento em lote.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-6 py-4">
-                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-[#D2D7DB] rounded-lg p-8 gap-4 hover:bg-[#F7F7F7] transition-colors cursor-pointer">
-                    <Upload className="h-10 w-10 text-[#98A7AA]" />
-                    <div className="text-center">
-                      <p className="text-sm font-bold text-[#2C4156]">Selecione o arquivo de importação</p>
-                      <p className="text-xs text-[#98A7AA] mt-1">Formatos: .xlsx, .xls, .csv</p>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-bold uppercase text-[#98A7AA]">Recomendação:</p>
-                    <Button variant="outline" className="w-full gap-2 border-[#1FA67A] text-[#1FA67A] hover:bg-[#1FA67A]/5 font-bold">
-                      <Download className="h-4 w-4" /> Baixar Planilha Modelo (.xlsx)
-                    </Button>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="ghost" onClick={() => setIsImportOpen(false)} className="text-[#98A7AA] font-bold">Cancelar</Button>
-                  <Button className="bg-[#1FA67A]" onClick={() => {
-                    setIsImportOpen(false)
-                    toast({ title: "Importação Iniciada", description: "O sistema está processando os dados da planilha." })
-                  }}>Iniciar Importação</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-bold" onClick={() => setIsNewAccountOpen(true)}>
+              <Plus className="h-4 w-4" /> Nova Conta
+            </Button>
+            <Button variant="outline" className="gap-2 border-[#D2D7DB] text-[#39586D]" onClick={() => setIsImportOpen(true)}>
+              <FileSpreadsheet className="h-4 w-4" /> Importar
+            </Button>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <SummaryCard label="Vencidos" value="R$ 0,00" color="bg-[#E74C3C]" icon={ArrowUpRight} />
-        <SummaryCard label="Vencem Hoje" value="R$ 0,00" color="bg-[#F2B705]" icon={ArrowUpRight} />
+        <SummaryCard label="Hoje" value="R$ 0,00" color="bg-[#F2B705]" icon={ArrowUpRight} />
         <SummaryCard label="A Vencer" value="R$ 0,00" color="bg-[#98A7AA]" icon={ArrowUpRight} />
         <SummaryCard label="Recebidos" value="R$ 0,00" color="bg-[#1FA67A]" icon={ArrowUpRight} />
         <SummaryCard label="Total" value="R$ 0,00" color="bg-[#2C4156]" icon={ArrowUpRight} />
       </div>
 
-      <Card className="border-[#D2D7DB] shadow-sm overflow-hidden bg-white">
+      <Card className="border-[#D2D7DB] shadow-sm bg-white overflow-hidden">
         <CardContent className="p-0">
-          <Tabs defaultValue="todos" className="w-full">
-            <div className="flex items-center justify-between p-4 border-b border-[#D2D7DB] bg-[#F7F7F7]/50">
-              <TabsList className="bg-[#D2D7DB]/30">
-                <TabsTrigger value="todos" className="data-[state=active]:bg-white data-[state=active]:text-[#2C4156] font-bold text-xs">Todos</TabsTrigger>
-                <TabsTrigger value="pendente" className="data-[state=active]:bg-white data-[state=active]:text-[#2C4156] font-bold text-xs">Pendente</TabsTrigger>
-                <TabsTrigger value="pago" className="data-[state=active]:bg-white data-[state=active]:text-[#2C4156] font-bold text-xs">Pago</TabsTrigger>
-                <TabsTrigger value="vencido" className="data-[state=active]:bg-white data-[state=active]:text-[#2C4156] font-bold text-xs">Vencido</TabsTrigger>
-              </TabsList>
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
-                  <Input 
-                    placeholder="Buscar cliente..." 
-                    className="pl-9 h-9 w-[250px] bg-white border-[#D2D7DB] focus-visible:ring-[#1FA67A]" 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <div className="text-sm font-extrabold text-[#2C4156]">TOTAL MÊS: R$ 0,00</div>
-              </div>
+          <div className="p-4 border-b bg-[#F7F7F7]/50 flex justify-between items-center">
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
+              <Input placeholder="Buscar cliente..." className="pl-9 h-9 bg-white" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
-
-            <TabsContent value="todos" className="m-0">
+            <div className="text-sm font-black text-[#2C4156]">TOTAL: R$ 0,00</div>
+          </div>
+          <Table>
+            <TableHeader className="bg-[#2C4156]">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-white font-bold uppercase text-[10px]">Descrição</TableHead>
+                <TableHead className="text-white font-bold uppercase text-[10px]">Cliente</TableHead>
+                <TableHead className="text-white font-bold uppercase text-[10px]">Pagamento</TableHead>
+                <TableHead className="text-white font-bold uppercase text-[10px]">Vencimento</TableHead>
+                <TableHead className="text-white font-bold uppercase text-[10px] text-center">Situação</TableHead>
+                <TableHead className="text-white font-bold uppercase text-[10px] text-right">Valor</TableHead>
+                <TableHead className="text-white font-bold uppercase text-[10px] text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {items.length > 0 ? (
-                <Table>
-                  <TableHeader className="bg-[#2C4156]">
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-white uppercase text-[10px] font-bold">Descrição</TableHead>
-                      <TableHead className="text-white uppercase text-[10px] font-bold">Entidade/Cliente</TableHead>
-                      <TableHead className="text-white uppercase text-[10px] font-bold">Pagamento</TableHead>
-                      <TableHead className="text-white uppercase text-[10px] font-bold">Data</TableHead>
-                      <TableHead className="text-white uppercase text-[10px] font-bold text-center">Situação</TableHead>
-                      <TableHead className="text-white uppercase text-[10px] font-bold text-right">Valor</TableHead>
-                      <TableHead className="text-white uppercase text-[10px] font-bold text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((item) => (
-                      <TableRow key={item.id} className="hover:bg-[#F7F7F7]">
-                        <TableCell className="font-bold text-[#2C4156] py-4">
-                          <div className="flex items-center gap-2">
-                            {item.descricao}
-                            {item.recorrente && <Repeat className="h-3 w-3 text-[#1FA67A]" title="Recorrente" />}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-[#39586D]">{item.cliente}</TableCell>
-                        <TableCell className="text-[#98A7AA] text-xs font-medium">{item.pagamento}</TableCell>
-                        <TableCell className="text-[#39586D] font-mono text-xs">{item.data}</TableCell>
-                        <TableCell className="text-center">{getStatusBadge(item.situacao, item.id)}</TableCell>
-                        <TableCell className="text-right font-extrabold text-[#1FA67A]">R$ {item.valor.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]"><MoreVertical className="h-4 w-4" /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="text-xs font-bold text-[#2C4156]">Ver Detalhes</DropdownMenuItem>
-                              <DropdownMenuItem className="text-xs font-bold text-[#2C4156]">Editar Lançamento</DropdownMenuItem>
-                              <DropdownMenuItem className="text-xs font-bold text-[#2C4156]">Baixar PDF</DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-xs font-bold text-[#E74C3C]">Excluir Registro</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                items.map((item) => (
+                  <TableRow key={item.id} className="hover:bg-[#F7F7F7]">
+                    <TableCell className="font-bold text-[#2C4156]">
+                      <div className="flex items-center gap-2">
+                        {item.descricao} {item.recorrente && <Repeat className="h-3 w-3 text-[#1FA67A]" />}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-[#39586D]">{item.cliente}</TableCell>
+                    <TableCell className="text-xs font-bold text-[#98A7AA]">{item.pagamento}</TableCell>
+                    <TableCell className="text-xs font-mono text-[#39586D]">{item.data}</TableCell>
+                    <TableCell className="text-center">{getStatusBadge(item.situacao, item.id)}</TableCell>
+                    <TableCell className="text-right font-black text-[#1FA67A]">R$ {item.valor.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
+                    </TableCell>
+                  </TableRow>
+                ))
               ) : (
-                <div className="text-center py-20">
-                  <p className="text-[#98A7AA] font-bold text-sm">Nenhum lançamento de entrada para este período.</p>
-                  <Button variant="outline" className="mt-4 border-dashed border-[#D2D7DB] text-[#98A7AA]">
-                    <Plus className="h-4 w-4 mr-2" /> Cadastrar honorário
-                  </Button>
-                </div>
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center text-[#98A7AA] font-bold">
+                    Nenhum honorário lançado.
+                  </TableCell>
+                </TableRow>
               )}
-            </TabsContent>
-          </Tabs>
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
+
+      {/* MODAL NOVA CONTA A RECEBER */}
+      <Dialog open={isNewAccountOpen} onOpenChange={setIsNewAccountOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black text-[#2C4156]">Lançar Receita</DialogTitle>
+            <DialogDescription>Cadastre um novo honorário ou entrada avulsa.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-[#98A7AA]">Descrição do Lançamento</Label>
+              <Input placeholder="Ex: Honorários Outubro/24" value={newAccount.descricao} onChange={(e) => setNewAccount({...newAccount, descricao: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-[#98A7AA]">Cliente</Label>
+              <Input placeholder="Nome da empresa" value={newAccount.cliente} onChange={(e) => setNewAccount({...newAccount, cliente: e.target.value})} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-[#98A7AA]">Valor (R$)</Label>
+                <Input type="number" placeholder="0,00" value={newAccount.valor} onChange={(e) => setNewAccount({...newAccount, valor: Number(e.target.value)})} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-[#98A7AA]">Vencimento</Label>
+                <Input type="date" value={newAccount.data} onChange={(e) => setNewAccount({...newAccount, data: e.target.value})} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-[#98A7AA]">Forma de Pagamento</Label>
+              <Select defaultValue="PIX" onValueChange={(v) => setNewAccount({...newAccount, pagamento: v})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PIX">PIX</SelectItem>
+                  <SelectItem value="Boleto">Boleto Bancário</SelectItem>
+                  <SelectItem value="Cartão">Cartão de Crédito</SelectItem>
+                  <SelectItem value="Transferência">Transferência / TED</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="bg-[#F7F7F7] -mx-6 -mb-6 p-6 border-t">
+            <Button variant="outline" onClick={() => setIsNewAccountOpen(false)}>Cancelar</Button>
+            <Button className="bg-[#1FA67A] font-bold gap-2" onClick={handleCreateAccount}>
+              <Save className="h-4 w-4" /> Salvar Lançamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
-function SummaryCard({ label, value, color, icon: Icon }: { label: string, value: string, color: string, icon: any }) {
+function SummaryCard({ label, value, color, icon: Icon }: any) {
   return (
-    <div className={cn("p-4 rounded-xl text-white flex justify-between items-start shadow-sm border-none", color)}>
-      <div className="space-y-1">
-        <p className="text-[10px] font-extrabold uppercase tracking-widest opacity-80">{label}</p>
-        <p className="text-xl font-extrabold">{value}</p>
+    <div className={cn("p-4 rounded-xl text-white flex justify-between items-start shadow-sm", color)}>
+      <div>
+        <p className="text-[10px] font-black uppercase opacity-80">{label}</p>
+        <p className="text-xl font-black">{value}</p>
       </div>
-      <div className="p-1.5 bg-white/20 rounded-lg">
-        <Icon className="h-4 w-4" />
-      </div>
+      <div className="p-1.5 bg-white/20 rounded-lg"><Icon className="h-4 w-4" /></div>
     </div>
   )
 }
