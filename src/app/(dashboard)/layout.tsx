@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react"
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/layout/app-sidebar"
-import { User, ChevronRight, Home } from "lucide-react"
+import { User as UserIcon, ChevronRight, Home, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { 
   DropdownMenu, 
@@ -14,24 +14,41 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
-import { useAuth } from "@/hooks/use-auth-mock"
+import { useUser, useAuth } from "@/firebase"
+import { initiateLogout } from "@/firebase/non-blocking-login"
 import { ChatWidget } from "@/components/collaboration/chat-widget"
 import { NotificationBell } from "@/components/collaboration/notification-bell"
 import { GlobalSearch } from "@/components/layout/global-search"
 import { QuickAccess } from "@/components/layout/quick-access"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { logout, user } = useAuth()
+  const { user, isUserLoading } = useUser()
+  const auth = useAuth()
   const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  if (!mounted) return null
+  useEffect(() => {
+    if (mounted && !isUserLoading && !user) {
+      router.push("/login")
+    }
+  }, [mounted, user, isUserLoading, router])
+
+  if (!mounted || isUserLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F7F7F7]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
+      </div>
+    )
+  }
+
+  if (!user) return null
 
   const pathSegments = pathname.split('/').filter(Boolean)
 
@@ -62,20 +79,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full border-2 border-[#D2D7DB]">
-                  <User className="h-5 w-5 text-[#2C4156]" />
+                <Button variant="ghost" size="icon" className="rounded-full border-2 border-[#D2D7DB] overflow-hidden">
+                  {user.photoURL ? (
+                    <img src={user.photoURL} alt="User" className="h-full w-full object-cover" />
+                  ) : (
+                    <UserIcon className="h-5 w-5 text-[#2C4156]" />
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 shadow-xl border-[#D2D7DB]">
                 <DropdownMenuLabel className="text-[#2C4156]">
-                  <p className="font-bold">{user?.name}</p>
-                  <p className="text-[10px] text-[#98A7AA] uppercase">{user?.profile}</p>
+                  <p className="font-bold truncate">{user.displayName || user.email}</p>
+                  <p className="text-[10px] text-[#98A7AA] uppercase font-black">Colaborador</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild><Link href="/configuracoes/meus-dados">Meu Perfil</Link></DropdownMenuItem>
                 <DropdownMenuItem>Minhas Tarefas</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="text-[#E74C3C] font-bold">Sair do Sistema</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => initiateLogout(auth)} className="text-[#E74C3C] font-bold">
+                  Sair do Sistema
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

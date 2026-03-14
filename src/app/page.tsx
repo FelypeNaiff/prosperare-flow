@@ -1,18 +1,24 @@
+
 "use client"
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useUser } from "@/firebase"
 import { TrendingUp, Loader2 } from "lucide-react"
 
 export default function Home() {
+  const { user, isUserLoading } = useUser()
   const router = useRouter()
   
   useEffect(() => {
-    const timer = setTimeout(() => {
-      router.push("/dashboard")
-    }, 1500)
-    return () => clearTimeout(timer)
-  }, [router])
+    if (!isUserLoading) {
+      if (user) {
+        router.push("/dashboard")
+      } else {
+        router.push("/login")
+      }
+    }
+  }, [user, isUserLoading, router])
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#2C4156] text-white overflow-hidden">
@@ -31,16 +37,9 @@ export default function Home() {
           <div className="flex items-center justify-center gap-3">
             <Loader2 className="h-4 w-4 animate-spin text-[#1FA67A]" />
             <p className="text-[#98A7AA] font-bold tracking-[0.3em] uppercase text-[10px]">
-              Sincronizando Fluxo de Trabalho...
+              Verificando Credenciais...
             </p>
           </div>
-        </div>
-      </div>
-      
-      <div className="absolute bottom-12 flex flex-col items-center gap-2 opacity-40">
-        <p className="text-[10px] font-black uppercase tracking-widest">Powered by Prosperare Intelligence</p>
-        <div className="w-32 h-1 bg-white/10 rounded-full overflow-hidden">
-          <div className="h-full bg-[#1FA67A] animate-progress origin-left w-full" />
         </div>
       </div>
     </div>
