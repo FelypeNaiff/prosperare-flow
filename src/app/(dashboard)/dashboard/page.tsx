@@ -1,3 +1,4 @@
+
 "use client"
 
 import { KpiCard } from "@/components/dashboard/kpi-card"
@@ -10,7 +11,9 @@ import {
   TrendingUp,
   FileWarning,
   ArrowRight,
-  TrendingDown
+  TrendingDown,
+  MessageSquare,
+  FileSignature
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -28,7 +31,7 @@ export default function DashboardPage() {
         <p className="text-[#98A7AA] font-medium">Bem-vindo. Aqui está o fluxo atual da sua operação contábil.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
         <KpiCard 
           label="Clientes Ativos" 
           value="124" 
@@ -51,9 +54,16 @@ export default function DashboardPage() {
           color="destructive" 
         />
         <KpiCard 
-          label="Certidões a Vencer" 
+          label="Atendimentos" 
           value="8" 
-          icon={Calendar} 
+          icon={MessageSquare} 
+          trend={0} 
+          color="info" 
+        />
+        <KpiCard 
+          label="Protocolos Pendentes" 
+          value="12" 
+          icon={FileSignature} 
           trend={0} 
           color="warning" 
         />
@@ -92,12 +102,13 @@ export default function DashboardPage() {
               { type: 'Atrasado', client: 'Posto São Bento', task: 'FGTS Digital', status: 'danger' },
               { type: 'Vencendo', client: 'Mercado Ideal', task: 'CND Federal', status: 'warning' },
               { type: 'Inadimplente', client: 'Padaria Alfa', task: 'Honorário Set/24', status: 'danger' },
-              { type: 'Atrasado', client: 'Auto Peças Silva', task: 'DCTFWeb', status: 'danger' },
+              { type: 'Atendimento', client: 'Auto Peças Silva', task: 'Pedido Recisão', status: 'info' },
             ].map((alert, i) => (
               <div key={i} className="flex items-center gap-4 p-3 rounded-lg border border-[#D2D7DB] bg-[#F7F7F7] text-sm hover:border-[#1FA67A] transition-colors cursor-pointer group">
                 <div className={cn(
                   "w-2 h-2 rounded-full",
-                  alert.status === 'danger' ? 'bg-[#E74C3C]' : 'bg-[#F2B705]'
+                  alert.status === 'danger' ? 'bg-[#E74C3C]' : 
+                  alert.status === 'warning' ? 'bg-[#F2B705]' : 'bg-[#2574A9]'
                 )} />
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-[#2C4156] truncate group-hover:text-[#1FA67A]">{alert.client}</p>
@@ -106,9 +117,8 @@ export default function DashboardPage() {
                 <Badge 
                   className={cn(
                     "text-[10px] uppercase font-bold",
-                    alert.status === 'danger' 
-                      ? 'bg-[#FEE2E2] text-[#E74C3C] hover:bg-[#FEE2E2]' 
-                      : 'bg-[#FEF3C7] text-[#F2B705] hover:bg-[#FEF3C7]'
+                    alert.status === 'danger' ? 'bg-[#FEE2E2] text-[#E74C3C]' : 
+                    alert.status === 'warning' ? 'bg-[#FEF3C7] text-[#F2B705]' : 'bg-[#E3F0F9] text-[#2574A9]'
                   )}
                 >
                   {alert.type}
@@ -127,8 +137,8 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="lg:col-span-2 border-[#D2D7DB]">
           <CardHeader>
-            <CardTitle className="text-[#2C4156]">Certidões Urgentes</CardTitle>
-            <CardDescription className="text-[#98A7AA]">CNDs com vencimento em menos de 15 dias.</CardDescription>
+            <CardTitle className="text-[#2C4156]">Protocolos Urgentes</CardTitle>
+            <CardDescription className="text-[#98A7AA]">Documentos enviados há mais de 48h não visualizados.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -136,34 +146,34 @@ export default function DashboardPage() {
                  <table className="w-full text-sm">
                    <thead>
                      <tr className="text-left text-[#98A7AA] border-b border-[#D2D7DB] pb-2 uppercase text-[10px] font-bold">
-                       <th className="pb-2">Tipo</th>
+                       <th className="pb-2">Documento</th>
                        <th className="pb-2">Cliente</th>
-                       <th className="pb-2">Dias</th>
-                       <th className="pb-2">Validade</th>
+                       <th className="pb-2">Atraso</th>
+                       <th className="pb-2">Ações</th>
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-[#D2D7DB]">
                      {[
-                       { tipo: 'Federal', cliente: 'ConstruMais Ltda', dias: 4, validade: '15/10/24' },
-                       { tipo: 'Trabalhista', cliente: 'Restaurante Sabor', dias: 7, validade: '18/10/24' },
-                       { tipo: 'Estadual', cliente: 'Loja Variedades', dias: 12, validade: '23/10/24' },
-                     ].map((cnd, i) => (
+                       { doc: 'Guia DAS', cliente: 'ConstruMais Ltda', atraso: '3 dias', status: 'danger' },
+                       { doc: 'Holerites', cliente: 'Restaurante Sabor', atraso: '2 dias', status: 'warning' },
+                       { doc: 'Relatório', cliente: 'Loja Variedades', atraso: '2 dias', status: 'warning' },
+                     ].map((p, i) => (
                        <tr key={i} className="hover:bg-[#F7F7F7] transition-colors group cursor-pointer">
-                         <td className="py-3 font-bold text-[#2C4156] group-hover:text-[#1FA67A]">{cnd.tipo}</td>
-                         <td className="py-3 text-[#39586D]">{cnd.cliente}</td>
+                         <td className="py-3 font-bold text-[#2C4156] group-hover:text-[#1FA67A]">{p.doc}</td>
+                         <td className="py-3 text-[#39586D]">{p.cliente}</td>
                          <td className="py-3">
                            <Badge 
                              className={cn(
                                "text-[10px] font-bold",
-                               cnd.dias <= 5 
-                                 ? 'bg-[#FEE2E2] text-[#E74C3C] hover:bg-[#FEE2E2]' 
-                                 : 'bg-[#FEF3C7] text-[#F2B705] hover:bg-[#FEF3C7]'
+                               p.status === 'danger' ? 'bg-[#FEE2E2] text-[#E74C3C]' : 'bg-[#FEF3C7] text-[#F2B705]'
                              )}
                            >
-                             {cnd.dias} dias
+                             {p.atraso}
                            </Badge>
                          </td>
-                         <td className="py-3 text-[#98A7AA] font-mono">{cnd.validade}</td>
+                         <td className="py-3">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-[#1FA67A]"><Mail className="h-4 w-4" /></Button>
+                         </td>
                        </tr>
                      ))}
                    </tbody>
@@ -175,16 +185,16 @@ export default function DashboardPage() {
         
         <Card className="lg:col-span-2 border-[#D2D7DB]">
           <CardHeader>
-             <CardTitle className="text-[#2C4156]">Regimes Tributários</CardTitle>
-             <CardDescription className="text-[#98A7AA]">Distribuição da carteira de clientes.</CardDescription>
+             <CardTitle className="text-[#2C4156]">Distribuição de Atendimentos</CardTitle>
+             <CardDescription className="text-[#98A7AA]">Chamados por departamento.</CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center h-[200px] items-center">
              <div className="flex flex-wrap justify-center gap-6">
                 {[
-                  { label: 'Simples', value: 64, color: '#1FA67A' },
-                  { label: 'Presumido', value: 28, color: '#39586D' },
-                  { label: 'MEI', value: 20, color: '#2C4156' },
-                  { label: 'Lucro Real', value: 12, color: '#2574A9' },
+                  { label: 'Pessoal', value: 8, color: '#2574A9' },
+                  { label: 'Fiscal', value: 5, color: '#1FA67A' },
+                  { label: 'Contábil', value: 3, color: '#C0392B' },
+                  { label: 'Adm', value: 2, color: '#39586D' },
                 ].map((item, i) => (
                   <div key={i} className="flex flex-col items-center gap-2 group cursor-default">
                     <div 

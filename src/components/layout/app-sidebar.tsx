@@ -32,7 +32,9 @@ import {
   LogOut,
   TrendingUp,
   ClipboardList,
-  Layers
+  Layers,
+  TicketCheck,
+  FileSignature
 } from "lucide-react"
 
 import {
@@ -91,8 +93,15 @@ const items = [
     ]
   },
   {
+    title: "Atendimentos",
+    url: "/atendimentos",
+    icon: TicketCheck,
+    profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
+    badge: 3
+  },
+  {
     title: "Certidões",
-    url: "/certidões",
+    url: "/certidoes",
     icon: ShieldCheck,
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR"],
     badge: 2,
@@ -101,6 +110,12 @@ const items = [
       { title: "Painel Geral", url: "/certidoes", icon: PieChart },
       { title: "Por Empresa", url: "/certidoes", icon: Building },
     ]
+  },
+  {
+    title: "Protocolos",
+    url: "/protocolos",
+    icon: FileSignature,
+    profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
   },
   {
     title: "Financeiro",
@@ -150,7 +165,6 @@ const items = [
       { title: "Segurança", url: "/configuracoes/seguranca", icon: Lock },
       { title: "Aparência", url: "/configuracoes/aparencia", icon: Palette },
       { title: "Integrações", url: "/configuracoes/integracoes", icon: LinkIcon },
-      { title: "IRPF", url: "/configuracoes/irpf", icon: ClipboardList },
       { title: "Plano e Assinatura", url: "/configuracoes/plano", icon: CreditCard },
     ]
   },
