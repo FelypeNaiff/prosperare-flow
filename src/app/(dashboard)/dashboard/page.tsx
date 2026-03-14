@@ -28,9 +28,22 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection } from "firebase/firestore"
 
 export default function DashboardPage() {
+  const firestore = useFirestore()
+  
+  // Queries reais para contagem
+  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
+  const { data: clients } = useCollection(clientsQuery)
+  
+  const ticketsQuery = useMemoFirebase(() => collection(firestore, "tickets"), [firestore])
+  const { data: tickets } = useCollection(ticketsQuery)
+
+  const tasksQuery = useMemoFirebase(() => collection(firestore, "tasks"), [firestore])
+  const { data: tasks } = useCollection(tasksQuery)
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -52,10 +65,10 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <KpiCard label="Clientes" value="0" icon={Users} color="primary" />
+        <KpiCard label="Clientes" value={clients?.length || 0} icon={Users} color="primary" />
         <KpiCard label="Processos OK" value="0%" icon={CheckCircle2} color="success" />
         <KpiCard label="Atrasos" value="0" icon={AlertCircle} color="destructive" />
-        <KpiCard label="Tickets" value="0" icon={MessageSquare} color="info" />
+        <KpiCard label="Tickets" value={tickets?.length || 0} icon={MessageSquare} color="info" />
         <KpiCard label="Honorários" value="0" icon={Clock} color="warning" />
         <KpiCard label="NPS" value="--" icon={Heart} color="success" />
       </div>

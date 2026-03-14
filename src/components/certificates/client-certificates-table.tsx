@@ -25,7 +25,8 @@ import {
   Edit,
   Mail,
   MoreVertical,
-  AlertTriangle
+  AlertTriangle,
+  Loader2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -64,8 +65,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { format, differenceInDays, parseISO, isBefore } from "date-fns"
 import { toast } from "@/hooks/use-toast"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ClientCommunicationTool } from "@/components/clients/client-communication-tool"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection, query, where } from "firebase/firestore"
 
 interface Certificate {
   id: string;
@@ -78,85 +79,39 @@ interface Certificate {
   isManual?: boolean;
 }
 
-interface ClientCertificatesTableProps {
-  clientId: string;
-}
-
-const INITIAL_MOCK_CERTIFICATES: Certificate[] = []
-
-export function ClientCertificatesTable({ clientId }: ClientCertificatesTableProps) {
-  const [certificates, setCertificates] = useState<Certificate[]>(INITIAL_MOCK_CERTIFICATES)
+export function ClientCertificatesTable({ clientId }: { clientId: string }) {
+  const firestore = useFirestore()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [certToDelete, setCertToDelete] = useState<string | null>(null)
-  const [editingCert, setEditingCert] = useState<Certificate | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   
-  // Form State
-  const [formData, setFormData] = useState({
-    tipo: "",
-    numero: "",
-    emissao: "",
-    validade: "",
-    arquivoUrl: "",
-    fileName: ""
-  })
+  // Query real por cliente
+  const certsQuery = useMemoFirebase(() => 
+    query(collection(firestore, "certificates"), where("clientId", "==", clientId)),
+    [firestore, clientId]
+  )
+  const { data: certificates, isLoading } = useCollection<Certificate>(certsQuery)
 
   const getStatusInfo = (validadeStr: string) => {
-    if (validadeStr === '-' || !validadeStr) return { label: 'Não emitida', color: 'bg-slate-400', days: 0 };
+    if (!validadeStr || validadeStr === '-') return { label: 'Não emitida', color: 'bg-slate-400', days: 0 };
     
-    const hoje = new Date();
-    const validade = parseISO(validadeStr);
-    const diasRestantes = differenceInDays(validade, hoje);
+    try {
+      const hoje = new Date();
+      const validade = parseISO(validadeStr);
+      const diasRestantes = differenceInDays(validade, hoje);
 
-    if (isBefore(validade, hoje)) {
-      return { label: 'Vencida', color: 'bg-red-500', days: diasRestantes };
-    }
-    if (diasRestantes <= 7) {
-      return { label: 'Crítica', color: 'bg-orange-500', days: diasRestantes };
-    }
-    if (diasRestantes <= 30) {
-      return { label: 'A Vencer', color: 'bg-yellow-500 text-black', days: diasRestantes };
-    }
-    return { label: 'Válida', color: 'bg-emerald-500', days: diasRestantes };
-  }
-
-  const handleSave = () => {
-    if (!formData.tipo || !formData.validade) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha o tipo e a data de validade.",
-        variant: "destructive"
-      })
-      return;
-    }
-
-    if (editingCert) {
-      setCertificates(prev => prev.map(c => 
-        c.id === editingCert.id ? { ...c, ...formData } : c
-      ));
-      toast({ title: "Certidão Atualizada" });
-    } else {
-      const newItem: Certificate = {
-        id: Math.random().toString(36).substr(2, 9),
-        ...formData,
-        isManual: true
-      };
-      setCertificates([newItem, ...certificates]);
-      toast({ title: "Certidão Adicionada" });
-    }
-
-    setIsModalOpen(false);
-    setEditingCert(null);
-    setFormData({ tipo: "", numero: "", emissao: "", validade: "", arquivoUrl: "", fileName: "" });
-  }
-
-  const handleDelete = () => {
-    if (certToDelete) {
-      setCertificates(prev => prev.filter(c => c.id !== certToDelete));
-      setIsDeleteDialogOpen(false);
-      setCertToDelete(null);
-      toast({ title: "Registro Excluído" });
+      if (isBefore(validade, hoje)) {
+        return { label: 'Vencida', color: 'bg-red-500', days: diasRestantes };
+      }
+      if (diasRestantes <= 7) {
+        return { label: 'Crítica', color: 'bg-orange-500', days: diasRestantes };
+      }
+      if (diasRestantes <= 30) {
+        return { label: 'A Vencer', color: 'bg-yellow-500 text-black', days: diasRestantes };
+      }
+      return { label: 'Válida', color: 'bg-emerald-500', days: diasRestantes };
+    } catch (e) {
+      return { label: 'Erro Data', color: 'bg-slate-400', days: 0 };
     }
   }
 
@@ -185,38 +140,34 @@ export function ClientCertificatesTable({ clientId }: ClientCertificatesTablePro
             </TableRow>
           </TableHeader>
           <TableBody>
-            {certificates.length > 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1FA67A]" />
+                </TableCell>
+              </TableRow>
+            ) : certificates && certificates.length > 0 ? (
               certificates.map((cert) => {
                 const status = getStatusInfo(cert.validade);
                 return (
                   <TableRow key={cert.id} className="hover:bg-muted/50">
                     <TableCell className="font-medium">{cert.tipo}</TableCell>
-                    <TableCell className="text-xs font-mono">{cert.numero}</TableCell>
+                    <TableCell className="text-xs font-mono">{cert.numero || '--'}</TableCell>
                     <TableCell>{cert.emissao ? format(parseISO(cert.emissao), 'dd/MM/yyyy') : '-'}</TableCell>
                     <TableCell>{cert.validade ? format(parseISO(cert.validade), 'dd/MM/yyyy') : '-'}</TableCell>
                     <TableCell className="text-center">
                       <Badge className={status.color}>{status.label}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => {
-                            setCertToDelete(cert.id);
-                            setIsDeleteDialogOpen(true);
-                          }} className="text-destructive">Excluir</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 )
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-[#98A7AA] font-bold">
-                  Nenhuma certidão registrada.
+                <TableCell colSpan={6} className="h-32 text-center text-[#98A7AA] font-bold italic">
+                  Nenhuma certidão registrada para esta empresa.
                 </TableCell>
               </TableRow>
             )}
@@ -226,29 +177,15 @@ export function ClientCertificatesTable({ clientId }: ClientCertificatesTablePro
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nova Certidão Manual</DialogTitle>
-          </DialogHeader>
-          {/* Campos de formulário aqui */}
+          <DialogHeader><DialogTitle>Nova Certidão Manual</DialogTitle></DialogHeader>
+          <div className="p-4 text-center text-sm text-muted-foreground">
+            Funcionalidade de upload em desenvolvimento.
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave}>Salvar</Button>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Registro?</AlertDialogTitle>
-            <AlertDialogDescription>Esta ação removerá a certidão do histórico.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Voltar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

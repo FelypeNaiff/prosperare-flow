@@ -13,18 +13,32 @@ import {
   BarChart3
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection } from "firebase/firestore"
 
 export function IrpfDashboard() {
+  const firestore = useFirestore()
+  const irpfQuery = useMemoFirebase(() => collection(firestore, "irpf_declarations"), [firestore])
+  const { data: declarations = [] } = useCollection(irpfQuery)
+
+  const stats = {
+    total: declarations?.length || 0,
+    completed: declarations?.filter(d => d.status === 'completed' || d.status === 'Enviada').length || 0,
+    open: declarations?.filter(d => d.status !== 'completed' && d.status !== 'Enviada').length || 0,
+    waitingDoc: declarations?.filter(d => d.tags?.includes('AGUARDANDO RETORNO...')).length || 0,
+    honoraries: declarations?.reduce((acc, d) => acc + (d.value || 0), 0) || 0,
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
-      <KpiCard label="Total" value="156" icon={Users} color="primary" />
-      <KpiCard label="Concluídas" value="42" subValue="27%" icon={CheckCircle2} color="success" />
-      <KpiCard label="Em Aberto" value="114" icon={BarChart3} color="info" />
-      <KpiCard label="Atrasadas" value="8" icon={Clock} color="destructive" />
-      <KpiCard label="Aguardando Doc" value="35" icon={AlertTriangle} color="warning" />
-      <KpiCard label="Honorários" value="R$ 45k" icon={DollarSign} color="success" />
-      <KpiCard label="Restituição" value="R$ 210k" icon={Heart} color="success" />
-      <KpiCard label="Malha Fiscal" value="2" icon={TrendingDown} color="destructive" />
+      <KpiCard label="Total" value={stats.total} icon={Users} color="primary" />
+      <KpiCard label="Concluídas" value={stats.completed} subValue={stats.total > 0 ? `${Math.round((stats.completed/stats.total)*100)}%` : '0%'} icon={CheckCircle2} color="success" />
+      <KpiCard label="Em Aberto" value={stats.open} icon={BarChart3} color="info" />
+      <KpiCard label="Atrasadas" value="0" icon={Clock} color="destructive" />
+      <KpiCard label="Aguardando Doc" value={stats.waitingDoc} icon={AlertTriangle} color="warning" />
+      <KpiCard label="Honorários" value={`R$ ${stats.honoraries}`} icon={DollarSign} color="success" />
+      <KpiCard label="Restituição" value="R$ 0" icon={Heart} color="success" />
+      <KpiCard label="Malha Fiscal" value="0" icon={TrendingDown} color="destructive" />
     </div>
   )
 }
