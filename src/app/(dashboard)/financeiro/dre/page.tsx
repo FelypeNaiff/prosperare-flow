@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -23,29 +22,8 @@ import { Download, FileSpreadsheet, ChevronLeft, ChevronRight, PieChart } from "
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { cn } from "@/lib/utils"
 
-const DRE_DATA = [
-  { categoria: 'Receita Bruta', valor: 45200.00, subtotal: true },
-  { categoria: 'Honorários Contábeis', valor: 38500.00 },
-  { categoria: 'Serviços Avulsos (Aberturas/IRPF)', valor: 6700.00 },
-  { categoria: '(-) Impostos s/ Faturamento (Simples)', valor: -2712.00 },
-  { categoria: 'RECEITA LÍQUIDA', valor: 42488.00, subtotal: true, highlight: true },
-  { categoria: '(-) Custos Operacionais', valor: -8500.00, subtotal: true },
-  { categoria: 'Salários e Encargos Equipe', valor: -6200.00 },
-  { categoria: 'Sistemas e Softwares (Questor/Dominio)', valor: -2300.00 },
-  { categoria: '(-) Despesas Administrativas', valor: -4200.00, subtotal: true },
-  { categoria: 'Aluguel e Condomínio', valor: -3500.00 },
-  { categoria: 'Internet e Energia', valor: -700.00 },
-  { categoria: 'RESULTADO LÍQUIDO (LUCRO)', valor: 29788.00, subtotal: true, highlight: true, positive: true },
-]
-
-const chartData = [
-  { mes: 'Mai', receitas: 38000, despesas: 15000 },
-  { mes: 'Jun', receitas: 41000, despesas: 16200 },
-  { mes: 'Jul', receitas: 39500, despesas: 14800 },
-  { mes: 'Ago', receitas: 42000, despesas: 17000 },
-  { mes: 'Set', receitas: 44000, despesas: 18500 },
-  { mes: 'Out', receitas: 45200, despesas: 15412 },
-]
+const DRE_DATA: any[] = []
+const chartData: any[] = []
 
 const chartConfig = {
   receitas: { label: "Receitas", color: "#1FA67A" },
@@ -86,18 +64,22 @@ export default function DreGerencialPage() {
             </CardTitle>
             <CardDescription className="text-xs font-bold text-[#98A7AA]">Histórico de faturamento vs custos operacionais.</CardDescription>
           </CardHeader>
-          <CardContent className="h-[350px] pt-4">
-            <ChartContainer config={chartConfig} className="h-full w-full">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
-                <XAxis dataKey="mes" tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} axisLine={false} tickLine={false} />
-                <YAxis tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} axisLine={false} tickLine={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Legend iconType="circle" />
-                <Bar dataKey="receitas" fill="var(--color-receitas)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="despesas" fill="var(--color-despesas)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ChartContainer>
+          <CardContent className="h-[350px] pt-4 flex items-center justify-center">
+            {chartData.length > 0 ? (
+              <ChartContainer config={chartConfig} className="h-full w-full">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
+                  <XAxis dataKey="mes" tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} axisLine={false} tickLine={false} />
+                  <YAxis tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} axisLine={false} tickLine={false} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Legend iconType="circle" />
+                  <Bar dataKey="receitas" fill="var(--color-receitas)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="despesas" fill="var(--color-despesas)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ChartContainer>
+            ) : (
+              <p className="text-[#98A7AA] font-bold italic">Sem dados históricos para evolução.</p>
+            )}
           </CardContent>
         </Card>
 
@@ -107,19 +89,19 @@ export default function DreGerencialPage() {
             <CardTitle className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em]">Lucro Líquido do Mês</CardTitle>
           </CardHeader>
           <CardContent className="space-y-8 pt-4">
-            <div className="text-5xl font-black tracking-tighter">R$ 29.788,00</div>
+            <div className="text-5xl font-black tracking-tighter">R$ 0,00</div>
             <div className="space-y-3">
               <div className="flex justify-between items-end">
                 <p className="text-[10px] font-black uppercase text-white/60">Margem de Lucro</p>
-                <p className="text-lg font-black text-[#1FA67A]">65.9%</p>
+                <p className="text-lg font-black text-[#1FA67A]">0.0%</p>
               </div>
               <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-[#1FA67A] w-[65.9%] shadow-[0_0_10px_rgba(31,166,122,0.5)]" />
+                <div className="h-full bg-[#1FA67A] w-0 shadow-[0_0_10px_rgba(31,166,122,0.5)]" />
               </div>
             </div>
             <div className="p-4 bg-white/5 rounded-xl border border-white/10">
               <p className="text-[10px] font-medium text-white/70 italic leading-relaxed">
-                "Parabéns! O resultado deste mês é 12% superior ao mês de Setembro, impulsionado pela redução nos custos de softwares."
+                "O DRE será alimentado conforme você registrar receitas e despesas nos módulos financeiros."
               </p>
             </div>
           </CardContent>
@@ -141,30 +123,38 @@ export default function DreGerencialPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {DRE_DATA.map((item, i) => (
-                <TableRow key={i} className={cn(
-                  "hover:bg-[#F7F7F7]/50 transition-colors",
-                  item.subtotal ? "bg-[#F7F7F7]/30 font-black" : "",
-                  item.highlight ? "text-lg bg-[#1FA67A]/5" : ""
-                )}>
-                  <TableCell className={cn(
-                    "py-4",
-                    item.highlight ? "text-[#1FA67A]" : "text-[#39586D]",
-                    !item.subtotal ? "pl-8 text-xs opacity-80" : "text-sm"
+              {DRE_DATA.length > 0 ? (
+                DRE_DATA.map((item, i) => (
+                  <TableRow key={i} className={cn(
+                    "hover:bg-[#F7F7F7]/50 transition-colors",
+                    item.subtotal ? "bg-[#F7F7F7]/30 font-black" : "",
+                    item.highlight ? "text-lg bg-[#1FA67A]/5" : ""
                   )}>
-                    {item.categoria}
-                  </TableCell>
-                  <TableCell className={cn(
-                    "text-right font-mono font-bold",
-                    item.valor < 0 ? "text-[#E74C3C]" : (item.positive ? "text-[#1FA67A]" : "")
-                  )}>
-                    {item.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </TableCell>
-                  <TableCell className="text-right text-[10px] font-black text-[#98A7AA]">
-                    {item.highlight ? "100%" : (Math.abs(item.valor / 45200 * 100).toFixed(1) + "%")}
+                    <TableCell className={cn(
+                      "py-4",
+                      item.highlight ? "text-[#1FA67A]" : "text-[#39586D]",
+                      !item.subtotal ? "pl-8 text-xs opacity-80" : "text-sm"
+                    )}>
+                      {item.categoria}
+                    </TableCell>
+                    <TableCell className={cn(
+                      "text-right font-mono font-bold",
+                      item.valor < 0 ? "text-[#E74C3C]" : (item.positive ? "text-[#1FA67A]" : "")
+                    )}>
+                      {item.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </TableCell>
+                    <TableCell className="text-right text-[10px] font-black text-[#98A7AA]">
+                      {item.highlight ? "100%" : "0.0%"}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={3} className="py-12 text-center text-[#98A7AA] font-bold">
+                    Nenhum dado analítico disponível para o período selecionado.
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>

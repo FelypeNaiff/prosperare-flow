@@ -50,13 +50,7 @@ import {
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 
-const INITIAL_PAYABLES = [
-  { id: '1', descricao: 'Aluguel Escritório', entidade: 'Imobiliária Central', categoria: 'Aluguel', data: '05/10/2024', situacao: 'Pago', valor: 3500.00, recorrente: true },
-  { id: '2', descricao: 'Energia Elétrica', entidade: 'Equatorial', categoria: 'Contas Fixas', data: '15/10/2024', situacao: 'Pendente', valor: 450.00, recorrente: true },
-  { id: '3', descricao: 'Software Contábil', entidade: 'Domínio Sistemas', categoria: 'Sistemas/Software', data: '20/10/2024', situacao: 'Pendente', valor: 1200.00, recorrente: true },
-  { id: '4', descricao: 'Material de Limpeza', entidade: 'Mercado Ideal', categoria: 'Material', data: '02/10/2024', situacao: 'Pago', valor: 150.00, recorrente: false },
-  { id: '5', descricao: 'Consultoria TI', entidade: 'Tech Support', categoria: 'Serviços', data: '10/10/2024', situacao: 'Atrasado', valor: 600.00, recorrente: false },
-]
+const INITIAL_PAYABLES: any[] = []
 
 const STATUS_OPTIONS = [
   { label: 'Pago', value: 'Pago', bg: 'bg-[#7ED6B5]', text: 'text-[#1FA67A]' },
@@ -164,11 +158,11 @@ export default function ContasAPagarPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <SummaryCard label="Vencidos" value="R$ 1.200,00" color="bg-[#E74C3C]" icon={ArrowDownRight} />
+        <SummaryCard label="Vencidos" value="R$ 0,00" color="bg-[#E74C3C]" icon={ArrowDownRight} />
         <SummaryCard label="Vencem Hoje" value="R$ 0,00" color="bg-[#F2B705]" icon={ArrowDownRight} />
-        <SummaryCard label="A Vencer" value="R$ 8.400,00" color="bg-[#98A7AA]" icon={ArrowDownRight} />
-        <SummaryCard label="Pagos" value="R$ 5.850,00" color="bg-[#1FA67A]" icon={ArrowDownRight} />
-        <SummaryCard label="Total" value="R$ 15.450,00" color="bg-[#2C4156]" icon={ArrowDownRight} />
+        <SummaryCard label="A Vencer" value="R$ 0,00" color="bg-[#98A7AA]" icon={ArrowDownRight} />
+        <SummaryCard label="Pagos" value="R$ 0,00" color="bg-[#1FA67A]" icon={ArrowDownRight} />
+        <SummaryCard label="Total" value="R$ 0,00" color="bg-[#2C4156]" icon={ArrowDownRight} />
       </div>
 
       <Card className="border-[#D2D7DB] shadow-sm overflow-hidden bg-white">
@@ -190,54 +184,63 @@ export default function ContasAPagarPage() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <div className="text-sm font-extrabold text-[#2C4156]">TOTAL MÊS: R$ 15.450,00</div>
+                <div className="text-sm font-extrabold text-[#2C4156]">TOTAL MÊS: R$ 0,00</div>
               </div>
             </div>
 
             <TabsContent value="todos" className="m-0">
-              <Table>
-                <TableHeader className="bg-[#2C4156]">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-white uppercase text-[10px] font-bold">Descrição</TableHead>
-                    <TableHead className="text-white uppercase text-[10px] font-bold">Fornecedor/Entidade</TableHead>
-                    <TableHead className="text-white uppercase text-[10px] font-bold">Categoria</TableHead>
-                    <TableHead className="text-white uppercase text-[10px] font-bold">Data</TableHead>
-                    <TableHead className="text-white uppercase text-[10px] font-bold text-center">Situação</TableHead>
-                    <TableHead className="text-white uppercase text-[10px] font-bold text-right">Valor</TableHead>
-                    <TableHead className="text-white uppercase text-[10px] font-bold text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((item) => (
-                    <TableRow key={item.id} className="hover:bg-[#F7F7F7]">
-                      <TableCell className="font-bold text-[#2C4156] py-4">
-                        <div className="flex items-center gap-2">
-                          {item.descricao}
-                          {item.recorrente && <Repeat className="h-3 w-3 text-[#E74C3C]" title="Conta Fixa" />}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-[#39586D]">{item.entidade}</TableCell>
-                      <TableCell className="text-[#98A7AA] text-xs font-medium">{item.categoria}</TableCell>
-                      <TableCell className="text-[#39586D] font-mono text-xs">{item.data}</TableCell>
-                      <TableCell className="text-center">{getStatusBadge(item.situacao, item.id)}</TableCell>
-                      <TableCell className="text-right font-extrabold text-[#E74C3C]">R$ {item.valor.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]"><MoreVertical className="h-4 w-4" /></Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'Pago')} className="text-xs font-bold text-[#1FA67A]">Marcar como Pago</DropdownMenuItem>
-                            <DropdownMenuItem className="text-xs font-bold text-[#2C4156]">Editar Despesa</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-xs font-bold text-[#E74C3C]">Excluir Lançamento</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+              {items.length > 0 ? (
+                <Table>
+                  <TableHeader className="bg-[#2C4156]">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="text-white uppercase text-[10px] font-bold">Descrição</TableHead>
+                      <TableHead className="text-white uppercase text-[10px] font-bold">Fornecedor/Entidade</TableHead>
+                      <TableHead className="text-white uppercase text-[10px] font-bold">Categoria</TableHead>
+                      <TableHead className="text-white uppercase text-[10px] font-bold">Data</TableHead>
+                      <TableHead className="text-white uppercase text-[10px] font-bold text-center">Situação</TableHead>
+                      <TableHead className="text-white uppercase text-[10px] font-bold text-right">Valor</TableHead>
+                      <TableHead className="text-white uppercase text-[10px] font-bold text-right">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {items.map((item) => (
+                      <TableRow key={item.id} className="hover:bg-[#F7F7F7]">
+                        <TableCell className="font-bold text-[#2C4156] py-4">
+                          <div className="flex items-center gap-2">
+                            {item.descricao}
+                            {item.recorrente && <Repeat className="h-3 w-3 text-[#E74C3C]" title="Conta Fixa" />}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-[#39586D]">{item.entidade}</TableCell>
+                        <TableCell className="text-[#98A7AA] text-xs font-medium">{item.categoria}</TableCell>
+                        <TableCell className="text-[#39586D] font-mono text-xs">{item.data}</TableCell>
+                        <TableCell className="text-center">{getStatusBadge(item.situacao, item.id)}</TableCell>
+                        <TableCell className="text-right font-extrabold text-[#E74C3C]">R$ {item.valor.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]"><MoreVertical className="h-4 w-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'Pago')} className="text-xs font-bold text-[#1FA67A]">Marcar como Pago</DropdownMenuItem>
+                              <DropdownMenuItem className="text-xs font-bold text-[#2C4156]">Editar Despesa</DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-xs font-bold text-[#E74C3C]">Excluir Lançamento</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-20">
+                  <p className="text-[#98A7AA] font-bold text-sm">Nenhum lançamento de saída para este período.</p>
+                  <Button variant="outline" className="mt-4 border-dashed border-[#D2D7DB] text-[#98A7AA]">
+                    <Plus className="h-4 w-4 mr-2" /> Cadastrar primeira despesa
+                  </Button>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
