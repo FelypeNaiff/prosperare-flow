@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -29,7 +30,8 @@ import {
   Palette,
   Link as LinkIcon,
   LogOut,
-  TrendingUp
+  TrendingUp,
+  ClipboardList
 } from "lucide-react"
 
 import {
@@ -83,11 +85,12 @@ const items = [
       { title: "Todos os Processos", url: "/processos", icon: Files },
       { title: "Calendário de Prazos", url: "/processos/calendario", icon: Calendar },
       { title: "Modelos", url: "/processos/modelos", icon: FileText },
+      { title: "IRPF", url: "/processos/irpf", icon: ClipboardList },
     ]
   },
   {
     title: "Certidões",
-    url: "/certidoes",
+    url: "/certidões",
     icon: ShieldCheck,
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR"],
     badge: 2,
@@ -145,6 +148,7 @@ const items = [
       { title: "Segurança", url: "/configuracoes/seguranca", icon: Lock },
       { title: "Aparência", url: "/configuracoes/aparencia", icon: Palette },
       { title: "Integrações", url: "/configuracoes/integracoes", icon: LinkIcon },
+      { title: "IRPF", url: "/configuracoes/irpf", icon: ClipboardList },
       { title: "Plano e Assinatura", url: "/configuracoes/plano", icon: CreditCard },
     ]
   },
