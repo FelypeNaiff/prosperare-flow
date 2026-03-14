@@ -2,15 +2,15 @@
 "use client"
 
 import { useState } from "react"
-import { Building, Save, Upload, Info, MapPin, Loader2, CheckCircle2, Search, AlertCircle } from "lucide-react"
+import { Building, Save, Upload, MapPin, Loader2, CheckCircle2, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/hooks/use-toast"
 import { formatCNPJ, validateCNPJ } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 
 export default function MeusDadosPage() {
   const [isDirty, setIsDirty] = useState(false)
@@ -19,52 +19,37 @@ export default function MeusDadosPage() {
   const [cnpjError, setCnpjError] = useState(false)
   
   const [officeData, setOfficeData] = useState({
-    razaoSocial: "Prosperare Flow Soluções Contábeis Ltda",
-    nomeFantasia: "Prosperare Flow",
-    cnpj: "12.345.678/0001-90",
-    telefone: "(96) 98122-3344",
-    email: "contato@prosperare.com.br"
+    razaoSocial: "",
+    nomeFantasia: "",
+    cnpj: "",
+    telefone: "",
+    email: ""
   })
 
   const [address, setAddress] = useState({
     cep: "",
-    rua: "Av. FAB, 1000",
-    bairro: "Centro",
-    cidade: "Macapá",
-    uf: "AP"
+    rua: "",
+    bairro: "",
+    cidade: "",
+    uf: ""
   })
 
   const handleSave = () => {
-    if (cnpjError) {
-      toast({
-        variant: "destructive",
-        title: "Erro no Cadastro",
-        description: "O CNPJ informado é inválido."
-      })
+    if (cnpjError && officeData.cnpj) {
+      toast({ variant: "destructive", title: "Erro no Cadastro", description: "O CNPJ informado é inválido." })
       return
     }
-    toast({
-      title: "Configurações salvas!",
-      className: "bg-[#1FA67A] text-white border-none",
-    })
+    toast({ title: "Configurações salvas!", className: "bg-[#1FA67A] text-white border-none" })
     setIsDirty(false)
   }
 
   const lookupCnpj = async (cnpjValue: string) => {
     const cleanCnpj = cnpjValue.replace(/\D/g, "")
-    
-    if (cleanCnpj.length !== 14) {
-      setCnpjError(true)
-      return
-    }
+    if (cleanCnpj.length !== 14) return
 
     if (!validateCNPJ(cleanCnpj)) {
       setCnpjError(true)
-      toast({
-        variant: "destructive",
-        title: "CNPJ Inválido",
-        description: "Verifique os dígitos verificadores."
-      })
+      toast({ variant: "destructive", title: "CNPJ Inválido", description: "Verifique os dígitos verificadores." })
       return
     }
 
@@ -73,7 +58,6 @@ export default function MeusDadosPage() {
     try {
       const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`)
       if (!response.ok) throw new Error("CNPJ não encontrado")
-      
       const data = await response.json()
       
       setOfficeData(prev => ({
@@ -92,18 +76,10 @@ export default function MeusDadosPage() {
           uf: data.uf || prev.uf
         }))
       }
-
       setIsDirty(true)
-      toast({
-        title: "Dados Sincronizados!",
-        description: "Razão social e endereço atualizados via Brasil API."
-      })
+      toast({ title: "Dados Sincronizados!", description: "Razão social e endereço atualizados via Brasil API." })
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Atenção",
-        description: "Não foi possível buscar dados extras, mas o CNPJ é válido."
-      })
+      toast({ variant: "destructive", title: "Atenção", description: "Não foi possível buscar dados extras automaticamente." })
     } finally {
       setIsLoadingCnpj(false)
     }
@@ -117,13 +93,8 @@ export default function MeusDadosPage() {
     try {
       const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`)
       const data = await response.json()
-
       if (data.erro) {
-        toast({
-          variant: "destructive",
-          title: "CEP não encontrado",
-          description: "Verifique o número digitado."
-        })
+        toast({ variant: "destructive", title: "CEP não encontrado" })
       } else {
         setAddress({
           ...address,
@@ -183,6 +154,7 @@ export default function MeusDadosPage() {
                 </Label>
                 <div className="relative">
                   <Input 
+                    placeholder="00.000.000/0000-00"
                     value={officeData.cnpj} 
                     onChange={(e) => {
                       const formatted = formatCNPJ(e.target.value)
@@ -274,7 +246,7 @@ export default function MeusDadosPage() {
       <div className="flex items-center gap-3 p-4 bg-[#E3F0F9] border border-[#2574A9]/20 rounded-xl text-[#2574A9]">
         <CheckCircle2 className="h-5 w-5 shrink-0" />
         <p className="text-xs font-bold leading-relaxed">
-          Sincronização Ativa: Seus dados de CNPJ e Endereço são validados em tempo real pelas APIs do Brasil API e ViaCEP para garantir conformidade documental.
+          Sincronização Ativa: Seus dados de CNPJ e Endereço são validados pelas APIs da Brasil API e ViaCEP.
         </p>
       </div>
     </div>

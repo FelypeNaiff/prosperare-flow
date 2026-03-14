@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -64,22 +65,18 @@ export default function DreGerencialPage() {
             </CardTitle>
             <CardDescription className="text-xs font-bold text-[#98A7AA]">Histórico de faturamento vs custos operacionais.</CardDescription>
           </CardHeader>
-          <CardContent className="h-[350px] pt-4 flex items-center justify-center">
-            {chartData.length > 0 ? (
-              <ChartContainer config={chartConfig} className="h-full w-full">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
-                  <XAxis dataKey="mes" tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} axisLine={false} tickLine={false} />
-                  <YAxis tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} axisLine={false} tickLine={false} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Legend iconType="circle" />
-                  <Bar dataKey="receitas" fill="var(--color-receitas)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="despesas" fill="var(--color-despesas)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ChartContainer>
-            ) : (
-              <p className="text-[#98A7AA] font-bold italic">Sem dados históricos para evolução.</p>
-            )}
+          <CardContent className="h-[350px] pt-4">
+            <ChartContainer config={chartConfig} className="h-full w-full">
+              <BarChart data={chartData.length > 0 ? chartData : [{mes: 'Jan', receitas: 0, despesas: 0}]}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
+                <XAxis dataKey="mes" tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} axisLine={false} tickLine={false} />
+                <YAxis tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} axisLine={false} tickLine={false} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Legend iconType="circle" />
+                <Bar dataKey="receitas" fill="var(--color-receitas)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="despesas" fill="var(--color-despesas)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ChartContainer>
           </CardContent>
         </Card>
 

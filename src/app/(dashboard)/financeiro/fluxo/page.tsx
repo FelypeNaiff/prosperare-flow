@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -7,9 +8,7 @@ import {
   CartesianGrid, 
   Legend,
   AreaChart,
-  Area,
-  Line,
-  LineChart
+  Area
 } from "recharts"
 import { 
   Table, 
@@ -75,29 +74,25 @@ export default function FluxoDeCaixaPage() {
           <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Visualização de Liquidez</CardTitle>
           <CardDescription className="text-xs font-bold text-[#98A7AA]">Saldo acumulado vs. volume diário de transações.</CardDescription>
         </CardHeader>
-        <CardContent className="h-[400px] pt-4 flex items-center justify-center">
-          {FLOW_DATA.length > 0 ? (
-            <ChartContainer config={chartConfig} className="h-full w-full">
-              <AreaChart data={FLOW_DATA}>
-                <defs>
-                  <linearGradient id="colorSaldo" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2C4156" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#2C4156" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
-                <XAxis dataKey="dia" tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} axisLine={false} tickLine={false} />
-                <YAxis tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} axisLine={false} tickLine={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Legend iconType="circle" />
-                <Area type="monotone" dataKey="saldo" stroke="#2C4156" fillOpacity={1} fill="url(#colorSaldo)" strokeWidth={3} />
-                <Area type="monotone" dataKey="entradas" stroke="#1FA67A" fill="transparent" strokeWidth={2} dot={true} />
-                <Area type="monotone" dataKey="saidas" stroke="#E74C3C" fill="transparent" strokeWidth={2} dot={true} />
-              </AreaChart>
-            </ChartContainer>
-          ) : (
-            <p className="text-[#98A7AA] font-bold italic">Aguardando movimentações financeiras...</p>
-          )}
+        <CardContent className="h-[400px] pt-4">
+          <ChartContainer config={chartConfig} className="h-full w-full">
+            <AreaChart data={FLOW_DATA.length > 0 ? FLOW_DATA : [{dia: '01', saldo: 0, entradas: 0, saidas: 0}]}>
+              <defs>
+                <linearGradient id="colorSaldo" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#2C4156" stopOpacity={0.1}/>
+                  <stop offset="95%" stopColor="#2C4156" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
+              <XAxis dataKey="dia" tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} axisLine={false} tickLine={false} />
+              <YAxis tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} axisLine={false} tickLine={false} />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Legend iconType="circle" />
+              <Area type="monotone" dataKey="saldo" stroke="#2C4156" fillOpacity={1} fill="url(#colorSaldo)" strokeWidth={3} />
+              <Area type="monotone" dataKey="entradas" stroke="#1FA67A" fill="transparent" strokeWidth={2} dot={true} />
+              <Area type="monotone" dataKey="saidas" stroke="#E74C3C" fill="transparent" strokeWidth={2} dot={true} />
+            </AreaChart>
+          </ChartContainer>
         </CardContent>
       </Card>
 
