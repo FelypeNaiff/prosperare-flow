@@ -1,6 +1,7 @@
 
 "use client"
 
+import { useState } from "react"
 import { 
   Sheet, 
   SheetContent, 
@@ -26,12 +27,16 @@ import {
   FileText,
   Upload,
   User,
-  Trash2
+  Trash2,
+  Copy,
+  Eye,
+  EyeOff
 } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
+import { toast } from "@/hooks/use-toast"
 
 const CHECKLIST = [
   { group: 'Documentos Obrigatórios', items: [
@@ -53,17 +58,48 @@ const CHECKLIST = [
 ]
 
 export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
+  const [showGovPass, setShowGovPass] = useState(false)
+
   if (!declaration) return null
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text)
+    toast({
+      title: "Copiado!",
+      description: `${label} copiado para a área de transferência.`
+    })
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-[600px] p-0 flex flex-col">
         <SheetHeader className="p-6 bg-[#2C4156] text-white space-y-4">
           <div className="flex justify-between items-start">
-            <div className="space-y-1">
+            <div className="space-y-1 flex-1">
               <Badge className="bg-[#1FA67A] border-none text-[10px] font-black uppercase">IRPF {declaration.year}</Badge>
               <SheetTitle className="text-2xl font-black text-white">{declaration.name}</SheetTitle>
-              <SheetDescription className="text-white/70 font-mono text-sm">CPF: {declaration.cpf}</SheetDescription>
+              
+              <div className="flex flex-wrap items-center gap-4 mt-2">
+                <div className="flex items-center gap-2 bg-white/10 px-2 py-1 rounded">
+                  <span className="text-[10px] font-bold uppercase opacity-70">CPF:</span>
+                  <span className="text-xs font-mono">{declaration.cpf}</span>
+                  <button onClick={() => copyToClipboard(declaration.cpf, "CPF")} className="hover:text-[#1FA67A] transition-colors">
+                    <Copy className="h-3 w-3" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2 bg-white/10 px-2 py-1 rounded">
+                  <span className="text-[10px] font-bold uppercase opacity-70">Senha GOV:</span>
+                  <span className="text-xs font-mono">{showGovPass ? declaration.govPass : '••••••••'}</span>
+                  <div className="flex items-center gap-1.5 ml-1">
+                    <button onClick={() => setShowGovPass(!showGovPass)} className="hover:text-[#1FA67A] transition-colors">
+                      {showGovPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    </button>
+                    <button onClick={() => copyToClipboard(declaration.govPass, "Senha GOV.BR")} className="hover:text-[#1FA67A] transition-colors">
+                      <Copy className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="flex gap-2">
               <Button variant="ghost" size="icon" className="text-white/50 hover:text-white"><Plus className="h-5 w-5" /></Button>

@@ -11,13 +11,15 @@ import {
   Clock, 
   Plus, 
   MoreVertical,
-  ChevronRight
+  ChevronRight,
+  Copy
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { IrpfDetailsDrawer } from "./irpf-details-drawer"
 import { cn } from "@/lib/utils"
+import { toast } from "@/hooks/use-toast"
 
 const COLUMNS = [
   { id: 'awaiting_docs', title: '📥 Aguardando Documentos', count: 12, total: 3500 },
@@ -30,10 +32,10 @@ const COLUMNS = [
 ]
 
 const MOCK_CARDS = [
-  { id: 'ir1', name: 'João da Silva', cpf: '***.***.123-00', year: '2026', status: 'awaiting_docs', progress: 30, tags: ['Prioritário', 'Restituição'], due: '15/04', responsible: 'Ricardo', attachments: 2, comments: 1 },
-  { id: 'ir2', name: 'Maria Santos', cpf: '***.***.456-11', year: '2026', status: 'filling', progress: 65, tags: ['Em dia'], due: '20/04', responsible: 'Fernanda', attachments: 5, comments: 3 },
-  { id: 'ir3', name: 'Carlos Oliveira', cpf: '***.***.789-22', year: '2026', status: 'analyzing', progress: 10, tags: ['Novo cliente', 'A pagar'], due: '10/04', responsible: 'Ana', attachments: 0, comments: 0 },
-  { id: 'ir4', name: 'Beatriz Lima', cpf: '***.***.321-33', year: '2026', status: 'sent', progress: 100, tags: ['Concluído'], due: '05/04', responsible: 'Ricardo', attachments: 8, comments: 2 },
+  { id: 'ir1', name: 'João da Silva', cpf: '123.456.789-00', govPass: 'SenhaGov123!', year: '2026', status: 'awaiting_docs', progress: 30, tags: ['Prioritário', 'Restituição'], due: '15/04', responsible: 'Ricardo', attachments: 2, comments: 1 },
+  { id: 'ir2', name: 'Maria Santos', cpf: '456.789.123-11', govPass: 'MariaGov@2026', year: '2026', status: 'filling', progress: 65, tags: ['Em dia'], due: '20/04', responsible: 'Fernanda', attachments: 5, comments: 3 },
+  { id: 'ir3', name: 'Carlos Oliveira', cpf: '789.123.456-22', govPass: 'Carlos#Pass', year: '2026', status: 'analyzing', progress: 10, tags: ['Novo cliente', 'A pagar'], due: '10/04', responsible: 'Ana', attachments: 0, comments: 0 },
+  { id: 'ir4', name: 'Beatriz Lima', cpf: '321.654.987-33', govPass: 'Beatriz@Gov', year: '2026', status: 'sent', progress: 100, tags: ['Concluído'], due: '05/04', responsible: 'Ricardo', attachments: 8, comments: 2 },
 ]
 
 export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
@@ -48,6 +50,14 @@ export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
   const handleOpenDetails = (card: any) => {
     setSelectedDeclaration(card)
     setIsDrawerOpen(true)
+  }
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text)
+    toast({
+      title: "Copiado!",
+      description: `${label} copiado para a área de transferência.`
+    })
   }
 
   return (
@@ -87,7 +97,18 @@ export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
                           </Avatar>
                           <div className="flex flex-col">
                             <span className="text-xs font-bold text-[#2C4156] group-hover:text-[#1FA67A] transition-colors">{card.name}</span>
-                            <span className="text-[9px] font-bold text-[#98A7AA] font-mono">{card.cpf}</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[9px] font-bold text-[#98A7AA] font-mono">{card.cpf}</span>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  copyToClipboard(card.cpf, "CPF");
+                                }}
+                                className="text-[#98A7AA] hover:text-[#1FA67A] transition-colors"
+                              >
+                                <Copy className="h-2 w-2" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                         <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100">

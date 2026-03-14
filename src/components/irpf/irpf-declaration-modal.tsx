@@ -53,8 +53,16 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
                 <Input type="date" />
               </div>
               <div className="space-y-2">
+                <Label className="text-xs font-bold text-[#39586D]">Senha GOV.BR</Label>
+                <Input type="password" placeholder="Senha do acesso gov.br" />
+              </div>
+              <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Celular / WhatsApp</Label>
                 <Input placeholder="(00) 00000-0000" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-[#39586D]">E-mail</Label>
+                <Input type="email" placeholder="cliente@email.com" />
               </div>
             </div>
           </div>

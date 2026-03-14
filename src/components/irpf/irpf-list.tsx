@@ -12,19 +12,28 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
-import { Eye, Edit, Trash2, FileText } from "lucide-react"
+import { Eye, Edit, Trash2, FileText, Copy } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
+import { toast } from "@/hooks/use-toast"
 
 const MOCK_DATA = [
-  { id: 'ir1', name: 'João da Silva', cpf: '123.456.789-00', year: '2026', type: 'Completa', status: 'Em Preenchimento', progress: 65, due: '15/04/2026', value: 1250, responsible: 'Ricardo', result: 'Restituição' },
-  { id: 'ir2', name: 'Maria Santos', cpf: '456.789.123-11', year: '2026', type: 'Simplificada', status: 'Enviada', progress: 100, due: '20/04/2026', value: 450, responsible: 'Fernanda', result: 'A Pagar' },
-  { id: 'ir3', name: 'Carlos Oliveira', cpf: '789.123.456-22', year: '2026', type: 'Completa', status: 'Aguardando Doc', progress: 10, due: '10/04/2026', value: 800, responsible: 'Ana', result: 'Restituição' },
+  { id: 'ir1', name: 'João da Silva', cpf: '123.456.789-00', govPass: 'SenhaGov123!', year: '2026', type: 'Completa', status: 'Em Preenchimento', progress: 65, due: '15/04/2026', value: 1250, responsible: 'Ricardo', result: 'Restituição' },
+  { id: 'ir2', name: 'Maria Santos', cpf: '456.789.123-11', govPass: 'MariaGov@2026', year: '2026', type: 'Simplificada', status: 'Enviada', progress: 100, due: '20/04/2026', value: 450, responsible: 'Fernanda', result: 'A Pagar' },
+  { id: 'ir3', name: 'Carlos Oliveira', cpf: '789.123.456-22', govPass: 'Carlos#Pass', year: '2026', type: 'Completa', status: 'Aguardando Doc', progress: 10, due: '10/04/2026', value: 800, responsible: 'Ana', result: 'Restituição' },
 ]
 
 export function IrpfList({ searchTerm }: { searchTerm: string }) {
   const filtered = MOCK_DATA.filter(d => 
     d.name.toLowerCase().includes(searchTerm.toLowerCase()) || d.cpf.includes(searchTerm)
   )
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text)
+    toast({
+      title: "Copiado!",
+      description: `${label} copiado para a área de transferência.`
+    })
+  }
 
   return (
     <div className="bg-white rounded-lg border border-[#D2D7DB] overflow-hidden shadow-sm">
@@ -45,7 +54,12 @@ export function IrpfList({ searchTerm }: { searchTerm: string }) {
               <TableCell>
                 <div className="flex flex-col">
                   <span className="font-bold text-[#2C4156]">{item.name}</span>
-                  <span className="text-[10px] text-[#98A7AA] font-mono">{item.cpf}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-[#98A7AA] font-mono">{item.cpf}</span>
+                    <button onClick={() => copyToClipboard(item.cpf, "CPF")} className="text-[#98A7AA] hover:text-[#1FA67A]">
+                      <Copy className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
                 </div>
               </TableCell>
               <TableCell>
