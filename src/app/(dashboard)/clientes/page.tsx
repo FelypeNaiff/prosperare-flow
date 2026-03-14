@@ -12,11 +12,7 @@ import {
   Save,
   Loader2,
   ShieldCheck,
-  MapPin,
-  Mail,
-  Phone,
   Eye,
-  Edit,
   Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -43,12 +39,11 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { KpiCard } from "@/components/dashboard/kpi-card"
 import { toast } from "@/hooks/use-toast"
-import { formatCNPJ, validateCNPJ, cn } from "@/lib/utils"
+import { formatCNPJ, validateCNPJ } from "@/lib/utils"
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuLabel, 
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
@@ -60,7 +55,7 @@ import {
   setDocumentNonBlocking, 
   deleteDocumentNonBlocking 
 } from "@/firebase"
-import { collection, doc, serverTimestamp } from "firebase/firestore"
+import { collection, doc } from "firebase/firestore"
 
 export default function ClientesPage() {
   const firestore = useFirestore()
@@ -68,10 +63,7 @@ export default function ClientesPage() {
   const [isNewClientOpen, setIsNewClientOpen] = useState(false)
   const [isLoadingCnpj, setIsLoadingCnpj] = useState(false)
   
-  const clientsQuery = useMemoFirebase(() => {
-    return collection(firestore, "clients")
-  }, [firestore])
-
+  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
   const { data: clients = [], isLoading } = useCollection(clientsQuery)
   
   const [newClient, setNewClient] = useState({
@@ -79,7 +71,7 @@ export default function ClientesPage() {
     cnpj: "",
     taxRegime: "",
     accountingContactUserId: "",
-    status: "Active",
+    status: "ATIVO",
     email: "",
     phone: "",
     city: "",
@@ -102,11 +94,8 @@ export default function ClientesPage() {
       const data = await response.json()
       
       let regimeSugerido = "Outros"
-      if (data.opcao_pelo_mei) {
-        regimeSugerido = "MEI"
-      } else if (data.opcao_pelo_simples) {
-        regimeSugerido = "Simples Nacional"
-      }
+      if (data.opcao_pelo_mei) regimeSugerido = "MEI"
+      else if (data.opcao_pelo_simples) regimeSugerido = "Simples Nacional"
 
       setNewClient(prev => ({
         ...prev,
@@ -118,17 +107,9 @@ export default function ClientesPage() {
         state: data.uf || prev.state
       }))
       
-      toast({ 
-        title: "Dados Localizados!", 
-        description: `Empresa: ${data.razao_social}.`,
-        className: "bg-[#1FA67A] text-white border-none"
-      })
+      toast({ title: "Dados Localizados!", description: data.razao_social })
     } catch (error) {
-      toast({ 
-        variant: "destructive", 
-        title: "Atenção", 
-        description: "Não foi possível buscar os dados automaticamente." 
-      })
+      toast({ variant: "destructive", title: "Atenção", description: "Não foi possível buscar os dados automaticamente." })
     } finally {
       setIsLoadingCnpj(false)
     }
@@ -147,46 +128,38 @@ export default function ClientesPage() {
       ...newClient,
       id: clientId,
       createdAt: new Date().toISOString(),
-      openingDate: new Date().toISOString().split('T')[0], // Default
+      openingDate: new Date().toISOString().split('T')[0],
       primaryCnae: "0000-0/00",
-      companyContactPerson: "Titular",
-      address: "Preencher",
+      companyContactPerson: "Responsável",
+      address: "Centro",
       neighborhood: "Centro",
       zipCode: "00000-000",
       honorariumDueDateDay: 10,
       honorariumValue: 0
     }
 
+    // Fecha modal imediatamente
+    setIsNewClientOpen(false)
+    
     setDocumentNonBlocking(clientRef, clientData, { merge: true })
     
-    setIsNewClientOpen(false)
     setNewClient({ 
       corporateName: "", 
       cnpj: "", 
       taxRegime: "", 
       accountingContactUserId: "", 
-      status: "Active", 
+      status: "ATIVO", 
       email: "",
       phone: "",
       city: "",
       state: ""
     })
-    toast({ title: "Cliente cadastrado!", description: "A empresa foi salva no banco de dados." })
+    toast({ title: "Cliente cadastrado!", description: "A empresa foi salva permanentemente." })
   }
 
   const handleDeleteClient = (id: string) => {
-    const clientRef = doc(firestore, "clients", id)
-    deleteDocumentNonBlocking(clientRef)
+    deleteDocumentNonBlocking(doc(firestore, "clients", id))
     toast({ title: "Cliente removido", variant: "destructive" })
-  }
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Active': case 'Ativa':
-        return <Badge className="bg-[#7ED6B5] text-[#1FA67A] border-none font-bold text-[10px] uppercase">Ativa</Badge>
-      default:
-        return <Badge className="bg-[#FEE2E2] text-[#E74C3C] border-none font-bold text-[10px] uppercase">Inativa</Badge>
-    }
   }
 
   const filteredClients = (clients || []).filter(c => 
@@ -198,32 +171,29 @@ export default function ClientesPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">Gestão de Clientes</h1>
-          <p className="text-[#98A7AA] font-medium">Administre sua base de empresas e acompanhe a regularidade.</p>
+          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão de Clientes</h1>
+          <p className="text-[#98A7AA] font-bold text-sm">Administre sua base de empresas e acompanhe a regularidade.</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D]">Exportar Planilha</Button>
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90" onClick={() => setIsNewClientOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Novo Cliente
-          </Button>
-        </div>
+        <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-bold shadow-lg" onClick={() => setIsNewClientOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" /> Novo Cliente
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard label="Total de Clientes" value={clients?.length || 0} icon={Building2} color="primary" />
-        <KpiCard label="Certificados Ativos" value={0} icon={ShieldCheck} color="success" />
-        <KpiCard label="Vencendo (30 dias)" value={0} icon={Clock} color="warning" />
-        <KpiCard label="Procurações Ativas" value={0} icon={FileSignature} color="success" />
-        <KpiCard label="Inativos" value={0} icon={AlertTriangle} color="destructive" />
+        <KpiCard label="Certificados OK" value={0} icon={ShieldCheck} color="success" />
+        <KpiCard label="Vencendo (30d)" value={0} icon={Clock} color="warning" />
+        <KpiCard label="Procurações OK" value={0} icon={FileSignature} color="success" />
+        <KpiCard label="Alertas Críticos" value={0} icon={AlertTriangle} color="destructive" />
       </div>
 
-      <Card className="border-[#D2D7DB]">
-        <CardHeader className="pb-3">
+      <Card className="border-[#D2D7DB] shadow-sm">
+        <CardHeader className="pb-3 border-b bg-[#F7F7F7]/50">
           <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
             <Input
               placeholder="Buscar por nome ou CNPJ..."
-              className="pl-9 bg-[#F7F7F7] border-[#D2D7DB]"
+              className="pl-10 bg-white border-[#D2D7DB]"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -233,23 +203,24 @@ export default function ClientesPage() {
           <Table>
             <TableHeader className="bg-[#2C4156]">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-bold uppercase text-[10px]">Empresa</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[10px]">Regime</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[10px]">Responsável</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[10px]">Status</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[10px] text-right">Ações</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px]">Empresa</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px]">Regime</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px]">Responsável</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px]">Status</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1FA67A]" />
+                  <TableCell colSpan={5} className="h-32 text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
+                    <p className="text-[10px] font-black text-[#98A7AA] uppercase mt-2">Sincronizando Base...</p>
                   </TableCell>
                 </TableRow>
               ) : filteredClients.length > 0 ? (
                 filteredClients.map((client) => (
-                  <TableRow key={client.id} className="hover:bg-[#F7F7F7]">
+                  <TableRow key={client.id} className="hover:bg-[#F7F7F7]/50 transition-colors">
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-bold text-[#2C4156]">{client.corporateName}</span>
@@ -257,29 +228,29 @@ export default function ClientesPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="font-bold text-[10px] uppercase">{client.taxRegime}</Badge>
+                      <Badge variant="outline" className="font-black text-[9px] uppercase border-[#D2D7DB]">{client.taxRegime}</Badge>
                     </TableCell>
-                    <TableCell className="text-sm font-medium text-[#39586D]">{client.accountingContactUserId || "Não atribuído"}</TableCell>
-                    <TableCell>{getStatusBadge(client.status)}</TableCell>
+                    <TableCell className="text-xs font-bold text-[#39586D]">{client.accountingContactUserId || "Geral"}</TableCell>
+                    <TableCell>
+                      <Badge className="bg-[#7ED6B5] text-[#1FA67A] border-none text-[9px] font-black uppercase">Ativa</Badge>
+                    </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-[#98A7AA]">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
+                          <Button variant="ghost" size="icon" className="text-[#98A7AA]"><MoreHorizontal className="h-4 w-4" /></Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
-                            <Link href={`/clientes/${client.id}`} className="flex items-center gap-2 cursor-pointer">
-                              <Eye className="h-4 w-4 text-[#1FA67A]" /> Ver Detalhes
+                            <Link href={`/clientes/${client.id}`} className="flex items-center gap-2 cursor-pointer text-xs font-bold">
+                              <Eye className="h-3 w-3 text-[#1FA67A]" /> Ver Ficha 360º
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
-                            className="flex items-center gap-2 text-[#E74C3C] cursor-pointer"
+                            className="flex items-center gap-2 text-[#E74C3C] cursor-pointer text-xs font-bold"
                             onClick={() => handleDeleteClient(client.id)}
                           >
-                            <Trash2 className="h-4 w-4" /> Excluir Cliente
+                            <Trash2 className="h-3 w-3" /> Excluir Registro
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -288,8 +259,8 @@ export default function ClientesPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-[#98A7AA] font-bold">
-                    Nenhum cliente encontrado.
+                  <TableCell colSpan={5} className="h-32 text-center text-[#98A7AA] font-bold">
+                    Nenhum cliente localizado. Clique em Novo Cliente.
                   </TableCell>
                 </TableRow>
               )}
@@ -299,31 +270,33 @@ export default function ClientesPage() {
       </Card>
 
       <Dialog open={isNewClientOpen} onOpenChange={setIsNewClientOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-black text-[#2C4156]">Novo Cliente</DialogTitle>
-            <DialogDescription>O sistema salvará os dados permanentemente no banco de dados.</DialogDescription>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden border-none shadow-2xl">
+          <DialogHeader className="p-6 bg-[#2C4156] text-white">
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Novo Cliente (Sincronização API)</DialogTitle>
+            <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
+              Insira o CNPJ para puxar os dados automaticamente da Receita Federal.
+            </DialogDescription>
           </DialogHeader>
           
-          <div className="grid grid-cols-2 gap-4 py-4">
+          <div className="grid grid-cols-2 gap-5 p-6 bg-white">
             <div className="col-span-2 md:col-span-1 space-y-2">
-              <Label className="text-xs font-bold uppercase text-[#98A7AA]">CNPJ</Label>
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">CNPJ (Busca Automática)</Label>
               <div className="relative">
                 <Input 
                   placeholder="00.000.000/0000-00" 
                   value={newClient.cnpj}
                   onChange={(e) => setNewClient({...newClient, cnpj: formatCNPJ(e.target.value)})}
                   onBlur={(e) => lookupCnpj(e.target.value)}
-                  className="font-mono font-bold"
+                  className="font-mono font-bold border-[#D2D7DB] pr-10"
                 />
                 {isLoadingCnpj && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-[#1FA67A]" />}
               </div>
             </div>
 
             <div className="col-span-2 md:col-span-1 space-y-2">
-              <Label className="text-xs font-bold uppercase text-[#98A7AA]">Regime Tributário</Label>
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Regime Tributário</Label>
               <Select value={newClient.taxRegime} onValueChange={(v) => setNewClient({...newClient, taxRegime: v})}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectTrigger className="border-[#D2D7DB]"><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Simples Nacional">Simples Nacional</SelectItem>
                   <SelectItem value="MEI">MEI</SelectItem>
@@ -334,43 +307,46 @@ export default function ClientesPage() {
             </div>
 
             <div className="col-span-2 space-y-2">
-              <Label className="text-xs font-bold uppercase text-[#98A7AA]">Razão Social</Label>
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Razão Social</Label>
               <Input 
                 placeholder="Ex: Padaria Silva Ltda" 
                 value={newClient.corporateName}
                 onChange={(e) => setNewClient({...newClient, corporateName: e.target.value})}
+                className="border-[#D2D7DB] font-bold"
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase text-[#98A7AA]">E-mail</Label>
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">E-mail Corporativo</Label>
               <Input 
                 type="email"
-                placeholder="cliente@email.com" 
+                placeholder="contato@empresa.com" 
                 value={newClient.email}
                 onChange={(e) => setNewClient({...newClient, email: e.target.value})}
+                className="border-[#D2D7DB]"
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase text-[#98A7AA]">Telefone</Label>
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Telefone / WhatsApp</Label>
               <Input 
                 placeholder="(00) 00000-0000" 
                 value={newClient.phone}
                 onChange={(e) => setNewClient({...newClient, phone: e.target.value})}
+                className="border-[#D2D7DB]"
               />
             </div>
           </div>
 
-          <DialogFooter className="bg-[#F7F7F7] -mx-6 -mb-6 p-6 border-t mt-4">
-            <Button variant="outline" onClick={() => setIsNewClientOpen(false)}>Cancelar</Button>
+          <DialogFooter className="bg-[#F7F7F7] p-6 border-t">
+            <Button variant="outline" onClick={() => setIsNewClientOpen(false)} className="border-[#D2D7DB] font-bold text-xs">Cancelar</Button>
             <Button 
-              className="bg-[#1FA67A] font-bold gap-2" 
+              className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-10 shadow-lg shadow-emerald-500/20" 
               onClick={handleCreateClient}
               disabled={isLoadingCnpj}
             >
-              {isLoadingCnpj ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Salvar no Banco de Dados
+              {isLoadingCnpj ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+              Salvar Cliente na Cloud
             </Button>
           </DialogFooter>
         </DialogContent>
