@@ -11,7 +11,6 @@ import {
   Target,
   ArrowUpRight,
   Users,
-  PieChart as PieIcon,
   ChevronRight
 } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
@@ -22,14 +21,10 @@ import {
   Bar, 
   XAxis, 
   YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  Cell,
-  LineChart,
-  Line
+  CartesianGrid,
+  ResponsiveContainer
 } from "recharts"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { cn } from "@/lib/utils"
 
 const SCORE_LEADERBOARD = [
@@ -47,6 +42,13 @@ const chartData = [
   { name: 'Mai', valor: 45000 },
   { name: 'Jun', valor: 48000 },
 ]
+
+const chartConfig = {
+  valor: {
+    label: "Faturamento",
+    color: "#1FA67A",
+  },
+} satisfies ChartConfig
 
 export default function InteligenciaPage() {
   return (
@@ -79,9 +81,7 @@ export default function InteligenciaPage() {
             <CardDescription className="text-xs font-bold text-[#98A7AA]">Faturamento mensal vs Meta anual.</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px] pt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} />
-            </ResponsiveContainer>
+            <IntelligenceGrowthChart data={chartData} />
           </CardContent>
         </Card>
 
@@ -181,16 +181,25 @@ function MetricCard({ label, value, icon: Icon, color }: any) {
   )
 }
 
-function AreaChart({ data }: { data: any[] }) {
+function IntelligenceGrowthChart({ data }: { data: any[] }) {
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ChartContainer config={chartConfig} className="h-full w-full">
       <BarChart data={data}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
-        <XAxis dataKey="name" tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} />
-        <YAxis tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} />
-        <Tooltip content={<ChartTooltipContent />} />
-        <Bar dataKey="valor" fill="#1FA67A" radius={[4, 4, 0, 0]} barSize={30} />
+        <XAxis 
+          dataKey="name" 
+          tickLine={false} 
+          axisLine={false} 
+          tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} 
+        />
+        <YAxis 
+          tickLine={false} 
+          axisLine={false} 
+          tick={{fill: '#98A7AA', fontWeight: 'bold', fontSize: 10}} 
+        />
+        <ChartTooltip content={<ChartTooltipContent />} />
+        <Bar dataKey="valor" fill="var(--color-valor)" radius={[4, 4, 0, 0]} barSize={30} />
       </BarChart>
-    </ResponsiveContainer>
+    </ChartContainer>
   )
 }
