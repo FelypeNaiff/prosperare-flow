@@ -30,6 +30,7 @@ import {
   Line
 } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { cn } from "@/lib/utils"
 
 const SCORE_LEADERBOARD = [
   { id: 1, name: 'Padaria Central Ltda', score: 98, status: 'Excelente', trend: '+2%' },
