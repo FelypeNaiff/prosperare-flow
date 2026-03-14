@@ -1,18 +1,17 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Printer, Download, Save, UserPlus, RefreshCw, Calculator, PenTool, FileSpreadsheet, Keyboard, Calendar as CalendarIcon } from "lucide-react"
+import { Printer, Download, Save, RefreshCw, PenTool, FileSpreadsheet, Keyboard, Calendar as CalendarIcon, Upload } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { SignatureDialog } from "./signature-dialog"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { format, addMonths, parse } from "date-fns"
-import { ptBR } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 
 export function RevenueDeclarationForm() {
@@ -21,6 +20,7 @@ export function RevenueDeclarationForm() {
   const [isSignatureOpen, setIsSignatureOpen] = useState(false)
   const [clientName, setClientName] = useState("")
   const [startPeriod, setStartPeriod] = useState(format(new Date(), "yyyy-MM"))
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   const [rows, setRows] = useState(
     Array.from({ length: 12 }, (_, i) => ({
@@ -49,6 +49,7 @@ export function RevenueDeclarationForm() {
   }, [startPeriod, source])
 
   const total = rows.reduce((acc, row) => acc + (Number(row.valor) || 0), 0)
+  const average = total / 12
 
   const handleUpdateValue = (index: number, val: string) => {
     const newRows = [...rows]
@@ -68,6 +69,43 @@ export function RevenueDeclarationForm() {
     // Simulação de preenchimento via PGDAS
     const simulatedRows = rows.map(r => ({ ...r, valor: Math.floor(Math.random() * 50000) + 10000 }))
     setRows(simulatedRows)
+  }
+
+  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const text = e.target?.result as string
+      const lines = text.split(/\r?\n/)
+      const values: number[] = []
+
+      // Tenta extrair 12 valores numéricos das linhas
+      lines.forEach(line => {
+        const cleanLine = line.replace(/[^\d.,]/g, '').replace(',', '.')
+        const num = parseFloat(cleanLine)
+        if (!isNaN(num)) values.push(num)
+      })
+
+      if (values.length >= 12) {
+        const newRows = [...rows]
+        for (let i = 0; i < 12; i++) {
+          newRows[i].valor = values[i]
+        }
+        setRows(newRows)
+        toast({ title: "Planilha Importada!", description: "12 meses de faturamento foram preenchidos." })
+      } else {
+        toast({ 
+          variant: "destructive",
+          title: "Erro na importação", 
+          description: "Não encontramos 12 valores numéricos válidos no arquivo." 
+        })
+      }
+    }
+    reader.readAsText(file)
+    // Limpa o input para permitir re-upload do mesmo arquivo
+    if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
   return (
@@ -120,19 +158,36 @@ export function RevenueDeclarationForm() {
         <CardContent className="p-6 space-y-6">
           <div className="flex items-center justify-between">
             <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Empresa de Referência</h4>
-            <Button variant="ghost" size="sm" className="text-[10px] font-bold text-[#1FA67A]" onClick={() => setIsManualClient(!isManualClient)}>
-              {isManualClient ? "Selecionar da Base" : "Digitar Manual"}
-            </Button>
+            <div className="flex gap-2">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept=".csv,.txt" 
+                onChange={handleImportCSV} 
+              />
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-[10px] font-bold text-[#2574A9] border-[#2574A9]/20 uppercase gap-1"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-3 w-3" /> Importar CSV
+              </Button>
+              <Button variant="ghost" size="sm" className="text-[10px] font-bold text-[#1FA67A] uppercase" onClick={() => setIsManualClient(!isManualClient)}>
+                {isManualClient ? "Selecionar da Base" : "Digitar Manual"}
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label className="text-xs font-bold text-[#39586D]">Razão Social</Label>
-              <Input placeholder="Nome da empresa" readOnly={!isManualClient} onChange={(e) => setClientName(e.target.value)} />
+              <Input placeholder="Nome da empresa" readOnly={!isManualClient} value={!isManualClient ? "Padaria Central Ltda" : undefined} onChange={(e) => setClientName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold text-[#39586D]">CNPJ</Label>
-              <Input placeholder="00.000.000/0000-00" readOnly={!isManualClient} />
+              <Input placeholder="00.000.000/0000-00" readOnly={!isManualClient} value={!isManualClient ? "12.345.678/0001-90" : undefined} />
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold text-[#39586D]">Mês Inicial do Relatório</Label>
@@ -152,7 +207,7 @@ export function RevenueDeclarationForm() {
             <div className="flex items-center justify-between">
               <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Tabela de Valores (Período Gerado)</h4>
               {source === "pgdas" && (
-                <Button variant="outline" size="sm" className="h-7 text-[10px] font-bold uppercase border-[#1FA67A] text-[#1FA67A] gap-1" onClick={handleFetchPgdas}>
+                <Button variant="outline" size="sm" className="h-7 text-[10px] font-black uppercase border-[#1FA67A] text-[#1FA67A] gap-1 shadow-sm" onClick={handleFetchPgdas}>
                   <RefreshCw className="h-3 w-3" /> Puxar Faturamento PGDAS
                 </Button>
               )}
@@ -168,7 +223,7 @@ export function RevenueDeclarationForm() {
                 </TableHeader>
                 <TableBody>
                   {rows.map((row, i) => (
-                    <TableRow key={i} className="h-10 hover:bg-slate-50/50">
+                    <TableRow key={i} className="h-10 hover:bg-slate-50/50 group">
                       <TableCell className="py-1 text-xs font-bold text-[#39586D]">{row.periodo}</TableCell>
                       <TableCell className="py-1 text-right">
                         <Input 
@@ -182,9 +237,15 @@ export function RevenueDeclarationForm() {
                     </TableRow>
                   ))}
                   <TableRow className="bg-[#2C4156] hover:bg-[#2C4156]">
-                    <TableCell className="text-white font-black text-xs uppercase">Total Acumulado (12 meses)</TableCell>
-                    <TableCell className="text-white text-right font-black text-sm">
+                    <TableCell className="text-white font-black text-xs uppercase py-3">Total Acumulado (12 meses)</TableCell>
+                    <TableCell className="text-white text-right font-black text-sm py-3">
                       R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow className="bg-[#F7F7F7] hover:bg-[#F7F7F7] border-t-2 border-[#D2D7DB]">
+                    <TableCell className="text-[#39586D] font-black text-[10px] uppercase py-3">Média Mensal do Período</TableCell>
+                    <TableCell className="text-[#1FA67A] text-right font-black text-sm py-3">
+                      R$ {average.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </TableCell>
                   </TableRow>
                 </TableBody>
@@ -193,7 +254,7 @@ export function RevenueDeclarationForm() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-6">
-            <Button className="flex-1 bg-[#1FA67A] font-bold gap-2" onClick={handleGenerate}>
+            <Button className="flex-1 bg-[#1FA67A] font-bold gap-2 shadow-lg shadow-emerald-500/20" onClick={handleGenerate}>
               <Printer className="h-4 w-4" /> Gerar Documento
             </Button>
             <Button 
@@ -203,7 +264,7 @@ export function RevenueDeclarationForm() {
             >
               <PenTool className="h-4 w-4" /> Assinatura Digital
             </Button>
-            <Button variant="outline" className="border-[#D2D7DB] font-bold gap-2">
+            <Button variant="outline" className="border-[#D2D7DB] font-bold gap-2 text-[#39586D]">
               <Save className="h-4 w-4" /> Salvar Histórico
             </Button>
           </div>
