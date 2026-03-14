@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -13,23 +12,32 @@ import {
   Download,
   ClipboardList,
   BarChart3,
-  Settings
+  Settings,
+  Loader2
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { IrpfDashboard } from "@/components/irpf/irpf-dashboard"
 import { IrpfKanban } from "@/components/irpf/irpf-kanban"
 import { IrpfList } from "@/components/irpf/irpf-list"
 import { IrpfDeclarationModal } from "@/components/irpf/irpf-declaration-modal"
-import { useAuth } from "@/hooks/use-auth-mock"
+import { useUser } from "@/firebase"
 import Link from "next/link"
 
 export default function IrpfPage() {
   const [view, setView] = useState<"kanban" | "lista">("kanban")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
-  const { user } = useAuth()
+  const { userData, isUserLoading } = useUser()
 
-  const canAccess = user?.profile !== 'ASSISTENTE'
+  if (isUserLoading) {
+    return (
+      <div className="h-[60vh] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
+      </div>
+    )
+  }
+
+  const canAccess = userData?.profile !== 'ASSISTENTE'
 
   if (!canAccess) {
     return (

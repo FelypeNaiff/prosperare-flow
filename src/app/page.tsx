@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useUser } from "@/firebase"
 import { TrendingUp, Loader2 } from "lucide-react"
@@ -8,9 +8,14 @@ import { TrendingUp, Loader2 } from "lucide-react"
 export default function Home() {
   const { user, userData, isUserLoading, isAuthChecking } = useUser()
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
   
   useEffect(() => {
-    if (!isUserLoading && !isAuthChecking) {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (mounted && !isUserLoading && !isAuthChecking) {
       if (user) {
         if (userData) {
           router.push("/dashboard")
@@ -21,7 +26,7 @@ export default function Home() {
         router.push("/login")
       }
     }
-  }, [user, userData, isUserLoading, isAuthChecking, router])
+  }, [mounted, user, userData, isUserLoading, isAuthChecking, router])
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#2C4156] text-white overflow-hidden">
@@ -40,7 +45,7 @@ export default function Home() {
           <div className="flex items-center justify-center gap-3">
             <Loader2 className="h-4 w-4 animate-spin text-[#1FA67A]" />
             <p className="text-[#98A7AA] font-bold tracking-[0.3em] uppercase text-[10px]">
-              Verificando Autorização...
+              Sincronizando Sistema...
             </p>
           </div>
         </div>

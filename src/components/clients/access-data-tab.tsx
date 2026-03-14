@@ -1,8 +1,7 @@
-
 "use client"
 
 import { useState } from "react"
-import { useAuth } from "@/hooks/use-auth-mock"
+import { useUser } from "@/firebase"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,7 +16,8 @@ import {
   ShieldCheck,
   Globe,
   Trash2,
-  Edit
+  Edit,
+  Loader2
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -27,16 +27,20 @@ interface AccessDataTabProps {
 }
 
 export function AccessDataTab({ clientId }: AccessDataTabProps) {
-  const { user } = useAuth()
+  const { userData, isUserLoading } = useUser()
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
 
-  const isRestricted = user?.profile === 'ASSISTENTE'
+  if (isUserLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
+      </div>
+    )
+  }
 
-  const mockAccesses = [
-    { id: '1', site: 'e-CAC (RFB)', url: 'https://cav.receita.fazenda.gov.br', login: '12.345.678/0001-90', pass: 'Senha123@RFB' },
-    { id: '2', site: 'Prefeitura Macapá', url: 'https://macapa.ap.gov.br', login: 'contahub_macapa', pass: 'P@ssword2024' },
-    { id: '3', site: 'SEFAZ - AP', url: 'https://sefaz.ap.gov.br', login: '22911002', pass: 'Fiscal@22' },
-  ]
+  const isRestricted = userData?.profile === 'ASSISTENTE'
+
+  const mockAccesses: any[] = []
 
   const togglePassword = (id: string) => {
     setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }))
@@ -86,64 +90,70 @@ export function AccessDataTab({ clientId }: AccessDataTabProps) {
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {mockAccesses.map((access) => (
-          <Card key={access.id} className="hover:shadow-sm transition-shadow">
-            <CardContent className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Globe className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-bold flex items-center gap-2">
-                    {access.site}
-                    <a href={access.url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate max-w-[200px]">{access.url}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 max-w-lg">
-                <div className="space-y-1">
-                  <Label className="text-[10px] uppercase text-muted-foreground">Login / E-mail</Label>
-                  <div className="flex gap-1">
-                    <Input readOnly value={access.login} className="h-8 text-xs bg-muted" />
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(access.login, 'Login')}>
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
+        {mockAccesses.length > 0 ? (
+          mockAccesses.map((access) => (
+            <Card key={access.id} className="hover:shadow-sm transition-shadow">
+              <CardContent className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Globe className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-bold flex items-center gap-2">
+                      {access.site}
+                      <a href={access.url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate max-w-[200px]">{access.url}</p>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] uppercase text-muted-foreground">Senha</Label>
-                  <div className="flex gap-1">
-                    <Input 
-                      readOnly 
-                      type={showPasswords[access.id] ? "text" : "password"} 
-                      value={access.pass} 
-                      className="h-8 text-xs bg-muted" 
-                    />
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => togglePassword(access.id)}>
-                      {showPasswords[access.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(access.pass, 'Senha')}>
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 max-w-lg">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase text-muted-foreground">Login / E-mail</Label>
+                    <div className="flex gap-1">
+                      <Input readOnly value={access.login} className="h-8 text-xs bg-muted" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(access.login, 'Login')}>
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase text-muted-foreground">Senha</Label>
+                    <div className="flex gap-1">
+                      <Input 
+                        readOnly 
+                        type={showPasswords[access.id] ? "text" : "password"} 
+                        value={access.pass} 
+                        className="h-8 text-xs bg-muted" 
+                      />
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => togglePassword(access.id)}>
+                        {showPasswords[access.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(access.pass, 'Senha')}>
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <div className="py-12 text-center text-muted-foreground italic font-medium border-2 border-dashed rounded-xl">
+            Nenhum acesso registrado para este cliente.
+          </div>
+        )}
       </div>
     </div>
   )
