@@ -34,7 +34,9 @@ import {
   Layers,
   TicketCheck,
   BrainCircuit,
-  CreditCard as InstallmentIcon
+  CreditCard as InstallmentIcon,
+  FileSignature,
+  FileStack
 } from "lucide-react"
 
 import {
@@ -100,6 +102,16 @@ const items = [
       { title: "Calendário de Prazos", url: "/processos/calendario", icon: Calendar },
       { title: "IRPF 2026", url: "/processos/irpf", icon: ClipboardList },
       { title: "Parcelamentos", url: "/processos/parcelamentos", icon: InstallmentIcon },
+    ]
+  },
+  {
+    title: "Docs Flow",
+    url: "/docs-flow",
+    icon: FileStack,
+    profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
+    subItems: [
+      { title: "Gerar Documentos", url: "/docs-flow", icon: FileSignature },
+      { title: "Histórico de Docs", url: "/docs-flow/historico", icon: History },
     ]
   },
   {
