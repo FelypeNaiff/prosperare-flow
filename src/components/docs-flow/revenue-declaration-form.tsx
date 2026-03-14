@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Printer, Download, Save, UserPlus, RefreshCw, Calculator } from "lucide-react"
+import { Printer, Download, Save, UserPlus, RefreshCw, Calculator, PenTool } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import { SignatureDialog } from "./signature-dialog"
 
 export function RevenueDeclarationForm() {
   const [isManual, setIsManual] = useState(false)
+  const [isSignatureOpen, setIsSignatureOpen] = useState(false)
+  const [clientName, setClientName] = useState("")
   const [rows, setRows] = useState(
     Array.from({ length: 12 }, (_, i) => ({
       mes: `Mês ${12 - i}`,
@@ -50,7 +53,7 @@ export function RevenueDeclarationForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-xs font-bold text-[#39586D]">Razão Social</Label>
-              <Input placeholder="Nome da empresa" readOnly={!isManual} />
+              <Input placeholder="Nome da empresa" readOnly={!isManual} onChange={(e) => setClientName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold text-[#39586D]">CNPJ</Label>
@@ -100,16 +103,31 @@ export function RevenueDeclarationForm() {
             </div>
           </div>
 
-          <div className="flex gap-3 pt-6">
+          <div className="flex flex-col sm:flex-row gap-3 pt-6">
             <Button className="flex-1 bg-[#1FA67A] font-bold gap-2" onClick={handleGenerate}>
               <Printer className="h-4 w-4" /> Gerar Documento Assinado
             </Button>
+            <Button 
+              variant="outline" 
+              className="flex-1 border-[#2574A9] text-[#2574A9] hover:bg-[#2574A9]/5 font-bold gap-2"
+              onClick={() => setIsSignatureOpen(true)}
+            >
+              <PenTool className="h-4 w-4" /> Enviar p/ Assinatura Digital
+            </Button>
             <Button variant="outline" className="border-[#D2D7DB] font-bold gap-2">
-              <Save className="h-4 w-4" /> Salvar Valores para Próximo Mês
+              <Save className="h-4 w-4" /> Salvar Valores
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      <SignatureDialog 
+        open={isSignatureOpen} 
+        onOpenChange={setIsSignatureOpen} 
+        documentTitle="Declaração de Faturamento"
+        recipientName={clientName || "Responsável Empresa"}
+        recipientEmail="cliente@email.com"
+      />
     </div>
   )
 }

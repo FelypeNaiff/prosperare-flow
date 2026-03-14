@@ -14,17 +14,34 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Printer, Download, Save, UserPlus, CheckCircle2, FileText } from "lucide-react"
+import { Printer, Download, Save, UserPlus, CheckCircle2, FileText, PenTool, Image as ImageIcon } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
+import { SignatureDialog } from "./signature-dialog"
 
 export function TerminationTermForm() {
   const [isManualClient, setIsManualClient] = useState(false)
   const [isPreviewMode, setIsPreviewOpen] = useState(false)
+  const [isSignatureOpen, setIsSignatureOpen] = useState(false)
+  const [formData, setFormData] = useState({
+    empresa: "",
+    cnpj: "",
+    funcionario: "",
+    emailFuncionario: "",
+    valor: ""
+  })
 
   const handleGenerate = () => {
     setIsPreviewOpen(true)
     toast({ title: "Documento Gerado!", description: "Pré-visualização pronta para impressão." })
+  }
+
+  // Mock de logotipo baseado no nome da empresa para demonstração
+  const getClientLogo = (name: string) => {
+    if (!name) return null;
+    const seed = name.length;
+    return `https://picsum.photos/seed/${seed}/200/80`;
   }
 
   return (
@@ -52,7 +69,7 @@ export function TerminationTermForm() {
               {!isManualClient ? (
                 <div className="space-y-2">
                   <Label className="text-xs font-bold text-[#39586D]">Empresa Cliente</Label>
-                  <Select>
+                  <Select onValueChange={(v) => setFormData({...formData, empresa: v === "1" ? "Padaria Central Ltda" : "Oficina do João ME", cnpj: v === "1" ? "12.345.678/0001-90" : "98.765.432/0001-21"})}>
                     <SelectTrigger className="border-[#D2D7DB]">
                       <SelectValue placeholder="Selecione o cliente..." />
                     </SelectTrigger>
@@ -66,11 +83,11 @@ export function TerminationTermForm() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-xs font-bold text-[#39586D]">Razão Social</Label>
-                    <Input placeholder="Nome da empresa" />
+                    <Input placeholder="Nome da empresa" onChange={(e) => setFormData({...formData, empresa: e.target.value})} />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs font-bold text-[#39586D]">CNPJ</Label>
-                    <Input placeholder="00.000.000/0000-00" />
+                    <Input placeholder="00.000.000/0000-00" onChange={(e) => setFormData({...formData, cnpj: e.target.value})} />
                   </div>
                 </div>
               )}
@@ -81,7 +98,11 @@ export function TerminationTermForm() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2 col-span-2">
                   <Label className="text-xs font-bold text-[#39586D]">Nome Completo</Label>
-                  <Input placeholder="Nome do colaborador" />
+                  <Input placeholder="Nome do colaborador" onChange={(e) => setFormData({...formData, funcionario: e.target.value})} />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label className="text-xs font-bold text-[#39586D]">E-mail para Assinatura Digital</Label>
+                  <Input type="email" placeholder="e-mail@exemplo.com" onChange={(e) => setFormData({...formData, emailFuncionario: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold text-[#39586D]">CPF</Label>
@@ -107,7 +128,7 @@ export function TerminationTermForm() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs font-bold text-[#39586D]">Valor Total Líquido (R$)</Label>
-                  <Input type="number" placeholder="0,00" className="font-black text-[#1FA67A]" />
+                  <Input type="number" placeholder="0,00" className="font-black text-[#1FA67A]" onChange={(e) => setFormData({...formData, valor: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold text-[#39586D]">Motivo do Desligamento</Label>
@@ -120,7 +141,7 @@ export function TerminationTermForm() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2 col-span-2">
+                <div className="col-span-2 space-y-2">
                   <Label className="text-xs font-bold text-[#39586D]">Espelho de Cálculo (Detalhamento)</Label>
                   <Textarea placeholder="Descreva as verbas: Saldo salário, 13º proporcional, Férias..." className="h-32 text-xs font-mono" />
                 </div>
@@ -141,29 +162,60 @@ export function TerminationTermForm() {
 
       {isPreviewMode && (
         <div className="lg:col-span-7 animate-in fade-in slide-in-from-right-4 duration-500">
-          <Card className="border-[#D2D7DB] bg-[#F7F7F7] overflow-hidden">
+          <Card className="border-[#D2D7DB] bg-[#F7F7F7] overflow-hidden sticky top-20">
             <CardHeader className="bg-white border-b py-3 px-6 flex flex-row items-center justify-between">
               <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Visualização de Impressão</CardTitle>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setIsPreviewOpen(false)}>Fechar</Button>
+                <Button 
+                  size="sm" 
+                  className="bg-[#2574A9] hover:bg-[#2574A9]/90 gap-2 font-bold"
+                  onClick={() => setIsSignatureOpen(true)}
+                >
+                  <PenTool className="h-3 w-3" /> Assinatura Digital
+                </Button>
                 <Button size="sm" className="bg-[#1FA67A] gap-2"><Download className="h-3 w-3" /> PDF</Button>
               </div>
             </CardHeader>
             <CardContent className="p-8">
-              <div className="bg-white shadow-xl mx-auto w-full min-h-[800px] p-12 text-[#2C4156] text-xs leading-relaxed font-serif border">
-                <div className="text-center space-y-4 mb-12 border-b pb-8">
-                  <h2 className="text-xl font-black uppercase underline underline-offset-8">TERMO DE QUITAÇÃO DE RESCISÃO CONTRATUAL</h2>
-                  <p className="font-bold text-[10px]">Prosperare Flow — Inteligência Documental</p>
+              <div className="bg-white shadow-xl mx-auto w-full min-h-[800px] p-12 text-[#2C4156] text-[11px] leading-relaxed font-serif border">
+                
+                {/* Cabeçalho Dinâmico */}
+                <div className="flex items-start justify-between mb-12 border-b pb-8">
+                  <div className="space-y-1">
+                    <h2 className="text-lg font-black uppercase text-[#2C4156]">{formData.empresa || "[NOME DA EMPRESA]"}</h2>
+                    <p className="font-bold text-[#98A7AA]">CNPJ: {formData.cnpj || "00.000.000/0000-00"}</p>
+                  </div>
+                  {formData.empresa ? (
+                    <div className="relative w-32 h-12 grayscale opacity-80">
+                      <Image 
+                        src={getClientLogo(formData.empresa)!} 
+                        alt="Logo Cliente" 
+                        fill 
+                        className="object-contain"
+                        data-ai-hint="company logo"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-32 h-12 border-2 border-dashed rounded flex items-center justify-center text-[8px] font-bold text-[#D2D7DB] uppercase">
+                      Logotipo Cliente
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-center space-y-2 mb-12">
+                  <h2 className="text-lg font-black uppercase underline underline-offset-8">TERMO DE QUITAÇÃO DE RESCISÃO CONTRATUAL</h2>
+                  <p className="font-bold text-[9px] text-[#98A7AA]">Prosperare Flow — Inteligência Documental</p>
                 </div>
 
                 <div className="space-y-8">
                   <p className="text-justify">
-                    Pelo presente instrumento, a empresa <strong>[NOME DA EMPRESA]</strong>, inscrita no CNPJ sob o nº <strong>[00.000.000/0000-00]</strong>, declara para os devidos fins que o Sr(a). <strong>[NOME DO FUNCIONÁRIO]</strong>, portador do CPF <strong>[000.000.000-00]</strong>, recebeu nesta data a importância líquida de <strong>R$ [VALOR]</strong>, referente às verbas rescisórias do contrato de trabalho iniciado em [DATA] e encerrado em [DATA].
+                    Pelo presente instrumento, a empresa <strong>{formData.empresa || "[NOME DA EMPRESA]"}</strong>, inscrita no CNPJ sob o nº <strong>{formData.cnpj || "[00.000.000/0000-00]"}</strong>, declara para os devidos fins que o Sr(a). <strong>{formData.funcionario || "[NOME DO FUNCIONÁRIO]"}</strong>, recebeu nesta data a importância líquida de <strong>R$ {formData.valor || "[VALOR]"}</strong>, referente às verbas rescisórias do contrato de trabalho encerrado conforme discriminado abaixo.
                   </p>
 
                   <div className="space-y-2">
-                    <h3 className="font-black border-b pb-1 text-[10px] uppercase">MEMÓRIA DE CÁLCULO / DISCRIMINAÇÃO</h3>
-                    <div className="bg-[#F7F7F7] p-4 rounded font-mono whitespace-pre-wrap">
+                    <h3 className="font-black border-b pb-1 text-[9px] uppercase tracking-widest text-[#1FA67A]">MEMÓRIA DE CÁLCULO / DISCRIMINAÇÃO</h3>
+                    <div className="bg-[#F7F7F7] p-4 rounded font-mono whitespace-pre-wrap text-[10px]">
                       [DETALHAMENTO DO CÁLCULO DIGITADO NO FORMULÁRIO]
                     </div>
                   </div>
@@ -177,12 +229,12 @@ export function TerminationTermForm() {
                     
                     <div className="grid grid-cols-2 gap-12 text-center pt-12">
                       <div className="border-t border-[#2C4156] pt-2">
-                        <p className="font-bold uppercase">[NOME DA EMPRESA]</p>
-                        <p className="text-[9px] text-[#98A7AA]">EMPREGADOR</p>
+                        <p className="font-bold uppercase text-[9px]">{formData.empresa || "EMPREGADOR"}</p>
+                        <p className="text-[8px] text-[#98A7AA] uppercase tracking-widest">Contratante</p>
                       </div>
                       <div className="border-t border-[#2C4156] pt-2">
-                        <p className="font-bold uppercase">[NOME DO FUNCIONÁRIO]</p>
-                        <p className="text-[9px] text-[#98A7AA]">COLABORADOR</p>
+                        <p className="font-bold uppercase text-[9px]">{formData.funcionario || "COLABORADOR"}</p>
+                        <p className="text-[8px] text-[#98A7AA] uppercase tracking-widest">Signatário</p>
                       </div>
                     </div>
                   </div>
@@ -192,6 +244,14 @@ export function TerminationTermForm() {
           </Card>
         </div>
       )}
+
+      <SignatureDialog 
+        open={isSignatureOpen} 
+        onOpenChange={setIsSignatureOpen} 
+        documentTitle="Termo de Quitação de Rescisão"
+        recipientName={formData.funcionario || "Colaborador"}
+        recipientEmail={formData.emailFuncionario || "funcionario@email.com"}
+      />
     </div>
   )
 }

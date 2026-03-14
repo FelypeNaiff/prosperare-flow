@@ -7,11 +7,17 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Printer, Download, Save, UserPlus, FileText } from "lucide-react"
+import { Printer, Download, Save, UserPlus, FileText, PenTool } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import { SignatureDialog } from "./signature-dialog"
 
 export function ProlaboreForm() {
   const [isManual, setIsManual] = useState(false)
+  const [isSignatureOpen, setIsSignatureOpen] = useState(false)
+  const [formData, setFormData] = useState({
+    socio: "",
+    email: ""
+  })
 
   const handleGenerate = () => {
     toast({ title: "Declaração de Pró-labore Gerada!" })
@@ -61,7 +67,11 @@ export function ProlaboreForm() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2 col-span-2">
                 <Label className="text-xs font-bold text-[#39586D]">Nome do Sócio</Label>
-                <Input placeholder="Nome completo" />
+                <Input placeholder="Nome completo" onChange={(e) => setFormData({...formData, socio: e.target.value})} />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label className="text-xs font-bold text-[#39586D]">E-mail para Assinatura</Label>
+                <Input type="email" placeholder="socio@email.com" onChange={(e) => setFormData({...formData, email: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">CPF</Label>
@@ -82,9 +92,16 @@ export function ProlaboreForm() {
             </div>
           </div>
 
-          <div className="flex gap-3 pt-6">
+          <div className="flex flex-col sm:flex-row gap-3 pt-6">
             <Button className="flex-1 bg-[#1FA67A] font-bold gap-2" onClick={handleGenerate}>
-              <Printer className="h-4 w-4" /> Gerar Declaração
+              <Printer className="h-4 w-4" /> Gerar Documento
+            </Button>
+            <Button 
+              variant="outline" 
+              className="flex-1 border-[#2574A9] text-[#2574A9] hover:bg-[#2574A9]/5 font-bold gap-2"
+              onClick={() => setIsSignatureOpen(true)}
+            >
+              <PenTool className="h-4 w-4" /> Enviar p/ Assinatura
             </Button>
             <Button variant="outline" className="border-[#D2D7DB] font-bold gap-2">
               <Save className="h-4 w-4" /> Salvar Histórico
@@ -92,6 +109,14 @@ export function ProlaboreForm() {
           </div>
         </CardContent>
       </Card>
+
+      <SignatureDialog 
+        open={isSignatureOpen} 
+        onOpenChange={setIsSignatureOpen} 
+        documentTitle="Declaração de Pró-labore"
+        recipientName={formData.socio || "Sócio"}
+        recipientEmail={formData.email || "socio@email.com"}
+      />
     </div>
   )
 }
