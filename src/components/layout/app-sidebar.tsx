@@ -157,6 +157,7 @@ const items = [
     profiles: ["ADMINISTRADOR"],
     subItems: [
       { title: "Meus Dados", url: "/configuracoes/meus-dados", icon: Building },
+      { title: "Configurações IRPF", url: "/configuracoes/irpf", icon: ClipboardList },
       { title: "Certificado Digital", url: "/configuracoes/certificado", icon: Key },
       { title: "Agendamento Automático", url: "/configuracoes/agendamento", icon: CalendarClock },
       { title: "WhatsApp", url: "/configuracoes/whatsapp", icon: MessageSquare },

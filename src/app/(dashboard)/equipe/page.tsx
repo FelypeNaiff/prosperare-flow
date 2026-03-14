@@ -11,7 +11,13 @@ import {
   Filter,
   Building2,
   History,
-  ArrowRight
+  ArrowRight,
+  Trash2,
+  Edit,
+  MoreHorizontal,
+  Settings,
+  Mail,
+  AlertTriangle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
@@ -37,7 +43,17 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Settings, Mail } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { toast } from "@/hooks/use-toast"
 
 const MOCK_TEAM = [
   { id: '1', name: 'Ricardo Santos', email: 'ricardo@prosperare.com.br', profile: 'SÓCIO', department: 'Diretoria', status: 'ATIVO' },
@@ -49,6 +65,22 @@ const MOCK_TEAM = [
 
 export default function EquipePage() {
   const [searchTerm, setSearchTerm] = useState("")
+  const [team, setTeam] = useState(MOCK_TEAM)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [memberToDelete, setMemberToDelete] = useState<any>(null)
+
+  const handleDeleteMember = () => {
+    if (memberToDelete) {
+      setTeam(prev => prev.filter(m => m.id !== memberToDelete.id))
+      setIsDeleteDialogOpen(false)
+      setMemberToDelete(null)
+      toast({
+        title: "Membro excluído",
+        description: "O acesso do colaborador foi removido permanentemente.",
+        variant: "destructive"
+      })
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -70,7 +102,7 @@ export default function EquipePage() {
             <div className="p-3 bg-[#2C4156]/10 rounded-lg"><Users className="h-6 w-6 text-[#2C4156]" /></div>
             <div>
               <p className="text-[10px] font-bold text-[#98A7AA] uppercase">Membros Ativos</p>
-              <p className="text-2xl font-black text-[#2C4156]">12 / 15</p>
+              <p className="text-2xl font-black text-[#2C4156]">{team.filter(m => m.status === 'ATIVO').length} / {team.length}</p>
             </div>
           </CardContent>
         </Card>
@@ -137,7 +169,7 @@ export default function EquipePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {MOCK_TEAM.map((member) => (
+                  {team.map((member) => (
                     <TableRow key={member.id} className="hover:bg-[#F7F7F7]">
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -175,8 +207,14 @@ export default function EquipePage() {
                             <DropdownMenuItem className="gap-2 text-xs font-bold text-[#2C4156]"><Settings className="h-4 w-4 text-[#1FA67A]" /> Editar Acessos</DropdownMenuItem>
                             <DropdownMenuItem className="gap-2 text-xs font-bold text-[#2C4156]"><Mail className="h-4 w-4 text-[#2574A9]" /> Resetar Senha</DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="gap-2 text-xs font-bold text-[#E74C3C]">
-                              {member.status === 'ATIVO' ? 'Desativar Usuário' : 'Reativar Usuário'}
+                            <DropdownMenuItem 
+                              className="gap-2 text-xs font-bold text-[#E74C3C]"
+                              onClick={() => {
+                                setMemberToDelete(member);
+                                setIsDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" /> Excluir Colaborador
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -197,6 +235,29 @@ export default function EquipePage() {
           <ActionHistoryList />
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-[#E74C3C]">
+              <AlertTriangle className="h-6 w-6" />
+              Confirmar Exclusão de Colaborador?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a excluir <strong>{memberToDelete?.name}</strong>. Esta ação é irreversível e removerá todo o acesso deste usuário ao sistema imediatamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setMemberToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteMember}
+              className="bg-[#E74C3C] text-white hover:bg-[#E74C3C]/90"
+            >
+              Sim, Excluir Definitivamente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

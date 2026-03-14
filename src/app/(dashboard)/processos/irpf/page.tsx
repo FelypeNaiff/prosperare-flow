@@ -12,7 +12,8 @@ import {
   Filter, 
   Download,
   ClipboardList,
-  BarChart3
+  BarChart3,
+  Settings
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { IrpfDashboard } from "@/components/irpf/irpf-dashboard"
@@ -20,6 +21,7 @@ import { IrpfKanban } from "@/components/irpf/irpf-kanban"
 import { IrpfList } from "@/components/irpf/irpf-list"
 import { IrpfDeclarationModal } from "@/components/irpf/irpf-declaration-modal"
 import { useAuth } from "@/hooks/use-auth-mock"
+import Link from "next/link"
 
 export default function IrpfPage() {
   const [view, setView] = useState<"kanban" | "lista">("kanban")
@@ -49,6 +51,11 @@ export default function IrpfPage() {
           <p className="text-[#98A7AA] font-medium">Fluxo de declarações de Imposto de Renda Pessoa Física.</p>
         </div>
         <div className="flex gap-2">
+          <Button asChild variant="outline" className="border-[#D2D7DB] gap-2">
+            <Link href="/configuracoes/irpf">
+              <Settings className="h-4 w-4" /> Configurar Etiquetas
+            </Link>
+          </Button>
           <Button variant="outline" className="border-[#D2D7DB] gap-2">
             <Download className="h-4 w-4" /> Exportar
           </Button>
