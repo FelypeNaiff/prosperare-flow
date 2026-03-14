@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -14,7 +15,10 @@ import {
   ShieldCheck,
   MapPin,
   Mail,
-  Phone
+  Phone,
+  Eye,
+  Edit,
+  Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -40,8 +44,16 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { KpiCard } from "@/components/dashboard/kpi-card"
 import { toast } from "@/hooks/use-toast"
-import { formatCNPJ, validateCNPJ } from "@/lib/utils"
-import { cn } from "@/lib/utils"
+import { formatCNPJ, validateCNPJ, cn } from "@/lib/utils"
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu"
+import Link from "next/link"
 
 export default function ClientesPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -78,7 +90,6 @@ export default function ClientesPage() {
       if (!response.ok) throw new Error("CNPJ não encontrado")
       const data = await response.json()
       
-      // Lógica para identificar regime tributário básico
       let regimeSugerido = "Outros"
       if (data.opcao_pelo_mei) {
         regimeSugerido = "MEI"
@@ -213,9 +224,35 @@ export default function ClientesPage() {
                     <TableCell>{getStatusBadge(client.certificadoStatus)}</TableCell>
                     <TableCell>{getStatusBadge(client.procuracaoStatus)}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="text-[#98A7AA]">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="text-[#98A7AA]">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuLabel className="text-[10px] uppercase font-black text-[#98A7AA]">Ações do Cliente</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem asChild>
+                            <Link href={`/clientes/${client.id}`} className="flex items-center gap-2 cursor-pointer">
+                              <Eye className="h-4 w-4 text-[#1FA67A]" /> Ver Ficha Completa
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
+                            <Edit className="h-4 w-4 text-[#2574A9]" /> Editar Dados
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className="flex items-center gap-2 text-[#E74C3C] cursor-pointer"
+                            onClick={() => {
+                              setClients(clients.filter(c => c.id !== client.id))
+                              toast({ title: "Cliente Removido", variant: "destructive" })
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" /> Excluir Cliente
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))
