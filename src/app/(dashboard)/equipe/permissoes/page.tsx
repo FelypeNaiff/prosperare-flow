@@ -10,17 +10,10 @@ import {
   Check, 
   X, 
   ShieldAlert,
-  ChevronDown,
-  Info,
-  Eye,
-  Settings2,
-  Trash2,
-  Key,
-  DollarSign,
-  FileText
+  Loader2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { 
@@ -43,12 +36,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-
-const MOCK_USERS = [
-  { id: '1', name: 'Ricardo Santos', profile: 'SÓCIO', department: 'Diretoria' },
-  { id: '2', name: 'Ana Souza', profile: 'CONTADOR/GESTOR', department: 'Fiscal' },
-  { id: '3', name: 'Bruno Lima', profile: 'ASSISTENTE', department: 'Pessoal' },
-]
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection } from "firebase/firestore"
 
 const PERMISSION_GROUPS = [
   {
@@ -74,47 +63,18 @@ const PERMISSION_GROUPS = [
       { id: 'transfer_tasks', label: 'Mudar Responsável', desc: 'Passagem de bastão entre usuários.' },
       { id: 'manage_groups', label: 'Gerenciar Grupos de Obrigações', desc: 'Configurar automação por tipo de cliente.' },
     ]
-  },
-  {
-    id: 'irpf',
-    label: 'IRPF (Imposto de Renda)',
-    description: 'Acessos ao módulo de declarações de pessoa física.',
-    permissions: [
-      { id: 'access_irpf', label: 'Acessar Módulo IRPF', desc: 'Visualizar painel de declarações.' },
-      { id: 'edit_irpf', label: 'Editar Declarações', desc: 'Alterar checklist e status.' },
-      { id: 'view_govbr', label: 'Ver Senhas GOV.BR', desc: 'Acesso às credenciais do contribuinte.', sensitive: true },
-      { id: 'manage_tags', label: 'Gerenciar Etiquetas', desc: 'Criar e excluir tags de triagem.' },
-    ]
-  },
-  {
-    id: 'financeiro',
-    label: 'Financeiro',
-    description: 'Gestão de receitas e despesas do escritório.',
-    permissions: [
-      { id: 'view_receivables', label: 'Ver Contas a Receber', desc: 'Visualizar honorários e contratos.' },
-      { id: 'manage_receivables', label: 'Lançar Receitas/Honorários', desc: 'Baixar pagamentos e emitir cobranças.' },
-      { id: 'view_payables', label: 'Ver Contas a Pagar', desc: 'Visualizar despesas operacionais.' },
-      { id: 'view_bi', label: 'Visualizar DRE/Fluxo de Caixa', desc: 'Acesso aos gráficos de inteligência.', sensitive: true },
-      { id: 'manage_contracts', label: 'Gerenciar Contratos', desc: 'Criar e alterar minutas contratuais.' },
-    ]
-  },
-  {
-    id: 'docs_flow',
-    label: 'Docs Flow (Documentos)',
-    description: 'Geração de termos e assinaturas digitais.',
-    permissions: [
-      { id: 'generate_docs', label: 'Gerar Documentos Avulsos', desc: 'Emitir termos de rescisão e pró-labore.' },
-      { id: 'view_doc_history', label: 'Ver Histórico de Documentos', desc: 'Visualizar o que foi gerado para cada empresa.' },
-      { id: 'manage_signatures', label: 'Enviar p/ Assinatura Digital', desc: 'Disparar e-mails via ZapSign/Clicksign.' },
-    ]
   }
 ];
 
 export default function PermissoesPage() {
   const router = useRouter()
+  const firestore = useFirestore()
   const [selectedUser, setSelectedUser] = useState<any>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+
+  const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
+  const { data: users = [], isLoading } = useCollection(usersQuery)
 
   const handleOpenPerms = (user: any) => {
     setSelectedUser(user)
@@ -125,10 +85,15 @@ export default function PermissoesPage() {
     setIsModalOpen(false)
     toast({ 
       title: "Permissões atualizadas!", 
-      description: `As novas regras para ${selectedUser.name} entram em vigor no próximo login.`,
+      description: `As novas regras para ${selectedUser.fullName} foram salvas na nuvem.`,
       className: "bg-[#1FA67A] text-white border-none"
     })
   }
+
+  const filteredUsers = (users || []).filter(u => 
+    u.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.profile?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -147,12 +112,12 @@ export default function PermissoesPage() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <CardTitle className="text-lg font-black text-[#2C4156] uppercase flex items-center gap-2">
               <Lock className="h-5 w-5 text-[#1FA67A]" />
-              Colaboradores e Regras de Acesso
+              Colaboradores Autorizados
             </CardTitle>
             <div className="relative w-full md:w-80">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
               <Input 
-                placeholder="Buscar por nome ou perfil..." 
+                placeholder="Buscar colaborador..." 
                 className="pl-9 h-9 bg-white border-[#D2D7DB]" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -166,25 +131,39 @@ export default function PermissoesPage() {
               <TableRow className="hover:bg-transparent">
                 <TableHead className="text-white font-black uppercase text-[10px]">Colaborador</TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px]">Perfil de Acesso</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Departamento</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px]">E-mail</TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {MOCK_USERS.filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase())).map((user) => (
-                <TableRow key={user.id} className="hover:bg-[#F7F7F7]">
-                  <TableCell className="font-bold text-[#2C4156]">{user.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-[10px] font-black uppercase border-[#D2D7DB] text-[#39586D]">{user.profile}</Badge>
-                  </TableCell>
-                  <TableCell className="text-xs font-bold text-[#98A7AA] uppercase">{user.department}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="outline" size="sm" className="gap-2 border-[#D2D7DB] text-[#2C4156] font-bold" onClick={() => handleOpenPerms(user)}>
-                      <ShieldCheck className="h-4 w-4 text-[#1FA67A]" /> Ajustar Privilégios
-                    </Button>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-32 text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <TableRow key={user.id} className="hover:bg-[#F7F7F7]">
+                    <TableCell className="font-bold text-[#2C4156]">{user.fullName}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-[10px] font-black uppercase border-[#D2D7DB] text-[#39586D]">{user.profile}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs font-bold text-[#98A7AA]">{user.email}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="outline" size="sm" className="gap-2 border-[#D2D7DB] text-[#2C4156] font-bold" onClick={() => handleOpenPerms(user)}>
+                        <ShieldCheck className="h-4 w-4 text-[#1FA67A]" /> Ajustar Privilégios
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-24 text-center text-[#98A7AA] font-bold">
+                    Nenhum colaborador encontrado.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -200,7 +179,7 @@ export default function PermissoesPage() {
               <div>
                 <DialogTitle className="text-xl font-black uppercase">Permissões Detalhadas</DialogTitle>
                 <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
-                  Editando: {selectedUser?.name} ({selectedUser?.profile})
+                  Editando: {selectedUser?.fullName}
                 </DialogDescription>
               </div>
             </div>
@@ -208,11 +187,6 @@ export default function PermissoesPage() {
           
           <ScrollArea className="flex-1">
             <div className="p-6 space-y-6">
-              <div className="flex gap-2 pb-2 border-b">
-                <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold text-[10px] uppercase"><Check className="h-3 w-3" /> Liberar Todos</Button>
-                <Button size="sm" variant="outline" className="text-[#E74C3C] border-[#E74C3C] gap-2 font-bold hover:bg-[#E74C3C]/5 text-[10px] uppercase"><X className="h-3 w-3" /> Bloquear Todos</Button>
-              </div>
-
               <Accordion type="multiple" className="w-full">
                 {PERMISSION_GROUPS.map((group) => (
                   <AccordionItem key={group.id} value={group.id} className="border-[#D2D7DB]">
@@ -241,7 +215,7 @@ export default function PermissoesPage() {
                           </div>
                           <Checkbox 
                             id={perm.id} 
-                            defaultChecked={selectedUser?.profile === 'SÓCIO'}
+                            defaultChecked={selectedUser?.profile === 'SÓCIO' || selectedUser?.profile === 'ADMINISTRADOR'}
                             className="h-5 w-5 border-[#D2D7DB] data-[state=checked]:bg-[#1FA67A] data-[state=checked]:border-[#1FA67A]" 
                           />
                         </div>
@@ -255,7 +229,7 @@ export default function PermissoesPage() {
 
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t">
             <Button variant="outline" onClick={() => setIsModalOpen(false)} className="border-[#D2D7DB] font-bold">Cancelar</Button>
-            <Button className="bg-[#1FA67A] font-black uppercase text-xs px-10 shadow-lg shadow-emerald-500/20" onClick={handleSave}>Salvar Configurações</Button>
+            <Button className="bg-[#1FA67A] font-black uppercase text-xs px-10 shadow-lg" onClick={handleSave}>Salvar Configurações</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,18 +1,15 @@
+
 "use client"
 
 import { useState } from "react"
 import { 
   Plus, 
-  Download, 
   ChevronLeft, 
   ChevronRight, 
   Search, 
   MoreVertical,
-  Repeat,
   ArrowDownRight,
-  FileSpreadsheet,
-  Upload,
-  Check,
+  Loader2,
   Save
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -28,14 +25,6 @@ import {
   TableRow 
 } from "@/components/ui/table"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel
-} from "@/components/ui/dropdown-menu"
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -47,17 +36,16 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
-
-const STATUS_OPTIONS = [
-  { label: 'Pago', value: 'Pago', bg: 'bg-[#7ED6B5]', text: 'text-[#1FA67A]' },
-  { label: 'Pendente', value: 'Pendente', bg: 'bg-[#FEF3C7]', text: 'text-[#F2B705]' },
-  { label: 'Atrasado', value: 'Atrasado', bg: 'bg-[#FEE2E2]', text: 'text-[#E74C3C]' },
-]
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
+import { collection, doc } from "firebase/firestore"
 
 export default function ContasAPagarPage() {
-  const [items, setItems] = useState<any[]>([])
+  const firestore = useFirestore()
   const [searchTerm, setSearchTerm] = useState("")
   const [isNewAccountOpen, setIsNewAccountOpen] = useState(false)
+
+  const payablesQuery = useMemoFirebase(() => collection(firestore, "payables"), [firestore])
+  const { data: items = [], isLoading } = useCollection(payablesQuery)
 
   const [newAccount, setNewAccount] = useState({
     descricao: "",
@@ -74,17 +62,23 @@ export default function ContasAPagarPage() {
       toast({ title: "Erro", description: "Preencha os dados da conta.", variant: "destructive" })
       return
     }
-    const entry = { ...newAccount, id: Math.random().toString(36).substr(2, 9) }
-    setItems([entry, ...items])
+    
+    const id = Math.random().toString(36).substr(2, 9)
+    const docRef = doc(firestore, "payables", id)
+    
+    setDocumentNonBlocking(docRef, { ...newAccount, id, createdAt: new Date().toISOString() }, { merge: true })
+    
     setIsNewAccountOpen(false)
     setNewAccount({ descricao: "", entidade: "", categoria: "Sistemas", data: "", valor: 0, situacao: "Pendente", recorrente: false })
-    toast({ title: "Conta lançada!", description: "A despesa foi adicionada ao contas a pagar." })
+    toast({ title: "Conta lançada!", description: "A despesa foi salva no banco de dados." })
   }
 
-  const handleStatusChange = (id: string, newStatus: string) => {
-    setItems(prev => prev.map(item => item.id === id ? { ...item, situacao: newStatus } : item))
-    toast({ title: "Status Atualizado" })
-  }
+  const filteredItems = (items || []).filter(item => 
+    item.entidade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.descricao?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const totalValue = filteredItems.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0)
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -96,7 +90,7 @@ export default function ContasAPagarPage() {
         <div className="flex items-center gap-4">
           <div className="flex items-center bg-white border border-[#D2D7DB] rounded-lg px-3 py-1 text-sm font-bold text-[#2C4156]">
             <Button variant="ghost" size="icon" className="h-8 w-8"><ChevronLeft className="h-4 w-4" /></Button>
-            <span className="px-4">Outubro 2024</span>
+            <span className="px-4 uppercase">Outubro 2024</span>
             <Button variant="ghost" size="icon" className="h-8 w-8"><ChevronRight className="h-4 w-4" /></Button>
           </div>
           <div className="flex gap-2">
@@ -108,11 +102,7 @@ export default function ContasAPagarPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <SummaryCard label="Vencidos" value="R$ 0,00" color="bg-[#E74C3C]" icon={ArrowDownRight} />
-        <SummaryCard label="Hoje" value="R$ 0,00" color="bg-[#F2B705]" icon={ArrowDownRight} />
-        <SummaryCard label="A Vencer" value="R$ 0,00" color="bg-[#98A7AA]" icon={ArrowDownRight} />
-        <SummaryCard label="Pagos" value="R$ 0,00" color="bg-[#1FA67A]" icon={ArrowDownRight} />
-        <SummaryCard label="Total" value="R$ 0,00" color="bg-[#2C4156]" icon={ArrowDownRight} />
+        <SummaryCard label="Total Filtrado" value={totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} color="bg-[#E74C3C]" icon={ArrowDownRight} />
       </div>
 
       <Card className="border-[#D2D7DB] shadow-sm bg-white overflow-hidden">
@@ -122,7 +112,6 @@ export default function ContasAPagarPage() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
               <Input placeholder="Buscar fornecedor..." className="pl-9 h-9 bg-white" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
-            <div className="text-sm font-black text-[#2C4156]">TOTAL: R$ 0,00</div>
           </div>
           <Table>
             <TableHeader className="bg-[#2C4156]">
@@ -137,17 +126,23 @@ export default function ContasAPagarPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.length > 0 ? (
-                items.map((item) => (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-32 text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
+                  </TableCell>
+                </TableRow>
+              ) : filteredItems.length > 0 ? (
+                filteredItems.map((item) => (
                   <TableRow key={item.id} className="hover:bg-[#F7F7F7]">
                     <TableCell className="font-bold text-[#2C4156]">{item.descricao}</TableCell>
                     <TableCell className="text-[#39586D]">{item.entidade}</TableCell>
                     <TableCell className="text-xs font-bold text-[#98A7AA]">{item.categoria}</TableCell>
-                    <TableCell className="text-xs font-mono text-[#39586D]">{item.data}</TableCell>
+                    <TableCell className="text-xs font-mono text-[#39586D]">{item.data || '--'}</TableCell>
                     <TableCell className="text-center">
                       <Badge className="bg-[#FEF3C7] text-[#F2B705] border-none text-[9px] font-black uppercase">{item.situacao}</Badge>
                     </TableCell>
-                    <TableCell className="text-right font-black text-[#E74C3C]">R$ {item.valor.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-black text-[#E74C3C]">R$ {Number(item.valor).toFixed(2)}</TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
                     </TableCell>
@@ -156,7 +151,7 @@ export default function ContasAPagarPage() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={7} className="h-24 text-center text-[#98A7AA] font-bold">
-                    Nenhuma conta lançada.
+                    Nenhuma despesa lançada no sistema.
                   </TableCell>
                 </TableRow>
               )}
@@ -165,7 +160,6 @@ export default function ContasAPagarPage() {
         </CardContent>
       </Card>
 
-      {/* MODAL NOVA CONTA A PAGAR */}
       <Dialog open={isNewAccountOpen} onOpenChange={setIsNewAccountOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>

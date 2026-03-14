@@ -1,9 +1,9 @@
+
 "use client"
 
 import { useState } from "react"
 import { 
   Plus, 
-  Download, 
   ChevronLeft, 
   ChevronRight, 
   Search, 
@@ -11,15 +11,13 @@ import {
   Repeat,
   ArrowUpRight,
   FileSpreadsheet,
-  Upload,
-  Check,
+  Loader2,
   Save
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Table, 
   TableBody, 
@@ -33,8 +31,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel
 } from "@/components/ui/dropdown-menu"
 import {
   Dialog,
@@ -43,12 +39,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
+import { collection, doc } from "firebase/firestore"
 
 const STATUS_OPTIONS = [
   { label: 'Confirmado', value: 'Confirmado', bg: 'bg-[#7ED6B5]', text: 'text-[#1FA67A]' },
@@ -57,10 +54,12 @@ const STATUS_OPTIONS = [
 ]
 
 export default function ContasAReceberPage() {
-  const [items, setItems] = useState<any[]>([])
+  const firestore = useFirestore()
   const [searchTerm, setSearchTerm] = useState("")
   const [isNewAccountOpen, setIsNewAccountOpen] = useState(false)
-  const [isImportOpen, setIsImportOpen] = useState(false)
+
+  const receivablesQuery = useMemoFirebase(() => collection(firestore, "receivables"), [firestore])
+  const { data: items = [], isLoading } = useCollection(receivablesQuery)
 
   const [newAccount, setNewAccount] = useState({
     descricao: "",
@@ -77,37 +76,23 @@ export default function ContasAReceberPage() {
       toast({ title: "Erro", description: "Preencha os dados da conta.", variant: "destructive" })
       return
     }
-    const entry = { ...newAccount, id: Math.random().toString(36).substr(2, 9) }
-    setItems([entry, ...items])
+    
+    const id = Math.random().toString(36).substr(2, 9)
+    const docRef = doc(firestore, "receivables", id)
+    
+    setDocumentNonBlocking(docRef, { ...newAccount, id, createdAt: new Date().toISOString() }, { merge: true })
+    
     setIsNewAccountOpen(false)
     setNewAccount({ descricao: "", cliente: "", pagamento: "PIX", data: "", valor: 0, situacao: "Pendente", recorrente: false })
-    toast({ title: "Honorário Lançado!", description: "O registro de entrada foi criado." })
+    toast({ title: "Honorário Lançado!", description: "O registro de entrada foi criado na nuvem." })
   }
 
-  const handleStatusChange = (id: string, newStatus: string) => {
-    setItems(prev => prev.map(item => item.id === id ? { ...item, situacao: newStatus } : item))
-    toast({ title: "Status Atualizado" })
-  }
+  const filteredItems = (items || []).filter(item => 
+    item.cliente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.descricao?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
-  const getStatusBadge = (status: string, id: string) => {
-    const option = STATUS_OPTIONS.find(o => o.value === status) || STATUS_OPTIONS[1]
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Badge className={cn("cursor-pointer hover:opacity-80 transition-opacity border-none font-bold text-[10px] uppercase", option.bg, option.text)}>
-            {status}
-          </Badge>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="center">
-          {STATUS_OPTIONS.map(opt => (
-            <DropdownMenuItem key={opt.value} onClick={() => handleStatusChange(id, opt.value)}>
-              <div className={cn("w-2 h-2 rounded-full mr-2", opt.bg)} /> {opt.label}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    )
-  }
+  const totalValue = filteredItems.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0)
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -119,26 +104,19 @@ export default function ContasAReceberPage() {
         <div className="flex items-center gap-4">
           <div className="flex items-center bg-white border border-[#D2D7DB] rounded-lg px-3 py-1 text-sm font-bold text-[#2C4156]">
             <Button variant="ghost" size="icon" className="h-8 w-8"><ChevronLeft className="h-4 w-4" /></Button>
-            <span className="px-4">Outubro 2024</span>
+            <span className="px-4 uppercase">Outubro 2024</span>
             <Button variant="ghost" size="icon" className="h-8 w-8"><ChevronRight className="h-4 w-4" /></Button>
           </div>
           <div className="flex gap-2">
             <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-bold" onClick={() => setIsNewAccountOpen(true)}>
               <Plus className="h-4 w-4" /> Nova Conta
             </Button>
-            <Button variant="outline" className="gap-2 border-[#D2D7DB] text-[#39586D]" onClick={() => setIsImportOpen(true)}>
-              <FileSpreadsheet className="h-4 w-4" /> Importar
-            </Button>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <SummaryCard label="Vencidos" value="R$ 0,00" color="bg-[#E74C3C]" icon={ArrowUpRight} />
-        <SummaryCard label="Hoje" value="R$ 0,00" color="bg-[#F2B705]" icon={ArrowUpRight} />
-        <SummaryCard label="A Vencer" value="R$ 0,00" color="bg-[#98A7AA]" icon={ArrowUpRight} />
-        <SummaryCard label="Recebidos" value="R$ 0,00" color="bg-[#1FA67A]" icon={ArrowUpRight} />
-        <SummaryCard label="Total" value="R$ 0,00" color="bg-[#2C4156]" icon={ArrowUpRight} />
+        <SummaryCard label="Total Filtrado" value={totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} color="bg-[#2C4156]" icon={ArrowUpRight} />
       </div>
 
       <Card className="border-[#D2D7DB] shadow-sm bg-white overflow-hidden">
@@ -148,7 +126,6 @@ export default function ContasAReceberPage() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
               <Input placeholder="Buscar cliente..." className="pl-9 h-9 bg-white" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
-            <div className="text-sm font-black text-[#2C4156]">TOTAL: R$ 0,00</div>
           </div>
           <Table>
             <TableHeader className="bg-[#2C4156]">
@@ -163,8 +140,14 @@ export default function ContasAReceberPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.length > 0 ? (
-                items.map((item) => (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-32 text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
+                  </TableCell>
+                </TableRow>
+              ) : filteredItems.length > 0 ? (
+                filteredItems.map((item) => (
                   <TableRow key={item.id} className="hover:bg-[#F7F7F7]">
                     <TableCell className="font-bold text-[#2C4156]">
                       <div className="flex items-center gap-2">
@@ -173,9 +156,11 @@ export default function ContasAReceberPage() {
                     </TableCell>
                     <TableCell className="text-[#39586D]">{item.cliente}</TableCell>
                     <TableCell className="text-xs font-bold text-[#98A7AA]">{item.pagamento}</TableCell>
-                    <TableCell className="text-xs font-mono text-[#39586D]">{item.data}</TableCell>
-                    <TableCell className="text-center">{getStatusBadge(item.situacao, item.id)}</TableCell>
-                    <TableCell className="text-right font-black text-[#1FA67A]">R$ {item.valor.toFixed(2)}</TableCell>
+                    <TableCell className="text-xs font-mono text-[#39586D]">{item.data || '--'}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge className="bg-[#FEF3C7] text-[#F2B705] border-none text-[9px] font-black uppercase">{item.situacao}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-black text-[#1FA67A]">R$ {Number(item.valor).toFixed(2)}</TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
                     </TableCell>
@@ -184,7 +169,7 @@ export default function ContasAReceberPage() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={7} className="h-24 text-center text-[#98A7AA] font-bold">
-                    Nenhum honorário lançado.
+                    Nenhum honorário localizado no banco de dados.
                   </TableCell>
                 </TableRow>
               )}
@@ -193,7 +178,6 @@ export default function ContasAReceberPage() {
         </CardContent>
       </Card>
 
-      {/* MODAL NOVA CONTA A RECEBER */}
       <Dialog open={isNewAccountOpen} onOpenChange={setIsNewAccountOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>

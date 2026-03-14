@@ -1,28 +1,42 @@
+
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, RefreshCw, TrendingUp, History, Mail } from "lucide-react"
+import { ArrowLeft, RefreshCw, TrendingUp, History, Mail, Loader2, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ClientCertificatesTable } from "@/components/certificates/client-certificates-table"
 import { Progress } from "@/components/ui/progress"
 import { ClientCommunicationTool } from "@/components/clients/client-communication-tool"
+import { useFirestore, useDoc, useMemoFirebase } from "@/firebase"
+import { doc } from "firebase/firestore"
 
 export default function DetalhesEmpresaCertidoesPage() {
   const params = useParams()
   const router = useRouter()
+  const firestore = useFirestore()
   const clientId = params.clientId as string
 
-  // Dados vazios para estado inicial
-  const clientData = {
-    id: clientId,
-    name: 'Carregando...',
-    cnpj: '00.000.000/0000-00',
-    score: 0,
-    regime: '-',
-    email: '',
-    lastGlobalSync: 'Nunca sincronizado'
+  const clientRef = useMemoFirebase(() => clientId ? doc(firestore, "clients", clientId) : null, [firestore, clientId])
+  const { data: client, isLoading } = useDoc(clientRef)
+
+  if (isLoading) {
+    return (
+      <div className="h-64 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
+      </div>
+    )
+  }
+
+  if (!client) {
+    return (
+      <div className="h-64 flex flex-col items-center justify-center gap-4">
+        <AlertTriangle className="h-8 w-8 text-[#E74C3C]" />
+        <p className="font-bold text-[#2C4156]">Empresa não localizada.</p>
+        <Button variant="outline" onClick={() => router.back()}>Voltar</Button>
+      </div>
+    )
   }
 
   return (
@@ -33,14 +47,14 @@ export default function DetalhesEmpresaCertidoesPage() {
         </Button>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-[#2C4156]">{clientData.name}</h1>
-            <Badge variant="outline" className="border-[#D2D7DB] text-[#39586D] uppercase text-[10px] font-bold">{clientData.regime}</Badge>
+            <h1 className="text-2xl font-black text-[#2C4156]">{client.corporateName}</h1>
+            <Badge variant="outline" className="border-[#D2D7DB] text-[#39586D] uppercase text-[10px] font-bold">{client.taxRegime}</Badge>
           </div>
-          <p className="text-sm text-[#98A7AA] font-bold">CNPJ: {clientData.cnpj}</p>
+          <p className="text-sm text-[#98A7AA] font-bold">CNPJ: {client.cnpj}</p>
         </div>
         <div className="ml-auto flex gap-2">
           <ClientCommunicationTool 
-            client={{ name: clientData.name, email: clientData.email, regime: clientData.regime }}
+            client={{ name: client.corporateName, email: client.email, regime: client.taxRegime }}
             trigger={
               <Button variant="outline" className="gap-2 border-[#D2D7DB] text-[#39586D] font-bold">
                 <Mail className="h-4 w-4" /> Enviar Relatório
@@ -61,13 +75,10 @@ export default function DetalhesEmpresaCertidoesPage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-2 mb-2">
-              <span className="text-4xl font-black text-[#2C4156]">{clientData.score}%</span>
+              <span className="text-4xl font-black text-[#2C4156]">{client.healthScore || 0}%</span>
               <TrendingUp className="h-6 w-6 text-[#1FA67A] mb-1" />
             </div>
-            <Progress value={clientData.score} className="h-2 bg-[#F7F7F7]" />
-            <p className="text-[10px] text-[#98A7AA] font-bold mt-4 uppercase">
-              {clientData.lastGlobalSync}
-            </p>
+            <Progress value={client.healthScore || 0} className="h-2 bg-[#F7F7F7]" />
           </CardContent>
         </Card>
 
@@ -77,8 +88,6 @@ export default function DetalhesEmpresaCertidoesPage() {
           </CardHeader>
           <CardContent className="flex items-center justify-around py-4">
             <StatusMetric label="Válidas" value="0" color="#1FA67A" />
-            <StatusMetric label="A Vencer" value="0" color="#F2B705" />
-            <StatusMetric label="Críticas" value="0" color="#E67E22" />
             <StatusMetric label="Vencidas" value="0" color="#E74C3C" />
           </CardContent>
         </Card>
@@ -87,25 +96,11 @@ export default function DetalhesEmpresaCertidoesPage() {
       <Card className="border-[#D2D7DB]">
         <CardHeader className="bg-[#F7F7F7]/50 border-b">
           <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Certidões Negativas de Débito (CNDs)</CardTitle>
-          <CardDescription className="text-xs font-bold text-[#98A7AA]">Acompanhamento em tempo real das certidões federais, estaduais e municipais.</CardDescription>
+          <CardDescription className="text-xs font-bold text-[#98A7AA]">Acompanhamento em tempo real para {client.corporateName}.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="p-6">
             <ClientCertificatesTable clientId={clientId} />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-[#D2D7DB]">
-        <CardHeader>
-          <CardTitle className="text-sm font-black text-[#2C4156] uppercase flex items-center gap-2">
-            <History className="h-4 w-4 text-[#1FA67A]" />
-            Log de Consultas
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="p-12 text-center text-[#98A7AA] text-xs font-bold">
-            Nenhuma consulta realizada para esta empresa.
           </div>
         </CardContent>
       </Card>
@@ -117,7 +112,7 @@ function StatusMetric({ label, value, color }: any) {
   return (
     <div className="flex flex-col items-center gap-1">
       <span className="text-3xl font-black" style={{ color }}>{value}</span>
-      <span className="text-[9px] uppercase font-black text-[#98A7AA] tracking-tighter">{label}</span>
+      <span className={cn("text-[9px] uppercase font-black text-[#98A7AA] tracking-tighter")}>{label}</span>
     </div>
   )
 }
