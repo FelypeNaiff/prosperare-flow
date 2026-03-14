@@ -19,13 +19,16 @@ import {
   Mail,
   Heart,
   Video,
-  CreditCard
+  CreditCard,
+  AlertTriangle,
+  ShieldAlert
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function DashboardPage() {
   return (
@@ -36,6 +39,18 @@ export default function DashboardPage() {
         </h1>
         <p className="text-[#98A7AA] font-medium">Bem-vindo. Aqui está o fluxo atual da sua operação contábil.</p>
       </div>
+
+      {/* Alerta Crítico de Exclusão do Simples */}
+      <Alert className="bg-[#FEE2E2] border-[#E74C3C]/20 text-[#E74C3C] shadow-lg animate-pulse">
+        <ShieldAlert className="h-5 w-5" />
+        <AlertTitle className="font-black uppercase text-xs tracking-widest">Alerta Crítico: Risco de Exclusão do Simples</AlertTitle>
+        <AlertDescription className="text-xs font-bold mt-1 flex items-center justify-between">
+          <span>O cliente <strong>Consultoria Tech</strong> teve um parcelamento de Simples Nacional cancelado. Risco de desenquadramento imediato!</span>
+          <Button asChild variant="link" className="text-[#E74C3C] h-auto p-0 font-black uppercase text-[10px]">
+            <Link href="/processos/parcelamentos">Resolver Agora <ArrowRight className="ml-1 h-3 w-3" /></Link>
+          </Button>
+        </AlertDescription>
+      </Alert>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
         <KpiCard 

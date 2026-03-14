@@ -16,7 +16,9 @@ import {
   CheckCircle2,
   XCircle,
   MoreVertical,
-  History
+  History,
+  ShieldAlert,
+  ArrowRight
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -38,17 +40,20 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { InstallmentFormModal } from "@/components/installments/installment-form-modal"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 const MOCK_DATA = [
   { id: '1', cliente: 'Padaria Central', tipo: 'Simples Nacional (e-CAC)', descricao: 'Dívida Ativa 2022', parcela: '12/60', valor: 450.00, vencimento: 15, status: 'Ativo' },
   { id: '2', cliente: 'Oficina do João', tipo: 'Débitos Receita Federal (PERT)', descricao: 'REFIS Pandemia', parcela: '45/60', valor: 1200.00, vencimento: 20, status: 'Ativo' },
-  { id: '3', cliente: 'Consultoria Tech', tipo: 'Prefeitura Macapá', descricao: 'ISS Retido 2023', parcela: '8/24', valor: 280.00, vencimento: 10, status: 'Cancelado por não pagamento' },
+  { id: '3', cliente: 'Consultoria Tech', tipo: 'Simples Nacional (e-CAC)', descricao: 'ISS Retido 2023', parcela: '8/24', valor: 280.00, vencimento: 10, status: 'Cancelado por não pagamento' },
   { id: '4', cliente: 'Agro Vale', tipo: 'FGTS (Caixa)', descricao: 'Acordo Sindical', parcela: '12/12', valor: 3500.00, vencimento: 7, status: 'Quitado' },
 ]
 
 export default function ParcelamentosPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+
+  const hasCriticalRisk = MOCK_DATA.some(i => i.tipo.includes('Simples Nacional') && i.status.includes('Cancelado'))
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -77,6 +82,17 @@ export default function ParcelamentosPage() {
           <Plus className="h-4 w-4" /> Novo Parcelamento
         </Button>
       </div>
+
+      {/* Alerta de Risco de Exclusão */}
+      {hasCriticalRisk && (
+        <Alert className="bg-[#FEE2E2] border-[#E74C3C]/20 text-[#E74C3C] shadow-lg">
+          <ShieldAlert className="h-5 w-5" />
+          <AlertTitle className="font-black uppercase text-xs tracking-widest">Atenção: Risco de Exclusão do Simples</AlertTitle>
+          <AlertDescription className="text-xs font-bold mt-1">
+            Existem parcelamentos do Simples Nacional cancelados por falta de pagamento. A Receita Federal utiliza este critério para exclusão de ofício do regime. Verifique os clientes afetados imediatamente.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <KpiMini label="Ativos" value="24" icon={CheckCircle2} color="success" />
@@ -124,7 +140,12 @@ export default function ParcelamentosPage() {
                   <TableCell className="font-bold text-[#2C4156]">{item.cliente}</TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-[#39586D]">{item.tipo}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-bold text-[#39586D]">{item.tipo}</span>
+                        {item.tipo.includes('Simples Nacional') && item.status.includes('Cancelado') && (
+                          <ShieldAlert className="h-3 w-3 text-[#E74C3C]" title="Risco de Exclusão" />
+                        )}
+                      </div>
                       <span className="text-[10px] text-[#98A7AA] uppercase">{item.descricao}</span>
                     </div>
                   </TableCell>

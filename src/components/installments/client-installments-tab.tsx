@@ -10,7 +10,8 @@ import {
   History, 
   MoreVertical, 
   AlertTriangle,
-  FileText
+  FileText,
+  ShieldAlert
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -35,6 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 const MOCK_INSTALLMENTS = [
   { id: '1', tipo: 'Simples Nacional (e-CAC)', descricao: 'Dívida Ativa 2022', parcela: 12, total: 60, valor: 450.00, vencimento: 15, status: 'Ativo', inicio: '01/2024' },
@@ -53,6 +55,10 @@ export function ClientInstallmentsTab({ clientId }: { clientId: string }) {
     quitados: installments.filter(i => i.status === 'Quitado').length,
   }
 
+  const hasSimplesCanceled = installments.some(i => 
+    i.tipo.includes('Simples Nacional') && i.status.includes('Cancelado')
+  )
+
   const handleCancelConfirm = () => {
     setInstallments(prev => prev.map(inst => 
       inst.id === selectedId 
@@ -69,6 +75,17 @@ export function ClientInstallmentsTab({ clientId }: { clientId: string }) {
 
   return (
     <div className="space-y-6">
+      {/* Alerta de Exclusão do Simples */}
+      {hasSimplesCanceled && (
+        <Alert className="bg-[#FEE2E2] border-[#E74C3C]/20 text-[#E74C3C] shadow-sm animate-in slide-in-from-top duration-500">
+          <ShieldAlert className="h-5 w-5" />
+          <AlertTitle className="font-black uppercase text-xs tracking-widest">Risco Crítico de Exclusão</AlertTitle>
+          <AlertDescription className="text-xs font-medium mt-1">
+            Esta empresa possui um parcelamento de <strong>Simples Nacional</strong> cancelado. A inadimplência nestes acordos é o principal motivo de desenquadramento automático pela Receita Federal.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex justify-between items-center bg-[#F7F7F7] p-4 rounded-xl border">
         <div className="flex gap-6">
           <StatItem label="Ativos" value={stats.ativos} color="text-[#1FA67A]" />
