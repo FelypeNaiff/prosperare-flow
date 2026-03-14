@@ -17,7 +17,8 @@ import {
   FileSignature,
   Clock,
   Mail,
-  Heart
+  Heart,
+  Video
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -80,8 +81,8 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 border-[#D2D7DB] shadow-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <Card className="lg:col-span-8 border-[#D2D7DB] shadow-sm">
           <CardHeader>
             <CardTitle className="text-[#2C4156]">Obrigações Fiscais por Status</CardTitle>
             <CardDescription className="text-[#98A7AA]">Resumo mensal de processos por tipo de obrigação.</CardDescription>
@@ -91,58 +92,81 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-[#D2D7DB] shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <div>
-              <CardTitle className="text-[#2C4156]">Alertas Críticos</CardTitle>
-              <CardDescription className="text-[#98A7AA]">Pendências que exigem atenção imediata.</CardDescription>
-            </div>
-            <div className="p-2 bg-[#FEE2E2] rounded-full">
-              <FileWarning className="h-5 w-5 text-[#E74C3C]" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {[
-              { type: 'Atrasado', client: 'Posto São Bento', task: 'FGTS Digital', status: 'danger' },
-              { type: 'Vencendo', client: 'Mercado Ideal', task: 'CND Federal', status: 'warning' },
-              { type: 'Inadimplente', client: 'Padaria Alfa', task: 'Honorário Set/24', status: 'danger' },
-              { type: 'Atendimento', client: 'Auto Peças Silva', task: 'Pedido Recisão', status: 'info' },
-            ].map((alert, i) => (
-              <div key={i} className="flex items-center gap-4 p-3 rounded-lg border border-[#D2D7DB] bg-[#F7F7F7] text-sm hover:border-[#1FA67A] transition-colors cursor-pointer group">
-                <div className={cn(
-                  "w-2 h-2 rounded-full",
-                  alert.status === 'danger' ? 'bg-[#E74C3C]' : 
-                  alert.status === 'warning' ? 'bg-[#F2B705]' : 'bg-[#2574A9]'
-                )} />
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-[#2C4156] truncate group-hover:text-[#1FA67A]">{alert.client}</p>
-                  <p className="text-xs text-[#98A7AA]">{alert.task}</p>
-                </div>
-                <Badge 
-                  className={cn(
-                    "text-[10px] uppercase font-bold",
-                    alert.status === 'danger' ? 'bg-[#FEE2E2] text-[#E74C3C]' : 
-                    alert.status === 'warning' ? 'bg-[#FEF3C7] text-[#F2B705]' : 'bg-[#E3F0F9] text-[#2574A9]'
-                  )}
-                >
-                  {alert.type}
-                </Badge>
+        <div className="lg:col-span-4 space-y-6">
+          <Card className="border-[#D2D7DB] shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="text-[#2C4156]">Agenda de Hoje</CardTitle>
+                <CardDescription className="text-[#98A7AA]">Reuniões e consultorias.</CardDescription>
               </div>
-            ))}
-            <Button asChild variant="ghost" className="w-full text-xs font-bold text-[#39586D] hover:bg-[#F7F7F7] hover:text-[#1FA67A]" size="sm">
-              <Link href="/processos">
-                Ver todos os alertas <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+              <div className="p-2 bg-[#E3F0F9] rounded-full">
+                <Calendar className="h-5 w-5 text-[#2574A9]" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {[
+                { time: '10:00', client: 'Padaria Central', type: 'Video', status: 'confirm' },
+                { time: '14:30', client: 'Oficina do João', type: 'Presencial', status: 'pending' },
+              ].map((meet, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 rounded-lg border bg-[#F7F7F7] hover:border-[#1FA67A] transition-colors cursor-pointer group">
+                  <div className="text-xs font-black text-[#2C4156] border-r pr-3">{meet.time}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-[#2C4156] truncate group-hover:text-[#1FA67A]">{meet.client}</p>
+                    <p className="text-[10px] text-[#98A7AA]">{meet.type}</p>
+                  </div>
+                  {meet.type === 'Video' && <Video className="h-3 w-3 text-[#1FA67A]" />}
+                </div>
+              ))}
+              <Button asChild variant="ghost" className="w-full text-xs font-bold text-[#39586D]" size="sm">
+                <Link href="/agenda">Ver agenda completa <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-[#D2D7DB] shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="text-[#2C4156]">Alertas Críticos</CardTitle>
+                <CardDescription className="text-[#98A7AA]">Atenção imediata.</CardDescription>
+              </div>
+              <div className="p-2 bg-[#FEE2E2] rounded-full">
+                <FileWarning className="h-5 w-5 text-[#E74C3C]" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {[
+                { type: 'Atrasado', client: 'Posto São Bento', task: 'FGTS Digital', status: 'danger' },
+                { type: 'Vencendo', client: 'Mercado Ideal', task: 'CND Federal', status: 'warning' },
+              ].map((alert, i) => (
+                <div key={i} className="flex items-center gap-4 p-3 rounded-lg border border-[#D2D7DB] bg-[#F7F7F7] text-sm hover:border-[#1FA67A] transition-colors cursor-pointer group">
+                  <div className={cn(
+                    "w-2 h-2 rounded-full",
+                    alert.status === 'danger' ? 'bg-[#E74C3C]' : 'bg-[#F2B705]'
+                  )} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-[#2C4156] truncate group-hover:text-[#1FA67A]">{alert.client}</p>
+                    <p className="text-xs text-[#98A7AA]">{alert.task}</p>
+                  </div>
+                  <Badge 
+                    className={cn(
+                      "text-[9px] uppercase font-bold",
+                      alert.status === 'danger' ? 'bg-[#FEE2E2] text-[#E74C3C]' : 'bg-[#FEF3C7] text-[#F2B705]'
+                    )}
+                  >
+                    {alert.type}
+                  </Badge>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="lg:col-span-2 border-[#D2D7DB]">
           <CardHeader>
             <CardTitle className="text-[#2C4156]">Próximos Vencimentos Fatais</CardTitle>
-            <CardDescription className="text-[#98A7AA]">Fique atento aos prazos da semana para evitar multas.</CardDescription>
+            <CardDescription className="text-[#98A7AA]">Prazos da semana para evitar multas.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

@@ -33,7 +33,8 @@ import {
   TrendingUp,
   ClipboardList,
   Layers,
-  TicketCheck
+  TicketCheck,
+  BrainCircuit
 } from "lucide-react"
 
 import {
@@ -92,11 +93,23 @@ const items = [
     ]
   },
   {
+    title: "Agenda",
+    url: "/agenda",
+    icon: Calendar,
+    profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
+  },
+  {
     title: "Atendimentos",
     url: "/atendimentos",
     icon: TicketCheck,
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
     badge: 3
+  },
+  {
+    title: "Inteligência",
+    url: "/inteligencia",
+    icon: BrainCircuit,
+    profiles: ["SÓCIO", "ADMINISTRADOR"],
   },
   {
     title: "Certidões",
