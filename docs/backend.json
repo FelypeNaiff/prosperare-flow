@@ -4,7 +4,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents an authenticated user within the ContaHub system, with specific profiles and permissions.",
+      "description": "Represents a user account within the ContaHub system, managed by the Administrator.",
       "properties": {
         "id": {
           "type": "string",
@@ -14,39 +14,48 @@
           "type": "string",
           "description": "The full name of the user."
         },
-        "emailGmail": {
+        "email": {
           "type": "string",
-          "description": "The user's Gmail address, used for login and identification.",
-          "format": "email"
+          "description": "The Gmail address used for Google OAuth login. (Relationship: User 1:1 Authentication)"
         },
         "profile": {
           "type": "string",
-          "description": "The user's assigned access profile (e.g., 'SÓCIO', 'ADMINISTRADOR', 'CONTADOR/GESTOR', 'ASSISTENTE')."
+          "description": "The role or profile of the user within the system, dictating access permissions.",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
         },
-        "department": {
+        "departmentId": {
           "type": "string",
-          "description": "The department to which the user belongs, if applicable."
+          "description": "Reference to the Department this user belongs to. (Relationship: Department 1:N User)"
         },
         "status": {
           "type": "string",
-          "description": "The current operational status of the user account (e.g., 'Active', 'Inactive')."
+          "description": "The current status of the user account.",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
         },
-        "createdBy": {
+        "createdByUserId": {
           "type": "string",
           "description": "Reference to the User who created this user account. (Relationship: User 1:N User)"
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the user account was created.",
+          "description": "Timestamp when the user account was created.",
           "format": "date-time"
         }
       },
       "required": [
         "id",
         "fullName",
-        "emailGmail",
+        "email",
         "profile",
+        "departmentId",
         "status",
+        "createdByUserId",
         "createdAt"
       ]
     },
@@ -54,7 +63,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Client",
       "type": "object",
-      "description": "Represents a client company or individual managed by the accounting office, including their essential registration and contact details.",
+      "description": "Represents a client of the accounting office, including their company details, tax regime, and contact information.",
       "properties": {
         "id": {
           "type": "string",
@@ -62,97 +71,105 @@
         },
         "corporateName": {
           "type": "string",
-          "description": "The client's full corporate name (Razão Social)."
+          "description": "The legal corporate name (Razão Social) of the client."
         },
         "tradeName": {
           "type": "string",
-          "description": "The client's trade name (Nome Fantasia)."
+          "description": "The trade name (Nome Fantasia) of the client."
         },
         "cnpj": {
           "type": "string",
-          "description": "The client's CNPJ (Cadastro Nacional da Pessoa Jurídica) number."
+          "description": "The CNPJ (Cadastro Nacional da Pessoa Jurídica) of the client, used for automatic data lookup."
         },
         "cpf": {
           "type": "string",
-          "description": "The client's CPF (Cadastro de Pessoas Físicas) number, primarily for Pessoa Física clients."
+          "description": "The CPF (Cadastro de Pessoas Físicas) of the client, if applicable for Pessoa Física clients."
         },
         "stateRegistration": {
           "type": "string",
-          "description": "The client's State Registration (Inscrição Estadual) number."
+          "description": "The State Registration (Inscrição Estadual) of the client."
         },
         "municipalRegistration": {
           "type": "string",
-          "description": "The client's Municipal Registration (Inscrição Municipal) number."
+          "description": "The Municipal Registration (Inscrição Municipal) of the client."
         },
         "taxRegime": {
           "type": "string",
-          "description": "The client's tax regime (e.g., 'MEI', 'Simples Nacional', 'Lucro Presumido', 'Lucro Real', 'Produtor Rural', 'Pessoa Física', 'Outros')."
+          "description": "The client's tax regime (Regime Tributário), influencing automatic process generation.",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
         },
-        "mainCnae": {
+        "primaryCnae": {
           "type": "string",
-          "description": "The client's primary CNAE (Classificação Nacional de Atividades Econômicas) code."
+          "description": "The primary CNAE (Classificação Nacional de Atividades Econômicas) of the client."
         },
         "openingDate": {
           "type": "string",
-          "description": "The date when the client's company was officially opened.",
+          "description": "The date when the client's business was opened (Data Abertura).",
           "format": "date"
         },
-        "companyResponsibleName": {
+        "companyContactPerson": {
           "type": "string",
-          "description": "The name of the primary contact person or legal representative at the client company."
+          "description": "The name of the main contact person at the client's company."
         },
-        "accountingResponsibleId": {
+        "accountingContactUserId": {
           "type": "string",
-          "description": "Reference to the User (Contador/Gestor) who is the primary accounting responsible for this client. (Relationship: User 1:N Client)"
+          "description": "Reference to the User (Contador/Gestor) responsible for this client. (Relationship: User 1:N Client)"
         },
         "phone": {
           "type": "string",
-          "description": "The client's contact phone number."
+          "description": "The contact phone number of the client."
         },
         "email": {
           "type": "string",
-          "description": "The client's contact email address.",
+          "description": "The contact email address of the client.",
           "format": "email"
         },
         "address": {
           "type": "string",
-          "description": "The client's street address."
+          "description": "The street address of the client."
         },
         "neighborhood": {
           "type": "string",
-          "description": "The client's neighborhood."
+          "description": "The neighborhood (bairro) of the client's address."
         },
         "city": {
           "type": "string",
-          "description": "The client's city."
+          "description": "The city of the client's address."
         },
         "state": {
           "type": "string",
-          "description": "The client's state."
+          "description": "The state of the client's address (e.g., 'AP')."
         },
         "zipCode": {
           "type": "string",
-          "description": "The client's zip code (CEP)."
+          "description": "The ZIP code (CEP) of the client's address."
         },
-        "honoraryDueDateDay": {
+        "honorariumDueDateDay": {
           "type": "number",
-          "description": "The day of the month (1-31) when the client's honorary payment is typically due."
+          "description": "The day of the month (1-31) for honorarium payment due date."
         },
-        "honoraryValue": {
+        "honorariumValue": {
           "type": "number",
-          "description": "The agreed value of the monthly honorary payment in Brazilian Real (BRL)."
+          "description": "The agreed monthly honorarium value for the client."
         },
         "status": {
           "type": "string",
-          "description": "The current operational status of the client (e.g., 'Active', 'Inactive')."
+          "description": "The current operational status of the client (e.g., Active, Inactive).",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
         },
         "notes": {
           "type": "string",
-          "description": "General observations or specific notes about the client."
+          "description": "Any additional observations or notes about the client."
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the client record was created in the system.",
+          "description": "Timestamp when the client record was created.",
           "format": "date-time"
         }
       },
@@ -161,7 +178,19 @@
         "corporateName",
         "cnpj",
         "taxRegime",
-        "accountingResponsibleId",
+        "primaryCnae",
+        "openingDate",
+        "companyContactPerson",
+        "accountingContactUserId",
+        "phone",
+        "email",
+        "address",
+        "neighborhood",
+        "city",
+        "state",
+        "zipCode",
+        "honorariumDueDateDay",
+        "honorariumValue",
         "status",
         "createdAt"
       ]
@@ -170,7 +199,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Process",
       "type": "object",
-      "description": "Represents a fiscal or internal process/task for a client, encompassing its details, deadlines, and responsibilities.",
+      "description": "Represents a specific task or process related to a client, with deadlines, responsibilities, and status tracking.",
       "properties": {
         "id": {
           "type": "string",
@@ -182,70 +211,92 @@
         },
         "title": {
           "type": "string",
-          "description": "A concise title or name for the process."
+          "description": "The title or short description of the process."
         },
         "type": {
           "type": "string",
-          "description": "The category or type of the process (e.g., 'Obrigação Fiscal', 'Tarefa Interna', 'Certidão')."
+          "description": "The specific type of the process or fiscal obligation.",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
         },
         "description": {
           "type": "string",
-          "description": "A detailed description of the process, including necessary steps or context."
+          "description": "A detailed description of the process."
         },
         "competence": {
           "type": "string",
-          "description": "The competence month and year this process refers to, in 'YYYY-MM-DD' format (representing the 1st day of the month).",
-          "format": "date"
+          "description": "The month and year (MM/YYYY) to which the process or obligation refers."
         },
         "dueDate": {
           "type": "string",
-          "description": "The official deadline for completing this process.",
-          "format": "date-time"
+          "description": "The official deadline for completing the process.",
+          "format": "date"
         },
         "targetDate": {
           "type": "string",
-          "description": "An internal target deadline, typically set before the official due date to ensure timely completion.",
-          "format": "date-time"
+          "description": "An internal target date for completing the process before the official deadline.",
+          "format": "date"
         },
-        "responsibleId": {
+        "responsibleUserId": {
           "type": "string",
-          "description": "Reference to the User who is primarily responsible for executing this process. (Relationship: User 1:N Process)"
+          "description": "Reference to the User responsible for this process. (Relationship: User 1:N Process)"
         },
-        "department": {
+        "departmentId": {
           "type": "string",
-          "description": "The department within the accounting office responsible for this process."
+          "description": "Reference to the Department responsible for this process. (Relationship: Department 1:N Process)"
         },
         "priority": {
           "type": "string",
-          "description": "The priority level of the process (e.g., 'Baixa', 'Média', 'Alta', 'Urgente')."
+          "description": "The priority level of the process.",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
         },
         "status": {
           "type": "string",
-          "description": "The current status of the process (e.g., 'A Fazer', 'Em Progresso', 'Concluído', 'Em Multa', 'Dispensado')."
+          "description": "The current status of the process.",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
         },
-        "generatesFine": {
+        "delayGeneratesFine": {
           "type": "boolean",
-          "description": "Indicates whether late completion of this process results in a financial fine or penalty."
+          "description": "Indicates if a delay in this process will incur a fine."
         },
         "recurrence": {
           "type": "string",
-          "description": "The recurrence pattern for this process (e.g., 'Nenhuma', 'Mensal', 'Trimestral', 'Anual')."
+          "description": "The recurrence pattern for this process, if any.",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
         },
         "tags": {
           "type": "array",
-          "description": "A list of descriptive tags or labels associated with the process (e.g., 'Pessoal', 'Fiscal', 'eSocial', 'Urgente', 'FGTS').",
+          "description": "A list of categorical tags associated with the process.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "checklistItemIds": {
+          "type": "array",
+          "description": "References to the checklist items associated with this process. (Relationship: Process 1:N ProcessChecklistItem)",
           "items": {
             "type": "string"
           }
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the process record was initially created.",
+          "description": "Timestamp when the process record was created.",
           "format": "date-time"
         },
         "completedAt": {
           "type": "string",
-          "description": "Timestamp indicating when the process was marked as completed.",
+          "description": "Timestamp when the process was marked as completed.",
           "format": "date-time"
         }
       },
@@ -253,12 +304,17 @@
         "id",
         "clientId",
         "title",
+        "type",
         "competence",
         "dueDate",
-        "responsibleId",
+        "responsibleUserId",
+        "departmentId",
+        "priority",
         "status",
-        "generatesFine",
+        "delayGeneratesFine",
         "recurrence",
+        "tags",
+        "checklistItemIds",
         "createdAt"
       ]
     },
@@ -266,7 +322,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ProcessChecklistItem",
       "type": "object",
-      "description": "Represents a single item within a process's checklist, detailing its description, responsibility, and completion status.",
+      "description": "Represents a single item within a process's checklist, including its status and responsibility.",
       "properties": {
         "id": {
           "type": "string",
@@ -276,39 +332,40 @@
           "type": "string",
           "description": "Reference to the Process this checklist item belongs to. (Relationship: Process 1:N ProcessChecklistItem)"
         },
-        "itemDescription": {
+        "description": {
           "type": "string",
-          "description": "The description or task of the checklist item."
+          "description": "The description of the checklist item."
         },
-        "responsibleId": {
+        "responsibleUserId": {
           "type": "string",
-          "description": "Reference to the User responsible for completing this specific checklist item. (Relationship: User 1:N ProcessChecklistItem)"
+          "description": "Reference to the User responsible for this checklist item. (Relationship: User 1:N ProcessChecklistItem)"
         },
         "dueDate": {
           "type": "string",
-          "description": "The due date for this specific checklist item.",
-          "format": "date-time"
+          "description": "The due date for completing this checklist item.",
+          "format": "date"
         },
         "isCompleted": {
           "type": "boolean",
-          "description": "Indicates whether this checklist item has been completed."
+          "description": "Indicates whether the checklist item has been completed."
         },
         "completedAt": {
           "type": "string",
-          "description": "Timestamp indicating when the checklist item was completed.",
+          "description": "Timestamp when the checklist item was completed.",
           "format": "date-time"
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the checklist item was created.",
+          "description": "Timestamp when the checklist item was created.",
           "format": "date-time"
         }
       },
       "required": [
         "id",
         "processId",
-        "itemDescription",
-        "responsibleId",
+        "description",
+        "responsibleUserId",
+        "dueDate",
         "isCompleted",
         "createdAt"
       ]
@@ -317,7 +374,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Certificate",
       "type": "object",
-      "description": "Represents a client's negative certificate (e.g., CND Federal, FGTS) and its validity status.",
+      "description": "Manages negative certificates (CNDs) for clients, tracking their type, validity, and status.",
       "properties": {
         "id": {
           "type": "string",
@@ -327,51 +384,61 @@
           "type": "string",
           "description": "Reference to the Client to whom this certificate belongs. (Relationship: Client 1:N Certificate)"
         },
-        "certificateType": {
+        "type": {
           "type": "string",
-          "description": "The specific type of negative certificate (e.g., 'CND Federal', 'CND FGTS', 'CNDT Trabalhista')."
+          "description": "The type of negative certificate (e.g., Federal, FGTS, Trabalhista).",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
         },
-        "issueDate": {
+        "emissionDate": {
           "type": "string",
           "description": "The date when the certificate was issued.",
-          "format": "date-time"
+          "format": "date"
         },
         "validityDate": {
           "type": "string",
-          "description": "The date until which the certificate is considered valid.",
-          "format": "date-time"
+          "description": "The date until which the certificate is valid.",
+          "format": "date"
         },
         "certificateNumber": {
           "type": "string",
-          "description": "The unique identifying number of the issued certificate."
+          "description": "The unique number or identifier of the certificate."
         },
         "status": {
           "type": "string",
-          "description": "The current validity status of the certificate (e.g., 'Válida', 'A Vencer 30d', 'A Vencer 7d', 'Vencida', 'Não emitida')."
+          "description": "The current status of the certificate's validity.",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
         },
-        "filePdfUrl": {
+        "fileUrl": {
           "type": "string",
-          "description": "The URL or path to the stored PDF file of the certificate.",
+          "description": "URL to the stored PDF file of the certificate.",
           "format": "uri"
         },
         "lastConsultedAt": {
           "type": "string",
-          "description": "Timestamp of the last automatic or manual consultation performed for this certificate's status.",
+          "description": "Timestamp of the last automatic or manual consultation of the certificate's status.",
           "format": "date-time"
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the certificate record was created in the system.",
+          "description": "Timestamp when the certificate record was created.",
           "format": "date-time"
         }
       },
       "required": [
         "id",
         "clientId",
-        "certificateType",
-        "issueDate",
+        "type",
+        "emissionDate",
         "validityDate",
         "status",
+        "fileUrl",
+        "lastConsultedAt",
         "createdAt"
       ]
     },
@@ -379,24 +446,23 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Honorarium",
       "type": "object",
-      "description": "Manages accounts receivable for clients, specifically honorary payments, including their value, due date, and payment status.",
+      "description": "Records accounts receivable, primarily client honorariums, tracking their value, due dates, payments, and status.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Honorarium entity (Accounts Receivable item)."
+          "description": "Unique identifier for the Honorarium entity."
         },
         "clientId": {
           "type": "string",
-          "description": "Reference to the Client to whom this honorarium is billed. (Relationship: Client 1:N Honorarium)"
+          "description": "Reference to the Client to whom this honorarium is owed. (Relationship: Client 1:N Honorarium)"
         },
         "competence": {
           "type": "string",
-          "description": "The competence month and year this honorarium refers to, in 'YYYY-MM-DD' format (representing the 1st day of the month).",
-          "format": "date"
+          "description": "The month and year (MM/YYYY) for which the honorarium is due."
         },
         "value": {
           "type": "number",
-          "description": "The value of the honorarium in Brazilian Real (BRL)."
+          "description": "The value of the honorarium."
         },
         "dueDate": {
           "type": "string",
@@ -405,24 +471,32 @@
         },
         "paymentDate": {
           "type": "string",
-          "description": "The actual date when the honorarium was paid.",
-          "format": "date-time"
+          "description": "The date when the honorarium was paid.",
+          "format": "date"
         },
         "paymentMethod": {
           "type": "string",
-          "description": "The method used for the honorarium payment (e.g., 'PIX', 'Boleto', 'Transferência', 'Dinheiro', 'Cartão')."
+          "description": "The method used for the honorarium payment.",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
         },
         "status": {
           "type": "string",
-          "description": "The current status of the honorarium (e.g., 'Pendente', 'Pago', 'Vencido', 'Cancelado')."
+          "description": "The current payment status of the honorarium.",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
         },
         "notes": {
           "type": "string",
-          "description": "Observations or notes regarding the honorarium payment."
+          "description": "Any additional observations or notes about the honorarium."
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the honorarium record was created in the system.",
+          "description": "Timestamp when the honorarium record was created.",
           "format": "date-time"
         }
       },
@@ -440,23 +514,27 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Expense",
       "type": "object",
-      "description": "Manages the accounting office's own operational expenses (accounts payable), including their category, value, and payment status.",
+      "description": "Manages accounts payable for the accounting office, detailing expenses, categories, and payment status.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Expense entity (Accounts Payable item)."
+          "description": "Unique identifier for the Expense entity."
         },
         "description": {
           "type": "string",
-          "description": "A description of the expense item."
+          "description": "A description of the expense."
         },
         "category": {
           "type": "string",
-          "description": "The category of the expense (e.g., 'Salários', 'Aluguel', 'Sistemas', 'Impostos', 'Material', 'Outros')."
+          "description": "The category of the expense (e.g., Salaries, Rent, Systems).",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
         },
         "value": {
           "type": "number",
-          "description": "The value of the expense in Brazilian Real (BRL)."
+          "description": "The value of the expense."
         },
         "dueDate": {
           "type": "string",
@@ -465,20 +543,24 @@
         },
         "paymentDate": {
           "type": "string",
-          "description": "The actual date when the expense was paid.",
-          "format": "date-time"
+          "description": "The date when the expense was paid.",
+          "format": "date"
         },
         "status": {
           "type": "string",
-          "description": "The current status of the expense (e.g., 'Pendente', 'Pago', 'Vencido', 'Cancelado')."
+          "description": "The current payment status of the expense.",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
         },
         "notes": {
           "type": "string",
-          "description": "Observations or notes regarding the expense."
+          "description": "Any additional observations or notes about the expense."
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the expense record was created in the system.",
+          "description": "Timestamp when the expense record was created.",
           "format": "date-time"
         }
       },
@@ -496,7 +578,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Document",
       "type": "object",
-      "description": "Stores metadata about documents uploaded and linked to specific clients, facilitating organization and retrieval.",
+      "description": "Stores references to files (PDF, XML, images) uploaded and linked to clients or internal processes.",
       "properties": {
         "id": {
           "type": "string",
@@ -504,7 +586,7 @@
         },
         "clientId": {
           "type": "string",
-          "description": "Reference to the Client to whom this document belongs. (Relationship: Client 1:N Document)"
+          "description": "Reference to the Client associated with this document. (Relationship: Client 1:N Document)"
         },
         "fileName": {
           "type": "string",
@@ -512,29 +594,40 @@
         },
         "type": {
           "type": "string",
-          "description": "The category or type of the document (e.g., 'Certidão', 'Guia', 'Contrato', 'SPED', 'NF-e', 'Folha', 'Outros')."
+          "description": "The file type or extension of the document.",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
         },
-        "sizeBytes": {
+        "category": {
+          "type": "string",
+          "description": "The category of the document (e.g., Certidão, Guia, Contrato).",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sizeInBytes": {
           "type": "number",
-          "description": "The size of the file in bytes."
+          "description": "The size of the document file in bytes."
         },
-        "storageUrl": {
+        "fileUrl": {
           "type": "string",
           "description": "The URL or path to the stored document file in cloud storage.",
           "format": "uri"
         },
         "competence": {
           "type": "string",
-          "description": "The competence month and year this document refers to, in 'YYYY-MM-DD' format (representing the 1st day of the month).",
-          "format": "date"
+          "description": "The month and year (MM/YYYY) to which the document refers, if applicable."
         },
-        "uploadedBy": {
+        "uploadedByUserId": {
           "type": "string",
           "description": "Reference to the User who uploaded this document. (Relationship: User 1:N Document)"
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the document was uploaded to the system.",
+          "description": "Timestamp when the document was uploaded.",
           "format": "date-time"
         }
       },
@@ -543,9 +636,10 @@
         "clientId",
         "fileName",
         "type",
-        "sizeBytes",
-        "storageUrl",
-        "uploadedBy",
+        "category",
+        "sizeInBytes",
+        "fileUrl",
+        "uploadedByUserId",
         "createdAt"
       ]
     },
@@ -553,7 +647,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Notification",
       "type": "object",
-      "description": "Manages system-generated alerts and messages for users, keeping them informed of critical events and updates.",
+      "description": "Stores system notifications generated for users, detailing the type of alert, message, and read status.",
       "properties": {
         "id": {
           "type": "string",
@@ -561,31 +655,39 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the User who is intended to receive this notification. (Relationship: User 1:N Notification)"
+          "description": "Reference to the User who is the recipient of this notification. (Relationship: User 1:N Notification)"
         },
         "type": {
           "type": "string",
-          "description": "The category or nature of the notification (e.g., 'tarefa atrasada', 'certidão vencendo', 'honorário em atraso')."
+          "description": "The type or category of the notification (e.g., Task Overdue, Certificate Expiring).",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
         },
         "title": {
           "type": "string",
-          "description": "A brief, attention-grabbing title for the notification."
+          "description": "A short title for the notification."
         },
         "message": {
           "type": "string",
-          "description": "The detailed message content of the notification."
+          "description": "The full message content of the notification."
         },
         "isRead": {
           "type": "boolean",
-          "description": "Boolean flag indicating whether the user has marked this notification as read."
+          "description": "Indicates whether the user has read the notification."
         },
-        "targetEntityId": {
+        "relatedEntity": {
           "type": "string",
-          "description": "Optional reference to the ID of the specific entity (e.g., Process, Certificate, Honorarium) that this notification pertains to."
+          "description": "The name of the entity related to this notification (e.g., 'Process', 'Client')."
+        },
+        "relatedEntityId": {
+          "type": "string",
+          "description": "The ID of the related entity record."
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the notification was generated.",
+          "description": "Timestamp when the notification was generated.",
           "format": "date-time"
         }
       },
@@ -599,39 +701,39 @@
         "createdAt"
       ]
     },
-    "ActionHistory": {
+    "ActionLog": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ActionHistory",
+      "title": "ActionLog",
       "type": "object",
-      "description": "Records all significant user actions within the system for auditing, accountability, and security purposes.",
+      "description": "Maintains an audit trail of all significant user actions within the system for security and accountability.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the ActionHistory entity."
+          "description": "Unique identifier for the ActionLog entity."
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the User who performed the action. (Relationship: User 1:N ActionHistory)"
+          "description": "Reference to the User who performed the action. (Relationship: User 1:N ActionLog)"
         },
         "action": {
           "type": "string",
-          "description": "A description of the action performed (e.g., 'Criou cliente', 'Editou processo', 'Desativou usuário')."
+          "description": "A description of the action performed (e.g., 'created client', 'updated process status')."
         },
-        "affectedTable": {
+        "affectedEntity": {
           "type": "string",
-          "description": "The name of the data entity (table) that was affected by the action."
+          "description": "The name of the entity that was affected by the action (e.g., 'Client', 'Process')."
         },
-        "recordId": {
+        "affectedRecordId": {
           "type": "string",
-          "description": "The unique identifier of the specific record within the affected entity."
+          "description": "The unique identifier of the record within the affected entity."
         },
         "details": {
           "type": "string",
-          "description": "Additional details about the action, potentially including a JSON representation of changes made."
+          "description": "Additional details about the action, potentially including old and new values in a JSON string format."
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the action was performed.",
+          "description": "Timestamp when the action was performed.",
           "format": "date-time"
         }
       },
@@ -639,82 +741,188 @@
         "id",
         "userId",
         "action",
-        "affectedTable",
-        "recordId",
+        "affectedEntity",
+        "affectedRecordId",
         "createdAt"
       ]
     },
-    "DigitalCertificate": {
+    "Department": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "DigitalCertificate",
+      "title": "Department",
       "type": "object",
-      "description": "Represents a client's digital certificate, used for various legal and fiscal operations. This entity stores metadata and a reference to the certificate file, but not its password.",
+      "description": "Defines departments within the accounting office, used for organizing users and processes.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the DigitalCertificate entity."
+          "description": "Unique identifier for the Department entity."
         },
-        "clientId": {
+        "name": {
           "type": "string",
-          "description": "Reference to the Client associated with this digital certificate. (Relationship: Client 1:N DigitalCertificate)"
+          "description": "The name of the department (e.g., Fiscal, Pessoal)."
         },
-        "alias": {
+        "color": {
           "type": "string",
-          "description": "A user-friendly name or alias for the certificate, e.g., 'Certificado Principal', 'Certificado PJ'."
-        },
-        "type": {
-          "type": "string",
-          "description": "The specific type or model of the digital certificate (e.g., 'A1', 'A3', 'e-CPF', 'e-CNPJ')."
-        },
-        "issuer": {
-          "type": "string",
-          "description": "The Certification Authority (CA) or entity that issued the certificate."
-        },
-        "subject": {
-          "type": "string",
-          "description": "The Distinguished Name (DN) of the certificate subject, identifying the owner."
-        },
-        "serialNumber": {
-          "type": "string",
-          "description": "The unique serial number assigned to the digital certificate by the issuing authority."
-        },
-        "validFrom": {
-          "type": "string",
-          "description": "The date and time when the digital certificate became valid.",
-          "format": "date-time"
-        },
-        "validUntil": {
-          "type": "string",
-          "description": "The date and time when the digital certificate will expire.",
-          "format": "date-time"
-        },
-        "fileUrl": {
-          "type": "string",
-          "description": "The URL or path to the stored digital certificate file (e.g., PFX, CER file).",
-          "format": "uri"
-        },
-        "status": {
-          "type": "string",
-          "description": "The current validity status of the certificate (e.g., 'Valid', 'Expiring Soon', 'Expired', 'Revoked')."
+          "description": "A HEX color code associated with the department for UI representation (e.g., #RRGGBB).",
+          "format": "hex-color"
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the digital certificate record was created in the system.",
+          "description": "Timestamp when the department record was created.",
           "format": "date-time"
         }
       },
       "required": [
         "id",
-        "clientId",
-        "type",
-        "issuer",
-        "subject",
-        "serialNumber",
-        "validFrom",
-        "validUntil",
-        "fileUrl",
-        "status",
+        "name",
+        "color",
         "createdAt"
+      ]
+    },
+    "OfficeSetting": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OfficeSetting",
+      "type": "object",
+      "description": "Stores global configuration and details for the accounting office.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the OfficeSetting entity (expected to have only one record)."
+        },
+        "officeName": {
+          "type": "string",
+          "description": "The official name of the accounting office."
+        },
+        "cnpj": {
+          "type": "string",
+          "description": "The CNPJ of the accounting office."
+        },
+        "address": {
+          "type": "string",
+          "description": "The physical address of the accounting office."
+        },
+        "email": {
+          "type": "string",
+          "description": "The main contact email address for the accounting office.",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "The main contact phone number for the accounting office."
+        },
+        "logoUrl": {
+          "type": "string",
+          "description": "URL to the office's logo image.",
+          "format": "uri"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of the last update to these settings.",
+          "format": "date-time"
+        },
+        "updatedByUserId": {
+          "type": "string",
+          "description": "Reference to the User who last updated these settings. (Relationship: User 1:N OfficeSetting)"
+        }
+      },
+      "required": [
+        "id",
+        "officeName",
+        "cnpj",
+        "address",
+        "email",
+        "phone",
+        "updatedAt",
+        "updatedByUserId"
+      ]
+    },
+    "FiscalObligationTemplate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FiscalObligationTemplate",
+      "type": "object",
+      "description": "Defines templates for recurring fiscal obligations, used for automatic process generation based on client tax regimes.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the FiscalObligationTemplate entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the fiscal obligation (e.g., PGDAS-D, DEFIS)."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the fiscal obligation."
+        },
+        "taxRegime": {
+          "type": "string",
+          "description": "The tax regime(s) this obligation applies to (e.g., MEI, Simples Nacional, All Employees).",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
+        },
+        "processType": {
+          "type": "string",
+          "description": "The type of process generated from this template (e.g., PGDAS, eSocial).",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
+        },
+        "recurrence": {
+          "type": "string",
+          "description": "The recurrence pattern of the obligation (e.g., Monthly, Annually).",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dayOfMonth": {
+          "type": "number",
+          "description": "The day of the month (1-31) when the obligation is typically due for monthly recurrences."
+        },
+        "monthOfYear": {
+          "type": "number",
+          "description": "The month of the year (1-12) when the obligation is typically due for annual or quarterly recurrences."
+        },
+        "leadDaysForTaskCreation": {
+          "type": "number",
+          "description": "Number of days before the due date to automatically create a corresponding process/task."
+        },
+        "tags": {
+          "type": "array",
+          "description": "A list of default tags to be applied to processes generated from this template.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "delayGeneratesFine": {
+          "type": "boolean",
+          "description": "Default setting indicating if a delay in this type of obligation generates a fine."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the template was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of the last update to this template.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "taxRegime",
+        "processType",
+        "recurrence",
+        "leadDaysForTaskCreation",
+        "tags",
+        "delayGeneratesFine",
+        "createdAt",
+        "updatedAt"
       ]
     }
   },
@@ -733,11 +941,59 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profiles. Access is path-based (owner can read/write their own), with global read permissions for 'Administrador' and 'SÓCIO'. The 'profile' field is used for Database-Based Access Control (DBAC) for all other permissions.",
+          "description": "Stores individual user profiles. The 'profile' field on this document serves as the primary role-based access control mechanism for the system. Path-based ownership ensures users can only access their own profile. Includes 'profile' for role-based access.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique ID of the user, corresponding to Firebase Authentication UID."
+              "description": "The unique identifier (Firebase Auth UID) of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/departments/{departmentId}",
+        "definition": {
+          "entityName": "Department",
+          "schema": {
+            "$ref": "#/backend/entities/Department"
+          },
+          "description": "Defines departments within the accounting office. These are global configurations accessible to all users for read, but only by Administrators for write.",
+          "params": [
+            {
+              "name": "departmentId",
+              "description": "The unique identifier of the department."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/officeSettings/{settingId}",
+        "definition": {
+          "entityName": "OfficeSetting",
+          "schema": {
+            "$ref": "#/backend/entities/OfficeSetting"
+          },
+          "description": "Stores global configuration and details for the accounting office. Expected to contain a single document (e.g., 'main'). Read by all, write by Administrators.",
+          "params": [
+            {
+              "name": "settingId",
+              "description": "The unique identifier of the office setting document (e.g., 'main')."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/fiscalObligationTemplates/{templateId}",
+        "definition": {
+          "entityName": "FiscalObligationTemplate",
+          "schema": {
+            "$ref": "#/backend/entities/FiscalObligationTemplate"
+          },
+          "description": "Defines templates for recurring fiscal obligations used for automatic process generation. Read by all (for process creation logic), write by Administrators.",
+          "params": [
+            {
+              "name": "templateId",
+              "description": "The unique identifier of the fiscal obligation template."
             }
           ]
         }
@@ -749,11 +1005,11 @@
           "schema": {
             "$ref": "#/backend/entities/Client"
           },
-          "description": "Stores client company details. Accessible by 'Administrador', 'SÓCIO', 'CONTADOR/GESTOR', and 'ASSISTENTE'. The 'accountingResponsibleId' field identifies the primary internal user responsible for the client and is denormalized into subcollections for authorization independence.",
+          "description": "Represents a client of the accounting office. Includes 'accountingContactUserId' which is critical for authorization and is denormalized into subcollections for independence.",
           "params": [
             {
               "name": "clientId",
-              "description": "The unique ID of the client company."
+              "description": "The unique identifier of the client."
             }
           ]
         }
@@ -765,15 +1021,15 @@
           "schema": {
             "$ref": "#/backend/entities/Process"
           },
-          "description": "Stores fiscal and internal processes/tasks for a specific client. Includes denormalized 'clientAccountingResponsibleId' (from parent Client) and 'clientCorporateName' for authorization independence and simplified querying via collection group queries.",
+          "description": "Represents a specific task or process related to a client. Includes denormalized 'clientId' and 'accountingContactUserId' (from parent client) for authorization independence.",
           "params": [
             {
               "name": "clientId",
-              "description": "The unique ID of the client associated with this process."
+              "description": "The unique identifier of the parent client."
             },
             {
               "name": "processId",
-              "description": "The unique ID of the process."
+              "description": "The unique identifier of the process."
             }
           ]
         }
@@ -785,19 +1041,19 @@
           "schema": {
             "$ref": "#/backend/entities/ProcessChecklistItem"
           },
-          "description": "Stores individual checklist items for a process. Includes denormalized 'clientId', 'clientAccountingResponsibleId', 'clientCorporateName' (from grandparent Client) and 'processResponsibleId', 'processTitle' (from parent Process) for authorization independence and granular task management.",
+          "description": "Represents a single item within a process's checklist. Includes denormalized 'clientId' and 'accountingContactUserId' (from parent client) for authorization independence.",
           "params": [
             {
               "name": "clientId",
-              "description": "The unique ID of the client associated with the process's checklist item."
+              "description": "The unique identifier of the grandparent client."
             },
             {
               "name": "processId",
-              "description": "The unique ID of the process this checklist item belongs to."
+              "description": "The unique identifier of the parent process."
             },
             {
               "name": "checklistItemId",
-              "description": "The unique ID of the checklist item."
+              "description": "The unique identifier of the checklist item."
             }
           ]
         }
@@ -809,15 +1065,15 @@
           "schema": {
             "$ref": "#/backend/entities/Certificate"
           },
-          "description": "Stores negative certificates (e.g., CND Federal) for a specific client. Includes denormalized 'clientAccountingResponsibleId' (from parent Client) and 'clientCorporateName' for authorization independence and simplified querying.",
+          "description": "Manages negative certificates (CNDs) for clients. Includes denormalized 'clientId' and 'accountingContactUserId' (from parent client) for authorization independence.",
           "params": [
             {
               "name": "clientId",
-              "description": "The unique ID of the client associated with this certificate."
+              "description": "The unique identifier of the parent client."
             },
             {
               "name": "certificateId",
-              "description": "The unique ID of the certificate."
+              "description": "The unique identifier of the certificate."
             }
           ]
         }
@@ -829,31 +1085,15 @@
           "schema": {
             "$ref": "#/backend/entities/Honorarium"
           },
-          "description": "Manages accounts receivable (honorary payments) for a specific client. Includes denormalized 'clientAccountingResponsibleId' (from parent Client) and 'clientCorporateName' for authorization independence and simplified querying.",
+          "description": "Records accounts receivable (honorariums) for clients. Includes denormalized 'clientId' and 'accountingContactUserId' (from parent client) for authorization independence.",
           "params": [
             {
               "name": "clientId",
-              "description": "The unique ID of the client to whom this honorarium is billed."
+              "description": "The unique identifier of the parent client."
             },
             {
               "name": "honorariumId",
-              "description": "The unique ID of the honorarium record."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/expenses/{expenseId}",
-        "definition": {
-          "entityName": "Expense",
-          "schema": {
-            "$ref": "#/backend/entities/Expense"
-          },
-          "description": "Manages the accounting office's operational expenses (accounts payable). Accessible by 'Administrador' (full access) and 'SÓCIO', 'CONTADOR/GESTOR' (read-only).",
-          "params": [
-            {
-              "name": "expenseId",
-              "description": "The unique ID of the expense item."
+              "description": "The unique identifier of the honorarium record."
             }
           ]
         }
@@ -865,15 +1105,31 @@
           "schema": {
             "$ref": "#/backend/entities/Document"
           },
-          "description": "Stores metadata for documents uploaded and linked to a specific client. Includes denormalized 'clientAccountingResponsibleId' (from parent Client) and 'clientCorporateName' for authorization independence and simplified querying.",
+          "description": "Stores references to files uploaded and linked to clients. Includes denormalized 'clientId' and 'accountingContactUserId' (from parent client) for authorization independence.",
           "params": [
             {
               "name": "clientId",
-              "description": "The unique ID of the client associated with this document."
+              "description": "The unique identifier of the parent client."
             },
             {
               "name": "documentId",
-              "description": "The unique ID of the document."
+              "description": "The unique identifier of the document."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/expenses/{expenseId}",
+        "definition": {
+          "entityName": "Expense",
+          "schema": {
+            "$ref": "#/backend/entities/Expense"
+          },
+          "description": "Manages accounts payable for the accounting office (office-wide expenses). Access is controlled by user profile (Administrador, Sócio for read/write, Contador/Gestor for read-only).",
+          "params": [
+            {
+              "name": "expenseId",
+              "description": "The unique identifier of the expense."
             }
           ]
         }
@@ -885,82 +1141,36 @@
           "schema": {
             "$ref": "#/backend/entities/Notification"
           },
-          "description": "Stores system-generated notifications for individual users. Access is path-based, meaning only the specified 'userId' can access their own notifications.",
+          "description": "Stores system notifications generated for specific users. Path-based ownership ensures only the recipient user can access their notifications.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique ID of the user who is the recipient of the notification."
+              "description": "The unique identifier (Firebase Auth UID) of the notification recipient."
             },
             {
               "name": "notificationId",
-              "description": "The unique ID of the notification."
+              "description": "The unique identifier of the notification."
             }
           ]
         }
       },
       {
-        "path": "/action_history/{actionId}",
+        "path": "/actionLogs/{actionLogId}",
         "definition": {
-          "entityName": "ActionHistory",
+          "entityName": "ActionLog",
           "schema": {
-            "$ref": "#/backend/entities/ActionHistory"
+            "$ref": "#/backend/entities/ActionLog"
           },
-          "description": "Records significant user actions for auditing purposes. Primarily accessible by 'Administrador' and 'SÓCIO' roles.",
+          "description": "Maintains a system-wide audit trail of significant user actions. Accessible to Administrators and Sócios.",
           "params": [
             {
-              "name": "actionId",
-              "description": "The unique ID of the recorded action."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/clients/{clientId}/digital_certificates/{digitalCertificateId}",
-        "definition": {
-          "entityName": "DigitalCertificate",
-          "schema": {
-            "$ref": "#/backend/entities/DigitalCertificate"
-          },
-          "description": "Stores metadata for client digital certificates. Includes denormalized 'clientAccountingResponsibleId' (from parent Client) and 'clientCorporateName' for authorization independence and simplified querying.",
-          "params": [
-            {
-              "name": "clientId",
-              "description": "The unique ID of the client associated with this digital certificate."
-            },
-            {
-              "name": "digitalCertificateId",
-              "description": "The unique ID of the digital certificate record."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/app_settings/global_settings",
-        "definition": {
-          "entityName": "AppSettings",
-          "schema": {
-            "$ref": "#/backend/entities/AppSettings"
-          },
-          "description": "A single document storing global application settings and office details. Write access is restricted to 'Administrador'; read access is available as needed by other roles for display."
-        }
-      },
-      {
-        "path": "/fiscal_schedule_templates/{templateId}",
-        "definition": {
-          "entityName": "FiscalScheduleTemplate",
-          "schema": {
-            "$ref": "#/backend/entities/FiscalScheduleTemplate"
-          },
-          "description": "Stores templates for automatic generation of fiscal obligations. Write access is restricted to 'Administrador'.",
-          "params": [
-            {
-              "name": "templateId",
-              "description": "The unique ID for a specific fiscal schedule template."
+              "name": "actionLogId",
+              "description": "The unique identifier of the action log entry."
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore data structure for ContaHub prioritizes Authorization Independence, Structural Segregation, and consistent Access Modeling to ensure security, scalability, and debuggability. All user authentication relies exclusively on Google OAuth, and user profiles (roles) are stored directly within the `/users/{userId}` documents, adhering to the Database-Based Access Control (DBAC) principle. This allows security rules to evaluate `request.auth.uid` against the user's profile for authorization, eliminating the need for custom claims.\n\n**Authorization Independence via Denormalization:**\nThis is achieved by denormalizing key authorization fields from parent documents into their subcollection documents. For all client-specific subcollections (e.g., `processes`, `certificates`, `honorariums`, `documents`, `digital_certificates`), the `clientAccountingResponsibleId` and `clientCorporateName` from the parent `/clients/{clientId}` document are copied into each child document. This crucial step eliminates the need for `get()` operations in security rules to check parent document permissions, enabling atomic writes and reads. For `ProcessChecklistItem`, which is nested deeper, the denormalization extends to include `clientId`, `clientAccountingResponsibleId`, `clientCorporateName`, `processResponsibleId`, and `processTitle`.\n\n**Structural Segregation for Homogeneous Security Posture:**\nCollections are designed so that all documents within them share the same security requirements. For example, `/users/{userId}/notifications` is a user-private collection, ensuring only the owner can access their notifications. Similarly, `/expenses` is a top-level collection for office-wide expenses, accessible based on general profiles (e.g., Admin/Sócio/Contador read-only), rather than being tied to a specific client.\n\n**Querying for Authorization Purposes (QAPs):**\nThe denormalization strategy is paramount for enabling secure and efficient `list` operations (QAPs - Query, Append, Put, Delete). Without denormalization, `collectionGroup` queries, which are essential for displaying aggregated data across clients (e.g., an 'Assistente' listing all *their* tasks across all clients, or a 'Contador/Gestor' listing all processes for *their* clients), would be impossible to secure without expensive and insecure `get()` calls in rules. By denormalizing `clientAccountingResponsibleId` (and `responsibleId` for tasks), security rules can directly filter `collectionGroup` queries using `request.auth.uid` matching these denormalized fields, ensuring users only retrieve data they are authorized to see. This allows for powerful queries like `db.collectionGroup('processes').where('responsibleId', '==', request.auth.uid)` for assistants, or `db.collectionGroup('processes').where('clientAccountingResponsibleId', '==', request.auth.uid)` for specific Contador/Gestor access, all while maintaining Authorization Independence. Top-level collections like `/action_history` and `/app_settings` are secured directly by checking the user's profile from `/users/{request.auth.uid}`."
+    "reasoning": "The Firestore structure for ContaHub is designed with a strong emphasis on Authorization Independence, Structural Segregation, and clear Access Modeling to ensure robust security rules and efficient querying. \n\n**Authorization Independence:** This is achieved primarily through strategic denormalization. For instance, entities that are inherently 'child' resources but require access control based on their 'parent' (e.g., a Client's assigned accountant or an individual Process's client ownership) will carry denormalized authorization fields. Specifically:\n- Each `Client` document (`/clients/{clientId}`) will contain an `accountingContactUserId` field, linking it directly to the user responsible. This makes client-level access control direct.\n- For all subcollections under a Client (e.g., `processes`, `certificates`, `honorariums`, `documents`), each document within these subcollections will denormalize `clientId` and `accountingContactUserId` from its parent `Client` document. This allows security rules to evaluate access to a `Process` or a `Certificate` without performing a `get()` operation on the parent `Client` document, thus maintaining atomic write operations and simplifying rule logic. For example, a rule for `/clients/{clientId}/processes/{processId}` can directly check `resource.data.accountingContactUserId == request.auth.uid` instead of `get(/databases/$(database)/documents/clients/$(clientId)).data.accountingContactUserId == request.auth.uid`.\n- User profiles (`/users/{userId}`) will store the `profile` (role) directly on the user's document. This allows a single, efficient `get()` on the `request.auth.uid`'s own document to determine a user's role for global role-based access checks, avoiding complex hierarchical lookups.\n\n**QAPs (Query as Authorization Patterns):** The structure facilitates secure `list` operations by aligning data ownership and access patterns with collection paths and denormalized fields.\n- **Structural Segregation:** Data with different security postures is kept in separate collections. For example, `/users/{userId}/notifications` ensures that a user can only list their own notifications, as `userId` in the path must match `request.auth.uid`.\n- **Path-Based Ownership:** For user-specific data like `notifications`, `/users/{userId}/notifications/{notificationId}` ensures that only the authenticated user (`request.auth.uid`) can access their own notifications. Similarly, `ActionLog` entries are stored globally but can be filtered by `userId` and are permissioned by role (e.g., only Admin/Sócio can list).\n- **Denormalized Fields for Collection-level Queries:** For collections like `processes` or `clients`, `list` operations can enforce security by querying on the denormalized `accountingContactUserId`. For example, a `Contador/Gestor` can query `/clients` or `/clients/{clientId}/processes` and the rules will ensure they only see documents where `resource.data.accountingContactUserId == request.auth.uid`. Firebase security rules can implicitly filter `list` operations based on these conditions, acting as a powerful QAP.\n- **Global Data (Admin/Socio access):** Collections like `/departments`, `/officeSettings`, `/fiscalObligationTemplates`, and `/expenses` have a homogenous security posture (e.g., read by all, write by Admin, or read-only for certain roles). Access to these collections is primarily controlled by a user's `profile` field, as fetched from `/users/{request.auth.uid}`. This allows `list` operations to be securely permitted based on the requesting user's global role.\n\nThis design minimizes rule complexity, eliminates costly cross-document `get()` calls for authorization, and creates a highly debuggable and scalable Firestore architecture."
   }
 }
