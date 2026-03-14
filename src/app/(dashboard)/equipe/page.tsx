@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -12,17 +11,14 @@ import {
   Trash2, 
   Settings, 
   Mail, 
-  AlertTriangle,
   Save,
-  ShieldCheck,
-  Edit
+  Edit,
+  Loader2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
-import { DepartmentManagement } from "@/components/team/department-management"
-import { ActionHistoryList } from "@/components/team/action-history-list"
 import { 
   Table, 
   TableBody, 
@@ -37,8 +33,6 @@ import {
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
 import {
@@ -51,81 +45,73 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/hooks/use-toast"
+import { 
+  useFirestore, 
+  useCollection, 
+  useMemoFirebase, 
+  setDocumentNonBlocking, 
+  deleteDocumentNonBlocking 
+} from "@/firebase"
+import { collection, doc } from "firebase/firestore"
 
 const DEPARTMENTS_LIST = [
-  "Fiscal",
-  "Pessoal",
-  "Contábil",
-  "Financeiro",
-  "Comercial",
-  "Administrativo",
-  "Diretoria"
+  "Fiscal", "Pessoal", "Contábil", "Financeiro", "Comercial", "Administrativo"
 ]
 
 export default function EquipePage() {
+  const firestore = useFirestore()
   const [searchTerm, setSearchTerm] = useState("")
   const [isInviteOpen, setIsInviteOpen] = useState(false)
-  const [team, setTeam] = useState<any[]>([])
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [memberToDelete, setMemberToDelete] = useState<any>(null)
+  
+  const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
+  const { data: team = [], isLoading } = useCollection(usersQuery)
 
   const [newMember, setNewMember] = useState({
-    name: "",
+    fullName: "",
     email: "",
     profile: "",
-    departments: [] as string[],
-    status: "ATIVO"
+    departmentIds: [] as string[],
+    status: "Active"
   })
 
   const handleInvite = () => {
-    if (!newMember.name || !newMember.email || !newMember.profile || newMember.departments.length === 0) {
-      toast({ 
-        title: "Erro no cadastro", 
-        description: "Preencha o nome, e-mail, perfil e ao menos um departamento.", 
-        variant: "destructive" 
-      })
+    if (!newMember.fullName || !newMember.email || !newMember.profile) {
+      toast({ title: "Erro", description: "Preencha os campos obrigatórios.", variant: "destructive" })
       return
     }
-    const member = { ...newMember, id: Math.random().toString(36).substr(2, 9) }
-    setTeam([...team, member])
+
+    const userId = Math.random().toString(36).substr(2, 9)
+    const userRef = doc(firestore, "users", userId)
+    
+    const userData = {
+      ...newMember,
+      id: userId,
+      createdAt: new Date().toISOString(),
+      departmentId: newMember.departmentIds[0] || "Geral",
+      createdByUserId: "admin"
+    }
+
+    setDocumentNonBlocking(userRef, userData, { merge: true })
+    
     setIsInviteOpen(false)
-    setNewMember({ name: "", email: "", profile: "", departments: [], status: "ATIVO" })
-    toast({ 
-      title: "Convite Enviado!", 
-      description: "O colaborador recebeu as instruções e foi vinculado aos departamentos selecionados." 
-    })
+    setNewMember({ fullName: "", email: "", profile: "", departmentIds: [], status: "Active" })
+    toast({ title: "Membro Convidado!", description: "O cadastro foi salvo no banco de dados." })
   }
 
-  const handleDeleteMember = () => {
-    if (memberToDelete) {
-      setTeam(prev => prev.filter(m => m.id !== memberToDelete.id))
-      setIsDeleteDialogOpen(false)
-      setMemberToDelete(null)
-      toast({ title: "Membro excluído", variant: "destructive" })
-    }
+  const handleDeleteMember = (id: string) => {
+    deleteDocumentNonBlocking(doc(firestore, "users", id))
+    toast({ title: "Membro removido", variant: "destructive" })
   }
 
   const toggleDepartment = (dept: string) => {
-    setNewMember(prev => {
-      const isSelected = prev.departments.includes(dept)
-      if (isSelected) {
-        return { ...prev, departments: prev.departments.filter(d => d !== dept) }
-      } else {
-        return { ...prev, departments: [...prev.departments, dept] }
-      }
-    })
+    setNewMember(prev => ({
+      ...prev,
+      departmentIds: prev.departmentIds.includes(dept)
+        ? prev.departmentIds.filter(d => d !== dept)
+        : [...prev.departmentIds, dept]
+    }))
   }
 
   return (
@@ -133,7 +119,7 @@ export default function EquipePage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">Gestão da Equipe</h1>
-          <p className="text-[#98A7AA] font-medium">Controle de membros, múltiplos departamentos e acessos do sistema.</p>
+          <p className="text-[#98A7AA] font-medium">Controle de membros e acessos do sistema.</p>
         </div>
         <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-bold" onClick={() => setIsInviteOpen(true)}>
           <Plus className="h-4 w-4" /> Convidar Membro
@@ -146,153 +132,107 @@ export default function EquipePage() {
             <div className="p-3 bg-[#2C4156]/10 rounded-lg"><Users className="h-6 w-6 text-[#2C4156]" /></div>
             <div>
               <p className="text-[10px] font-bold text-[#98A7AA] uppercase">Membros Ativos</p>
-              <p className="text-2xl font-black text-[#2C4156]">{team.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-[#D2D7DB]">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-[#1FA67A]/10 rounded-lg"><Building2 className="h-6 w-6 text-[#1FA67A]" /></div>
-            <div>
-              <p className="text-[10px] font-bold text-[#98A7AA] uppercase">Departamentos</p>
-              <p className="text-2xl font-black text-[#2C4156]">7</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-[#D2D7DB]">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-[#F2B705]/10 rounded-lg"><Activity className="h-6 w-6 text-[#F2B705]" /></div>
-            <div>
-              <p className="text-[10px] font-bold text-[#98A7AA] uppercase">Ações Monitoradas</p>
-              <p className="text-2xl font-black text-[#2C4156]">Auditado</p>
+              <p className="text-2xl font-black text-[#2C4156]">{team?.length || 0}</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="membros" className="space-y-6">
-        <TabsList className="bg-[#D2D7DB]/30 p-1">
-          <TabsTrigger value="membros" className="data-[state=active]:bg-white font-bold gap-2">
-            <Users className="h-4 w-4" /> Membros
-          </TabsTrigger>
-          <TabsTrigger value="departamentos" className="data-[state=active]:bg-white font-bold gap-2">
-            <Building2 className="h-4 w-4" /> Departamentos
-          </TabsTrigger>
-          <TabsTrigger value="historico" className="data-[state=active]:bg-white font-bold gap-2">
-            <History className="h-4 w-4" /> Histórico
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="membros" className="m-0">
-          <Card className="border-[#D2D7DB]">
-            <CardHeader className="pb-3">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
-                <Input
-                  placeholder="Buscar membro por nome ou departamento..."
-                  className="pl-9 bg-[#F7F7F7] border-[#D2D7DB]"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader className="bg-[#2C4156]">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-white font-bold uppercase text-[10px]">Membro</TableHead>
-                    <TableHead className="text-white font-bold uppercase text-[10px]">Perfil</TableHead>
-                    <TableHead className="text-white font-bold uppercase text-[10px]">Departamentos</TableHead>
-                    <TableHead className="text-white font-bold uppercase text-[10px]">Status</TableHead>
-                    <TableHead className="text-white font-bold uppercase text-[10px] text-right">Ações</TableHead>
+      <Card className="border-[#D2D7DB]">
+        <CardHeader className="pb-3">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
+            <Input
+              placeholder="Buscar membro..."
+              className="pl-9 bg-[#F7F7F7] border-[#D2D7DB]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader className="bg-[#2C4156]">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-white font-bold uppercase text-[10px]">Membro</TableHead>
+                <TableHead className="text-white font-bold uppercase text-[10px]">Perfil</TableHead>
+                <TableHead className="text-white font-bold uppercase text-[10px]">Status</TableHead>
+                <TableHead className="text-white font-bold uppercase text-[10px] text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-24 text-center">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1FA67A]" />
+                  </TableCell>
+                </TableRow>
+              ) : team?.length > 0 ? (
+                team.filter(m => m.fullName?.toLowerCase().includes(searchTerm.toLowerCase())).map((member) => (
+                  <TableRow key={member.id} className="hover:bg-[#F7F7F7]">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8 border">
+                          <AvatarFallback className="bg-[#2C4156] text-white text-[10px] font-black">{member.fullName?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-sm text-[#2C4156]">{member.fullName}</span>
+                          <span className="text-[10px] text-[#98A7AA]">{member.email}</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-[9px] font-black uppercase">{member.profile}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className="bg-[#7ED6B5] text-[#1FA67A] border-none text-[9px] font-black">{member.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon"><Settings className="h-4 w-4" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem className="text-[#E74C3C]" onClick={() => handleDeleteMember(member.id)}>
+                            <Trash2 className="h-3 w-3 mr-2" /> Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {team.length > 0 ? (
-                    team.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.departments.some((d:string) => d.toLowerCase().includes(searchTerm.toLowerCase()))).map((member) => (
-                      <TableRow key={member.id} className="hover:bg-[#F7F7F7]">
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8 border">
-                              <AvatarFallback className="bg-[#2C4156] text-white text-[10px] font-black">{member.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex flex-col">
-                              <span className="font-bold text-sm text-[#2C4156]">{member.name}</span>
-                              <span className="text-[10px] text-[#98A7AA]">{member.email}</span>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-[9px] font-black uppercase border-[#D2D7DB] text-[#39586D]">{member.profile}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1 max-w-[200px]">
-                            {member.departments?.map((d: string) => (
-                              <Badge key={d} variant="secondary" className="text-[8px] font-bold uppercase bg-[#D2D7DB]/30 text-[#39586D]">
-                                {d}
-                              </Badge>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className="bg-[#7ED6B5] text-[#1FA67A] border-none text-[9px] font-black">ATIVO</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8"><Settings className="h-4 w-4 text-[#98A7AA]" /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="text-xs font-bold"><Edit className="h-3 w-3 mr-2" /> Editar</DropdownMenuItem>
-                              <DropdownMenuItem className="text-xs font-bold text-[#E74C3C]" onClick={() => {
-                                setMemberToDelete(member);
-                                setIsDeleteDialogOpen(true);
-                              }}>
-                                <Trash2 className="h-3 w-3 mr-2" /> Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center text-[#98A7AA] font-bold">
-                        Nenhum colaborador cadastrado. Clique em "Convidar Membro" para começar.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-24 text-center text-[#98A7AA] font-bold">
+                    Nenhum colaborador cadastrado.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-        <TabsContent value="departamentos" className="m-0"><DepartmentManagement /></TabsContent>
-        <TabsContent value="historico" className="m-0"><ActionHistoryList /></TabsContent>
-      </Tabs>
-
-      {/* MODAL CONVIDAR MEMBRO */}
       <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-black text-[#2C4156]">Convidar Colaborador</DialogTitle>
-            <DialogDescription>O novo membro terá acesso ao sistema baseado no perfil e departamentos selecionados.</DialogDescription>
+            <DialogTitle className="text-2xl font-black text-[#2C4156]">Convidar Membro</DialogTitle>
+            <DialogDescription>O cadastro será sincronizado com o banco de dados real.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase text-[#98A7AA]">Nome Completo</Label>
-              <Input placeholder="Ex: João da Silva" value={newMember.name} onChange={(e) => setNewMember({...newMember, name: e.target.value})} className="border-[#D2D7DB]" />
+              <Input placeholder="Ex: João da Silva" value={newMember.fullName} onChange={(e) => setNewMember({...newMember, fullName: e.target.value})} />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase text-[#98A7AA]">E-mail (Gmail)</Label>
-              <Input type="email" placeholder="nome@gmail.com" value={newMember.email} onChange={(e) => setNewMember({...newMember, email: e.target.value})} className="border-[#D2D7DB]" />
+              <Label className="text-xs font-bold uppercase text-[#98A7AA]">E-mail</Label>
+              <Input type="email" placeholder="nome@gmail.com" value={newMember.email} onChange={(e) => setNewMember({...newMember, email: e.target.value})} />
             </div>
             
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase text-[#98A7AA]">Perfil de Acesso</Label>
+              <Label className="text-xs font-bold uppercase text-[#98A7AA]">Perfil</Label>
               <Select onValueChange={(v) => setNewMember({...newMember, profile: v})}>
-                <SelectTrigger className="border-[#D2D7DB]"><SelectValue placeholder="Selecione o nível de permissão" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione o nível" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="SÓCIO">Sócio</SelectItem>
                   <SelectItem value="CONTADOR/GESTOR">Contador / Gestor</SelectItem>
@@ -302,50 +242,29 @@ export default function EquipePage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase text-[#98A7AA]">Departamentos Vinculados (Multi-seleção)</Label>
-              <div className="grid grid-cols-2 gap-2 border rounded-lg p-3 bg-[#F7F7F7] border-[#D2D7DB]">
+              <Label className="text-xs font-bold uppercase text-[#98A7AA]">Departamentos</Label>
+              <div className="grid grid-cols-2 gap-2 p-3 bg-[#F7F7F7] rounded-lg border">
                 {DEPARTMENTS_LIST.map((dept) => (
                   <div key={dept} className="flex items-center space-x-2">
                     <Checkbox 
                       id={`dept-${dept}`} 
-                      checked={newMember.departments.includes(dept)}
+                      checked={newMember.departmentIds.includes(dept)}
                       onCheckedChange={() => toggleDepartment(dept)}
-                      className="border-[#D2D7DB] data-[state=checked]:bg-[#1FA67A] data-[state=checked]:border-[#1FA67A]"
                     />
-                    <label htmlFor={`dept-${dept}`} className="text-xs font-bold text-[#39586D] cursor-pointer uppercase">
-                      {dept}
-                    </label>
+                    <label htmlFor={`dept-${dept}`} className="text-xs font-bold uppercase cursor-pointer">{dept}</label>
                   </div>
                 ))}
               </div>
-              {newMember.departments.length === 0 && (
-                <p className="text-[10px] text-[#E74C3C] font-bold">* Selecione ao menos um departamento</p>
-              )}
             </div>
           </div>
           <DialogFooter className="bg-[#F7F7F7] -mx-6 -mb-6 p-6 border-t mt-4">
             <Button variant="outline" onClick={() => setIsInviteOpen(false)}>Cancelar</Button>
-            <Button className="bg-[#1FA67A] font-bold gap-2 shadow-lg shadow-emerald-500/20" onClick={handleInvite}>
-              <Mail className="h-4 w-4" /> Enviar Convite
+            <Button className="bg-[#1FA67A] font-bold gap-2" onClick={handleInvite}>
+              <Mail className="h-4 w-4" /> Enviar Convite Real
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-[#E74C3C] font-black">Remover Colaborador?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação removerá o acesso de <strong>{memberToDelete?.name}</strong> permanentemente de todos os {memberToDelete?.departments?.length} departamentos vinculados.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction className="bg-[#E74C3C]" onClick={handleDeleteMember}>Confirmar Remoção</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

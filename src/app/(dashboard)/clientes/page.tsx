@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -54,25 +53,37 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
+import { 
+  useFirestore, 
+  useCollection, 
+  useMemoFirebase, 
+  setDocumentNonBlocking, 
+  deleteDocumentNonBlocking 
+} from "@/firebase"
+import { collection, doc, serverTimestamp } from "firebase/firestore"
 
 export default function ClientesPage() {
+  const firestore = useFirestore()
   const [searchTerm, setSearchTerm] = useState("")
   const [isNewClientOpen, setIsNewClientOpen] = useState(false)
   const [isLoadingCnpj, setIsLoadingCnpj] = useState(false)
-  const [clients, setClients] = useState<any[]>([])
+  
+  const clientsQuery = useMemoFirebase(() => {
+    return collection(firestore, "clients")
+  }, [firestore])
+
+  const { data: clients = [], isLoading } = useCollection(clientsQuery)
   
   const [newClient, setNewClient] = useState({
-    empresa: "",
+    corporateName: "",
     cnpj: "",
-    regime: "",
-    responsavel: "",
-    status: "Ativa",
-    certificadoStatus: "Pendente",
-    procuracaoStatus: "Pendente",
+    taxRegime: "",
+    accountingContactUserId: "",
+    status: "Active",
     email: "",
-    telefone: "",
-    cidade: "",
-    uf: ""
+    phone: "",
+    city: "",
+    state: ""
   })
 
   const lookupCnpj = async (cnpjValue: string) => {
@@ -99,24 +110,24 @@ export default function ClientesPage() {
 
       setNewClient(prev => ({
         ...prev,
-        empresa: data.razao_social || prev.empresa,
-        regime: regimeSugerido,
+        corporateName: data.razao_social || prev.corporateName,
+        taxRegime: regimeSugerido,
         email: data.email || prev.email,
-        telefone: data.ddd_telefone_1 || prev.telefone,
-        cidade: data.municipio || prev.cidade,
-        uf: data.uf || prev.uf
+        phone: data.ddd_telefone_1 || prev.phone,
+        city: data.municipio || prev.city,
+        state: data.uf || prev.state
       }))
       
       toast({ 
         title: "Dados Localizados!", 
-        description: `Empresa: ${data.razao_social}. Regime identificado: ${regimeSugerido}`,
+        description: `Empresa: ${data.razao_social}.`,
         className: "bg-[#1FA67A] text-white border-none"
       })
     } catch (error) {
       toast({ 
         variant: "destructive", 
         title: "Atenção", 
-        description: "Não foi possível buscar os dados automaticamente. Preencha manualmente." 
+        description: "Não foi possível buscar os dados automaticamente." 
       })
     } finally {
       setIsLoadingCnpj(false)
@@ -124,41 +135,64 @@ export default function ClientesPage() {
   }
 
   const handleCreateClient = () => {
-    if (!newClient.empresa || !newClient.cnpj || !newClient.regime) {
-      toast({ title: "Erro", description: "Preencha os campos obrigatórios (CNPJ, Razão Social e Regime).", variant: "destructive" })
+    if (!newClient.corporateName || !newClient.cnpj || !newClient.taxRegime) {
+      toast({ title: "Erro", description: "Preencha os campos obrigatórios.", variant: "destructive" })
       return
     }
-    const client = { ...newClient, id: Math.random().toString(36).substr(2, 9) }
-    setClients([client, ...clients])
+
+    const clientId = Math.random().toString(36).substr(2, 9)
+    const clientRef = doc(firestore, "clients", clientId)
+    
+    const clientData = {
+      ...newClient,
+      id: clientId,
+      createdAt: new Date().toISOString(),
+      openingDate: new Date().toISOString().split('T')[0], // Default
+      primaryCnae: "0000-0/00",
+      companyContactPerson: "Titular",
+      address: "Preencher",
+      neighborhood: "Centro",
+      zipCode: "00000-000",
+      honorariumDueDateDay: 10,
+      honorariumValue: 0
+    }
+
+    setDocumentNonBlocking(clientRef, clientData, { merge: true })
+    
     setIsNewClientOpen(false)
     setNewClient({ 
-      empresa: "", 
+      corporateName: "", 
       cnpj: "", 
-      regime: "", 
-      responsavel: "", 
-      status: "Ativa", 
-      certificadoStatus: "Pendente", 
-      procuracaoStatus: "Pendente",
+      taxRegime: "", 
+      accountingContactUserId: "", 
+      status: "Active", 
       email: "",
-      telefone: "",
-      cidade: "",
-      uf: ""
+      phone: "",
+      city: "",
+      state: ""
     })
-    toast({ title: "Cliente cadastrado!", description: "A empresa foi adicionada à sua base." })
+    toast({ title: "Cliente cadastrado!", description: "A empresa foi salva no banco de dados." })
+  }
+
+  const handleDeleteClient = (id: string) => {
+    const clientRef = doc(firestore, "clients", id)
+    deleteDocumentNonBlocking(clientRef)
+    toast({ title: "Cliente removido", variant: "destructive" })
   }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'Válido': case 'Ativa': case 'Válida':
-        return <Badge className="bg-[#7ED6B5] text-[#1FA67A] border-none font-bold text-[10px] uppercase">{status}</Badge>
-      case 'Pendente': case 'A Vencer':
-        return <Badge className="bg-[#FEF3C7] text-[#F2B705] border-none font-bold text-[10px] uppercase">{status}</Badge>
-      case 'Vencido': case 'Inativa':
-        return <Badge className="bg-[#FEE2E2] text-[#E74C3C] border-none font-bold text-[10px] uppercase">{status}</Badge>
+      case 'Active': case 'Ativa':
+        return <Badge className="bg-[#7ED6B5] text-[#1FA67A] border-none font-bold text-[10px] uppercase">Ativa</Badge>
       default:
-        return <Badge className="bg-[#F3F4F6] text-[#98A7AA] border-none font-bold text-[10px] uppercase">{status}</Badge>
+        return <Badge className="bg-[#FEE2E2] text-[#E74C3C] border-none font-bold text-[10px] uppercase">Inativa</Badge>
     }
   }
+
+  const filteredClients = (clients || []).filter(c => 
+    c.corporateName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    c.cnpj?.includes(searchTerm)
+  )
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -176,7 +210,7 @@ export default function ClientesPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <KpiCard label="Total de Clientes" value={clients.length} icon={Building2} color="primary" />
+        <KpiCard label="Total de Clientes" value={clients?.length || 0} icon={Building2} color="primary" />
         <KpiCard label="Certificados Ativos" value={0} icon={ShieldCheck} color="success" />
         <KpiCard label="Vencendo (30 dias)" value={0} icon={Clock} color="warning" />
         <KpiCard label="Procurações Ativas" value={0} icon={FileSignature} color="success" />
@@ -202,27 +236,31 @@ export default function ClientesPage() {
                 <TableHead className="text-white font-bold uppercase text-[10px]">Empresa</TableHead>
                 <TableHead className="text-white font-bold uppercase text-[10px]">Regime</TableHead>
                 <TableHead className="text-white font-bold uppercase text-[10px]">Responsável</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[10px]">Certificado</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[10px]">Procuração</TableHead>
+                <TableHead className="text-white font-bold uppercase text-[10px]">Status</TableHead>
                 <TableHead className="text-white font-bold uppercase text-[10px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.length > 0 ? (
-                clients.filter(c => c.empresa.toLowerCase().includes(searchTerm.toLowerCase()) || c.cnpj.includes(searchTerm)).map((client) => (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1FA67A]" />
+                  </TableCell>
+                </TableRow>
+              ) : filteredClients.length > 0 ? (
+                filteredClients.map((client) => (
                   <TableRow key={client.id} className="hover:bg-[#F7F7F7]">
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-bold text-[#2C4156]">{client.empresa}</span>
+                        <span className="font-bold text-[#2C4156]">{client.corporateName}</span>
                         <span className="text-[10px] text-[#98A7AA] font-mono">{client.cnpj}</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="font-bold text-[10px] uppercase">{client.regime}</Badge>
+                      <Badge variant="outline" className="font-bold text-[10px] uppercase">{client.taxRegime}</Badge>
                     </TableCell>
-                    <TableCell className="text-sm font-medium text-[#39586D]">{client.responsavel || "Não atribuído"}</TableCell>
-                    <TableCell>{getStatusBadge(client.certificadoStatus)}</TableCell>
-                    <TableCell>{getStatusBadge(client.procuracaoStatus)}</TableCell>
+                    <TableCell className="text-sm font-medium text-[#39586D]">{client.accountingContactUserId || "Não atribuído"}</TableCell>
+                    <TableCell>{getStatusBadge(client.status)}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -231,23 +269,15 @@ export default function ClientesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuLabel className="text-[10px] uppercase font-black text-[#98A7AA]">Ações do Cliente</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
                           <DropdownMenuItem asChild>
                             <Link href={`/clientes/${client.id}`} className="flex items-center gap-2 cursor-pointer">
-                              <Eye className="h-4 w-4 text-[#1FA67A]" /> Ver Ficha Completa
+                              <Eye className="h-4 w-4 text-[#1FA67A]" /> Ver Detalhes
                             </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
-                            <Edit className="h-4 w-4 text-[#2574A9]" /> Editar Dados
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             className="flex items-center gap-2 text-[#E74C3C] cursor-pointer"
-                            onClick={() => {
-                              setClients(clients.filter(c => c.id !== client.id))
-                              toast({ title: "Cliente Removido", variant: "destructive" })
-                            }}
+                            onClick={() => handleDeleteClient(client.id)}
                           >
                             <Trash2 className="h-4 w-4" /> Excluir Cliente
                           </DropdownMenuItem>
@@ -258,8 +288,8 @@ export default function ClientesPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-[#98A7AA] font-bold">
-                    Nenhum cliente cadastrado. Clique em "Novo Cliente" para começar.
+                  <TableCell colSpan={5} className="h-24 text-center text-[#98A7AA] font-bold">
+                    Nenhum cliente encontrado.
                   </TableCell>
                 </TableRow>
               )}
@@ -268,130 +298,79 @@ export default function ClientesPage() {
         </CardContent>
       </Card>
 
-      {/* MODAL NOVO CLIENTE */}
       <Dialog open={isNewClientOpen} onOpenChange={setIsNewClientOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="p-2 bg-[#1FA67A]/10 rounded-lg">
-                <Building2 className="h-6 w-6 text-[#1FA67A]" />
-              </div>
-              <DialogTitle className="text-2xl font-black text-[#2C4156]">Cadastrar Novo Cliente</DialogTitle>
-            </div>
-            <DialogDescription>
-              Insira o CNPJ para preenchimento automático via Brasil API.
-            </DialogDescription>
+            <DialogTitle className="text-2xl font-black text-[#2C4156]">Novo Cliente</DialogTitle>
+            <DialogDescription>O sistema salvará os dados permanentemente no banco de dados.</DialogDescription>
           </DialogHeader>
           
           <div className="grid grid-cols-2 gap-4 py-4">
             <div className="col-span-2 md:col-span-1 space-y-2">
-              <Label className="text-xs font-bold uppercase text-[#98A7AA] flex items-center justify-between">
-                CNPJ / CPF
-                {isLoadingCnpj && <Loader2 className="h-3 w-3 animate-spin text-[#1FA67A]" />}
-              </Label>
+              <Label className="text-xs font-bold uppercase text-[#98A7AA]">CNPJ</Label>
               <div className="relative">
                 <Input 
                   placeholder="00.000.000/0000-00" 
                   value={newClient.cnpj}
                   onChange={(e) => setNewClient({...newClient, cnpj: formatCNPJ(e.target.value)})}
                   onBlur={(e) => lookupCnpj(e.target.value)}
-                  className="font-mono font-bold border-[#D2D7DB]"
+                  className="font-mono font-bold"
                 />
-                {!isLoadingCnpj && <Search className="absolute right-3 top-2.5 h-4 w-4 text-[#98A7AA] opacity-50" />}
+                {isLoadingCnpj && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-[#1FA67A]" />}
               </div>
             </div>
 
             <div className="col-span-2 md:col-span-1 space-y-2">
               <Label className="text-xs font-bold uppercase text-[#98A7AA]">Regime Tributário</Label>
-              <Select value={newClient.regime} onValueChange={(v) => setNewClient({...newClient, regime: v})}>
-                <SelectTrigger className="border-[#D2D7DB] font-bold">
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
+              <Select value={newClient.taxRegime} onValueChange={(v) => setNewClient({...newClient, taxRegime: v})}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Simples Nacional">Simples Nacional</SelectItem>
                   <SelectItem value="MEI">MEI</SelectItem>
                   <SelectItem value="Lucro Presumido">Lucro Presumido</SelectItem>
                   <SelectItem value="Lucro Real">Lucro Real</SelectItem>
-                  <SelectItem value="Pessoa Física">Pessoa Física</SelectItem>
-                  <SelectItem value="Outros">Outros</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="col-span-2 space-y-2">
-              <Label className="text-xs font-bold uppercase text-[#98A7AA]">Razão Social / Nome</Label>
+              <Label className="text-xs font-bold uppercase text-[#98A7AA]">Razão Social</Label>
               <Input 
                 placeholder="Ex: Padaria Silva Ltda" 
-                value={newClient.empresa}
-                onChange={(e) => setNewClient({...newClient, empresa: e.target.value})}
-                className="font-bold border-[#D2D7DB]"
+                value={newClient.corporateName}
+                onChange={(e) => setNewClient({...newClient, corporateName: e.target.value})}
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase text-[#98A7AA]">E-mail Contato</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
-                <Input 
-                  type="email"
-                  placeholder="cliente@email.com" 
-                  value={newClient.email}
-                  onChange={(e) => setNewClient({...newClient, email: e.target.value})}
-                  className="pl-9 border-[#D2D7DB]"
-                />
-              </div>
+              <Label className="text-xs font-bold uppercase text-[#98A7AA]">E-mail</Label>
+              <Input 
+                type="email"
+                placeholder="cliente@email.com" 
+                value={newClient.email}
+                onChange={(e) => setNewClient({...newClient, email: e.target.value})}
+              />
             </div>
 
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase text-[#98A7AA]">Telefone</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
-                <Input 
-                  placeholder="(00) 00000-0000" 
-                  value={newClient.telefone}
-                  onChange={(e) => setNewClient({...newClient, telefone: e.target.value})}
-                  className="pl-9 border-[#D2D7DB]"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase text-[#98A7AA]">Responsável Interno</Label>
-              <Select onValueChange={(v) => setNewClient({...newClient, responsavel: v})}>
-                <SelectTrigger className="border-[#D2D7DB]">
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Ricardo Santos">Ricardo Santos</SelectItem>
-                  <SelectItem value="Fernanda Oliveira">Fernanda Oliveira</SelectItem>
-                  <SelectItem value="Ana Souza">Ana Souza</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase text-[#98A7AA]">Cidade/UF</Label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
-                <Input 
-                  placeholder="Município - UF" 
-                  value={newClient.cidade ? `${newClient.cidade} - ${newClient.uf}` : ""}
-                  readOnly
-                  className="pl-9 bg-[#F7F7F7] border-[#D2D7DB] text-xs font-bold"
-                />
-              </div>
+              <Input 
+                placeholder="(00) 00000-0000" 
+                value={newClient.phone}
+                onChange={(e) => setNewClient({...newClient, phone: e.target.value})}
+              />
             </div>
           </div>
 
           <DialogFooter className="bg-[#F7F7F7] -mx-6 -mb-6 p-6 border-t mt-4">
             <Button variant="outline" onClick={() => setIsNewClientOpen(false)}>Cancelar</Button>
             <Button 
-              className="bg-[#1FA67A] font-bold gap-2 shadow-lg shadow-emerald-500/20" 
+              className="bg-[#1FA67A] font-bold gap-2" 
               onClick={handleCreateClient}
               disabled={isLoadingCnpj}
             >
               {isLoadingCnpj ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Salvar Cliente
+              Salvar no Banco de Dados
             </Button>
           </DialogFooter>
         </DialogContent>
