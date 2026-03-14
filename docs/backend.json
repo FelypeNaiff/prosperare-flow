@@ -46,6 +46,23 @@
         "status",
         "createdAt"
       ]
+    },
+    "IrpfDeclaration": {
+      "title": "IrpfDeclaration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "cpf": { "type": "string" },
+        "govPass": { "type": "string" },
+        "status": { "type": "string" },
+        "progress": { "type": "number" },
+        "value": { "type": "number" },
+        "isPaid": { "type": "boolean" },
+        "responsibleId": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -67,13 +84,13 @@
         }
       },
       {
-        "path": "/clients/{clientId}",
+        "path": "/irpf_declarations/{id}",
         "definition": {
-          "entityName": "Client",
+          "entityName": "IrpfDeclaration",
           "schema": {
-            "$ref": "#/backend/entities/Client"
+            "$ref": "#/backend/entities/IrpfDeclaration"
           },
-          "description": "Represents a client of the accounting office."
+          "description": "Stores IRPF declarations individual by collaborator."
         }
       }
     ]

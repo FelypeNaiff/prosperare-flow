@@ -1,6 +1,7 @@
 
 "use client"
 
+import { useState } from "react"
 import { 
   Dialog, 
   DialogContent, 
@@ -21,10 +22,53 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/hooks/use-toast"
+import { useFirestore, useUser, setDocumentNonBlocking } from "@/firebase"
+import { collection, doc } from "firebase/firestore"
 
 export function IrpfDeclarationModal({ open, onOpenChange }: any) {
+  const { user } = useUser()
+  const firestore = useFirestore()
+  
+  const [formData, setFormData] = useState({
+    name: "",
+    cpf: "",
+    birthDate: "",
+    govPass: "",
+    phone: "",
+    email: "",
+    year: "2026",
+    type: "simplificada",
+    value: 0,
+    notes: ""
+  })
+
   const handleSave = () => {
+    if (!formData.name || !formData.cpf || !user) {
+      toast({ title: "Erro", description: "Preencha os campos obrigatórios.", variant: "destructive" })
+      return
+    }
+
+    const id = Math.random().toString(36).substr(2, 9)
+    const docRef = doc(firestore, "irpf_declarations", id)
+    
+    const declarationData = {
+      ...formData,
+      id,
+      responsibleId: user.uid,
+      status: "not_started",
+      progress: 0,
+      isPaid: false,
+      tags: [],
+      createdAt: new Date().toISOString(),
+    }
+
+    setDocumentNonBlocking(docRef, declarationData, { merge: true })
+    
     onOpenChange(false)
+    setFormData({
+      name: "", cpf: "", birthDate: "", govPass: "", phone: "", email: "",
+      year: "2026", type: "simplificada", value: 0, notes: ""
+    })
     toast({ title: "Declaração Iniciada!", description: "Checklist padrão copiado com sucesso." })
   }
 
@@ -42,27 +86,53 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Nome Completo</Label>
-                <Input placeholder="Ex: João da Silva" />
+                <Input 
+                  placeholder="Ex: João da Silva" 
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">CPF</Label>
-                <Input placeholder="000.000.000-00" />
+                <Input 
+                  placeholder="000.000.000-00" 
+                  value={formData.cpf}
+                  onChange={(e) => setFormData({...formData, cpf: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Data de Nascimento</Label>
-                <Input type="date" />
+                <Input 
+                  type="date" 
+                  value={formData.birthDate}
+                  onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Senha GOV.BR</Label>
-                <Input type="password" placeholder="Senha do acesso gov.br" />
+                <Input 
+                  type="password" 
+                  placeholder="Senha do acesso gov.br" 
+                  value={formData.govPass}
+                  onChange={(e) => setFormData({...formData, govPass: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Celular / WhatsApp</Label>
-                <Input placeholder="(00) 00000-0000" />
+                <Input 
+                  placeholder="(00) 00000-0000" 
+                  value={formData.phone}
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">E-mail</Label>
-                <Input type="email" placeholder="cliente@email.com" />
+                <Input 
+                  type="email" 
+                  placeholder="cliente@email.com" 
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                />
               </div>
             </div>
           </div>
@@ -72,7 +142,7 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Ano de Exercício</Label>
-                <Select defaultValue="2026">
+                <Select defaultValue="2026" onValueChange={(v) => setFormData({...formData, year: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="2026">2026 (Ano-base 2025)</SelectItem>
@@ -82,7 +152,7 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Tipo de Declaração</Label>
-                <Select defaultValue="simplificada">
+                <Select defaultValue="simplificada" onValueChange={(v) => setFormData({...formData, type: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="simplificada">Simplificada</SelectItem>
@@ -92,30 +162,28 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-[#39586D]">Responsável Interno</Label>
-                <Select defaultValue="ricardo">
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ricardo">Ricardo Santos</SelectItem>
-                    <SelectItem value="fernanda">Fernanda Oliveira</SelectItem>
-                    <SelectItem value="ana">Ana Souza</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Prazo Limite</Label>
                 <Input type="date" defaultValue="2026-04-30" />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Honorários Estimados (R$)</Label>
-                <Input type="number" placeholder="0,00" />
+                <Input 
+                  type="number" 
+                  placeholder="0,00" 
+                  value={formData.value}
+                  onChange={(e) => setFormData({...formData, value: Number(e.target.value)})}
+                />
               </div>
             </div>
           </div>
 
           <div className="col-span-2 space-y-2">
             <Label className="text-xs font-bold text-[#39586D]">Observações Iniciais</Label>
-            <Textarea placeholder="Detalhes específicos sobre o contribuinte..." />
+            <Textarea 
+              placeholder="Detalhes específicos sobre o contribuinte..." 
+              value={formData.notes}
+              onChange={(e) => setFormData({...formData, notes: e.target.value})}
+            />
           </div>
         </div>
 

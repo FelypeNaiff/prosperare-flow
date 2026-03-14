@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { 
   Sheet, 
   SheetContent, 
@@ -51,6 +51,8 @@ import {
 } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
+import { useFirestore, updateDocumentNonBlocking } from "@/firebase"
+import { doc } from "firebase/firestore"
 
 const CHECKLIST = [
   { group: 'Documentos Obrigatórios', items: [
@@ -83,13 +85,27 @@ const AVAILABLE_TAGS = [
 ]
 
 export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
+  const firestore = useFirestore()
   const [showGovPass, setShowGovPass] = useState(false)
-  const [activeTags, setActiveTags] = useState<string[]>(declaration?.tags || [])
+  const [activeTags, setActiveTags] = useState<string[]>([])
   const [newComment, setNewComment] = useState("")
-  const [serviceValue, setServiceValue] = useState(declaration?.value || 0)
-  const [isPaid, setIsPaid] = useState(declaration?.isPaid || false)
+  const [serviceValue, setServiceValue] = useState(0)
+  const [isPaid, setIsPaid] = useState(false)
+
+  useEffect(() => {
+    if (declaration) {
+      setActiveTags(declaration.tags || [])
+      setServiceValue(declaration.value || 0)
+      setIsPaid(declaration.isPaid || false)
+    }
+  }, [declaration])
 
   if (!declaration) return null
+
+  const handleUpdate = (data: any) => {
+    const docRef = doc(firestore, "irpf_declarations", declaration.id)
+    updateDocumentNonBlocking(docRef, data)
+  }
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text)
@@ -100,11 +116,12 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
   }
 
   const toggleTag = (tagName: string) => {
-    if (activeTags.includes(tagName)) {
-      setActiveTags(activeTags.filter(t => t !== tagName))
-    } else {
-      setActiveTags([...activeTags, tagName])
-    }
+    const newTags = activeTags.includes(tagName)
+      ? activeTags.filter(t => t !== tagName)
+      : [...activeTags, tagName]
+    
+    setActiveTags(newTags)
+    handleUpdate({ tags: newTags })
   }
 
   return (
@@ -112,7 +129,6 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
       <SheetContent className="w-full sm:max-w-[700px] p-0 flex flex-col border-l-[#D2D7DB]">
         <ScrollArea className="flex-1">
           <div className="p-8 space-y-8">
-            {/* Header com Nome e Ações Rápidas */}
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-6 h-6 border-2 border-[#172B4D] rounded-full flex items-center justify-center">
@@ -131,7 +147,6 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Etiquetas Estilo Trello */}
               <div className="space-y-3">
                 <Label className="text-[11px] font-black text-[#5E6C84] uppercase tracking-wider">Etiquetas</Label>
                 <div className="flex flex-wrap gap-2 items-center">
@@ -164,10 +179,6 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                         </PopoverTrigger>
                       </div>
                       <div className="p-3 space-y-3">
-                        <div className="relative">
-                          <Search className="absolute left-2 top-2.5 h-3 w-3 text-[#5E6C84]" />
-                          <Input placeholder="Buscar etiquetas..." className="pl-7 h-8 text-xs bg-[#F4F5F7] border-none" />
-                        </div>
                         <div className="space-y-1">
                           <p className="text-[10px] font-black text-[#5E6C84] uppercase tracking-widest">Selecione para aplicar</p>
                           <div className="space-y-1 max-h-[250px] overflow-y-auto pr-1">
@@ -188,23 +199,16 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                                   {tag.name}
                                   {activeTags.includes(tag.name) && <Check className="h-3 w-3" />}
                                 </button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-[#5E6C84] opacity-0 group-hover:opacity-100">
-                                  <Edit2 className="h-3 w-3" />
-                                </Button>
                               </div>
                             ))}
                           </div>
                         </div>
-                        <Button variant="secondary" className="w-full h-8 text-xs font-bold bg-[#EBEDF0] hover:bg-[#D2D7DB] text-[#172B4D]">
-                          Criar uma nova etiqueta
-                        </Button>
                       </div>
                     </PopoverContent>
                   </Popover>
                 </div>
               </div>
 
-              {/* Informações de Acesso */}
               <div className="space-y-3">
                 <Label className="text-[11px] font-black text-[#5E6C84] uppercase tracking-wider">Acesso GOV.BR</Label>
                 <div className="flex gap-2">
@@ -231,7 +235,6 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
 
             <Separator />
 
-            {/* Controle Financeiro */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-[#F4F5F7] p-6 rounded-2xl border">
               <div className="space-y-3">
                 <Label className="text-[11px] font-black text-[#5E6C84] uppercase tracking-wider flex items-center gap-2">
@@ -243,7 +246,11 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                     type="number" 
                     className="pl-9 bg-white border-[#D2D7DB] font-black text-[#172B4D]" 
                     value={serviceValue}
-                    onChange={(e) => setServiceValue(Number(e.target.value))}
+                    onChange={(e) => {
+                      const val = Number(e.target.value)
+                      setServiceValue(val)
+                      handleUpdate({ value: val })
+                    }}
                   />
                 </div>
               </div>
@@ -256,7 +263,7 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                   )}>
                     {isPaid ? "Pago" : "Pendente"}
                   </span>
-                  <Switch checked={isPaid} onCheckedChange={setIsPaid} />
+                  <Switch checked={isPaid} onCheckedChange={(v) => { setIsPaid(v); handleUpdate({ isPaid: v }); }} />
                 </div>
               </div>
             </div>
@@ -264,7 +271,7 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
             <Tabs defaultValue="checklist" className="space-y-6">
               <TabsList className="bg-[#EBEDF0] h-10 p-1 gap-1">
                 <TabsTrigger value="checklist" className="data-[state=active]:bg-white font-bold text-xs uppercase px-6">Checklist</TabsTrigger>
-                <TabsTrigger value="historico" className="data-[state=active]:bg-white font-bold text-xs uppercase px-6">Histórico & Movimentação</TabsTrigger>
+                <TabsTrigger value="historico" className="data-[state=active]:bg-white font-bold text-xs uppercase px-6">Notas</TabsTrigger>
               </TabsList>
 
               <TabsContent value="checklist" className="space-y-10 mt-6">
@@ -297,45 +304,13 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
               </TabsContent>
 
               <TabsContent value="historico" className="space-y-8 mt-6">
-                {/* Campo de Movimentação e Dúvidas */}
                 <div className="bg-[#F4F5F7] p-4 rounded-xl border border-[#D2D7DB] space-y-3">
-                  <Label className="text-[11px] font-black text-[#172B4D] uppercase tracking-widest">Registrar Movimentação / Dúvidas</Label>
+                  <Label className="text-[11px] font-black text-[#172B4D] uppercase tracking-widest">Anotações do Contribuinte</Label>
                   <Textarea 
                     placeholder="Escreva aqui detalhes sobre a movimentação, pendências ou dúvidas com o cliente..." 
-                    className="bg-white border-[#D2D7DB] text-sm h-24"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                  />
-                  <div className="flex justify-end">
-                    <Button 
-                      size="sm" 
-                      className="bg-[#172B4D] font-bold uppercase text-[10px] px-6"
-                      onClick={() => {
-                        toast({ title: "Registro salvo no histórico!" });
-                        setNewComment("");
-                      }}
-                    >
-                      Salvar Registro
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="relative pl-8 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-[#D2D7DB]">
-                  <TimelineItem 
-                    icon={Plus} 
-                    color="bg-[#172B4D]" 
-                    title="Declaração Criada" 
-                    user="Fernanda Oliveira" 
-                    time="13/03/2026 - 09:30" 
-                    details="Início do fluxo de IRPF 2026." 
-                  />
-                  <TimelineItem 
-                    icon={Edit2} 
-                    color="bg-[#2E86C1]" 
-                    title="Ajuste de Valor" 
-                    user="Ricardo Santos" 
-                    time="Hoje - 10:15" 
-                    details="Valor do serviço definido para R$ 250,00." 
+                    className="bg-white border-[#D2D7DB] text-sm h-32"
+                    value={declaration.notes || ""}
+                    onChange={(e) => handleUpdate({ notes: e.target.value })}
                   />
                 </div>
               </TabsContent>
@@ -350,14 +325,24 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
             </Avatar>
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-[#5E6C84] uppercase tracking-widest">Responsável</span>
-              <span className="text-xs font-bold text-[#172B4D]">{declaration.responsible} Santos</span>
+              <span className="text-xs font-bold text-[#172B4D]">Você</span>
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="h-9 border-[#D2D7DB] font-black text-[10px] uppercase tracking-widest gap-2 bg-white">
-              <ArrowRightLeft className="h-3.5 w-3.5 text-[#1FA67A]" /> Mudar Coluna
+            <Button variant="outline" className="h-9 border-[#D2D7DB] font-black text-[10px] uppercase tracking-widest gap-2 bg-white" onClick={() => {
+              const statusMap: any = {
+                'not_started': 'filling',
+                'filling': 'awaiting_production',
+                'awaiting_production': 'sent',
+                'sent': 'completed',
+                'completed': 'not_started'
+              }
+              handleUpdate({ status: statusMap[declaration.status] || 'filling' })
+              toast({ title: "Status movido!" })
+            }}>
+              <ArrowRightLeft className="h-3.5 w-3.5 text-[#1FA67A]" /> Próxima Etapa
             </Button>
-            <Button className="h-9 bg-[#1FA67A] font-black text-[10px] uppercase tracking-widest gap-2 shadow-lg shadow-emerald-500/20">
+            <Button className="h-9 bg-[#1FA67A] font-black text-[10px] uppercase tracking-widest gap-2 shadow-lg shadow-emerald-500/20" onClick={() => handleUpdate({ status: 'completed', progress: 100 })}>
               <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
             </Button>
           </div>
@@ -372,23 +357,5 @@ function HeaderAction({ icon: Icon, label }: any) {
     <Button variant="secondary" size="sm" className="bg-[#EBEDF0] hover:bg-[#D2D7DB] text-[#172B4D] font-bold text-xs h-8 gap-2 px-3 border-none shadow-sm">
       <Icon className="h-3.5 w-3.5" /> {label}
     </Button>
-  )
-}
-
-function TimelineItem({ icon: Icon, color, title, user, time, details }: any) {
-  return (
-    <div className="relative">
-      <div className={cn("absolute -left-[27px] top-0 w-6 h-6 rounded-full flex items-center justify-center text-white shadow-sm z-10", color)}>
-        <Icon className="h-3 w-3" />
-      </div>
-      <div className="space-y-1">
-        <div className="flex items-center gap-2">
-          <h5 className="text-xs font-bold text-[#172B4D]">{title}</h5>
-          <span className="text-[10px] text-[#5E6C84] font-medium">{time}</span>
-        </div>
-        <p className="text-[10px] text-[#172B4D] font-bold">Por: {user}</p>
-        <p className="text-[11px] text-[#5E6C84] leading-relaxed">{details}</p>
-      </div>
-    </div>
   )
 }
