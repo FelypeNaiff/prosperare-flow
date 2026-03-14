@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -18,7 +17,8 @@ import {
   MoreVertical,
   History,
   ShieldAlert,
-  ArrowRight
+  ArrowRight,
+  Edit
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -170,7 +170,7 @@ export default function ParcelamentosPage() {
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]">
+                        <Button variant="ghost" size="icon" className="text-[#98A7AA]">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
