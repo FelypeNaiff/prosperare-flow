@@ -9,16 +9,18 @@ import {
   Calendar, 
   TrendingUp,
   FileWarning,
-  ArrowRight
+  ArrowRight,
+  TrendingDown
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">
           Painel <span className="text-[#1FA67A]">Prosperare Flow</span>
@@ -81,7 +83,9 @@ export default function DashboardPage() {
               <CardTitle className="text-[#2C4156]">Alertas Críticos</CardTitle>
               <CardDescription className="text-[#98A7AA]">Pendências que exigem atenção imediata.</CardDescription>
             </div>
-            <FileWarning className="h-5 w-5 text-[#E74C3C]" />
+            <div className="p-2 bg-[#FEE2E2] rounded-full">
+              <FileWarning className="h-5 w-5 text-[#E74C3C]" />
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {[
@@ -90,13 +94,13 @@ export default function DashboardPage() {
               { type: 'Inadimplente', client: 'Padaria Alfa', task: 'Honorário Set/24', status: 'danger' },
               { type: 'Atrasado', client: 'Auto Peças Silva', task: 'DCTFWeb', status: 'danger' },
             ].map((alert, i) => (
-              <div key={i} className="flex items-center gap-4 p-3 rounded-lg border border-[#D2D7DB] bg-[#F7F7F7] text-sm">
+              <div key={i} className="flex items-center gap-4 p-3 rounded-lg border border-[#D2D7DB] bg-[#F7F7F7] text-sm hover:border-[#1FA67A] transition-colors cursor-pointer group">
                 <div className={cn(
                   "w-2 h-2 rounded-full",
                   alert.status === 'danger' ? 'bg-[#E74C3C]' : 'bg-[#F2B705]'
                 )} />
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-[#2C4156] truncate">{alert.client}</p>
+                  <p className="font-bold text-[#2C4156] truncate group-hover:text-[#1FA67A]">{alert.client}</p>
                   <p className="text-xs text-[#98A7AA]">{alert.task}</p>
                 </div>
                 <Badge 
@@ -111,8 +115,10 @@ export default function DashboardPage() {
                 </Badge>
               </div>
             ))}
-            <Button variant="ghost" className="w-full text-xs font-bold text-[#39586D] hover:bg-[#F7F7F7]" size="sm">
-              Ver todos os alertas <ArrowRight className="ml-2 h-4 w-4" />
+            <Button asChild variant="ghost" className="w-full text-xs font-bold text-[#39586D] hover:bg-[#F7F7F7] hover:text-[#1FA67A]" size="sm">
+              <Link href="/processos">
+                Ver todos os alertas <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
             </Button>
           </CardContent>
         </Card>
@@ -126,41 +132,43 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-               <table className="w-full text-sm">
-                 <thead>
-                   <tr className="text-left text-[#98A7AA] border-b border-[#D2D7DB] pb-2 uppercase text-[10px] font-bold">
-                     <th className="pb-2">Tipo</th>
-                     <th className="pb-2">Cliente</th>
-                     <th className="pb-2">Dias</th>
-                     <th className="pb-2">Validade</th>
-                   </tr>
-                 </thead>
-                 <tbody className="divide-y divide-[#D2D7DB]">
-                   {[
-                     { tipo: 'Federal', cliente: 'ConstruMais Ltda', dias: 4, validade: '15/10/24' },
-                     { tipo: 'Trabalhista', cliente: 'Restaurante Sabor', dias: 7, validade: '18/10/24' },
-                     { tipo: 'Estadual', cliente: 'Loja Variedades', dias: 12, validade: '23/10/24' },
-                   ].map((cnd, i) => (
-                     <tr key={i} className="hover:bg-[#F7F7F7] transition-colors">
-                       <td className="py-3 font-bold text-[#2C4156]">{cnd.tipo}</td>
-                       <td className="py-3 text-[#39586D]">{cnd.cliente}</td>
-                       <td className="py-3">
-                         <Badge 
-                           className={cn(
-                             "text-[10px] font-bold",
-                             cnd.dias <= 5 
-                               ? 'bg-[#FEE2E2] text-[#E74C3C] hover:bg-[#FEE2E2]' 
-                               : 'bg-[#FEF3C7] text-[#F2B705] hover:bg-[#FEF3C7]'
-                           )}
-                         >
-                           {cnd.dias} dias
-                         </Badge>
-                       </td>
-                       <td className="py-3 text-[#98A7AA] font-mono">{cnd.validade}</td>
+               <div className="overflow-x-auto">
+                 <table className="w-full text-sm">
+                   <thead>
+                     <tr className="text-left text-[#98A7AA] border-b border-[#D2D7DB] pb-2 uppercase text-[10px] font-bold">
+                       <th className="pb-2">Tipo</th>
+                       <th className="pb-2">Cliente</th>
+                       <th className="pb-2">Dias</th>
+                       <th className="pb-2">Validade</th>
                      </tr>
-                   ))}
-                 </tbody>
-               </table>
+                   </thead>
+                   <tbody className="divide-y divide-[#D2D7DB]">
+                     {[
+                       { tipo: 'Federal', cliente: 'ConstruMais Ltda', dias: 4, validade: '15/10/24' },
+                       { tipo: 'Trabalhista', cliente: 'Restaurante Sabor', dias: 7, validade: '18/10/24' },
+                       { tipo: 'Estadual', cliente: 'Loja Variedades', dias: 12, validade: '23/10/24' },
+                     ].map((cnd, i) => (
+                       <tr key={i} className="hover:bg-[#F7F7F7] transition-colors group cursor-pointer">
+                         <td className="py-3 font-bold text-[#2C4156] group-hover:text-[#1FA67A]">{cnd.tipo}</td>
+                         <td className="py-3 text-[#39586D]">{cnd.cliente}</td>
+                         <td className="py-3">
+                           <Badge 
+                             className={cn(
+                               "text-[10px] font-bold",
+                               cnd.dias <= 5 
+                                 ? 'bg-[#FEE2E2] text-[#E74C3C] hover:bg-[#FEE2E2]' 
+                                 : 'bg-[#FEF3C7] text-[#F2B705] hover:bg-[#FEF3C7]'
+                             )}
+                           >
+                             {cnd.dias} dias
+                           </Badge>
+                         </td>
+                         <td className="py-3 text-[#98A7AA] font-mono">{cnd.validade}</td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+               </div>
             </div>
           </CardContent>
         </Card>
@@ -171,21 +179,21 @@ export default function DashboardPage() {
              <CardDescription className="text-[#98A7AA]">Distribuição da carteira de clientes.</CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center h-[200px] items-center">
-             <div className="flex flex-wrap justify-center gap-4">
+             <div className="flex flex-wrap justify-center gap-6">
                 {[
-                  { label: 'Simples Nacional', value: 64, color: 'bg-[#1FA67A]' },
-                  { label: 'Lucro Presumido', value: 28, color: '#39586D' },
+                  { label: 'Simples', value: 64, color: '#1FA67A' },
+                  { label: 'Presumido', value: 28, color: '#39586D' },
                   { label: 'MEI', value: 20, color: '#2C4156' },
                   { label: 'Lucro Real', value: 12, color: '#2574A9' },
                 ].map((item, i) => (
-                  <div key={i} className="flex flex-col items-center gap-1">
+                  <div key={i} className="flex flex-col items-center gap-2 group cursor-default">
                     <div 
-                      className={cn("w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-sm")}
-                      style={{ backgroundColor: typeof item.color === 'string' && item.color.startsWith('#') ? item.color : undefined }}
+                      className={cn("w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-sm transition-transform group-hover:scale-110")}
+                      style={{ backgroundColor: item.color }}
                     >
                       {item.value}
                     </div>
-                    <span className="text-[10px] font-bold text-[#98A7AA] uppercase tracking-tighter">{item.label}</span>
+                    <span className="text-[10px] font-bold text-[#98A7AA] uppercase tracking-tighter text-center max-w-[60px]">{item.label}</span>
                   </div>
                 ))}
              </div>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -30,7 +29,7 @@ import {
   Palette,
   Link as LinkIcon,
   LogOut,
-  User as UserIcon
+  TrendingUp
 } from "lucide-react"
 
 import {
@@ -163,6 +162,9 @@ export function AppSidebar() {
     <Sidebar className="border-r-0 bg-[#2C4156] text-white">
       <SidebarHeader className="h-24 flex flex-col items-start px-6 justify-center">
         <div className="flex items-center gap-2">
+          <div className="p-2 bg-[#1FA67A] rounded-lg shadow-lg">
+            <TrendingUp className="h-6 w-6 text-white" />
+          </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
               <span className="text-white font-bold text-xl leading-none tracking-tight">PROSPERARE</span>
@@ -172,7 +174,7 @@ export function AppSidebar() {
           </div>
         </div>
       </SidebarHeader>
-      <SidebarContent className="px-2 mt-4">
+      <SidebarContent className="px-2 mt-4 scrollbar-hide">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -189,9 +191,16 @@ export function AppSidebar() {
                           "hover:bg-[#39586D] transition-all py-6 text-white group-data-[state=open]/collapsible:bg-[#39586D]/50",
                           pathname.startsWith(item.url) && "bg-[#39586D] border-l-[3px] border-[#1FA67A]"
                         )}>
-                          <item.icon className="h-5 w-5" />
-                          <span className="text-sm font-medium">{item.title}</span>
-                          <ChevronDown className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                          <item.icon className={cn("h-5 w-5", pathname.startsWith(item.url) && "text-[#1FA67A]")} />
+                          <span className={cn("text-sm font-medium", pathname.startsWith(item.url) && "font-bold")}>{item.title}</span>
+                          <div className="ml-auto flex items-center gap-2">
+                            {item.badge && (
+                              <Badge variant="destructive" className="px-1.5 h-4 min-w-4 flex items-center justify-center text-[9px] bg-[#E74C3C] border-none">
+                                {item.badge}
+                              </Badge>
+                            )}
+                            <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                          </div>
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent className="animate-in slide-in-from-top-1 duration-200">
