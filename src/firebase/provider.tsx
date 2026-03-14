@@ -2,7 +2,7 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, collection, query, where, onSnapshot, query as firestoreQuery } from 'firebase/firestore';
+import { Firestore, collection, query, where, onSnapshot, query as firestoreQuery, doc, setDoc } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 
@@ -84,14 +84,34 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 isAuthChecking: false 
               }));
             } else {
-              // Authenticated but not in the collaborators list
-              setState(prev => ({ 
-                ...prev, 
-                user: firebaseUser, 
-                userData: null, 
-                isUserLoading: false, 
-                isAuthChecking: false 
-              }));
+              // BOOTSTRAP LOGIC: If the specific requested email logs in and is not found, auto-create admin record
+              if (firebaseUser.email === "felypenaiff01@gmail.com") {
+                const newUserRef = doc(collection(firestore, "users"));
+                const adminData = {
+                  id: newUserRef.id,
+                  fullName: "Felype Naiff",
+                  email: firebaseUser.email,
+                  profile: "ADMINISTRADOR",
+                  status: "ATIVO",
+                  createdAt: new Date().toISOString(),
+                  departmentId: "Diretoria",
+                  departmentIds: ["Diretoria", "Administrativo"]
+                };
+                
+                // Create the record silently. The onSnapshot will fire again automatically.
+                setDoc(newUserRef, adminData).catch(err => {
+                  console.error("Erro ao provisionar administrador:", err);
+                });
+              } else {
+                // Authenticated but not in the collaborators list
+                setState(prev => ({ 
+                  ...prev, 
+                  user: firebaseUser, 
+                  userData: null, 
+                  isUserLoading: false, 
+                  isAuthChecking: false 
+                }));
+              }
             }
           }, (err) => {
             console.error("Db access error:", err);
