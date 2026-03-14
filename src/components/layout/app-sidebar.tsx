@@ -31,7 +31,8 @@ import {
   Link as LinkIcon,
   LogOut,
   TrendingUp,
-  ClipboardList
+  ClipboardList,
+  Layers
 } from "lucide-react"
 
 import {
@@ -86,6 +87,7 @@ const items = [
       { title: "Calendário de Prazos", url: "/processos/calendario", icon: Calendar },
       { title: "Modelos", url: "/processos/modelos", icon: FileText },
       { title: "IRPF", url: "/processos/irpf", icon: ClipboardList },
+      { title: "Grupos de Obrigações", url: "/processos/grupos", icon: Layers },
     ]
   },
   {

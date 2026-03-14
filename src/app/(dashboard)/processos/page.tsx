@@ -21,7 +21,11 @@ import {
   MessageSquare,
   ArrowRightLeft,
   CheckCircle2,
-  FileText
+  FileText,
+  AtSign,
+  Send,
+  Layers,
+  ChevronDown
 } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -31,6 +35,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 const COLUMNS = [
   { id: 'todo', title: 'A Fazer', color: 'border-t-[#98A7AA]' },
@@ -40,17 +45,24 @@ const COLUMNS = [
 ]
 
 const MOCK_TASKS = [
-  { id: 't1', client: 'Posto Sul', title: 'Folha de Pagamento - Setembro', status: 'todo', due: '05/10', priority: 'Urgente', responsible: 'Ricardo' },
-  { id: 't2', client: 'Mercado Bom', title: 'PGDAS-D Apuração', status: 'progress', due: '20/10', priority: 'Alta', responsible: 'Fernanda' },
-  { id: 't3', client: 'Tech Soluções', title: 'DCTF Mensal', status: 'todo', due: '15/10', priority: 'Média', responsible: 'Ricardo' },
-  { id: 't4', client: 'Auto Peças', title: 'EFD ICMS IPI', status: 'review', due: '10/10', priority: 'Alta', responsible: 'Ana' },
-  { id: 't5', client: 'Padaria Alfa', title: 'FGTS Digital', status: 'done', due: '20/10', priority: 'Urgente', responsible: 'Ricardo' },
+  { id: 't1', client: 'Posto Sul', title: 'Folha de Pagamento - Setembro', status: 'todo', due: '05/10', priority: 'Urgente', responsible: 'Ricardo', group: 'Folha de Pagamento' },
+  { id: 't2', client: 'Mercado Bom', title: 'PGDAS-D Apuração', status: 'progress', due: '20/10', priority: 'Alta', responsible: 'Fernanda', group: 'Fiscal Serviços' },
+  { id: 't3', client: 'Tech Soluções', title: 'DCTF Mensal', status: 'todo', due: '15/10', priority: 'Média', responsible: 'Ricardo', group: 'Fiscal Lucro Presumido' },
+  { id: 't4', client: 'Auto Peças', title: 'EFD ICMS IPI', status: 'review', due: '10/10', priority: 'Alta', responsible: 'Ana', group: 'Fiscal Comércio' },
+  { id: 't5', client: 'Padaria Alfa', title: 'FGTS Digital', status: 'done', due: '20/10', priority: 'Urgente', responsible: 'Ricardo', group: 'Folha de Pagamento' },
+]
+
+const OBLIGATION_GROUPS = [
+  { name: 'Folha de Pagamento', icon: '📋', color: '#1FA67A', count: 12 },
+  { name: 'Fiscal Serviços', icon: '🔵', color: '#2574A9', count: 8 },
+  { name: 'Fiscal Comércio', icon: '🟡', color: '#F2B705', count: 5 },
 ]
 
 export default function ProcessosPage() {
   const [selectedTask, setSelectedTask] = useState<any>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isHandoffOpen, setIsHandoffOpen] = useState(false)
+  const [activeView, setActiveView] = useState("kanban")
 
   const handleOpenTask = (task: any) => {
     setSelectedTask(task)
@@ -90,11 +102,12 @@ export default function ProcessosPage() {
          <SummaryCard label="Concluído" value={57} color="success" />
       </div>
 
-      <Tabs defaultValue="kanban">
+      <Tabs defaultValue="kanban" onValueChange={setActiveView}>
         <div className="flex items-center justify-between">
           <TabsList className="bg-[#D2D7DB]/30">
             <TabsTrigger value="kanban" className="data-[state=active]:bg-white font-bold"><LayoutGrid className="mr-2 h-4 w-4" /> Kanban</TabsTrigger>
             <TabsTrigger value="lista" className="data-[state=active]:bg-white font-bold"><TableIcon className="mr-2 h-4 w-4" /> Lista</TabsTrigger>
+            <TabsTrigger value="grupos" className="data-[state=active]:bg-white font-bold"><Layers className="mr-2 h-4 w-4" /> Por Grupo</TabsTrigger>
           </TabsList>
         </div>
 
@@ -155,6 +168,81 @@ export default function ProcessosPage() {
             ))}
           </div>
         </TabsContent>
+
+        <TabsContent value="grupos" className="pt-4 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {OBLIGATION_GROUPS.map((group) => (
+              <Card key={group.name} className="border-[#D2D7DB] bg-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{group.icon}</span>
+                      <h4 className="font-black text-[#2C4156] uppercase text-xs tracking-tight">{group.name}</h4>
+                    </div>
+                    <Badge className="bg-[#E3F0F9] text-[#2574A9] border-none font-bold text-[9px] uppercase">
+                      {group.count} empresas
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-[10px] font-bold uppercase text-[#98A7AA]">
+                      <span>Progresso Geral</span>
+                      <span>75%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-[#F7F7F7] rounded-full overflow-hidden">
+                      <div className="h-full bg-[#1FA67A] w-[75%]" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="space-y-4">
+            {OBLIGATION_GROUPS.map((group) => (
+              <div key={group.name} className="border rounded-xl bg-white overflow-hidden">
+                <div className="p-4 bg-[#F7F7F7]/50 border-b flex items-center justify-between cursor-pointer hover:bg-[#F7F7F7] transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold" style={{ backgroundColor: group.color }}>
+                      <Layers className="h-4 w-4" />
+                    </div>
+                    <h3 className="font-black text-[#2C4156] uppercase text-sm tracking-tight">{group.name}</h3>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-[#98A7AA] group-hover:text-[#2C4156]" />
+                </div>
+                <div className="p-0">
+                  <Table>
+                    <TableBody>
+                      {MOCK_TASKS.filter(t => t.group === group.name).map((task) => (
+                        <TableRow key={task.id} className="hover:bg-[#F7F7F7]/30">
+                          <TableCell className="w-[200px]">
+                            <p className="text-xs font-black text-[#1FA67A] uppercase leading-tight">{task.client}</p>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-sm font-bold text-[#2C4156]">{task.title}</p>
+                          </TableCell>
+                          <TableCell className="w-[120px]">
+                            <Badge className={cn(
+                              "text-[9px] font-black uppercase border-none",
+                              task.status === 'done' ? "bg-[#7ED6B5] text-[#1FA67A]" : 
+                              task.status === 'todo' ? "bg-[#F3F4F6] text-[#98A7AA]" : "bg-[#FEF3C7] text-[#F2B705]"
+                            )}>
+                              {task.status === 'done' ? 'Concluído' : task.status === 'todo' ? 'A Fazer' : 'Em Progresso'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right w-[100px]">
+                            <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold uppercase" onClick={() => handleOpenTask(task)}>
+                              Ver detalhes
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            ))}
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* Detalhes da Tarefa / Processo */}
@@ -207,7 +295,7 @@ export default function ProcessosPage() {
                       <Label className="text-[10px] uppercase font-extrabold text-[#98A7AA]">Responsável Atual</Label>
                       <div className="flex items-center gap-2 p-2 bg-[#F7F7F7] rounded-lg border">
                         <Avatar className="h-6 w-6">
-                          <AvatarFallback className="bg-[#2C4156] text-white text-[10px]">{selectedTask?.responsible.charAt(0)}</AvatarFallback>
+                          <AvatarFallback className="bg-[#2C4156] text-white text-[10px]">{selectedTask?.responsible?.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <span className="text-sm font-bold text-[#2C4156]">{selectedTask?.responsible} Santos</span>
                       </div>
