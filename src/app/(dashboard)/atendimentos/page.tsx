@@ -35,12 +35,7 @@ const COLUMNS = [
   { id: 'concluido', title: 'Concluído', color: 'border-t-[#1FA67A]' },
 ]
 
-const MOCK_TICKETS = [
-  { id: 'TK-001', client: 'Padaria Central', title: 'Dúvida sobre Folha de Setembro', priority: 'Alta', status: 'novo', responsible: 'Ricardo', time: 'Há 15 min', source: 'whatsapp' },
-  { id: 'TK-002', client: 'Oficina do João', title: 'Solicitação de Recisão - Pedro Santos', priority: 'Urgente', status: 'atendimento', responsible: 'Ana', time: 'Há 1h', source: 'system' },
-  { id: 'TK-003', client: 'Consultoria Tech', title: 'Alteração no Contrato Social', priority: 'Média', status: 'pendente', responsible: 'Ricardo', time: 'Há 3h', source: 'whatsapp' },
-  { id: 'TK-004', client: 'Agro Vale', title: 'Pedido de Balancete 2º Trimestre', priority: 'Baixa', status: 'concluido', responsible: 'Fernanda', time: 'Ontem', source: 'system' },
-]
+const MOCK_TICKETS: any[] = []
 
 export default function AtendimentosPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -50,7 +45,6 @@ export default function AtendimentosPage() {
       title: "Abrindo WhatsApp...",
       description: `Iniciando conversa com ${client}.`,
     })
-    window.open(`https://wa.me/5596981223344?text=Olá, sou da Prosperare Flow e estou retornando sobre o seu chamado.`, '_blank')
   }
 
   return (
@@ -71,10 +65,10 @@ export default function AtendimentosPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <KpiMiniCard label="Vindo do WhatsApp" value="12" icon={MessageCircle} color="success" />
-        <KpiMiniCard label="Em Aberto" value="14" icon={Clock} color="info" />
-        <KpiMiniCard label="Média de Resposta" value="28min" icon={CheckCircle2} color="success" />
-        <KpiMiniCard label="Críticos" value="3" icon={AlertCircle} color="destructive" />
+        <KpiMiniCard label="Vindo do WhatsApp" value="0" icon={MessageCircle} color="success" />
+        <KpiMiniCard label="Em Aberto" value="0" icon={Clock} color="info" />
+        <KpiMiniCard label="Média de Resposta" value="--" icon={CheckCircle2} color="success" />
+        <KpiMiniCard label="Críticos" value="0" icon={AlertCircle} color="destructive" />
       </div>
 
       <div className="flex gap-4">
@@ -87,9 +81,6 @@ export default function AtendimentosPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button variant="outline" className="border-[#D2D7DB] gap-2">
-          <Filter className="h-4 w-4" /> Filtros
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 min-h-[600px]">
@@ -99,62 +90,16 @@ export default function AtendimentosPage() {
               <h3 className="font-extrabold text-[#2C4156] flex items-center gap-2 text-xs uppercase tracking-wider">
                 {col.title}
                 <Badge variant="secondary" className="rounded-full px-1.5 h-5 min-w-5 flex items-center justify-center text-[10px] bg-[#D2D7DB] text-[#39586D]">
-                  {MOCK_TICKETS.filter(t => t.status === col.id).length}
+                  0
                 </Badge>
               </h3>
             </div>
             
             <ScrollArea className="h-[calc(100vh-350px)]">
               <div className="flex flex-col gap-3 pr-4 pb-4">
-                {MOCK_TICKETS.filter(t => t.status === col.id).map(ticket => (
-                  <Card 
-                    key={ticket.id} 
-                    className={cn(
-                      "border-t-4 hover:shadow-lg transition-all cursor-pointer bg-white group relative",
-                      col.color
-                    )}
-                  >
-                    <CardContent className="p-4 space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[10px] font-bold text-[#1FA67A] uppercase tracking-widest flex items-center gap-1">
-                            {ticket.source === 'whatsapp' && <MessageCircle className="h-3 w-3 fill-[#1FA67A]/20" />}
-                            {ticket.client}
-                          </span>
-                        </div>
-                        <Badge className={cn(
-                          "text-[9px] px-1.5 h-4 uppercase font-extrabold",
-                          ticket.priority === 'Urgente' ? 'bg-[#FEE2E2] text-[#E74C3C]' : 'bg-[#F7F7F7] text-[#98A7AA]'
-                        )}>
-                          {ticket.priority}
-                        </Badge>
-                      </div>
-                      <p className="text-sm font-bold text-[#2C4156] leading-snug group-hover:text-[#1FA67A] transition-colors">{ticket.title}</p>
-                      
-                      <div className="flex items-center justify-between pt-2 border-t border-[#F7F7F7]">
-                        <span className="text-[9px] font-bold text-[#98A7AA]">{ticket.id} • {ticket.time}</span>
-                        <div className="flex items-center gap-2">
-                          {ticket.source === 'whatsapp' && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-6 w-6 text-[#1FA67A] hover:bg-[#1FA67A]/10"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleReplyWhatsapp(ticket.client);
-                              }}
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                            </Button>
-                          )}
-                          <Avatar className="h-5 w-5">
-                            <AvatarFallback className="text-[8px] bg-[#2C4156] text-white">{ticket.responsible.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                {MOCK_TICKETS.filter(t => t.status === col.id).length === 0 && (
+                  <div className="text-center py-8 text-xs text-[#98A7AA] font-bold">Nenhum chamado</div>
+                )}
               </div>
             </ScrollArea>
           </div>

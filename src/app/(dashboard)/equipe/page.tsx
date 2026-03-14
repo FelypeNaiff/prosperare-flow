@@ -55,13 +55,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { toast } from "@/hooks/use-toast"
 
-const MOCK_TEAM = [
-  { id: '1', name: 'Ricardo Santos', email: 'ricardo@prosperare.com.br', profile: 'SÓCIO', department: 'Diretoria', status: 'ATIVO' },
-  { id: '2', name: 'Fernanda Oliveira', email: 'fernanda@prosperare.com.br', profile: 'ADMINISTRADOR', department: 'Administrativo', status: 'ATIVO' },
-  { id: '3', name: 'Ana Souza', email: 'ana@prosperare.com.br', profile: 'CONTADOR/GESTOR', department: 'Fiscal', status: 'ATIVO' },
-  { id: '4', name: 'Bruno Lima', email: 'bruno@prosperare.com.br', profile: 'ASSISTENTE', department: 'Pessoal', status: 'ATIVO' },
-  { id: '5', name: 'Carla Dias', email: 'carla@prosperare.com.br', profile: 'ASSISTENTE', department: 'Comercial', status: 'INATIVO' },
-]
+const MOCK_TEAM: any[] = []
 
 export default function EquipePage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -120,7 +114,7 @@ export default function EquipePage() {
             <div className="p-3 bg-[#F2B705]/10 rounded-lg"><Activity className="h-6 w-6 text-[#F2B705]" /></div>
             <div>
               <p className="text-[10px] font-bold text-[#98A7AA] uppercase">Ações Hoje</p>
-              <p className="text-2xl font-black text-[#2C4156]">142 Logs</p>
+              <p className="text-2xl font-black text-[#2C4156]">0 Logs</p>
             </div>
           </CardContent>
         </Card>
@@ -152,9 +146,6 @@ export default function EquipePage() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <Button variant="outline" className="border-[#D2D7DB] gap-2">
-                  <Filter className="h-4 w-4" /> Filtros
-                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -169,58 +160,66 @@ export default function EquipePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {team.map((member) => (
-                    <TableRow key={member.id} className="hover:bg-[#F7F7F7]">
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9 border-2 border-[#D2D7DB]">
-                            <AvatarFallback className="bg-[#2C4156] text-white font-bold">
-                              {member.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col min-w-0">
-                            <span className="font-bold text-sm text-[#2C4156]">{member.name}</span>
-                            <span className="text-xs text-[#98A7AA] truncate">{member.email}</span>
+                  {team.length > 0 ? (
+                    team.map((member) => (
+                      <TableRow key={member.id} className="hover:bg-[#F7F7F7]">
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9 border-2 border-[#D2D7DB]">
+                              <AvatarFallback className="bg-[#2C4156] text-white font-bold">
+                                {member.name.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-bold text-sm text-[#2C4156]">{member.name}</span>
+                              <span className="text-xs text-[#98A7AA] truncate">{member.email}</span>
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="bg-[#39586D]/5 text-[#39586D] border-[#39586D]/20 font-bold text-[10px]">
-                          {member.profile}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm font-medium text-[#39586D]">{member.department}</TableCell>
-                      <TableCell>
-                        <Badge className={member.status === 'ATIVO' ? 'bg-[#7ED6B5] text-[#1FA67A] border-none' : 'bg-[#D2D7DB] text-[#98A7AA] border-none'}>
-                          {member.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="border-[#D2D7DB]">
-                            <DropdownMenuLabel className="text-[#2C4156] text-[10px] uppercase">Gerenciar Membro</DropdownMenuLabel>
-                            <DropdownMenuItem className="gap-2 text-xs font-bold text-[#2C4156]"><Settings className="h-4 w-4 text-[#1FA67A]" /> Editar Acessos</DropdownMenuItem>
-                            <DropdownMenuItem className="gap-2 text-xs font-bold text-[#2C4156]"><Mail className="h-4 w-4 text-[#2574A9]" /> Resetar Senha</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="gap-2 text-xs font-bold text-[#E74C3C]"
-                              onClick={() => {
-                                setMemberToDelete(member);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" /> Excluir Colaborador
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-[#39586D]/5 text-[#39586D] border-[#39586D]/20 font-bold text-[10px]">
+                            {member.profile}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm font-medium text-[#39586D]">{member.department}</TableCell>
+                        <TableCell>
+                          <Badge className={member.status === 'ATIVO' ? 'bg-[#7ED6B5] text-[#1FA67A] border-none' : 'bg-[#D2D7DB] text-[#98A7AA] border-none'}>
+                            {member.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="border-[#D2D7DB]">
+                              <DropdownMenuLabel className="text-[#2C4156] text-[10px] uppercase">Gerenciar Membro</DropdownMenuLabel>
+                              <DropdownMenuItem className="gap-2 text-xs font-bold text-[#2C4156]"><Settings className="h-4 w-4 text-[#1FA67A]" /> Editar Acessos</DropdownMenuItem>
+                              <DropdownMenuItem className="gap-2 text-xs font-bold text-[#2C4156]"><Mail className="h-4 w-4 text-[#2574A9]" /> Resetar Senha</DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                className="gap-2 text-xs font-bold text-[#E74C3C]"
+                                onClick={() => {
+                                  setMemberToDelete(member);
+                                  setIsDeleteDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" /> Excluir Colaborador
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-24 text-center text-[#98A7AA] font-bold">
+                        Nenhum colaborador convidado.
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
