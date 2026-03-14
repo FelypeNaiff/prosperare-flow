@@ -1,10 +1,10 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/layout/app-sidebar"
-import { Search, User, ChevronRight, Home } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import { User, ChevronRight, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { 
   DropdownMenu, 
@@ -17,6 +17,8 @@ import {
 import { useAuth } from "@/hooks/use-auth-mock"
 import { ChatWidget } from "@/components/collaboration/chat-widget"
 import { NotificationBell } from "@/components/collaboration/notification-bell"
+import { GlobalSearch } from "@/components/layout/global-search"
+import { QuickAccess } from "@/components/layout/quick-access"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 
@@ -31,7 +33,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!mounted) return null
 
-  // Gera breadcrumbs simples baseado na rota
   const pathSegments = pathname.split('/').filter(Boolean)
 
   return (
@@ -41,7 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-white px-6 sticky top-0 z-40">
           <SidebarTrigger className="text-[#2C4156]" />
           
-          <div className="flex-1 flex items-center gap-2 overflow-hidden">
+          <div className="flex-1 flex items-center gap-4 overflow-hidden">
             <div className="hidden md:flex items-center gap-2 text-xs font-medium text-[#98A7AA]">
               <Home className="h-3.5 w-3.5" />
               {pathSegments.map((segment, index) => (
@@ -53,17 +54,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
               ))}
             </div>
+            <QuickAccess />
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="relative hidden lg:block w-64">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
-              <Input
-                type="search"
-                placeholder="Buscar no sistema..."
-                className="pl-9 h-9 bg-[#F7F7F7] border-none shadow-none focus-visible:ring-1 focus-visible:ring-[#1FA67A]"
-              />
-            </div>
+            <GlobalSearch />
             <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

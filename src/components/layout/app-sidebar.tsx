@@ -20,7 +20,6 @@ import {
   Building,
   Key,
   CalendarClock,
-  Mail,
   MessageSquare,
   Lock,
   CreditCard,
@@ -34,8 +33,7 @@ import {
   ClipboardList,
   Layers,
   TicketCheck,
-  BrainCircuit,
-  Heart
+  BrainCircuit
 } from "lucide-react"
 
 import {
@@ -71,7 +69,6 @@ const items = [
     url: "/dashboard",
     icon: LayoutDashboard,
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
-    isCollapsible: true,
     subItems: [
       { title: "Dashboard Geral", url: "/dashboard", icon: LayoutDashboard },
       { title: "Inteligência (BI)", url: "/inteligencia", icon: BrainCircuit },
@@ -83,7 +80,6 @@ const items = [
     url: "/clientes",
     icon: Users,
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
-    isCollapsible: true,
     subItems: [
       { title: "Gestão de Clientes", url: "/clientes", icon: Users },
       { title: "Central de Atendimentos", url: "/atendimentos", icon: TicketCheck },
@@ -91,12 +87,11 @@ const items = [
     ]
   },
   {
-    title: "Produção (Processos)",
+    title: "Fluxo de Produção",
     url: "/processos",
     icon: Files,
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
     badge: 5,
-    isCollapsible: true,
     subItems: [
       { title: "Todos os Processos", url: "/processos", icon: Files },
       { title: "Grupos de Obrigações", url: "/processos/grupos", icon: Layers },
@@ -111,7 +106,6 @@ const items = [
     icon: ShieldCheck,
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR"],
     badge: 2,
-    isCollapsible: true,
     subItems: [
       { title: "Painel Geral", url: "/certidoes", icon: PieChart },
       { title: "Visão por Empresa", url: "/certidoes", icon: Building },
@@ -122,7 +116,6 @@ const items = [
     url: "/financeiro",
     icon: DollarSign,
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR"],
-    isCollapsible: true,
     subItems: [
       { title: "Contas a Receber", url: "/financeiro/receber", icon: ArrowUpRight },
       { title: "Contas a Pagar", url: "/financeiro/pagar", icon: ArrowDownRight },
@@ -136,7 +129,6 @@ const items = [
     url: "/equipe",
     icon: UserCircle,
     profiles: ["ADMINISTRADOR", "SÓCIO"],
-    isCollapsible: true,
     subItems: [
       { title: "Colaboradores", url: "/equipe", icon: Users },
       { title: "Departamentos", url: "/equipe/departamentos", icon: Building2 },
@@ -149,15 +141,14 @@ const items = [
     url: "/configuracoes",
     icon: Settings,
     profiles: ["ADMINISTRADOR"],
-    isCollapsible: true,
     subItems: [
-      { title: "Meus Dados (Escritório)", url: "/configuracoes/meus-dados", icon: Building },
+      { title: "Meus Dados", url: "/configuracoes/meus-dados", icon: Building },
       { title: "Certificado Digital", url: "/configuracoes/certificado", icon: Key },
-      { title: "Automação de Agenda", url: "/configuracoes/agendamento", icon: CalendarClock },
-      { title: "Canais (Email/Whats)", url: "/configuracoes/whatsapp", icon: MessageSquare },
+      { title: "Agendamento Automático", url: "/configuracoes/agendamento", icon: CalendarClock },
+      { title: "WhatsApp", url: "/configuracoes/whatsapp", icon: MessageSquare },
       { title: "Segurança & Logs", url: "/configuracoes/seguranca", icon: Lock },
       { title: "Aparência", url: "/configuracoes/aparencia", icon: Palette },
-      { title: "Marketplace Integrações", url: "/configuracoes/integracoes", icon: LinkIcon },
+      { title: "Integrações", url: "/configuracoes/integracoes", icon: LinkIcon },
       { title: "Plano e Assinatura", url: "/configuracoes/plano", icon: CreditCard },
     ]
   },
@@ -167,6 +158,14 @@ export function AppSidebar() {
   const { user, logout } = useAuth()
   const pathname = usePathname()
   
+  // Accordion mode: Keep track of which main item is open
+  const [openItem, setOpenItem] = React.useState<string | null>(() => {
+    const active = items.find(item => 
+      pathname.startsWith(item.url) || item.subItems?.some(si => pathname === si.url)
+    )
+    return active ? active.title : null
+  })
+
   const filteredItems = items.filter(item => 
     user && item.profiles.includes(user.profile)
   )
@@ -191,47 +190,56 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {filteredItems.map((item) => (
-                <Collapsible 
-                  key={item.title} 
-                  className="group/collapsible" 
-                  defaultOpen={pathname.startsWith(item.url) || item.subItems?.some(si => pathname === si.url)}
-                >
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton className={cn(
-                        "hover:bg-[#39586D] transition-all py-6 text-white group-data-[state=open]/collapsible:bg-[#39586D]/50",
-                        (pathname.startsWith(item.url) || item.subItems?.some(si => pathname === si.url)) && "bg-[#39586D] border-l-[3px] border-[#1FA67A]"
-                      )}>
-                        <item.icon className={cn("h-5 w-5", (pathname.startsWith(item.url) || item.subItems?.some(si => pathname === si.url)) && "text-[#1FA67A]")} />
-                        <span className={cn("text-sm font-medium", (pathname.startsWith(item.url) || item.subItems?.some(si => pathname === si.url)) && "font-bold")}>{item.title}</span>
-                        <div className="ml-auto flex items-center gap-2">
-                          {item.badge && (
-                            <Badge variant="destructive" className="px-1.5 h-4 min-w-4 flex items-center justify-center text-[9px] bg-[#E74C3C] border-none">
-                              {item.badge}
-                            </Badge>
-                          )}
-                          <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
-                        </div>
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="animate-in slide-in-from-top-1 duration-200">
-                      <SidebarMenuSub className="border-l border-white/10 ml-4 space-y-1 py-1">
-                        {item.subItems?.map((sub) => (
-                          <SidebarMenuSubItem key={sub.title}>
-                            <SidebarMenuSubButton asChild isActive={pathname === sub.url} className="text-white/70 hover:text-white h-9">
-                              <Link href={sub.url} className="flex items-center gap-2">
-                                <sub.icon className={cn("h-4 w-4 opacity-70", pathname === sub.url && "text-[#1FA67A] opacity-100")} />
-                                <span className={cn(pathname === sub.url && "text-[#1FA67A] font-semibold")}>{sub.title}</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </SidebarMenuItem>
-                </Collapsible>
-              ))}
+              {filteredItems.map((item) => {
+                const isActive = pathname.startsWith(item.url) || item.subItems?.some(si => pathname === si.url)
+                const isOpen = openItem === item.title
+
+                return (
+                  <Collapsible 
+                    key={item.title} 
+                    open={isOpen}
+                    onOpenChange={(open) => {
+                      if (open) setOpenItem(item.title)
+                      else if (openItem === item.title) setOpenItem(null)
+                    }}
+                    className="group/collapsible"
+                  >
+                    <SidebarMenuItem>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton className={cn(
+                          "hover:bg-[#39586D] transition-all py-6 text-white group-data-[state=open]/collapsible:bg-[#39586D]/50",
+                          isActive && "bg-[#39586D] border-l-[3px] border-[#1FA67A]"
+                        )}>
+                          <item.icon className={cn("h-5 w-5", isActive && "text-[#1FA67A]")} />
+                          <span className={cn("text-sm font-medium", isActive && "font-bold")}>{item.title}</span>
+                          <div className="ml-auto flex items-center gap-2">
+                            {item.badge && (
+                              <Badge variant="destructive" className="px-1.5 h-4 min-w-4 flex items-center justify-center text-[9px] bg-[#E74C3C] border-none">
+                                {item.badge}
+                              </Badge>
+                            )}
+                            <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isOpen && "rotate-180")} />
+                          </div>
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="animate-in slide-in-from-top-1 duration-200">
+                        <SidebarMenuSub className="border-l border-white/10 ml-4 space-y-1 py-1">
+                          {item.subItems?.map((sub) => (
+                            <SidebarMenuSubItem key={sub.title}>
+                              <SidebarMenuSubButton asChild isActive={pathname === sub.url} className="text-white/70 hover:text-white h-9">
+                                <Link href={sub.url} className="flex items-center gap-2">
+                                  <sub.icon className={cn("h-4 w-4 opacity-70", pathname === sub.url && "text-[#1FA67A] opacity-100")} />
+                                  <span className={cn(pathname === sub.url && "text-[#1FA67A] font-semibold")}>{sub.title}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </SidebarMenuItem>
+                  </Collapsible>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
