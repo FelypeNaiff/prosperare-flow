@@ -19,7 +19,9 @@ import {
   Calendar,
   CheckCircle2,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Loader2,
+  Plus
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
@@ -31,27 +33,36 @@ import { AccessDataTab } from "@/components/clients/access-data-tab"
 import { ProcurationTab } from "@/components/clients/procuration-tab"
 import { ClientInstallmentsTab } from "@/components/installments/client-installments-tab"
 import { ClientCommunicationTool } from "@/components/clients/client-communication-tool"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { Label } from "@/components/ui/label"
+import { useFirestore, useDoc, useMemoFirebase } from "@/firebase"
+import { doc } from "firebase/firestore"
 
 export default function DetalhesClientePage() {
   const params = useParams()
   const router = useRouter()
+  const firestore = useFirestore()
   const clientId = params.clientId as string
 
-  // Mock de dados para preenchimento da ficha
-  const client = {
-    id: clientId,
-    razaoSocial: "EMPRESA EXEMPLO LTDA",
-    nomeFantasia: "NOME FANTASIA",
-    cnpj: "12.345.678/0001-90",
-    regime: "Simples Nacional",
-    status: "Ativa",
-    email: "contato@exemplo.com.br",
-    telefone: "(96) 98877-6655",
-    cidade: "Macapá",
-    uf: "AP",
-    healthScore: 85,
-    responsavel: "Ricardo Santos"
+  const clientRef = useMemoFirebase(() => clientId ? doc(firestore, "clients", clientId) : null, [firestore, clientId])
+  const { data: client, isLoading } = useDoc(clientRef)
+
+  if (isLoading) {
+    return (
+      <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-[#1FA67A]" />
+        <p className="text-xs font-black uppercase text-[#98A7AA] tracking-widest animate-pulse">Carregando Ficha 360º...</p>
+      </div>
+    )
+  }
+
+  if (!client) {
+    return (
+      <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
+        <AlertTriangle className="h-12 w-12 text-[#E74C3C]" />
+        <h2 className="text-xl font-black text-[#2C4156]">Empresa não localizada</h2>
+        <Button onClick={() => router.back()} variant="outline">Voltar para Clientes</Button>
+      </div>
+    )
   }
 
   return (
@@ -64,15 +75,17 @@ export default function DetalhesClientePage() {
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-black text-[#2C4156]">{client.razaoSocial}</h1>
-              <Badge className="bg-[#7ED6B5] text-[#1FA67A] border-none font-bold text-[10px] uppercase">{client.status}</Badge>
+              <h1 className="text-2xl font-black text-[#2C4156]">{client.corporateName}</h1>
+              <Badge className="bg-[#7ED6B5] text-[#1FA67A] border-none font-bold text-[10px] uppercase">
+                {client.status || 'Ativa'}
+              </Badge>
             </div>
-            <p className="text-sm text-[#98A7AA] font-bold uppercase tracking-widest">{client.cnpj} • {client.regime}</p>
+            <p className="text-sm text-[#98A7AA] font-bold uppercase tracking-widest">{client.cnpj} • {client.taxRegime}</p>
           </div>
         </div>
         <div className="flex gap-2">
           <ClientCommunicationTool 
-            client={{ name: client.razaoSocial, email: client.email, regime: client.regime }}
+            client={{ name: client.corporateName, email: client.email, regime: client.taxRegime }}
             trigger={
               <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] gap-2">
                 <Mail className="h-4 w-4" /> Mensagem IA
@@ -91,17 +104,17 @@ export default function DetalhesClientePage() {
           <CardContent className="p-4 space-y-2">
             <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Saúde Fiscal</p>
             <div className="flex items-end gap-2">
-              <span className="text-3xl font-black text-[#2C4156]">{client.healthScore}%</span>
+              <span className="text-3xl font-black text-[#2C4156]">{client.healthScore || 0}%</span>
               <TrendingUp className="h-5 w-5 text-[#1FA67A] mb-1" />
             </div>
-            <Progress value={client.healthScore} className="h-1.5 bg-[#F7F7F7]" />
+            <Progress value={client.healthScore || 0} className="h-1.5 bg-[#F7F7F7]" />
           </CardContent>
         </Card>
 
         <Card className="border-[#D2D7DB]">
           <CardContent className="p-4 space-y-1">
             <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Responsável</p>
-            <p className="text-lg font-black text-[#2C4156]">{client.responsavel}</p>
+            <p className="text-lg font-black text-[#2C4156]">{client.accountingContactUserId || "Geral"}</p>
             <p className="text-[10px] font-bold text-[#39586D] uppercase">Contador/Gestor</p>
           </CardContent>
         </Card>
@@ -109,8 +122,10 @@ export default function DetalhesClientePage() {
         <Card className="border-[#D2D7DB]">
           <CardContent className="p-4 space-y-1">
             <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Honorário</p>
-            <p className="text-lg font-black text-[#1FA67A]">R$ 1.250,00</p>
-            <p className="text-[10px] font-bold text-[#39586D] uppercase">Vencimento todo dia 10</p>
+            <p className="text-lg font-black text-[#1FA67A]">
+              R$ {(client.honorariumValue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </p>
+            <p className="text-[10px] font-bold text-[#39586D] uppercase">Vencimento todo dia {client.honorariumDueDateDay || 10}</p>
           </CardContent>
         </Card>
 
@@ -125,24 +140,24 @@ export default function DetalhesClientePage() {
 
       {/* Tabs de Gestão */}
       <Tabs defaultValue="dados" className="space-y-6">
-        <div className="bg-white p-1 rounded-xl border shadow-sm inline-flex">
+        <div className="bg-white p-1 rounded-xl border shadow-sm inline-flex overflow-x-auto w-full max-w-full">
           <TabsList className="bg-transparent h-10">
-            <TabsTrigger value="dados" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4">
+            <TabsTrigger value="dados" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4 shrink-0">
               <Building2 className="h-3.5 w-3.5" /> Ficha Cadastral
             </TabsTrigger>
-            <TabsTrigger value="processos" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4">
+            <TabsTrigger value="processos" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4 shrink-0">
               <Activity className="h-3.5 w-3.5" /> Processos
             </TabsTrigger>
-            <TabsTrigger value="certidoes" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4">
+            <TabsTrigger value="certidoes" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4 shrink-0">
               <ShieldCheck className="h-3.5 w-3.5" /> Certidões
             </TabsTrigger>
-            <TabsTrigger value="parcelamentos" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4">
+            <TabsTrigger value="parcelamentos" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4 shrink-0">
               <CreditCard className="h-3.5 w-3.5" /> Parcelamentos
             </TabsTrigger>
-            <TabsTrigger value="acessos" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4">
+            <TabsTrigger value="acessos" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4 shrink-0">
               <Lock className="h-3.5 w-3.5" /> Cofre de Senhas
             </TabsTrigger>
-            <TabsTrigger value="procuracao" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4">
+            <TabsTrigger value="procuracao" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4 shrink-0">
               <FileSignature className="h-3.5 w-3.5" /> Procurações
             </TabsTrigger>
           </TabsList>
@@ -155,16 +170,16 @@ export default function DetalhesClientePage() {
                 <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Dados Gerais</CardTitle>
               </CardHeader>
               <CardContent className="p-6 grid grid-cols-2 gap-6">
-                <InfoItem label="Razão Social" value={client.razaoSocial} />
+                <InfoItem label="Razão Social" value={client.corporateName} />
                 <InfoItem label="CNPJ" value={client.cnpj} />
-                <InfoItem label="Inscrição Estadual" value="ISENTO" />
-                <InfoItem label="Inscrição Municipal" value="22911002" />
-                <InfoItem label="Regime" value={client.regime} />
-                <InfoItem label="Data de Abertura" value="12/05/2015" />
+                <InfoItem label="Inscrição Estadual" value={client.stateRegistration || "ISENTO"} />
+                <InfoItem label="Inscrição Municipal" value={client.cityRegistration || "--"} />
+                <InfoItem label="Regime" value={client.taxRegime} />
+                <InfoItem label="Data de Abertura" value={client.openingDate || "--"} />
                 <div className="col-span-2 space-y-2 border-t pt-4">
                   <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Endereço Completo</Label>
                   <div className="flex items-center gap-2 text-sm font-bold text-[#39586D]">
-                    <MapPin className="h-4 w-4 text-[#1FA67A]" /> {client.cidade} - {client.uf}
+                    <MapPin className="h-4 w-4 text-[#1FA67A]" /> {client.city} - {client.state}
                   </div>
                 </div>
               </CardContent>
@@ -187,7 +202,7 @@ export default function DetalhesClientePage() {
                     <Phone className="h-5 w-5 text-[#1FA67A]" />
                     <div className="flex flex-col">
                       <span className="text-[9px] font-black text-[#98A7AA] uppercase">Telefone / WhatsApp</span>
-                      <span className="text-xs font-bold text-[#2C4156]">{client.telefone}</span>
+                      <span className="text-xs font-bold text-[#2C4156]">{client.phone}</span>
                     </div>
                   </div>
                 </div>
@@ -204,7 +219,7 @@ export default function DetalhesClientePage() {
             <CardHeader className="flex flex-row items-center justify-between border-b bg-[#F7F7F7]/50">
               <div>
                 <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Obrigações e Tarefas do Cliente</CardTitle>
-                <CardDescription className="text-xs font-bold text-[#98A7AA]">Fluxo de trabalho específico para {client.nomeFantasia}.</CardDescription>
+                <CardDescription className="text-xs font-bold text-[#98A7AA]">Fluxo de trabalho específico para {client.corporateName}.</CardDescription>
               </div>
               <Button className="bg-[#1FA67A] gap-2 h-8 text-xs font-bold">
                 <Plus className="h-3.5 w-3.5" /> Nova Tarefa
@@ -244,7 +259,7 @@ function InfoItem({ label, value }: { label: string, value: string }) {
   return (
     <div className="space-y-1">
       <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">{label}</Label>
-      <p className="text-sm font-bold text-[#2C4156]">{value}</p>
+      <p className="text-sm font-bold text-[#2C4156]">{value || '--'}</p>
     </div>
   )
 }

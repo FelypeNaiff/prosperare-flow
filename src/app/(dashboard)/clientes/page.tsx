@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -47,7 +48,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { 
   useFirestore, 
   useCollection, 
@@ -59,6 +60,7 @@ import { collection, doc } from "firebase/firestore"
 
 export default function ClientesPage() {
   const firestore = useFirestore()
+  const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
   const [isNewClientOpen, setIsNewClientOpen] = useState(false)
   const [isLoadingCnpj, setIsLoadingCnpj] = useState(false)
@@ -240,10 +242,11 @@ export default function ClientesPage() {
                           <Button variant="ghost" size="icon" className="text-[#98A7AA]"><MoreHorizontal className="h-4 w-4" /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/clientes/${client.id}`} className="flex items-center gap-2 cursor-pointer text-xs font-bold">
-                              <Eye className="h-3 w-3 text-[#1FA67A]" /> Ver Ficha 360º
-                            </Link>
+                          <DropdownMenuItem 
+                            className="flex items-center gap-2 cursor-pointer text-xs font-bold"
+                            onSelect={() => router.push(`/clientes/${client.id}`)}
+                          >
+                            <Eye className="h-3 w-3 text-[#1FA67A]" /> Ver Ficha 360º
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
