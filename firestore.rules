@@ -84,6 +84,10 @@ service cloud.firestore {
       allow read, write: if isSignedIn();
     }
 
+    match /contracts/{id} {
+      allow read, write: if isSignedIn();
+    }
+
     match /irpf_declarations/{id} {
       allow read, write: if isSignedIn();
     }
