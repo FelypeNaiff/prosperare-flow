@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { 
   Save, 
   Plus, 
@@ -37,7 +38,9 @@ import {
   X,
   FileText,
   CalendarClock,
-  CheckCircle2
+  CheckCircle2,
+  Zap,
+  Repeat
 } from "lucide-react"
 import { useFirestore, setDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase"
 import { doc, collection } from "firebase/firestore"
@@ -188,27 +191,73 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
 
           <ScrollArea className="flex-1">
             <div className="p-8">
-              <TabsContent value="geral" className="m-0 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Nome do Processo</Label>
-                    <Input value={formData.nome} onChange={(e) => setFormData({...formData, nome: e.target.value.toUpperCase()})} className="font-bold border-[#D2D7DB]" placeholder="Ex: PGDAS MENSAL" />
+              <TabsContent value="geral" className="m-0 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Nome do Processo</Label>
+                      <Input value={formData.nome} onChange={(e) => setFormData({...formData, nome: e.target.value.toUpperCase()})} className="font-bold border-[#D2D7DB]" placeholder="Ex: PGDAS MENSAL" />
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Tipo de Fluxo</Label>
+                      <RadioGroup 
+                        value={formData.tipo} 
+                        onValueChange={(v) => setFormData({...formData, tipo: v})}
+                        className="flex gap-4"
+                      >
+                        <div className={cn(
+                          "flex-1 flex items-center justify-between p-4 rounded-xl border-2 transition-all cursor-pointer",
+                          formData.tipo === 'recorrente' ? "border-[#1FA67A] bg-[#1FA67A]/5" : "border-[#D2D7DB] bg-white"
+                        )} onClick={() => setFormData({...formData, tipo: 'recorrente'})}>
+                          <div className="flex items-center gap-3">
+                            <div className={cn("p-2 rounded-lg", formData.tipo === 'recorrente' ? "bg-[#1FA67A] text-white" : "bg-[#F7F7F7] text-[#98A7AA]")}>
+                              <Repeat className="h-4 w-4" />
+                            </div>
+                            <div className="flex flex-col text-left">
+                              <span className="text-xs font-black text-[#2C4156] uppercase">Recorrente</span>
+                              <span className="text-[9px] font-bold text-[#98A7AA]">Geração Automática</span>
+                            </div>
+                          </div>
+                          <RadioGroupItem value="recorrente" id="tipo-rec" className="sr-only" />
+                        </div>
+
+                        <div className={cn(
+                          "flex-1 flex items-center justify-between p-4 rounded-xl border-2 transition-all cursor-pointer",
+                          formData.tipo === 'esporadico' ? "border-[#2574A9] bg-[#2574A9]/5" : "border-[#D2D7DB] bg-white"
+                        )} onClick={() => setFormData({...formData, tipo: 'esporadico'})}>
+                          <div className="flex items-center gap-3">
+                            <div className={cn("p-2 rounded-lg", formData.tipo === 'esporadico' ? "bg-[#2574A9] text-white" : "bg-[#F7F7F7] text-[#98A7AA]")}>
+                              <Zap className="h-4 w-4" />
+                            </div>
+                            <div className="flex flex-col text-left">
+                              <span className="text-xs font-black text-[#2C4156] uppercase">Esporádico</span>
+                              <span className="text-[9px] font-bold text-[#98A7AA]">Geração Manual</span>
+                            </div>
+                          </div>
+                          <RadioGroupItem value="esporadico" id="tipo-esp" className="sr-only" />
+                        </div>
+                      </RadioGroup>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Departamento Responsável</Label>
-                    <Select value={formData.departamento} onValueChange={(v) => setFormData({...formData, departamento: v})}>
-                      <SelectTrigger className="border-[#D2D7DB]"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Fiscal">Fiscal</SelectItem>
-                        <SelectItem value="Pessoal">Departamento Pessoal</SelectItem>
-                        <SelectItem value="Contábil">Contábil</SelectItem>
-                        <SelectItem value="Legal">Legalização</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="md:col-span-2 space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Descrição do Escopo</Label>
-                    <Textarea value={formData.descricao} onChange={(e) => setFormData({...formData, descricao: e.target.value})} className="h-32 border-[#D2D7DB]" placeholder="Descreva os detalhes deste processo para a equipe..." />
+
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Departamento Responsável</Label>
+                      <Select value={formData.departamento} onValueChange={(v) => setFormData({...formData, departamento: v})}>
+                        <SelectTrigger className="border-[#D2D7DB]"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Fiscal">Fiscal</SelectItem>
+                          <SelectItem value="Pessoal">Departamento Pessoal</SelectItem>
+                          <SelectItem value="Contábil">Contábil</SelectItem>
+                          <SelectItem value="Legal">Legalização</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Descrição do Escopo</Label>
+                      <Textarea value={formData.descricao} onChange={(e) => setFormData({...formData, descricao: e.target.value})} className="h-24 border-[#D2D7DB]" placeholder="Descreva os detalhes deste processo para a equipe..." />
+                    </div>
                   </div>
                 </div>
               </TabsContent>
@@ -254,7 +303,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                       >
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8 rounded-lg">
-                            <AvatarFallback className="bg-[#2C4156] text-white text-[10px] font-black">{client.corporateName?.substr(0,2)}</AvatarFallback>
+                            <AvatarFallback className="bg-[#2C4156] text-white text-[10px] font-black">{client.corporateName?.substr(0,2).toUpperCase()}</AvatarFallback>
                           </Avatar>
                           <div className="flex flex-col">
                             <span className="text-xs font-black text-[#2C4156] uppercase leading-none">{client.corporateName}</span>
@@ -356,48 +405,61 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
               </TabsContent>
 
               <TabsContent value="recorrencia" className="m-0 space-y-6">
-                <div className="bg-[#2C4156] text-white p-8 rounded-3xl space-y-8 relative overflow-hidden shadow-2xl">
-                  <div className="absolute top-[-20px] right-[-20px] w-48 h-48 bg-[#1FA67A]/20 rounded-full blur-3xl" />
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xl font-black uppercase tracking-tight">Status do Robô de Geração</h4>
-                      <p className="text-white/60 font-bold text-xs uppercase tracking-widest">O sistema criará os processos automaticamente.</p>
+                {formData.tipo === 'recorrente' ? (
+                  <div className="bg-[#2C4156] text-white p-8 rounded-3xl space-y-8 relative overflow-hidden shadow-2xl">
+                    <div className="absolute top-[-20px] right-[-20px] w-48 h-48 bg-[#1FA67A]/20 rounded-full blur-3xl" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-xl font-black uppercase tracking-tight">Status do Robô de Geração</h4>
+                        <p className="text-white/60 font-bold text-xs uppercase tracking-widest">O sistema criará os processos automaticamente.</p>
+                      </div>
+                      <Checkbox className="h-8 w-8 rounded-xl border-white/20 data-[state=checked]:bg-[#1FA67A] data-[state=checked]:border-[#1FA67A]" checked={formData.ativo} onCheckedChange={(v) => setFormData({...formData, ativo: !!v})} />
                     </div>
-                    <Checkbox className="h-8 w-8 rounded-xl border-white/20 data-[state=checked]:bg-[#1FA67A] data-[state=checked]:border-[#1FA67A]" checked={formData.ativo} onCheckedChange={(v) => setFormData({...formData, ativo: !!v})} />
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-white/10">
-                    <div className="space-y-3">
-                      <Label className="text-[10px] font-black uppercase text-white/60 tracking-widest flex items-center gap-2">
-                        <RefreshCcw className="h-3 w-3 text-[#1FA67A]" /> Frequência de Geração
-                      </Label>
-                      <Select value={formData.recorrencia} onValueChange={(v) => setFormData({...formData, recorrencia: v})}>
-                        <SelectTrigger className="bg-white/5 border-white/10 h-12 font-bold text-white"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="mensal">Mensal</SelectItem>
-                          <SelectItem value="bimestral">Bimestral</SelectItem>
-                          <SelectItem value="trimestral">Trimestral</SelectItem>
-                          <SelectItem value="semestral">Semestral</SelectItem>
-                          <SelectItem value="anual">Anual</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-white/10">
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase text-white/60 tracking-widest flex items-center gap-2">
+                          <RefreshCcw className="h-3 w-3 text-[#1FA67A]" /> Frequência de Geração
+                        </Label>
+                        <Select value={formData.recorrencia} onValueChange={(v) => setFormData({...formData, recorrencia: v})}>
+                          <SelectTrigger className="bg-white/5 border-white/10 h-12 font-bold text-white"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="mensal">Mensal</SelectItem>
+                            <SelectItem value="bimestral">Bimestral</SelectItem>
+                            <SelectItem value="trimestral">Trimestral</SelectItem>
+                            <SelectItem value="semestral">Semestral</SelectItem>
+                            <SelectItem value="anual">Anual</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase text-white/60 tracking-widest flex items-center gap-2">
+                          <Clock className="h-3 w-3 text-[#1FA67A]" /> Dia do Mês para Criar
+                        </Label>
+                        <Input type="number" min="1" max="31" className="bg-white/5 border-white/10 h-12 font-black text-xl text-center text-white" value={formData.dataGeracaoRecorrencia} onChange={(e) => setFormData({...formData, dataGeracaoRecorrencia: Number(e.target.value)})} />
+                      </div>
                     </div>
-                    <div className="space-y-3">
-                      <Label className="text-[10px] font-black uppercase text-white/60 tracking-widest flex items-center gap-2">
-                        <Clock className="h-3 w-3 text-[#1FA67A]" /> Dia do Mês para Criar
-                      </Label>
-                      <Input type="number" min="1" max="31" className="bg-white/5 border-white/10 h-12 font-black text-xl text-center text-white" value={formData.dataGeracaoRecorrencia} onChange={(e) => setFormData({...formData, dataGeracaoRecorrencia: Number(e.target.value)})} />
-                    </div>
-                  </div>
 
-                  <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center gap-4">
-                    <CalendarClock className="h-8 w-8 text-[#1FA67A]" />
-                    <div>
-                      <p className="text-[10px] font-black uppercase text-white/40 tracking-widest">Previsão</p>
-                      <p className="text-sm font-black text-white">Próxima geração: {formData.dataGeracaoRecorrencia}/{new Date().getMonth() + 2}/{new Date().getFullYear()}</p>
+                    <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center gap-4">
+                      <CalendarClock className="h-8 w-8 text-[#1FA67A]" />
+                      <div>
+                        <p className="text-[10px] font-black uppercase text-white/40 tracking-widest">Previsão</p>
+                        <p className="text-sm font-black text-white">Próxima geração: {formData.dataGeracaoRecorrencia}/{new Date().getMonth() + 2}/{new Date().getFullYear()}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed rounded-3xl text-center p-12 space-y-4">
+                    <Zap className="h-12 w-12 text-[#98A7AA] opacity-20" />
+                    <div className="space-y-1">
+                      <h4 className="text-lg font-black text-[#2C4156] uppercase">Modelo Esporádico</h4>
+                      <p className="text-sm text-[#98A7AA] font-bold max-w-sm">Este fluxo não possui recorrência automática. Ele deve ser instanciado manualmente quando necessário.</p>
+                    </div>
+                    <Button variant="outline" className="border-[#D2D7DB] font-black text-[10px] uppercase" onClick={() => setFormData({...formData, tipo: 'recorrente'})}>
+                      <RefreshCcw className="h-3 w-3 mr-2" /> Mudar para Recorrente
+                    </Button>
+                  </div>
+                )}
               </TabsContent>
             </div>
           </ScrollArea>
