@@ -15,27 +15,15 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { 
-  MessageSquare, 
-  History as HistoryIcon, 
-  Info,
   Plus,
-  ArrowRightLeft,
   CheckCircle2,
-  FileText,
-  Upload,
-  Trash2,
   Copy,
   Eye,
   EyeOff,
-  Settings2,
   Tag,
-  Calendar,
   UserCircle,
-  Paperclip,
   X,
-  Search,
   Check,
-  Edit2,
   DollarSign
 } from "lucide-react"
 import { Label } from "@/components/ui/label"
@@ -54,25 +42,6 @@ import { Switch } from "@/components/ui/switch"
 import { useFirestore, updateDocumentNonBlocking } from "@/firebase"
 import { doc } from "firebase/firestore"
 
-const CHECKLIST = [
-  { group: 'Documentos Obrigatórios', items: [
-    'Informe de rendimentos do empregador',
-    'Informe de rendimentos bancários',
-    'Comprovante de CPF',
-    'Comprovante de residência',
-    'Título de eleitor',
-  ]},
-  { group: 'Deduções', items: [
-    'Recibos médicos / odontológicos',
-    'Recibos de plano de saúde',
-    'Comprovante de dependentes',
-  ]},
-  { group: 'Bens e Direitos', items: [
-    'Escritura / contrato de imóveis',
-    'Documentação de veículos (CRLV)',
-  ]}
-]
-
 const AVAILABLE_TAGS = [
   { name: 'AGUARDANDO RETORNO...', color: 'bg-[#F2B705] text-white' },
   { name: 'MALHA FISCAL', color: 'bg-[#E74C3C] text-white' },
@@ -90,12 +59,18 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
   const [activeTags, setActiveTags] = useState<string[]>([])
   const [serviceValue, setServiceValue] = useState(0)
   const [isPaid, setIsPaid] = useState(false)
+  const [localData, setLocalData] = useState({ name: "", cpf: "", govPass: "" })
 
   useEffect(() => {
     if (declaration) {
       setActiveTags(declaration.tags || [])
       setServiceValue(declaration.value || 0)
       setIsPaid(declaration.isPaid || false)
+      setLocalData({
+        name: declaration.name || "",
+        cpf: declaration.cpf || "",
+        govPass: declaration.govPass || ""
+      })
     }
   }, [declaration, open])
 
@@ -134,19 +109,32 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                   <div className="w-8 h-8 border-2 border-[#172B4D] rounded-full flex items-center justify-center shrink-0">
                     <UserCircle className="h-5 w-5 text-[#172B4D]" />
                   </div>
-                  <SheetTitle className="text-2xl font-black text-[#172B4D] leading-tight">{declaration.name}</SheetTitle>
+                  <SheetTitle className="text-2xl font-black text-[#172B4D] leading-tight">Ficha do Contribuinte</SheetTitle>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="h-8 w-8 rounded-full">
                   <X className="h-4 w-4" />
                 </Button>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <HeaderAction icon={Plus} label="Adicionar" />
-                <HeaderAction icon={Calendar} label="Datas" />
-                <HeaderAction icon={CheckCircle2} label="Checklist" />
-                <HeaderAction icon={UserCircle} label="Membros" />
-                <HeaderAction icon={Paperclip} label="Anexo" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black text-[#5E6C84] uppercase tracking-wider">Nome Completo</Label>
+                  <Input 
+                    value={localData.name} 
+                    onChange={(e) => setLocalData({...localData, name: e.target.value})}
+                    onBlur={() => handleUpdate({ name: localData.name })}
+                    className="border-[#D2D7DB] font-bold text-[#172B4D]"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black text-[#5E6C84] uppercase tracking-wider">CPF</Label>
+                  <Input 
+                    value={localData.cpf} 
+                    onChange={(e) => setLocalData({...localData, cpf: e.target.value})}
+                    onBlur={() => handleUpdate({ cpf: localData.cpf })}
+                    className="border-[#D2D7DB] font-mono"
+                  />
+                </div>
               </div>
             </div>
 
@@ -186,6 +174,7 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                             <Checkbox 
                               checked={activeTags.includes(tag.name)} 
                               onCheckedChange={() => toggleTag(tag.name)}
+                              id={`tag-${tag.name}`}
                               className="h-4 w-4 rounded border-[#D2D7DB]"
                             />
                             <button
@@ -207,21 +196,15 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
               </div>
 
               <div className="space-y-3">
-                <Label className="text-[11px] font-black text-[#5E6C84] uppercase tracking-wider">Acesso GOV.BR</Label>
+                <Label className="text-[11px] font-black text-[#5E6C84] uppercase tracking-wider">Senha GOV.BR</Label>
                 <div className="flex gap-2">
                   <div className="flex-1 bg-[#F4F5F7] border border-[#D2D7DB] rounded p-2 flex items-center justify-between">
-                    <span className="text-xs font-mono font-bold truncate pr-2">{declaration.cpf}</span>
-                    <button onClick={() => copyToClipboard(declaration.cpf, "CPF")} className="text-[#5E6C84] hover:text-[#172B4D] shrink-0">
-                      <Copy className="h-3 w-3" />
-                    </button>
-                  </div>
-                  <div className="flex-1 bg-[#F4F5F7] border border-[#D2D7DB] rounded p-2 flex items-center justify-between">
-                    <span className="text-xs font-mono font-bold truncate pr-2">{showGovPass ? declaration.govPass : '••••••••'}</span>
+                    <span className="text-xs font-mono font-bold truncate pr-2">{showGovPass ? localData.govPass : '••••••••'}</span>
                     <div className="flex gap-2 shrink-0">
                       <button onClick={() => setShowGovPass(!showGovPass)} className="text-[#5E6C84]">
                         {showGovPass ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                       </button>
-                      <button onClick={() => copyToClipboard(declaration.govPass, "Senha")} className="text-[#5E6C84]">
+                      <button onClick={() => copyToClipboard(localData.govPass, "Senha")} className="text-[#5E6C84]">
                         <Copy className="h-3 w-3" />
                       </button>
                     </div>
@@ -265,53 +248,27 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
               </div>
             </div>
 
-            <Tabs defaultValue="checklist" className="space-y-6">
-              <TabsList className="bg-[#EBEDF0] h-10 p-1 gap-1">
-                <TabsTrigger value="checklist" className="data-[state=active]:bg-white font-bold text-xs uppercase px-6">Checklist</TabsTrigger>
-                <TabsTrigger value="historico" className="data-[state=active]:bg-white font-bold text-xs uppercase px-6">Notas</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="checklist" className="space-y-10 mt-6">
-                <div className="space-y-3">
-                  <div className="flex justify-between text-[10px] font-black text-[#5E6C84] uppercase tracking-widest">
-                    <span>Progresso de Coleta</span>
-                    <span>{declaration.progress}%</span>
-                  </div>
-                  <Progress value={declaration.progress} className="h-2 bg-[#F4F5F7]" />
+            <div className="space-y-4">
+              <h4 className="text-[11px] font-black text-[#172B4D] uppercase tracking-widest flex items-center gap-2">
+                <div className="w-1 h-4 bg-[#1FA67A] rounded-full" />
+                Anotações e Progresso
+              </h4>
+              <div className="bg-[#F4F5F7] p-4 rounded-xl border border-[#D2D7DB] space-y-3">
+                <Textarea 
+                  placeholder="Escreva aqui detalhes sobre a movimentação, pendências ou dúvidas com o cliente..." 
+                  className="bg-white border-[#D2D7DB] text-sm h-32"
+                  value={declaration.notes || ""}
+                  onChange={(e) => handleUpdate({ notes: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-[10px] font-black text-[#5E6C84] uppercase tracking-widest">
+                  <span>Progresso Geral</span>
+                  <span>{declaration.progress || 0}%</span>
                 </div>
-
-                {CHECKLIST.map((group) => (
-                  <div key={group.group} className="space-y-4">
-                    <h4 className="text-[11px] font-black text-[#172B4D] uppercase tracking-widest flex items-center gap-2">
-                      <div className="w-1 h-4 bg-[#1FA67A] rounded-full" />
-                      {group.group}
-                    </h4>
-                    <div className="space-y-2">
-                      {group.items.map((item, i) => (
-                        <div key={i} className="flex items-start gap-3 p-3 rounded-lg hover:bg-[#F4F5F7] transition-colors group">
-                          <Checkbox id={`${group.group}-${i}`} className="mt-0.5 h-4 w-4 border-[#D2D7DB]" />
-                          <Label htmlFor={`${group.group}-${i}`} className="text-sm font-medium text-[#172B4D] cursor-pointer">
-                            {item}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </TabsContent>
-
-              <TabsContent value="historico" className="space-y-8 mt-6">
-                <div className="bg-[#F4F5F7] p-4 rounded-xl border border-[#D2D7DB] space-y-3">
-                  <Label className="text-[11px] font-black text-[#172B4D] uppercase tracking-widest">Anotações do Contribuinte</Label>
-                  <Textarea 
-                    placeholder="Escreva aqui detalhes sobre a movimentação, pendências ou dúvidas com o cliente..." 
-                    className="bg-white border-[#D2D7DB] text-sm h-32"
-                    value={declaration.notes || ""}
-                    onChange={(e) => handleUpdate({ notes: e.target.value })}
-                  />
-                </div>
-              </TabsContent>
-            </Tabs>
+                <Progress value={declaration.progress || 0} className="h-2 bg-[#F4F5F7]" />
+              </div>
+            </div>
           </div>
         </ScrollArea>
 
@@ -333,13 +290,5 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
         </div>
       </SheetContent>
     </Sheet>
-  )
-}
-
-function HeaderAction({ icon: Icon, label }: any) {
-  return (
-    <Button variant="secondary" size="sm" className="bg-[#EBEDF0] hover:bg-[#D2D7DB] text-[#172B4D] font-bold text-xs h-8 gap-2 px-3 border-none shadow-sm">
-      <Icon className="h-3.5 w-3.5" /> {label}
-    </Button>
   )
 }
