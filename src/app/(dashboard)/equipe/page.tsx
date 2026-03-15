@@ -56,6 +56,7 @@ import {
 } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
 
 const DEPARTMENTS_LIST = [
   "Fiscal", "Pessoal", "Contábil", "Financeiro", "Comercial", "Administrativo"
