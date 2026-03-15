@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore } from 'firebase/firestore';
+import { Firestore, doc, setDoc } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { auth as authInstance, firestore as firestoreInstance, firebaseApp as appInstance } from './init';
 
@@ -37,7 +37,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   });
 
   useEffect(() => {
-    // Carregar colaborador persistido
+    // 1. Carregar colaborador persistido do localStorage (Identidade Operacional)
     const saved = localStorage.getItem('prosperare_selected_user');
     if (saved) {
       try {
@@ -48,15 +48,46 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       }
     }
 
+    // 2. Ouvinte de Autenticação (Acesso Mestre)
     const unsubscribeAuth = onAuthStateChanged(authInstance, (firebaseUser) => {
-      setState(prev => ({
-        ...prev,
-        user: firebaseUser,
-        userData: firebaseUser ? { email: firebaseUser.email, uid: firebaseUser.uid } : null,
-        isUserLoading: false,
-        isAuthChecking: false,
-        userLoaded: true,
-      }));
+      if (firebaseUser) {
+        // Provisionamento automático para administradores semente
+        const seedAdmins = ['pscsucesso@gmail.com', 'felypenaiff01@gmail.com', 'thalyssonluiz@gmail.com'];
+        if (seedAdmins.includes(firebaseUser.email || "")) {
+          const name = firebaseUser.email?.includes('felype') ? 'FELYPE NAIFF' : 
+                       firebaseUser.email?.includes('thalysson') ? 'THALYSSON LUIZ' : 'ADMINISTRADOR GERAL';
+          
+          const userRef = doc(firestoreInstance, "users", firebaseUser.uid);
+          setDoc(userRef, {
+            id: firebaseUser.uid,
+            fullName: name,
+            email: firebaseUser.email,
+            profile: 'ADMINISTRADOR',
+            status: 'ATIVO',
+            createdAt: new Date().toISOString()
+          }, { merge: true });
+        }
+
+        setState(prev => ({
+          ...prev,
+          user: firebaseUser,
+          userData: { email: firebaseUser.email, uid: firebaseUser.uid },
+          isUserLoading: false,
+          isAuthChecking: false,
+          userLoaded: true,
+        }));
+      } else {
+        setState(prev => ({
+          ...prev,
+          user: null,
+          userData: null,
+          selectedUser: null,
+          isUserLoading: false,
+          isAuthChecking: false,
+          userLoaded: true,
+        }));
+        localStorage.removeItem('prosperare_selected_user');
+      }
     });
 
     return () => unsubscribeAuth();

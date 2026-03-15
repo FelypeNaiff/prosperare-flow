@@ -36,7 +36,11 @@ export default function LoginPage() {
       router.push("/escolha-usuario")
     } catch (error: any) {
       setIsLoggingIn(false)
-      toast({ variant: "destructive", title: "Falha no acesso", description: "Senha mestre incorreta ou erro de conexão." })
+      toast({ 
+        variant: "destructive", 
+        title: "Acesso Negado", 
+        description: "Senha incorreta ou erro de conexão. Tente novamente." 
+      })
     }
   }
 
@@ -59,7 +63,7 @@ export default function LoginPage() {
           <h1 className="text-3xl font-black tracking-tighter text-[#2C4156] uppercase">
             PROSPERARE <span className="text-[#1FA67A]">FLOW</span>
           </h1>
-          <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.3em]">Sistema de Gestão Contábil</p>
+          <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.3em]">Ambiente Seguro de Acesso</p>
         </div>
 
         <Card className="border-none shadow-2xl overflow-hidden bg-white rounded-3xl">
@@ -67,7 +71,7 @@ export default function LoginPage() {
             <Alert className="bg-[#7ED6B5]/20 border-none rounded-none p-4 flex items-start gap-3">
               <ShieldCheck className="h-5 w-5 text-[#1FA67A] shrink-0 mt-0.5" />
               <AlertDescription className="text-[11px] font-bold text-[#1FA67A] leading-tight uppercase">
-                Acesso Mestre: Entre com a conta principal do escritório para prosseguir.
+                Acesso Mestre: Entre com a conta administrativa do escritório.
               </AlertDescription>
             </Alert>
           </CardHeader>
@@ -88,12 +92,12 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Senha Mestre</Label>
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Senha de Acesso</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-[#98A7AA]" />
                   <Input 
                     type={showPassword ? "text" : "password"}
-                    placeholder="Digite a senha mestre"
+                    placeholder="Digite a senha PSC..."
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10 h-12 bg-[#F7F7F7] border-none font-bold text-[#2C4156] focus-visible:ring-[#1FA67A]"
@@ -117,7 +121,7 @@ export default function LoginPage() {
                 {isLoggingIn ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  "Liberar Acesso Team"
+                  "Entrar no Sistema"
                 )}
               </Button>
             </form>
@@ -131,7 +135,7 @@ export default function LoginPage() {
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-white uppercase leading-none mb-1">Suporte Técnico</span>
-              <span className="text-[9px] font-bold text-white/60 uppercase tracking-tighter">Central de Ajuda Prosperare</span>
+              <span className="text-[9px] font-bold text-white/60 uppercase tracking-tighter">Central Prosperare</span>
             </div>
           </div>
           <Button variant="ghost" className="text-[10px] font-black text-[#1FA67A] uppercase h-8 hover:bg-white/5">

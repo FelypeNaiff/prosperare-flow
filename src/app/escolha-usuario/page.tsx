@@ -4,12 +4,11 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { initiateLogout } from "@/firebase/non-blocking-login"
-import { TrendingUp, Plus, LogOut, Loader2, ShieldCheck, Lock, User as UserIcon } from "lucide-react"
+import { TrendingUp, LogOut, Loader2, ShieldCheck, Lock, User as UserIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
-import { collection } from "firebase/firestore"
+import { collection, query, orderBy } from "firebase/firestore"
 import {
   Dialog,
   DialogContent,
@@ -31,8 +30,11 @@ export default function EscolhaUsuarioPage() {
   const [pin, setPin] = useState("")
   const [isPinOpen, setIsPinOpen] = useState(false)
 
-  // Busca colaboradores reais cadastrados no Firestore
-  const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
+  // Busca colaboradores reais cadastrados no Firestore para compor a lista de perfis
+  const usersQuery = useMemoFirebase(() => 
+    query(collection(firestore, "users"), orderBy("fullName", "asc")), 
+    [firestore]
+  )
   const { data: team = [], isLoading } = useCollection(usersQuery)
 
   useEffect(() => {
@@ -47,13 +49,13 @@ export default function EscolhaUsuarioPage() {
   }
 
   const handleVerifyPin = () => {
-    // PIN padrão conforme solicitado: 1234
+    // PIN padrão para qualquer colaborador: 1234
     if (pin === "1234") {
       setSelectedUser(selectedCollab)
       toast({ title: "Identidade Confirmada!", description: `Bem-vindo, ${selectedCollab.fullName}.` })
       router.push("/dashboard")
     } else {
-      toast({ variant: "destructive", title: "Senha Incorreta", description: "O PIN padrão de acesso é 1234." })
+      toast({ variant: "destructive", title: "PIN Incorreto", description: "O código padrão de acesso é 1234." })
       setPin("")
     }
   }
@@ -73,6 +75,7 @@ export default function EscolhaUsuarioPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#2C4156] text-white p-4 overflow-hidden relative">
+      {/* Background Decorativo */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-10">
         <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#1FA67A] rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#2574A9] rounded-full blur-[120px]" />
@@ -84,16 +87,16 @@ export default function EscolhaUsuarioPage() {
             <TrendingUp className="h-8 w-8 text-[#1FA67A]" />
           </div>
           <h1 className="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none">
-            Quem está <span className="text-[#1FA67A]">operando hoje?</span>
+            Quem está <span className="text-[#1FA67A]">operando agora?</span>
           </h1>
-          <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Selecione sua identidade Prosperare Flow</p>
+          <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Selecione sua identidade operacional</p>
         </div>
 
         <div className="flex flex-wrap justify-center gap-8 md:gap-12">
           {isLoading ? (
             <div className="py-20 flex flex-col items-center gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
-              <p className="text-[10px] font-black uppercase text-white/40">Carregando Equipe...</p>
+              <p className="text-[10px] font-black uppercase text-white/40">Carregando Identidades...</p>
             </div>
           ) : team && team.length > 0 ? (
             team.map((member) => (
@@ -122,8 +125,8 @@ export default function EscolhaUsuarioPage() {
             ))
           ) : (
             <div className="text-center py-12 space-y-4 opacity-40">
-              <UserIcon className="h-12 w-12 mx-auto" />
-              <p className="text-xs font-black uppercase tracking-widest">Nenhum colaborador cadastrado no banco.</p>
+              <UserIcon className="h-12 w-12 mx-auto text-[#98A7AA]" />
+              <p className="text-xs font-black uppercase tracking-widest text-[#98A7AA]">Nenhuma identidade cadastrada.</p>
             </div>
           )}
         </div>
@@ -139,7 +142,7 @@ export default function EscolhaUsuarioPage() {
           
           <div className="flex items-center gap-2 text-[9px] font-bold text-white/20 uppercase tracking-[0.3em]">
             <ShieldCheck className="h-3 w-3" />
-            Ambiente Seguro Prosperare
+            Ambiente Seguro Prosperare Cloud
           </div>
         </div>
       </div>
@@ -152,7 +155,7 @@ export default function EscolhaUsuarioPage() {
             </div>
             <div className="space-y-1">
               <h3 className="text-xl font-black text-[#2C4156] uppercase leading-tight">Olá, {selectedCollab?.fullName?.split(' ')[0]}</h3>
-              <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Digite sua senha de acesso</p>
+              <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Confirme seu PIN de 4 dígitos</p>
             </div>
             <Input 
               type="password" 
@@ -164,7 +167,7 @@ export default function EscolhaUsuarioPage() {
               autoFocus
               onKeyDown={(e) => e.key === 'Enter' && handleVerifyPin()}
             />
-            <Button className="w-full h-14 bg-[#1FA67A] font-black uppercase text-xs tracking-widest" onClick={handleVerifyPin}>
+            <Button className="w-full h-14 bg-[#1FA67A] font-black uppercase text-xs tracking-widest shadow-lg" onClick={handleVerifyPin}>
               Confirmar Identidade
             </Button>
           </div>

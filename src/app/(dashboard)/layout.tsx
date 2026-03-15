@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/layout/app-sidebar"
-import { User as UserIcon, ChevronRight, Home, Loader2 } from "lucide-react"
+import { ChevronRight, Home, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { 
@@ -21,7 +21,6 @@ import { NotificationBell } from "@/components/collaboration/notification-bell"
 import { GlobalSearch } from "@/components/layout/global-search"
 import { QuickAccess } from "@/components/layout/quick-access"
 import { usePathname, useRouter } from "next/navigation"
-import Link from "next/link"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, selectedUser, isUserLoading, isAuthChecking, userLoaded } = useUser()
@@ -55,6 +54,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     )
   }
 
+  // Se estiver autenticado mas sem perfil selecionado, a verificação acima redirecionará.
+  // Evitamos renderizar o dashboard sem uma identidade operacional.
   if (!user || !selectedUser) return null
 
   const pathSegments = pathname.split('/').filter(Boolean)
@@ -86,8 +87,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full border-2 border-[#D2D7DB] overflow-hidden">
-                  <Avatar className="h-full w-full">
+                <Button variant="ghost" size="icon" className="rounded-full border-2 border-[#D2D7DB] overflow-hidden p-0 h-10 w-10">
+                  <Avatar className="h-full w-full rounded-none">
                     <AvatarFallback className="bg-[#2C4156] text-white text-xs font-black">
                       {selectedUser.fullName?.charAt(0)}
                     </AvatarFallback>
@@ -100,12 +101,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <p className="text-[10px] text-[#98A7AA] uppercase font-black">{selectedUser.profile}</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push("/escolha-usuario")} className="font-bold text-[#2574A9]">
+                <DropdownMenuItem onClick={() => router.push("/escolha-usuario")} className="font-bold text-[#2574A9] cursor-pointer">
                   Trocar de Usuário
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => initiateLogout(auth)} className="text-[#E74C3C] font-bold">
-                  Sair do Escritório
+                <DropdownMenuItem onClick={() => initiateLogout(auth)} className="text-[#E74C3C] font-bold cursor-pointer">
+                  Encerrar Sessão Mestre
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -119,7 +120,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <footer className="h-12 border-t bg-white flex items-center justify-between px-8 text-[11px] text-[#98A7AA] font-medium">
           <span>Prosperare Flow © 2026 — Gestão Digital Integrada</span>
           <div className="flex gap-4">
-            <span className="text-[9px] font-black uppercase text-[#1FA67A]">Sessão: {selectedUser.fullName}</span>
+            <span className="text-[9px] font-black uppercase text-[#1FA67A]">Operador: {selectedUser.fullName}</span>
           </div>
         </footer>
         <ChatWidget />
