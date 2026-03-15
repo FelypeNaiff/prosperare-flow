@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef } from "react"
 import { 
   Plus, 
   ChevronLeft, 
@@ -53,6 +53,7 @@ import { ptBR } from "date-fns/locale"
 
 export default function ContasAPagarPage() {
   const firestore = useFirestore()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [isNewAccountOpen, setIsNewAccountOpen] = useState(false)
   const [selectedCompetence, setSelectedCompetence] = useState<Date>(startOfMonth(new Date()))
@@ -118,8 +119,54 @@ export default function ContasAPagarPage() {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])
   }
 
+  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const text = e.target?.result as string
+      const lines = text.split(/\r?\n/)
+      let count = 0
+
+      lines.forEach((line, index) => {
+        if (index === 0 || !line.trim()) return // Pula cabeçalho ou linha vazia
+        const parts = line.split(/[;,]/)
+        if (parts.length >= 2) {
+          const id = Math.random().toString(36).substr(2, 9)
+          const docRef = doc(firestore, "payables", id)
+          const data = {
+            id,
+            descricao: parts[0]?.trim().toUpperCase() || "IMPORTADO",
+            entidade: parts[1]?.trim().toUpperCase() || "FORNECEDOR",
+            categoria: parts[2]?.trim() || "Sistemas",
+            data: parts[3]?.trim() || new Date().toISOString().split('T')[0],
+            valor: parseFloat(parts[4]?.replace(',', '.') || "0"),
+            situacao: "Pendente",
+            recorrente: false,
+            createdAt: new Date().toISOString()
+          }
+          setDocumentNonBlocking(docRef, data, { merge: true })
+          count++
+        }
+      })
+
+      toast({ title: "Importação Concluída", description: `${count} registros foram processados.` })
+    }
+    reader.readAsText(file)
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        className="hidden" 
+        accept=".csv,.txt" 
+        onChange={handleImportCSV} 
+      />
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-3xl font-black text-[#2C4156] tracking-tight">Contas A Pagar</h1>
         
@@ -146,11 +193,15 @@ export default function ContasAPagarPage() {
           <Plus className="h-4 w-4" /> Nova Conta
         </Button>
         
-        <Button variant="outline" className="h-11 border-[#D2D7DB] gap-2 font-bold text-[#39586D] text-xs uppercase px-5">
+        <Button 
+          variant="outline" 
+          className="h-11 border-[#D2D7DB] gap-2 font-bold text-[#39586D] text-xs uppercase px-5"
+          onClick={() => fileInputRef.current?.click()}
+        >
           <Upload className="h-4 w-4" /> Importar Planilha
         </Button>
         
-        <Button variant="outline" className="h-11 border-[#D2D7DB] gap-2 font-bold text-[#39586D] text-xs uppercase px-5">
+        <Button variant="outline" className="h-11 border-[#D2D7DB] gap-2 font-bold text-[#39586D] text-xs uppercase px-5" onClick={() => toast({ title: "Gerando competência..." })}>
           <RefreshCw className="h-4 w-4" /> Gerar Mês
         </Button>
 

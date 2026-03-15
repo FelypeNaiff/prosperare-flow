@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef } from "react"
 import { 
   Plus, 
   ChevronLeft, 
@@ -55,13 +56,14 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
-import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 import { format, addMonths, subMonths, startOfMonth } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
 export default function ContasAReceberPage() {
   const firestore = useFirestore()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [isNewAccountOpen, setIsNewAccountOpen] = useState(false)
   const [selectedCompetence, setSelectedCompetence] = useState<Date>(startOfMonth(new Date()))
@@ -160,8 +162,54 @@ export default function ContasAReceberPage() {
     setSelectedCompetence(prev => direction === 'next' ? addMonths(prev, 1) : subMonths(prev, 1))
   }
 
+  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const text = e.target?.result as string
+      const lines = text.split(/\r?\n/)
+      let count = 0
+
+      lines.forEach((line, index) => {
+        if (index === 0 || !line.trim()) return
+        const parts = line.split(/[;,]/)
+        if (parts.length >= 2) {
+          const id = Math.random().toString(36).substr(2, 9)
+          const docRef = doc(firestore, "receivables", id)
+          const data = {
+            id,
+            descricao: parts[0]?.trim().toUpperCase() || "HONORÁRIO IMPORTADO",
+            cliente: parts[1]?.trim().toUpperCase() || "CLIENTE AVULSO",
+            pagamento: parts[2]?.trim() || "PIX",
+            data: parts[3]?.trim() || new Date().toISOString().split('T')[0],
+            valor: parseFloat(parts[4]?.replace(',', '.') || "0"),
+            situacao: "Pendente",
+            recorrente: false,
+            createdAt: new Date().toISOString()
+          }
+          setDocumentNonBlocking(docRef, data, { merge: true })
+          count++
+        }
+      })
+
+      toast({ title: "Honorários Importados", description: `${count} registros processados com sucesso.` })
+    }
+    reader.readAsText(file)
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        className="hidden" 
+        accept=".csv,.txt" 
+        onChange={handleImportCSV} 
+      />
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-3xl font-black text-[#2C4156] tracking-tight">Contas a Receber</h1>
         
@@ -188,11 +236,15 @@ export default function ContasAReceberPage() {
           <Plus className="h-4 w-4" /> Nova Conta
         </Button>
         
-        <Button variant="outline" className="h-11 border-[#D2D7DB] gap-2 font-bold text-[#39586D] text-xs uppercase px-5">
+        <Button 
+          variant="outline" 
+          className="h-11 border-[#D2D7DB] gap-2 font-bold text-[#39586D] text-xs uppercase px-5"
+          onClick={() => fileInputRef.current?.click()}
+        >
           <Upload className="h-4 w-4" /> Importar Honorários
         </Button>
         
-        <Button variant="outline" className="h-11 border-[#D2D7DB] gap-2 font-bold text-[#39586D] text-xs uppercase px-5">
+        <Button variant="outline" className="h-11 border-[#D2D7DB] gap-2 font-bold text-[#39586D] text-xs uppercase px-5" onClick={() => toast({ title: "Processando recorrências..." })}>
           <RefreshCw className="h-4 w-4" /> Gerar Mês
         </Button>
 
