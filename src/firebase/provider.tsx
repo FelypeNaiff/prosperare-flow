@@ -31,6 +31,13 @@ export interface FirebaseContextState extends UserAuthState {
 
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
+// Lista de Administradores Nativa para Provisionamento Inicial
+const ADMIN_LIST: Record<string, { name: string, dept: string }> = {
+  "pscsucesso@gmail.com": { name: "Administrador Geral", dept: "Diretoria" },
+  "felypenaiff01@gmail.com": { name: "Felype Naiff", dept: "Diretoria" },
+  "thalyssonluiz@gmail.com": { name: "Thalysson Luiz", dept: "Diretoria" }
+};
+
 export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   children,
   firebaseApp,
@@ -94,17 +101,20 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
               }
             });
           } else {
-            // Provisionamento do E-mail Geral do Escritório como Administrador
-            if (firebaseUser.email === "pscsucesso@gmail.com") {
+            // Provisionamento de Administradores conforme lista inicial
+            const email = firebaseUser.email?.toLowerCase();
+            const adminConfig = email ? ADMIN_LIST[email] : null;
+
+            if (adminConfig) {
               const adminData = {
                 id: firebaseUser.uid,
-                fullName: "Administrador Geral",
+                fullName: adminConfig.name,
                 email: firebaseUser.email,
                 profile: "ADMINISTRADOR",
                 role: "ADMINISTRADOR",
                 status: "ATIVO",
                 createdAt: new Date().toISOString(),
-                departmentIds: ["Diretoria", "TI", "Fiscal"]
+                departmentIds: [adminConfig.dept, "Fiscal", "TI"]
               };
               
               await setDoc(userDocRef, adminData, { merge: true });
@@ -118,7 +128,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 userLoaded: true 
               }));
             } else {
-              // Outros usuários que conseguiram logar mas não estão na base
+              // Outros usuários que conseguiram logar mas não estão autorizados ainda
               setState(prev => ({ 
                 ...prev, 
                 user: firebaseUser, 
@@ -192,7 +202,7 @@ export const useUser = () => {
   return { user, userData, isUserLoading, isAuthChecking, userError, userLoaded };
 };
 
-export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T & {__memo?: boolean} {
+export function useMemoFirebase<T>(factory: () => T, deps: React.DependencyList): T & {__memo?: boolean} {
   return useMemo(() => {
     const result = factory() as any;
     if (typeof result === 'object' && result !== null) {
