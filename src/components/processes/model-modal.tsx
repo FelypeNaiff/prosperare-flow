@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
 import { 
   Select, 
   SelectContent, 
@@ -72,7 +73,11 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
     if (model) {
       setFormData({
         ...formData,
-        ...model
+        ...model,
+        tarefas: model.tarefas || [],
+        regimes: model.regimes || [],
+        clientesVinculados: model.clientesVinculados || [],
+        clientesExcluidos: model.clientesExcluidos || []
       })
     } else {
       setFormData({
@@ -117,7 +122,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
   const addTarefa = () => {
     setFormData(prev => ({
       ...prev,
-      tarefas: [...prev.tarefas, {
+      tarefas: [...(prev.tarefas || []), {
         id: Math.random().toString(36).substr(2, 5),
         titulo: "",
         descricao: "",
@@ -134,23 +139,24 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
   const removeTarefa = (id: string) => {
     setFormData(prev => ({
       ...prev,
-      tarefas: prev.tarefas.filter(t => t.id !== id)
+      tarefas: (prev.tarefas || []).filter(t => t.id !== id)
     }))
   }
 
   const updateTarefa = (id: string, field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      tarefas: prev.tarefas.map(t => t.id === id ? { ...t, [field]: value } : t)
+      tarefas: (prev.tarefas || []).map(t => t.id === id ? { ...t, [field]: value } : t)
     }))
   }
 
   const filteredClients = (allClients || []).filter(c => {
-    const snMatch = formData.regimes.includes('sn') && c.taxRegime === 'Simples Nacional'
-    const meiMatch = formData.regimes.includes('mei') && c.taxRegime === 'MEI'
-    const lpMatch = formData.regimes.includes('lp') && c.taxRegime === 'Lucro Presumido'
-    const lrMatch = formData.regimes.includes('lr') && c.taxRegime === 'Lucro Real'
-    const allMatch = formData.regimes.length === 0 || formData.regimes.includes('todos')
+    const regimes = formData.regimes || []
+    const snMatch = regimes.includes('sn') && c.taxRegime === 'Simples Nacional'
+    const meiMatch = regimes.includes('mei') && c.taxRegime === 'MEI'
+    const lpMatch = regimes.includes('lp') && c.taxRegime === 'Lucro Presumido'
+    const lrMatch = regimes.includes('lr') && c.taxRegime === 'Lucro Real'
+    const allMatch = regimes.length === 0 || regimes.includes('todos')
     
     return (snMatch || meiMatch || lpMatch || lrMatch || allMatch) && 
            (c.corporateName?.toLowerCase().includes(searchTerm.toLowerCase()) || c.cnpj?.includes(searchTerm))
@@ -209,12 +215,12 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
 
               <TabsContent value="regimes" className="m-0 space-y-6">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <RegimeCheck id="sn" label="Simples Nacional" checked={formData.regimes.includes('sn')} onToggle={() => toggleRegime('sn')} />
-                  <RegimeCheck id="mei" label="MEI" checked={formData.regimes.includes('mei')} onToggle={() => toggleRegime('mei')} />
-                  <RegimeCheck id="lp" label="Lucro Presumido" checked={formData.regimes.includes('lp')} onToggle={() => toggleRegime('lp')} />
-                  <RegimeCheck id="lr" label="Lucro Real" checked={formData.regimes.includes('lr')} onToggle={() => toggleRegime('lr')} />
-                  <RegimeCheck id="imune" label="Imune/Isenta" checked={formData.regimes.includes('imune')} onToggle={() => toggleRegime('imune')} />
-                  <RegimeCheck id="todos" label="Todos os Regimes" checked={formData.regimes.includes('todos')} onToggle={() => toggleRegime('todos')} />
+                  <RegimeCheck id="sn" label="Simples Nacional" checked={(formData.regimes || []).includes('sn')} onToggle={() => toggleRegime('sn')} />
+                  <RegimeCheck id="mei" label="MEI" checked={(formData.regimes || []).includes('mei')} onToggle={() => toggleRegime('mei')} />
+                  <RegimeCheck id="lp" label="Lucro Presumido" checked={(formData.regimes || []).includes('lp')} onToggle={() => toggleRegime('lp')} />
+                  <RegimeCheck id="lr" label="Lucro Real" checked={(formData.regimes || []).includes('lr')} onToggle={() => toggleRegime('lr')} />
+                  <RegimeCheck id="imune" label="Imune/Isenta" checked={(formData.regimes || []).includes('imune')} onToggle={() => toggleRegime('imune')} />
+                  <RegimeCheck id="todos" label="Todos os Regimes" checked={(formData.regimes || []).includes('todos')} onToggle={() => toggleRegime('todos')} />
                 </div>
               </TabsContent>
 
@@ -224,24 +230,25 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
                     <Input placeholder="Buscar clientes sugeridos pelo regime..." className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                   </div>
-                  <Badge className="bg-[#1FA67A] font-black text-[10px] px-4 py-1.5 uppercase shrink-0">
-                    {formData.clientesVinculados.length} Selecionados
+                  <Badge className="bg-[#1FA67A] font-black text-[10px] px-4 py-1.5 uppercase shrink-0 border-none">
+                    {(formData.clientesVinculados || []).length} Selecionados
                   </Badge>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {filteredClients.map((client) => {
-                    const isSelected = formData.clientesVinculados.includes(client.id)
+                    const isSelected = (formData.clientesVinculados || []).includes(client.id)
                     return (
                       <div 
                         key={client.id} 
                         className={cn(
                           "flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer",
-                          isSelected ? "border-[#1FA67A] bg-[#1FA67A]/5" : "border-[#D2D7DB] hover:bg-[#F7F7F7]"
+                          isSelected ? "border-[#1FA67A] bg-[#1FA67A]/5" : "border-[#D2D7DB] bg-white hover:bg-[#F7F7F7]"
                         )}
                         onClick={() => {
+                          const currentLinked = formData.clientesVinculados || []
                           const newLinked = isSelected 
-                            ? formData.clientesVinculados.filter(id => id !== client.id)
-                            : [...formData.clientesVinculados, client.id]
+                            ? currentLinked.filter(id => id !== client.id)
+                            : [...currentLinked, client.id]
                           setFormData({...formData, clientesVinculados: newLinked})
                         }}
                       >
@@ -296,7 +303,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                   </Button>
                 </div>
                 <div className="space-y-3">
-                  {formData.tarefas.map((tarefa, index) => (
+                  {(formData.tarefas || []).map((tarefa, index) => (
                     <div key={tarefa.id} className="flex flex-col gap-3 p-4 bg-white border border-[#D2D7DB] rounded-2xl shadow-sm hover:border-[#1FA67A] transition-all relative group">
                       <div className="absolute top-4 left-[-10px] h-6 w-6 bg-[#2C4156] text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-lg">
                         {index + 1}
@@ -304,7 +311,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                       <div className="flex justify-between items-start pl-4">
                         <Input 
                           placeholder="Título da Tarefa..." 
-                          className="border-none font-black text-[#2C4156] uppercase text-sm h-auto p-0 focus-visible:ring-0" 
+                          className="border-none font-black text-[#2C4156] uppercase text-sm h-auto p-0 focus-visible:ring-0 shadow-none" 
                           value={tarefa.titulo}
                           onChange={(e) => updateTarefa(tarefa.id, 'titulo', e.target.value)}
                         />
