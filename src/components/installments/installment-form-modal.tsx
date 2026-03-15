@@ -23,16 +23,72 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "@/hooks/use-toast"
-import { CreditCard, Calendar } from "lucide-react"
+import { CreditCard, Loader2, Save } from "lucide-react"
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
+import { collection, doc } from "firebase/firestore"
 
-export function InstallmentFormModal({ open, onOpenChange, clientId }: any) {
+export function InstallmentFormModal({ open, onOpenChange, clientId: initialClientId }: any) {
+  const firestore = useFirestore()
+  const [loading, setLoading] = useState(false)
   const [hasEntry, setHasEntry] = useState(false)
 
+  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
+  const { data: clients = [] } = useCollection(clientsQuery)
+
+  const [formData, setFormData] = useState({
+    clientId: initialClientId || "",
+    tipo: "",
+    descricao: "",
+    totalParcels: "60",
+    currentParcel: "1",
+    value: "",
+    dueDay: "20",
+    startMonth: "",
+    notes: "",
+    status: "Ativo"
+  })
+
   const handleSave = () => {
+    if (!formData.clientId || !formData.tipo || !formData.value) {
+      toast({ title: "Erro", description: "Preencha os campos obrigatórios.", variant: "destructive" })
+      return
+    }
+
+    const id = Math.random().toString(36).substr(2, 9)
+    const docRef = doc(firestore, "installments", id)
+    const client = (clients || []).find(c => c.id === formData.clientId)
+
+    const data = {
+      ...formData,
+      id,
+      clientName: client?.corporateName || "Cliente Avulso",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      value: Number(formData.value),
+      totalParcels: Number(formData.totalParcels),
+      currentParcel: Number(formData.currentParcel),
+      dueDay: Number(formData.dueDay)
+    }
+
+    setDocumentNonBlocking(docRef, data, { merge: true })
+    
     onOpenChange(false)
+    setFormData({
+      clientId: initialClientId || "",
+      tipo: "",
+      descricao: "",
+      totalParcels: "60",
+      currentParcel: "1",
+      value: "",
+      dueDay: "20",
+      startMonth: "",
+      notes: "",
+      status: "Ativo"
+    })
+    
     toast({ 
       title: "Parcelamento Cadastrado!", 
-      description: "Todas as parcelas foram geradas como processos mensais." 
+      description: "O acordo foi salvo permanentemente na nuvem." 
     })
   }
 
@@ -50,14 +106,15 @@ export function InstallmentFormModal({ open, onOpenChange, clientId }: any) {
         <div className="grid grid-cols-2 gap-6 py-4">
           <div className="col-span-2 space-y-4">
             <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em] border-b pb-1">Identificação do Acordo</h4>
-            {!clientId && (
+            {!initialClientId && (
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Empresa (Cliente)</Label>
-                <Select>
-                  <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
+                <Select value={formData.clientId} onValueChange={(v) => setFormData({...formData, clientId: v})}>
+                  <SelectTrigger className="border-[#D2D7DB]"><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">Padaria Central</SelectItem>
-                    <SelectItem value="2">Oficina do João</SelectItem>
+                    {(clients || []).map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.corporateName}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -65,22 +122,26 @@ export function InstallmentFormModal({ open, onOpenChange, clientId }: any) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Tipo de Parcelamento</Label>
-                <Select>
+                <Select value={formData.tipo} onValueChange={(v) => setFormData({...formData, tipo: v})}>
                   <SelectTrigger><SelectValue placeholder="Selecione o órgão" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="simples">Simples Nacional (e-CAC)</SelectItem>
-                    <SelectItem value="receita">Receita Federal (PERT/REFIS)</SelectItem>
-                    <SelectItem value="municipal">Prefeitura Municipal</SelectItem>
-                    <SelectItem value="estadual">SEFA-AP (Estado)</SelectItem>
-                    <SelectItem value="fgts">FGTS (Caixa)</SelectItem>
-                    <SelectItem value="inss">INSS (Previdenciário)</SelectItem>
-                    <SelectItem value="outro">Outros</SelectItem>
+                    <SelectItem value="Simples Nacional (e-CAC)">Simples Nacional (e-CAC)</SelectItem>
+                    <SelectItem value="Receita Federal (PERT/REFIS)">Receita Federal (PERT/REFIS)</SelectItem>
+                    <SelectItem value="Prefeitura Municipal">Prefeitura Municipal</SelectItem>
+                    <SelectItem value="SEFA-AP (Estado)">SEFA-AP (Estado)</SelectItem>
+                    <SelectItem value="FGTS (Caixa)">FGTS (Caixa)</SelectItem>
+                    <SelectItem value="INSS (Previdenciário)">INSS (Previdenciário)</SelectItem>
+                    <SelectItem value="Outros">Outros</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Descrição / Referência</Label>
-                <Input placeholder="Ex: PERT 2019-2021" />
+                <Input 
+                  placeholder="Ex: PERT 2019-2021" 
+                  value={formData.descricao}
+                  onChange={(e) => setFormData({...formData, descricao: e.target.value})}
+                />
               </div>
             </div>
           </div>
@@ -90,67 +151,60 @@ export function InstallmentFormModal({ open, onOpenChange, clientId }: any) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Quantidade de Parcelas</Label>
-                <Input type="number" placeholder="60" />
+                <Input 
+                  type="number" 
+                  placeholder="60" 
+                  value={formData.totalParcels}
+                  onChange={(e) => setFormData({...formData, totalParcels: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-[#39586D]">Parcela Atual</Label>
+                <Input 
+                  type="number" 
+                  placeholder="1" 
+                  value={formData.currentParcel}
+                  onChange={(e) => setFormData({...formData, currentParcel: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Valor da Parcela (R$)</Label>
-                <Input type="number" placeholder="0,00" />
+                <Input 
+                  type="number" 
+                  placeholder="0,00" 
+                  value={formData.value}
+                  onChange={(e) => setFormData({...formData, value: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Dia de Vencimento Mensal</Label>
-                <Input type="number" min="1" max="28" placeholder="Ex: 20" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-bold text-[#39586D]">Mês/Ano de Início</Label>
-                <Input type="month" />
+                <Input 
+                  type="number" 
+                  min="1" 
+                  max="28" 
+                  placeholder="Ex: 20" 
+                  value={formData.dueDay}
+                  onChange={(e) => setFormData({...formData, dueDay: e.target.value})}
+                />
               </div>
             </div>
-          </div>
-
-          <div className="col-span-2 space-y-4 pt-4">
-            <div className="flex items-center justify-between p-4 bg-[#F7F7F7] rounded-xl border">
-              <div className="space-y-0.5">
-                <Label className="text-sm font-bold text-[#2C4156]">Houve pagamento de entrada?</Label>
-                <p className="text-[10px] text-[#98A7AA]">Será gerado um processo extra para o pagamento inicial.</p>
-              </div>
-              <Switch checked={hasEntry} onCheckedChange={setHasEntry} />
-            </div>
-
-            {hasEntry && (
-              <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold text-[#39586D]">Valor da Entrada (R$)</Label>
-                  <Input type="number" placeholder="0,00" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold text-[#39586D]">Data da Entrada</Label>
-                  <Input type="date" />
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="col-span-2 space-y-2 pt-4">
-            <Label className="text-xs font-bold text-[#39586D]">Responsável Interno</Label>
-            <Select defaultValue="ricardo">
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ricardo">Ricardo Santos</SelectItem>
-                <SelectItem value="fernanda">Fernanda Oliveira</SelectItem>
-                <SelectItem value="ana">Ana Souza</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="col-span-2 space-y-2">
             <Label className="text-xs font-bold text-[#39586D]">Observações</Label>
-            <Textarea placeholder="Detalhes específicos sobre o acordo..." />
+            <Textarea 
+              placeholder="Detalhes específicos sobre o acordo..." 
+              value={formData.notes}
+              onChange={(e) => setFormData({...formData, notes: e.target.value})}
+            />
           </div>
         </div>
 
         <DialogFooter className="bg-[#F7F7F7] -mx-6 -mb-6 p-6 border-t mt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button className="bg-[#1FA67A] font-bold px-8 shadow-lg" onClick={handleSave}>Salvar e Gerar Recorrência</Button>
+          <Button className="bg-[#1FA67A] font-bold px-8 shadow-lg" onClick={handleSave}>
+            <Save className="h-4 w-4 mr-2" /> Salvar Parcelamento
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
