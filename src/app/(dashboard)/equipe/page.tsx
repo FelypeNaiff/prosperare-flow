@@ -5,13 +5,11 @@ import {
   Plus, 
   Search, 
   Trash2, 
-  Settings, 
   Loader2,
   MoreHorizontal,
   UserPlus,
   Save,
   ShieldCheck,
-  X,
   Edit2,
   Lock
 } from "lucide-react"
@@ -295,7 +293,6 @@ export default function EquipePage() {
         </CardContent>
       </Card>
 
-      {/* Modal: Novo Colaborador */}
       <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
         <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl">
           <DialogHeader className="p-6 bg-[#2C4156] text-white">
@@ -370,7 +367,6 @@ export default function EquipePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Editar Colaborador */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl">
           <DialogHeader className="p-6 bg-[#39586D] text-white">

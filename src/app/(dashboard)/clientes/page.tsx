@@ -68,7 +68,6 @@ export default function ClientesPage() {
   const [isNewClientOpen, setIsNewClientOpen] = useState(false)
   const [isLoadingCnpj, setIsLoadingCnpj] = useState(false)
   
-  // Garantia de query segura: só dispara se userLoaded for true
   const clientsQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "clients") : null, 
     [firestore, userLoaded]
@@ -164,8 +163,10 @@ export default function ClientesPage() {
   }
 
   const handleDeleteClient = (id: string) => {
-    deleteDocumentNonBlocking(doc(firestore, "clients", id))
-    toast({ title: "Cliente removido", variant: "destructive" })
+    if (confirm("Deseja excluir permanentemente este registro?")) {
+      deleteDocumentNonBlocking(doc(firestore, "clients", id))
+      toast({ title: "Cliente removido", variant: "destructive" })
+    }
   }
 
   const filteredClients = (clients || []).filter(c => 
@@ -266,8 +267,8 @@ export default function ClientesPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center text-[#98A7AA] font-bold">
-                    Nenhum cliente localizado. Clique em Novo Cliente.
+                  <TableCell colSpan={5} className="h-32 text-center text-[#98A7AA] font-bold uppercase text-xs">
+                    Nenhum cliente localizado.
                   </TableCell>
                 </TableRow>
               )}
@@ -281,7 +282,7 @@ export default function ClientesPage() {
           <DialogHeader className="p-6 bg-[#2C4156] text-white">
             <DialogTitle className="text-2xl font-black uppercase tracking-tight">Novo Cliente (Inteligência API)</DialogTitle>
             <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
-              Insira o CNPJ para capturar dados completos da ReceitaWS automaticamente.
+              Insira o CNPJ para capturar dados completos automaticamente.
             </DialogDescription>
           </DialogHeader>
           
@@ -391,7 +392,7 @@ export default function ClientesPage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Estado (UF)</Label>
-                    <Input value={newClient.state} onChange={(e) => setNewClient({...newClient, state: e.target.value.toUpperCase()})} />
+                    <Input value={newClient.state} onChange={(e) => setNewClient({...newClient, state: e.target.value.toUpperCase()})} maxLength={2} />
                   </div>
                 </div>
               </div>
@@ -399,9 +400,9 @@ export default function ClientesPage() {
           </ScrollArea>
 
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t">
-            <Button variant="outline" onClick={() => setIsNewClientOpen(false)} className="border-[#D2D7DB] font-bold text-xs">Cancelar</Button>
+            <Button variant="outline" onClick={() => setIsNewClientOpen(false)} className="font-bold text-xs uppercase">Cancelar</Button>
             <Button 
-              className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-10 shadow-lg shadow-emerald-500/20" 
+              className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-10 shadow-lg" 
               onClick={handleCreateClient}
               disabled={isLoadingCnpj}
             >
