@@ -14,7 +14,8 @@ import {
   ShieldCheck,
   Eye,
   Trash2,
-  Printer
+  Printer,
+  FileDown
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -194,9 +195,24 @@ export default function ClientesPage() {
             left: 0;
             top: 0;
             width: 100%;
+            background: white;
           }
           .no-print {
             display: none !important;
+          }
+          table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+          }
+          th, td {
+            border: 1px solid #D2D7DB !important;
+            padding: 8px !important;
+            text-align: left !important;
+          }
+          th {
+            background-color: #2C4156 !important;
+            color: white !important;
+            -webkit-print-color-adjust: exact;
           }
         }
       `}</style>
@@ -208,7 +224,7 @@ export default function ClientesPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={handlePrint}>
-            <Printer className="h-4 w-4" /> Imprimir Relação
+            <FileDown className="h-4 w-4" /> Exportar Relatório PDF
           </Button>
           <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-bold shadow-lg" onClick={() => setIsNewClientOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Novo Cliente
@@ -224,7 +240,7 @@ export default function ClientesPage() {
         <KpiCard label="Alertas Críticos" value={0} icon={AlertTriangle} color="destructive" />
       </div>
 
-      <Card className="border-[#D2D7DB] shadow-sm" id="print-section">
+      <Card className="border-[#D2D7DB] shadow-sm overflow-hidden" id="print-section">
         <CardHeader className="pb-3 border-b bg-[#F7F7F7]/50 no-print">
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
@@ -236,18 +252,29 @@ export default function ClientesPage() {
             />
           </div>
         </CardHeader>
-        <div className="hidden print:block p-6 border-b">
-          <h2 className="text-xl font-black text-[#2C4156] uppercase">Relação de Clientes - Prosperare Flow</h2>
-          <p className="text-xs text-[#98A7AA] font-bold">Gerado em: {new Date().toLocaleString('pt-BR')}</p>
+        
+        {/* Cabeçalho Exclusivo para Impressão */}
+        <div className="hidden print:block p-8 border-b-2 border-[#2C4156]">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-black text-[#2C4156] uppercase tracking-tighter">Prosperare <span className="text-[#1FA67A]">Flow</span></h2>
+              <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.3em]">Relatório de Clientes Cadastrados</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-bold text-[#39586D] uppercase">Documento Oficial Interno</p>
+              <p className="text-[9px] text-[#98A7AA] font-mono">Gerado em: {new Date().toLocaleString('pt-BR')}</p>
+            </div>
+          </div>
         </div>
+
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-[#2C4156]">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px]">Empresa</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] print:hidden">Regime</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] print:hidden">Responsável</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] print:hidden">Status</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px]">Empresa / Razão Social</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px]">CNPJ</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px]">Regime Tributário</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px]">Responsável</TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px] text-right no-print">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -262,18 +289,19 @@ export default function ClientesPage() {
               ) : filteredClients.length > 0 ? (
                 filteredClients.map((client) => (
                   <TableRow key={client.id} className="hover:bg-[#F7F7F7]/50 transition-colors">
+                    <TableCell className="font-bold text-[#2C4156] uppercase text-xs">
+                      {client.corporateName}
+                    </TableCell>
+                    <TableCell className="text-xs font-mono font-bold text-[#39586D]">
+                      {client.cnpj}
+                    </TableCell>
                     <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-bold text-[#2C4156] uppercase">{client.corporateName}</span>
-                        <span className="text-[10px] text-[#98A7AA] font-mono">{client.cnpj}</span>
-                      </div>
+                      <Badge variant="outline" className="font-black text-[9px] uppercase border-[#D2D7DB] text-[#39586D]">
+                        {client.taxRegime}
+                      </Badge>
                     </TableCell>
-                    <TableCell className="print:hidden">
-                      <Badge variant="outline" className="font-black text-[9px] uppercase border-[#D2D7DB]">{client.taxRegime}</Badge>
-                    </TableCell>
-                    <TableCell className="text-xs font-bold text-[#39586D] print:hidden">{client.accountingContactUserId || "Geral"}</TableCell>
-                    <TableCell className="print:hidden">
-                      <Badge className="bg-[#7ED6B5] text-[#1FA67A] border-none text-[9px] font-black uppercase">Ativa</Badge>
+                    <TableCell className="text-[10px] font-bold text-[#39586D] uppercase">
+                      {client.accountingContactUserId || "Geral"}
                     </TableCell>
                     <TableCell className="text-right no-print">
                       <DropdownMenu>
@@ -309,6 +337,13 @@ export default function ClientesPage() {
             </TableBody>
           </Table>
         </CardContent>
+        
+        {/* Rodapé de Página para Impressão */}
+        <div className="hidden print:block p-4 text-center border-t border-[#D2D7DB]">
+          <p className="text-[8px] font-black text-[#98A7AA] uppercase tracking-widest">
+            Prosperare Flow — Sistema de Gestão Contábil Inteligente • Página 1 de 1
+          </p>
+        </div>
       </Card>
 
       <Dialog open={isNewClientOpen} onOpenChange={setIsNewClientOpen}>
