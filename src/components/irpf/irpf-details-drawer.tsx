@@ -88,7 +88,6 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
   const firestore = useFirestore()
   const [showGovPass, setShowGovPass] = useState(false)
   const [activeTags, setActiveTags] = useState<string[]>([])
-  const [newComment, setNewComment] = useState("")
   const [serviceValue, setServiceValue] = useState(0)
   const [isPaid, setIsPaid] = useState(false)
 
@@ -98,7 +97,7 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
       setServiceValue(declaration.value || 0)
       setIsPaid(declaration.isPaid || false)
     }
-  }, [declaration])
+  }, [declaration, open])
 
   if (!declaration) return null
 
@@ -126,15 +125,20 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-[700px] p-0 flex flex-col border-l-[#D2D7DB]">
+      <SheetContent className="w-full sm:max-w-[700px] p-0 flex flex-col border-l-[#D2D7DB] overflow-hidden">
         <ScrollArea className="flex-1">
           <div className="p-8 space-y-8">
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 border-2 border-[#172B4D] rounded-full flex items-center justify-center">
-                  <UserCircle className="h-4 w-4 text-[#172B4D]" />
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 border-2 border-[#172B4D] rounded-full flex items-center justify-center shrink-0">
+                    <UserCircle className="h-5 w-5 text-[#172B4D]" />
+                  </div>
+                  <SheetTitle className="text-2xl font-black text-[#172B4D] leading-tight">{declaration.name}</SheetTitle>
                 </div>
-                <SheetTitle className="text-2xl font-black text-[#172B4D]">{declaration.name}</SheetTitle>
+                <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="h-8 w-8 rounded-full">
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -156,9 +160,10 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                       <Badge 
                         key={tagName} 
                         className={cn(
-                          "px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-wide shadow-sm border-none",
+                          "px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-wide shadow-sm border-none cursor-pointer hover:brightness-90",
                           tag?.color || "bg-slate-400 text-white"
                         )}
+                        onClick={() => toggleTag(tagName)}
                       >
                         {tagName}
                       </Badge>
@@ -173,36 +178,28 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                     </PopoverTrigger>
                     <PopoverContent className="w-72 p-0 bg-white border-[#D2D7DB] shadow-2xl" align="start">
                       <div className="p-3 border-b flex items-center justify-between bg-[#F4F5F7]">
-                        <span className="text-xs font-bold text-[#5E6C84] uppercase text-center w-full">Gerenciar Etiquetas</span>
-                        <PopoverTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6"><X className="h-3 w-3" /></Button>
-                        </PopoverTrigger>
+                        <span className="text-xs font-bold text-[#5E6C84] uppercase text-center w-full">Etiquetas Sugeridas</span>
                       </div>
-                      <div className="p-3 space-y-3">
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-black text-[#5E6C84] uppercase tracking-widest">Selecione para aplicar</p>
-                          <div className="space-y-1 max-h-[250px] overflow-y-auto pr-1">
-                            {AVAILABLE_TAGS.map((tag) => (
-                              <div key={tag.name} className="flex items-center gap-2 group">
-                                <Checkbox 
-                                  checked={activeTags.includes(tag.name)} 
-                                  onCheckedChange={() => toggleTag(tag.name)}
-                                  className="h-4 w-4 rounded border-[#D2D7DB]"
-                                />
-                                <button
-                                  onClick={() => toggleTag(tag.name)}
-                                  className={cn(
-                                    "flex-1 flex items-center justify-between px-3 py-2 rounded text-[10px] font-black uppercase tracking-wide transition-all hover:brightness-90",
-                                    tag.color
-                                  )}
-                                >
-                                  {tag.name}
-                                  {activeTags.includes(tag.name) && <Check className="h-3 w-3" />}
-                                </button>
-                              </div>
-                            ))}
+                      <div className="p-3 space-y-1 max-h-[300px] overflow-y-auto">
+                        {AVAILABLE_TAGS.map((tag) => (
+                          <div key={tag.name} className="flex items-center gap-2 group">
+                            <Checkbox 
+                              checked={activeTags.includes(tag.name)} 
+                              onCheckedChange={() => toggleTag(tag.name)}
+                              className="h-4 w-4 rounded border-[#D2D7DB]"
+                            />
+                            <button
+                              onClick={() => toggleTag(tag.name)}
+                              className={cn(
+                                "flex-1 flex items-center justify-between px-3 py-2 rounded text-[10px] font-black uppercase tracking-wide transition-all hover:brightness-90",
+                                tag.color
+                              )}
+                            >
+                              {tag.name}
+                              {activeTags.includes(tag.name) && <Check className="h-3 w-3" />}
+                            </button>
                           </div>
-                        </div>
+                        ))}
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -213,14 +210,14 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                 <Label className="text-[11px] font-black text-[#5E6C84] uppercase tracking-wider">Acesso GOV.BR</Label>
                 <div className="flex gap-2">
                   <div className="flex-1 bg-[#F4F5F7] border border-[#D2D7DB] rounded p-2 flex items-center justify-between">
-                    <span className="text-xs font-mono font-bold">{declaration.cpf}</span>
-                    <button onClick={() => copyToClipboard(declaration.cpf, "CPF")} className="text-[#5E6C84] hover:text-[#172B4D]">
+                    <span className="text-xs font-mono font-bold truncate pr-2">{declaration.cpf}</span>
+                    <button onClick={() => copyToClipboard(declaration.cpf, "CPF")} className="text-[#5E6C84] hover:text-[#172B4D] shrink-0">
                       <Copy className="h-3 w-3" />
                     </button>
                   </div>
                   <div className="flex-1 bg-[#F4F5F7] border border-[#D2D7DB] rounded p-2 flex items-center justify-between">
-                    <span className="text-xs font-mono font-bold">{showGovPass ? declaration.govPass : '••••••••'}</span>
-                    <div className="flex gap-2">
+                    <span className="text-xs font-mono font-bold truncate pr-2">{showGovPass ? declaration.govPass : '••••••••'}</span>
+                    <div className="flex gap-2 shrink-0">
                       <button onClick={() => setShowGovPass(!showGovPass)} className="text-[#5E6C84]">
                         {showGovPass ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                       </button>
@@ -329,21 +326,8 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="h-9 border-[#D2D7DB] font-black text-[10px] uppercase tracking-widest gap-2 bg-white" onClick={() => {
-              const statusMap: any = {
-                'not_started': 'filling',
-                'filling': 'awaiting_production',
-                'awaiting_production': 'sent',
-                'sent': 'completed',
-                'completed': 'not_started'
-              }
-              handleUpdate({ status: statusMap[declaration.status] || 'filling' })
-              toast({ title: "Status movido!" })
-            }}>
-              <ArrowRightLeft className="h-3.5 w-3.5 text-[#1FA67A]" /> Próxima Etapa
-            </Button>
             <Button className="h-9 bg-[#1FA67A] font-black text-[10px] uppercase tracking-widest gap-2 shadow-lg shadow-emerald-500/20" onClick={() => handleUpdate({ status: 'completed', progress: 100 })}>
-              <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
+              <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar Processo
             </Button>
           </div>
         </div>

@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -89,6 +90,10 @@ service cloud.firestore {
     }
 
     match /irpf_declarations/{id} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /irpf_stages/{id} {
       allow read, write: if isSignedIn();
     }
 
