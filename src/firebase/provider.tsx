@@ -1,10 +1,10 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect, useRef } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore, onSnapshot, doc, setDoc, getDoc } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -94,17 +94,17 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
               }
             });
           } else {
-            // Se for o e-mail geral do escritório, provisiona como administrador
+            // Provisionamento do E-mail Geral do Escritório como Administrador
             if (firebaseUser.email === "pscsucesso@gmail.com") {
               const adminData = {
                 id: firebaseUser.uid,
-                fullName: "Sucesso Prosperare",
+                fullName: "Administrador Geral",
                 email: firebaseUser.email,
                 profile: "ADMINISTRADOR",
                 role: "ADMINISTRADOR",
                 status: "ATIVO",
                 createdAt: new Date().toISOString(),
-                departmentIds: ["Diretoria", "Administrativo"]
+                departmentIds: ["Diretoria", "TI", "Fiscal"]
               };
               
               await setDoc(userDocRef, adminData, { merge: true });
@@ -118,7 +118,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 userLoaded: true 
               }));
             } else {
-              // Qualquer outro usuário autenticado mas não cadastrado fica como null
+              // Outros usuários que conseguiram logar mas não estão na base
               setState(prev => ({ 
                 ...prev, 
                 user: firebaseUser, 

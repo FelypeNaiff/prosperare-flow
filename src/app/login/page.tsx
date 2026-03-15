@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -17,7 +18,7 @@ export default function LoginPage() {
   const { user, isUserLoading } = useUser()
   const router = useRouter()
   
-  const [email, setEmail] = useState("")
+  const [email, setEmail] = useState("pscsucesso@gmail.com")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoggingIn, setIsLoggingIn] = useState(false)
@@ -66,7 +67,6 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#F7F7F7] p-4">
       <div className="w-full max-w-[440px] space-y-8 animate-in fade-in duration-700">
         
-        {/* Logo Hubstrom-style but for Prosperare */}
         <div className="flex flex-col items-center text-center space-y-2">
           <div className="p-3 bg-[#1FA67A] rounded-2xl shadow-lg mb-2">
             <TrendingUp className="h-10 w-10 text-white" />
@@ -147,7 +147,6 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        {/* Support Banner */}
         <div className="bg-[#2C4156] p-4 rounded-2xl flex items-center justify-between shadow-xl">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/10 rounded-lg">
