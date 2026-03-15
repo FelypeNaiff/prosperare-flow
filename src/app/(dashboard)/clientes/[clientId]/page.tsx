@@ -295,7 +295,7 @@ export default function DetalhesClientePage() {
                       </div>
                     )) : (
                       <p className="col-span-2 text-center py-4 text-[10px] font-bold text-[#98A7AA] uppercase italic">
-                        Nenhum grupo cadastrado no sistema. Vá em Processos > Grupos para criar.
+                        Nenhum grupo cadastrado no sistema. Vá em Processos &gt; Grupos para criar.
                       </p>
                     )}
                   </div>
