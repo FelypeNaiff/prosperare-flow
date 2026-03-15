@@ -2,7 +2,7 @@
 "use client"
 
 import { useState } from "react"
-import { Layers, Plus, Edit, Trash2, Loader2, Save, CheckCircle2 } from "lucide-react"
+import { Layers, Plus, Edit, Trash2, Loader2, Save, CheckCircle2, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -19,8 +19,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase"
+import { 
+  useFirestore, 
+  useCollection, 
+  useMemoFirebase, 
+  setDocumentNonBlocking, 
+  deleteDocumentNonBlocking, 
+  updateDocumentNonBlocking 
+} from "@/firebase"
 import { collection, doc } from "firebase/firestore"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 export default function GruposObrigacoesPage() {
   const firestore = useFirestore()
@@ -29,6 +37,9 @@ export default function GruposObrigacoesPage() {
   
   const groupsQuery = useMemoFirebase(() => collection(firestore, "obligation_groups"), [firestore])
   const { data: groups = [], isLoading } = useCollection(groupsQuery)
+
+  const templatesQuery = useMemoFirebase(() => collection(firestore, "process_templates"), [firestore])
+  const { data: templates = [] } = useCollection(templatesQuery)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -40,6 +51,7 @@ export default function GruposObrigacoesPage() {
   })
 
   const [newProcess, setNewProcess] = useState({
+    templateId: "",
     title: "",
     dueDay: "20"
   })
@@ -94,19 +106,29 @@ export default function GruposObrigacoesPage() {
   }
 
   const addProcess = () => {
-    if (!newProcess.title) return
+    if (!newProcess.title) {
+      toast({ title: "Título obrigatório" })
+      return
+    }
     setFormData({
       ...formData,
       processes: [...(formData.processes || []), { ...newProcess, id: Math.random().toString(36).substr(2, 5) }]
     })
-    setNewProcess({ title: "", dueDay: "20" })
+    setNewProcess({ templateId: "", title: "", dueDay: "20" })
   }
 
   const removeProcess = (id: string) => {
     setFormData({
       ...formData,
-      processes: formData.processes.filter((p: any) => p.id !== id)
+      processes: (formData.processes || []).filter((p: any) => p.id !== id)
     })
+  }
+
+  const handleSelectTemplate = (templateId: string) => {
+    const template = templates?.find(t => t.id === templateId)
+    if (template) {
+      setNewProcess({ ...newProcess, templateId, title: template.title })
+    }
   }
 
   return (
@@ -114,7 +136,7 @@ export default function GruposObrigacoesPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Grupos de Obrigações</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Defina modelos de processos para automação por tipo de cliente.</p>
+          <p className="text-[#98A7AA] font-bold text-sm">Agrupe modelos de processos para automação por perfil de cliente.</p>
         </div>
         <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg" onClick={() => handleOpenModal()}>
           <Plus className="h-4 w-4" /> Novo Grupo
@@ -128,7 +150,7 @@ export default function GruposObrigacoesPage() {
         </div>
       ) : (groups || []).length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {(groups || []).map((group: any) => (
+          {groups.map((group: any) => (
             <Card key={group.id} className="border-[#D2D7DB] hover:shadow-md transition-shadow group relative overflow-hidden bg-white">
               <div className="absolute top-0 left-0 w-1.5 h-full" style={{ backgroundColor: group.color }} />
               <CardHeader className="pb-2">
@@ -148,19 +170,22 @@ export default function GruposObrigacoesPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Tarefas no Modelo</p>
+                  <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Processos Vinculados</p>
                   <div className="flex flex-wrap gap-1">
-                    {group.processes?.map((p: any, i: number) => (
-                      <Badge key={i} className="bg-[#F7F7F7] text-[#39586D] border-[#D2D7DB] text-[8px] font-bold">
+                    {(group.processes || []).map((p: any, i: number) => (
+                      <Badge key={i} className="bg-[#F7F7F7] text-[#39586D] border-[#D2D7DB] text-[8px] font-bold uppercase">
                         {p.title}
                       </Badge>
-                    )) || <span className="text-[10px] text-destructive font-bold">NENHUMA TAREFA</span>}
+                    ))}
+                    {(!group.processes || group.processes.length === 0) && (
+                      <span className="text-[10px] text-destructive font-bold uppercase">Nenhum processo</span>
+                    )}
                   </div>
                 </div>
                 
                 <div className="pt-2 flex gap-2 border-t border-[#F7F7F7]">
                   <Button variant="outline" size="sm" className="h-8 text-[10px] font-black uppercase border-[#D2D7DB] gap-1 flex-1 text-[#2C4156]" onClick={() => handleOpenModal(group)}>
-                    <Edit className="h-3 w-3" /> Editar
+                    <Edit className="h-3 w-3" /> Editar Grupo
                   </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C] hover:bg-[#E74C3C]/10" onClick={() => handleDeleteGroup(group.id)}>
                     <Trash2 className="h-4 w-4" />
@@ -174,57 +199,107 @@ export default function GruposObrigacoesPage() {
         <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed rounded-3xl bg-white/50 text-center p-12">
           <Layers className="h-12 w-12 text-[#D2D7DB] mb-4" />
           <h3 className="text-lg font-black text-[#2C4156] uppercase">Nenhum Grupo Definido</h3>
-          <p className="text-sm text-[#98A7AA] font-bold max-w-sm">Crie grupos para automatizar a geração de tarefas mensais.</p>
-          <Button className="mt-6 bg-[#1FA67A] font-black uppercase text-xs" onClick={() => handleOpenModal()}>Criar Primeiro Grupo</Button>
+          <p className="text-sm text-[#98A7AA] font-bold max-w-sm">Crie grupos para automatizar a geração de tarefas baseadas em modelos.</p>
+          <Button className="mt-6 bg-[#1FA67A] font-black uppercase text-xs shadow-lg" onClick={() => handleOpenModal()}>Criar Primeiro Grupo</Button>
         </div>
       )}
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 border-none shadow-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 border-none shadow-2xl">
           <DialogHeader className="p-6 bg-[#2C4156] text-white">
             <DialogTitle className="text-2xl font-black uppercase tracking-tight">
-              {editingGroup ? "Editar Grupo" : "Novo Grupo"}
+              {editingGroup ? "Editar Grupo" : "Novo Grupo de Obrigações"}
             </DialogTitle>
+            <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
+              Defina o nome do grupo e vincule os modelos de processos recorrentes.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="p-6 space-y-8 bg-white">
             <div className="grid grid-cols-2 gap-5">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase">Nome do Grupo</Label>
-                <Input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value.toUpperCase()})} />
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Nome do Grupo</Label>
+                <Input 
+                  value={formData.name} 
+                  onChange={(e) => setFormData({...formData, name: e.target.value.toUpperCase()})}
+                  className="border-[#D2D7DB] font-bold uppercase"
+                />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase">Departamento</Label>
-                <Input value={formData.dept} onChange={(e) => setFormData({...formData, dept: e.target.value})} />
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Departamento</Label>
+                <Input 
+                  value={formData.dept} 
+                  onChange={(e) => setFormData({...formData, dept: e.target.value})}
+                  className="border-[#D2D7DB]"
+                />
               </div>
             </div>
 
             <div className="space-y-4 pt-4 border-t">
-              <h4 className="text-xs font-black text-[#2C4156] uppercase tracking-widest">Processos Recorrentes</h4>
-              <div className="bg-[#F7F7F7] p-4 rounded-2xl border space-y-4">
-                <div className="flex gap-2">
-                  <Input placeholder="Título da Tarefa" className="flex-1" value={newProcess.title} onChange={(e) => setNewProcess({...newProcess, title: e.target.value.toUpperCase()})} />
-                  <Input placeholder="Dia" className="w-20" value={newProcess.dueDay} onChange={(e) => setNewProcess({...newProcess, dueDay: e.target.value})} />
-                  <Button className="bg-[#2C4156]" onClick={addProcess}><Plus className="h-4 w-4" /></Button>
+              <h4 className="text-xs font-black text-[#2C4156] uppercase tracking-widest">Configurar Processos Recorrentes</h4>
+              <div className="bg-[#F7F7F7] p-5 rounded-2xl border border-[#D2D7DB] space-y-5 shadow-inner">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                  <div className="md:col-span-6 space-y-1.5">
+                    <Label className="text-[9px] font-black uppercase text-[#98A7AA]">Usar Modelo Existente</Label>
+                    <Select value={newProcess.templateId} onValueChange={handleSelectTemplate}>
+                      <SelectTrigger className="bg-white border-[#D2D7DB] h-10">
+                        <SelectValue placeholder="Selecione um modelo..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(templates || []).map(t => (
+                          <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="md:col-span-4 space-y-1.5">
+                    <Label className="text-[9px] font-black uppercase text-[#98A7AA]">Dia de Vencimento</Label>
+                    <Input 
+                      placeholder="Dia (ex: 20)" 
+                      className="bg-white border-[#D2D7DB] h-10" 
+                      value={newProcess.dueDay} 
+                      onChange={(e) => setNewProcess({...newProcess, dueDay: e.target.value})} 
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Button className="w-full bg-[#2C4156] h-10 shadow-md" onClick={addProcess}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="space-y-2">
+
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
                   {(formData.processes || []).map((proc: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white border">
+                    <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white border border-[#D2D7DB] shadow-sm hover:shadow-md transition-all group">
                       <div className="flex items-center gap-3">
-                        <span className="text-xs font-black text-[#2C4156]">{proc.title}</span>
-                        <span className="text-[10px] font-bold text-[#98A7AA]">Dia {proc.dueDay}</span>
+                        <div className="p-1.5 bg-[#1FA67A]/10 rounded-lg text-[#1FA67A]">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <span className="text-xs font-black text-[#2C4156] uppercase">{proc.title}</span>
+                          <p className="text-[9px] font-bold text-[#98A7AA] uppercase">Vencimento fatal todo dia {proc.dueDay}</p>
+                        </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C]" onClick={() => removeProcess(proc.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C] opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeProcess(proc.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   ))}
+                  {(formData.processes || []).length === 0 && (
+                    <div className="text-center py-8 opacity-40 border-2 border-dashed rounded-xl">
+                      <p className="text-[10px] font-black uppercase tracking-widest">Nenhum processo vinculado ao grupo</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t">
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-            <Button className="bg-[#1FA67A] font-black uppercase text-xs" onClick={handleSaveGroup}>Salvar Configurações</Button>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)} className="font-bold text-xs uppercase border-[#D2D7DB]">Cancelar</Button>
+            <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-8 shadow-lg shadow-emerald-500/20" onClick={handleSaveGroup}>
+              <Save className="h-4 w-4 mr-2" /> Salvar Configurações do Grupo
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
