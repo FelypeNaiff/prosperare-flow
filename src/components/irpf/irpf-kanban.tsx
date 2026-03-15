@@ -29,7 +29,7 @@ const AVAILABLE_TAGS = [
 ]
 
 export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
-  const { user } = useUser()
+  const { selectedUser } = useUser()
   const firestore = useFirestore()
   const [selectedDeclaration, setSelectedDeclaration] = useState<any>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -50,9 +50,10 @@ export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
 
   const columns = (dbStages && dbStages.length > 0) ? dbStages : DEFAULT_COLUMNS
 
+  // Consulta individualizada: Filtra apenas declarações do colaborador operacional atual
   const irpfQuery = useMemoFirebase(() => 
-    user ? query(collection(firestore, "irpf_declarations"), where("responsibleId", "==", user.uid)) : null,
-    [firestore, user]
+    selectedUser?.id ? query(collection(firestore, "irpf_declarations"), where("responsibleId", "==", selectedUser.id)) : null,
+    [firestore, selectedUser?.id]
   )
   const { data: declarations, isLoading: loadingDecls } = useCollection(irpfQuery)
 

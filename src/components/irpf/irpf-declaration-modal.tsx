@@ -26,7 +26,7 @@ import { useFirestore, useUser, setDocumentNonBlocking } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 
 export function IrpfDeclarationModal({ open, onOpenChange }: any) {
-  const { user } = useUser()
+  const { selectedUser } = useUser()
   const firestore = useFirestore()
   
   const [formData, setFormData] = useState({
@@ -43,18 +43,19 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
   })
 
   const handleSave = () => {
-    if (!formData.name || !formData.cpf || !user) {
-      toast({ title: "Erro", description: "Preencha os campos obrigatórios.", variant: "destructive" })
+    if (!formData.name || !formData.cpf || !selectedUser) {
+      toast({ title: "Erro", description: "Selecione um colaborador operacional e preencha os campos obrigatórios.", variant: "destructive" })
       return
     }
 
     const id = Math.random().toString(36).substr(2, 9)
     const docRef = doc(firestore, "irpf_declarations", id)
     
+    // Vincula o IRPF ao ID do colaborador selecionado para individualização
     const declarationData = {
       ...formData,
       id,
-      responsibleId: user.uid,
+      responsibleId: selectedUser.id,
       status: "not_started",
       progress: 0,
       isPaid: false,
@@ -69,7 +70,7 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
       name: "", cpf: "", birthDate: "", govPass: "", phone: "", email: "",
       year: "2026", type: "simplificada", value: 0, notes: ""
     })
-    toast({ title: "Declaração Iniciada!", description: "Checklist padrão copiado com sucesso." })
+    toast({ title: "Declaração Iniciada!", description: "O registro foi vinculado ao seu perfil operacional." })
   }
 
   return (
@@ -77,7 +78,7 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-black text-[#2C4156]">Nova Declaração IRPF</DialogTitle>
-          <DialogDescription>Cadastre o contribuinte e inicie o fluxo de declaração.</DialogDescription>
+          <DialogDescription>Cadastre o contribuinte e inicie o fluxo de declaração em seu perfil.</DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-6 py-4">

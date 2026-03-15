@@ -17,12 +17,13 @@ import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebas
 import { collection, query, where } from "firebase/firestore"
 
 export function IrpfDashboard() {
-  const { user } = useUser()
+  const { selectedUser } = useUser()
   const firestore = useFirestore()
   
+  // Consulta filtrada pelo ID do colaborador operacional (selectedUser)
   const irpfQuery = useMemoFirebase(() => 
-    user ? query(collection(firestore, "irpf_declarations"), where("responsibleId", "==", user.uid)) : null,
-    [firestore, user]
+    selectedUser?.id ? query(collection(firestore, "irpf_declarations"), where("responsibleId", "==", selectedUser.id)) : null,
+    [firestore, selectedUser?.id]
   )
   
   const { data: declarations = [] } = useCollection(irpfQuery)

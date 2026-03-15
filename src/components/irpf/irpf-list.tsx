@@ -22,14 +22,15 @@ import { useState } from "react"
 import { IrpfDetailsDrawer } from "./irpf-details-drawer"
 
 export function IrpfList({ searchTerm }: { searchTerm: string }) {
-  const { user } = useUser()
+  const { selectedUser } = useUser()
   const firestore = useFirestore()
   const [selectedDeclaration, setSelectedDeclaration] = useState<any>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
+  // Consulta individualizada: Filtra apenas declarações do colaborador operacional atual
   const irpfQuery = useMemoFirebase(() => 
-    user ? query(collection(firestore, "irpf_declarations"), where("responsibleId", "==", user.uid)) : null,
-    [firestore, user]
+    selectedUser?.id ? query(collection(firestore, "irpf_declarations"), where("responsibleId", "==", selectedUser.id)) : null,
+    [firestore, selectedUser?.id]
   )
   
   const { data: declarations = [], isLoading } = useCollection(irpfQuery)
