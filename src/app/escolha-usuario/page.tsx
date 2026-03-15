@@ -30,7 +30,7 @@ export default function EscolhaUsuarioPage() {
   const [pin, setPin] = useState("")
   const [isPinOpen, setIsPinOpen] = useState(false)
 
-  // Busca colaboradores reais cadastrados no Firestore para compor a lista de perfis
+  // Busca colaboradores reais cadastrados no Firestore
   const usersQuery = useMemoFirebase(() => 
     query(collection(firestore, "users"), orderBy("fullName", "asc")), 
     [firestore]
@@ -49,13 +49,15 @@ export default function EscolhaUsuarioPage() {
   }
 
   const handleVerifyPin = () => {
-    // PIN padrão para qualquer colaborador: 1234
-    if (pin === "1234") {
+    // Verifica o PIN real do banco de dados ou o padrão 1234
+    const correctPin = selectedCollab?.pin || "1234"
+    
+    if (pin === correctPin) {
       setSelectedUser(selectedCollab)
       toast({ title: "Identidade Confirmada!", description: `Bem-vindo, ${selectedCollab.fullName}.` })
       router.push("/dashboard")
     } else {
-      toast({ variant: "destructive", title: "PIN Incorreto", description: "O código padrão de acesso é 1234." })
+      toast({ variant: "destructive", title: "PIN Incorreto", description: "O código de acesso informado é inválido para este perfil." })
       setPin("")
     }
   }
@@ -75,7 +77,6 @@ export default function EscolhaUsuarioPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#2C4156] text-white p-4 overflow-hidden relative">
-      {/* Background Decorativo */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-10">
         <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#1FA67A] rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#2574A9] rounded-full blur-[120px]" />
@@ -155,7 +156,7 @@ export default function EscolhaUsuarioPage() {
             </div>
             <div className="space-y-1">
               <h3 className="text-xl font-black text-[#2C4156] uppercase leading-tight">Olá, {selectedCollab?.fullName?.split(' ')[0]}</h3>
-              <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Confirme seu PIN de 4 dígitos</p>
+              <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Confirme seu PIN de acesso</p>
             </div>
             <Input 
               type="password" 

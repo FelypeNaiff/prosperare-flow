@@ -55,7 +55,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   // Se estiver autenticado mas sem perfil selecionado, a verificação acima redirecionará.
-  // Evitamos renderizar o dashboard sem uma identidade operacional.
   if (!user || !selectedUser) return null
 
   const pathSegments = pathname.split('/').filter(Boolean)
