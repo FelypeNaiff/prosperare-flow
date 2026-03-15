@@ -378,19 +378,19 @@ export default function ClientesPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Bairro</Label>
+                    <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Bairro</Label>
                     <Input value={newClient.neighborhood} onChange={(e) => setNewClient({...newClient, neighborhood: e.target.value})} />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">CEP</Label>
+                    <Label className="text-[10px] font-black uppercase text-[#98A7AA]">CEP</Label>
                     <Input value={newClient.zipCode} onChange={(e) => setNewClient({...newClient, zipCode: e.target.value})} />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Cidade</Label>
+                    <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Cidade</Label>
                     <Input value={newClient.city} onChange={(e) => setNewClient({...newClient, city: e.target.value})} />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Estado (UF)</Label>
+                    <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Estado (UF)</Label>
                     <Input value={newClient.state} onChange={(e) => setNewClient({...newClient, state: e.target.value.toUpperCase()})} />
                   </div>
                 </div>
