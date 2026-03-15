@@ -1,16 +1,12 @@
-
 "use client"
 
 import { useMemo } from "react"
 import { KpiCard } from "@/components/dashboard/kpi-card"
-import { ObligationChart } from "@/components/dashboard/obligation-chart"
-import { AttendanceChart } from "@/components/dashboard/attendance-chart"
 import { 
   Users, 
   CheckCircle2, 
   AlertCircle, 
   Calendar, 
-  TrendingUp,
   MessageSquare,
   Clock,
   Mail,
@@ -21,7 +17,6 @@ import {
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -34,21 +29,16 @@ export default function DashboardPage() {
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
   const { data: clients, isLoading: loadingClients } = useCollection(clientsQuery)
   
-  const ticketsQuery = useMemoFirebase(() => collection(firestore, "tickets"), [firestore])
-  const { data: tickets, isLoading: loadingTickets } = useCollection(ticketsQuery)
-
+  // Auditoria: Unificando para a coleção 'tasks' conforme o blueprint de auditoria
   const tasksQuery = useMemoFirebase(() => collection(firestore, "tasks"), [firestore])
   const { data: tasks, isLoading: loadingTasks } = useCollection(tasksQuery)
 
-  // Memoize counts to prevent recalculation on every render
   const stats = useMemo(() => ({
     clientsCount: clients?.length || 0,
-    ticketsCount: tickets?.length || 0,
     tasksCount: tasks?.length || 0,
-    // Add logic for calculations here
-  }), [clients, tickets, tasks])
+  }), [clients, tasks])
 
-  const isDataLoading = loadingClients || loadingTickets || loadingTasks
+  const isDataLoading = loadingClients || loadingTasks
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
@@ -79,7 +69,7 @@ export default function DashboardPage() {
         {loadingClients ? <KpiSkeleton /> : <KpiCard label="Clientes" value={stats.clientsCount} icon={Users} color="primary" />}
         <KpiCard label="Processos OK" value="0%" icon={CheckCircle2} color="success" />
         <KpiCard label="Atrasos" value="0" icon={AlertCircle} color="destructive" />
-        {loadingTickets ? <KpiSkeleton /> : <KpiCard label="Tickets" value={stats.ticketsCount} icon={MessageSquare} color="info" />}
+        {loadingTasks ? <KpiSkeleton /> : <KpiCard label="Tickets" value={stats.tasksCount} icon={MessageSquare} color="info" />}
         <KpiCard label="Honorários" value="0" icon={Clock} color="warning" />
         <KpiCard label="NPS" value="--" icon={Heart} color="success" />
       </div>

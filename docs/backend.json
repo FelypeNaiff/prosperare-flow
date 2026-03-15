@@ -3,7 +3,6 @@
     "User": {
       "title": "User",
       "type": "object",
-      "description": "Represents a user account within the system.",
       "properties": {
         "id": { "type": "string" },
         "fullName": { "type": "string" },
@@ -24,9 +23,7 @@
         "corporateName": { "type": "string" },
         "cnpj": { "type": "string" },
         "email": { "type": "string" },
-        "taxRegime": { "type": "string" },
-        "healthScore": { "type": "number" },
-        "obligationGroups": { "type": "array", "items": { "type": "string" } }
+        "taxRegime": { "type": "string" }
       }
     },
     "Process": {
@@ -35,9 +32,7 @@
       "properties": {
         "id": { "type": "string" },
         "nomeProcesso": { "type": "string" },
-        "situacao": { "type": "string" },
-        "clienteId": { "type": "string" },
-        "competencia": { "type": "string" }
+        "situacao": { "type": "string" }
       }
     },
     "Task": {
@@ -46,8 +41,7 @@
       "properties": {
         "id": { "type": "string" },
         "title": { "type": "string" },
-        "status": { "type": "string" },
-        "clientId": { "type": "string" }
+        "status": { "type": "string" }
       }
     },
     "ProcessModel": {
@@ -140,7 +134,6 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "descricao": { "type": "string" },
         "valor": { "type": "number" }
       }
     },
@@ -149,7 +142,6 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "descricao": { "type": "string" },
         "valor": { "type": "number" }
       }
     },

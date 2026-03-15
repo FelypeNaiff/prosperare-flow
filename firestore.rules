@@ -1,8 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Regra global de auditoria: Permite leitura e escrita para qualquer usuário autenticado.
-    // Aplicada em: 2026-03-15
     match /{document=**} {
       allow read, write: if request.auth != null;
     }

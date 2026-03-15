@@ -1,7 +1,6 @@
-
 "use client"
 
-import { useState, useRef } from "react"
+import { useState } from "react"
 import { 
   Table, 
   TableBody, 
@@ -13,58 +12,19 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { 
-  Download, 
-  RefreshCw, 
-  FileText, 
-  ExternalLink, 
   PlusCircle, 
-  Link as LinkIcon,
-  Upload,
-  FileSearch,
-  Trash2,
-  Edit,
-  Mail,
+  FileSearch, 
   MoreVertical,
-  AlertTriangle,
   Loader2
 } from "lucide-react"
-import { cn } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { format, differenceInDays, parseISO, isBefore } from "date-fns"
-import { toast } from "@/hooks/use-toast"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, where } from "firebase/firestore"
 
@@ -82,12 +42,10 @@ interface Certificate {
 export function ClientCertificatesTable({ clientId }: { clientId: string }) {
   const firestore = useFirestore()
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [certToDelete, setCertToDelete] = useState<string | null>(null)
   
-  // Query real por cliente
+  // Auditoria: Unificando para a coleção 'certifications' conforme o blueprint
   const certsQuery = useMemoFirebase(() => 
-    query(collection(firestore, "certificates"), where("clientId", "==", clientId)),
+    query(collection(firestore, "certifications"), where("clientId", "==", clientId)),
     [firestore, clientId]
   )
   const { data: certificates, isLoading } = useCollection<Certificate>(certsQuery)

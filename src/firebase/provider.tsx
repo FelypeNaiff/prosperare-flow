@@ -63,17 +63,15 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   useEffect(() => {
     if (!auth || !firestore) return;
 
-    // Listener de autenticação em tempo real
     const unsubscribeAuth = onAuthStateChanged(
       auth,
       async (firebaseUser) => {
         if (firebaseUser) {
-          // Auditoria: SEMPRE buscar pelo UID do Firebase Auth
+          // Auditoria: SEMPRE buscar pelo UID do Firebase Auth como chave do documento
           const userDocRef = doc(firestore, "users", firebaseUser.uid);
           const uidSnap = await getDoc(userDocRef);
           
           if (uidSnap.exists()) {
-            // Usuário já provisionado via UID
             const unsubscribeDb = onSnapshot(userDocRef, (snapshot) => {
               if (snapshot.exists()) {
                 const userData = { ...snapshot.data(), id: snapshot.id };
@@ -88,31 +86,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             });
             return () => unsubscribeDb();
           } else {
-            // Primeiro acesso: Tentar localizar por e-mail na base de colaboradores
-            const q = query(collection(firestore, "users"), where("email", "==", firebaseUser.email));
-            const querySnapshot = await getDocs(q);
-
-            if (!querySnapshot.empty) {
-              // Encontrou pré-cadastro: Vincular ao UID definitivo
-              const existingData = querySnapshot.docs[0].data();
-              const finalData = {
-                ...existingData,
-                id: firebaseUser.uid,
-                role: existingData.profile || "ASSISTENTE",
-                updatedAt: new Date().toISOString()
-              };
-              
-              await setDoc(userDocRef, finalData, { merge: true });
-              
-              setState(prev => ({ 
-                ...prev, 
-                user: firebaseUser, 
-                userData: finalData, 
-                isUserLoading: false, 
-                isAuthChecking: false 
-              }));
-            } else if (firebaseUser.email === "felypenaiff01@gmail.com") {
-              // Provisionamento automático do Administrador Principal
+            // Provisionamento Admin ou vínculo por e-mail
+            if (firebaseUser.email === "felypenaiff01@gmail.com") {
               const adminData = {
                 id: firebaseUser.uid,
                 fullName: "Felype Naiff",
@@ -123,35 +98,23 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 createdAt: new Date().toISOString(),
                 departmentIds: ["Diretoria", "Administrativo"]
               };
-              
               await setDoc(userDocRef, adminData, { merge: true });
-              setState(prev => ({ 
-                ...prev, 
-                user: firebaseUser, 
-                userData: adminData, 
-                isUserLoading: false, 
-                isAuthChecking: false 
-              }));
+              setState(prev => ({ ...prev, user: firebaseUser, userData: adminData, isUserLoading: false, isAuthChecking: false }));
             } else {
-              // Usuário logado mas NÃO cadastrado como colaborador
-              setState(prev => ({ 
-                ...prev, 
-                user: firebaseUser, 
-                userData: null, 
-                isUserLoading: false, 
-                isAuthChecking: false 
-              }));
+              const q = query(collection(firestore, "users"), where("email", "==", firebaseUser.email));
+              const querySnapshot = await getDocs(q);
+              if (!querySnapshot.empty) {
+                const existingData = querySnapshot.docs[0].data();
+                const finalData = { ...existingData, id: firebaseUser.uid, role: existingData.profile || "ASSISTENTE", updatedAt: new Date().toISOString() };
+                await setDoc(userDocRef, finalData, { merge: true });
+                setState(prev => ({ ...prev, user: firebaseUser, userData: finalData, isUserLoading: false, isAuthChecking: false }));
+              } else {
+                setState(prev => ({ ...prev, user: firebaseUser, userData: null, isUserLoading: false, isAuthChecking: false }));
+              }
             }
           }
         } else {
-          // Usuário deslogado
-          setState({ 
-            user: null, 
-            userData: null, 
-            isUserLoading: false, 
-            isAuthChecking: false, 
-            userError: null 
-          });
+          setState({ user: null, userData: null, isUserLoading: false, isAuthChecking: false, userError: null });
         }
       },
       (error) => {
