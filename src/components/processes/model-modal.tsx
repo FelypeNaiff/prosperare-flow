@@ -35,7 +35,8 @@ import {
   RefreshCcw,
   Search,
   X,
-  FileText
+  FileText,
+  CalendarClock
 } from "lucide-react"
 import { useFirestore, setDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase"
 import { doc, collection } from "firebase/firestore"
@@ -49,7 +50,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
   const [searchTerm, setSearchTerm] = useState("")
 
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: allClients = [] } = useCollection(clientsQuery)
+  const { data: allClients } = useCollection(clientsQuery)
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -144,7 +145,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
     }))
   }
 
-  const filteredClients = allClients.filter(c => {
+  const filteredClients = (allClients || []).filter(c => {
     const snMatch = formData.regimes.includes('sn') && c.taxRegime === 'Simples Nacional'
     const meiMatch = formData.regimes.includes('mei') && c.taxRegime === 'MEI'
     const lpMatch = formData.regimes.includes('lp') && c.taxRegime === 'Lucro Presumido'
