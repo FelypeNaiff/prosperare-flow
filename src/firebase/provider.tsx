@@ -67,6 +67,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       (firebaseUser) => {
         if (firebaseUser) {
+          // Busca o perfil usando o UID como ID do documento (Corrigido conforme auditoria)
           const userDocRef = doc(firestore, "users", firebaseUser.uid);
           
           const unsubscribeDb = onSnapshot(userDocRef, (snapshot) => {
@@ -80,16 +81,16 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 isAuthChecking: false 
               }));
             } else {
+              // Provisionamento do Administrador (Corrigido conforme auditoria)
               if (firebaseUser.email === "felypenaiff01@gmail.com") {
                 const adminData = {
                   id: firebaseUser.uid,
                   fullName: "Felype Naiff",
                   email: firebaseUser.email,
-                  profile: "ADMINISTRADOR",
-                  role: "ADMINISTRADOR",
+                  profile: "ADMINISTRADOR", // Mantido para compatibilidade
+                  role: "ADMINISTRADOR",    // Adicionado conforme auditoria
                   status: "ATIVO",
                   createdAt: new Date().toISOString(),
-                  departmentId: "Diretoria",
                   departmentIds: ["Diretoria", "Administrativo"]
                 };
                 

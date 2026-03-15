@@ -12,10 +12,9 @@
         "role": { "type": "string" },
         "status": { "type": "string", "enum": ["ATIVO", "INATIVO"] },
         "createdAt": { "type": "string", "format": "date-time" },
-        "departmentId": { "type": "string" },
         "departmentIds": { "type": "array", "items": { "type": "string" } }
       },
-      "required": ["id", "fullName", "email", "profile", "status", "createdAt"]
+      "required": ["id", "fullName", "email", "role", "status", "createdAt"]
     },
     "Client": {
       "title": "Client",
@@ -26,8 +25,7 @@
         "cnpj": { "type": "string" },
         "email": { "type": "string" },
         "taxRegime": { "type": "string" },
-        "healthScore": { "type": "number" },
-        "obligationGroups": { "type": "array", "items": { "type": "string" } }
+        "healthScore": { "type": "number" }
       }
     },
     "Process": {
@@ -37,9 +35,7 @@
         "id": { "type": "string" },
         "nomeProcesso": { "type": "string" },
         "situacao": { "type": "string" },
-        "clienteId": { "type": "string" },
-        "departamento": { "type": "string" },
-        "prazo": { "type": "string", "format": "date-time" }
+        "clienteId": { "type": "string" }
       }
     },
     "Task": {
@@ -65,8 +61,7 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "tipo": { "type": "string" },
-        "clientId": { "type": "string" }
+        "tipo": { "type": "string" }
       }
     },
     "Notification": {
@@ -94,8 +89,7 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "valor": { "type": "number" },
-        "tipo": { "type": "string" }
+        "valor": { "type": "number" }
       }
     },
     "Contract": {
@@ -103,13 +97,12 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "value": { "type": "number" },
-        "clientId": { "type": "string" }
+        "value": { "type": "number" }
       }
     }
   },
   "auth": {
-    "providers": ["google.com", "password"]
+    "providers": ["google.com"]
   },
   "firestore": {
     "/users/{userId}": {
@@ -122,71 +115,35 @@
     },
     "/processes/{id}": {
       "schema": { "$ref": "#/backend/entities/Process" },
-      "description": "Active processes/obligations."
+      "description": "Active processes."
     },
     "/tasks/{id}": {
       "schema": { "$ref": "#/backend/entities/Task" },
-      "description": "Process checklist tasks."
+      "description": "Tasks within processes."
     },
     "/processoModelos/{id}": {
       "schema": { "$ref": "#/backend/entities/ProcessModel" },
-      "description": "Intelligent checklist models."
+      "description": "Checklist templates."
     },
     "/certifications/{id}": {
       "schema": { "$ref": "#/backend/entities/Certification" },
-      "description": "Client certifications (CNDs)."
+      "description": "Client certifications."
     },
     "/notifications/{id}": {
       "schema": { "$ref": "#/backend/entities/Notification" },
-      "description": "User notification system."
+      "description": "Notification system."
     },
     "/chatMessages/{id}": {
       "schema": { "$ref": "#/backend/entities/ChatMessage" },
-      "description": "Internal team communication."
+      "description": "Team chat."
     },
     "/financialEntries/{id}": {
       "schema": { "$ref": "#/backend/entities/FinancialEntry" },
-      "description": "Cash flow transactions."
+      "description": "Financial records."
     },
     "/contracts/{id}": {
       "schema": { "$ref": "#/backend/entities/Contract" },
       "description": "Service contracts."
-    },
-    "/payables/{id}": {
-      "schema": { "type": "object" },
-      "description": "Accounts payable."
-    },
-    "/receivables/{id}": {
-      "schema": { "type": "object" },
-      "description": "Accounts receivable."
-    },
-    "/clientAccesses/{id}": {
-      "schema": { "type": "object" },
-      "description": "Password vault."
-    },
-    "/obligation_groups/{id}": {
-      "schema": { "type": "object" },
-      "description": "Groups of obligations."
-    },
-    "/irpf_declarations/{id}": {
-      "schema": { "type": "object" },
-      "description": "IRPF declarations."
-    },
-    "/irpf_stages/{id}": {
-      "schema": { "type": "object" },
-      "description": "IRPF Kanban stages."
-    },
-    "/installments/{id}": {
-      "schema": { "type": "object" },
-      "description": "Installment agreements."
-    },
-    "/officeSettings/{id}": {
-      "schema": { "type": "object" },
-      "description": "Global office settings."
-    },
-    "/tickets/{id}": {
-      "schema": { "type": "object" },
-      "description": "Internal tickets."
     }
   }
 }
