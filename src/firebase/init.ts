@@ -1,24 +1,43 @@
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
 /**
- * Singleton Pattern: Garante que o Firebase seja inicializado apenas uma vez.
- * Essencial para evitar o erro INTERNAL ASSERTION FAILED (ID: ca9) no Next.js.
+ * Singleton Pattern Robusto para Next.js:
+ * Armazenamos as instâncias no objeto global para sobreviver ao Hot Module Replacement (HMR).
+ * Isso evita o erro "INTERNAL ASSERTION FAILED: Unexpected state (ID: ca9)".
  */
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const firestore = getFirestore(app);
 
-export { app as firebaseApp, auth, firestore };
+const globalForFirebase = globalThis as unknown as {
+  firebaseApp: FirebaseApp | undefined;
+  firebaseAuth: Auth | undefined;
+  firebaseFirestore: Firestore | undefined;
+};
+
+export const firebaseApp = 
+  globalForFirebase.firebaseApp ?? 
+  (getApps().length > 0 ? getApp() : initializeApp(firebaseConfig));
+
+export const auth = 
+  globalForFirebase.firebaseAuth ?? 
+  getAuth(firebaseApp);
+
+export const firestore = 
+  globalForFirebase.firebaseFirestore ?? 
+  getFirestore(firebaseApp);
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForFirebase.firebaseApp = firebaseApp;
+  globalForFirebase.firebaseAuth = auth;
+  globalForFirebase.firebaseFirestore = firestore;
+}
 
 /**
- * Função de conveniência para manter compatibilidade com código existente,
- * mas retornando sempre as mesmas instâncias estáveis.
+ * Função de conveniência para compatibilidade.
  */
 export function initializeFirebase() {
-  return { firebaseApp: app, auth, firestore };
+  return { firebaseApp, auth, firestore };
 }

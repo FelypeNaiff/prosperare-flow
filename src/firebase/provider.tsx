@@ -43,10 +43,11 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   const dbUnsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    // Escuta mudanças de autenticação usando o singleton estável
+    // Escuta mudanças de autenticação usando o singleton estável global
     const unsubscribeAuth = onAuthStateChanged(
       authInstance,
       async (firebaseUser) => {
+        // Limpa ouvintes anteriores para evitar loops
         if (dbUnsubscribeRef.current) {
           dbUnsubscribeRef.current();
           dbUnsubscribeRef.current = null;
@@ -80,6 +81,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
               userLoaded: true 
             }));
             
+            // Inicia ouvinte em tempo real para o perfil do usuário
             dbUnsubscribeRef.current = onSnapshot(userDocRef, (snapshot) => {
               if (snapshot.exists()) {
                 const updatedData = { ...snapshot.data(), id: snapshot.id };
@@ -87,6 +89,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
               }
             });
           } else {
+            // Lógica de provisionamento para administradores semente
             const email = firebaseUser.email?.toLowerCase();
             const adminConfig = email ? ADMIN_LIST[email] : null;
 
@@ -113,6 +116,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
                 userLoaded: true 
               }));
             } else {
+              // Usuário autenticado mas sem perfil no banco
               setState(prev => ({ 
                 ...prev, 
                 user: firebaseUser, 
@@ -124,7 +128,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
             }
           }
         } catch (error: any) {
-          console.error("Firestore error in provider:", error);
+          console.error("Firebase Provider Error:", error);
           setState(prev => ({ 
             ...prev, 
             user: firebaseUser,
@@ -175,6 +179,10 @@ export const useUser = () => {
   return { user, userData, isUserLoading, isAuthChecking, userError, userLoaded };
 };
 
+/**
+ * Hook para memoizar alvos do Firestore (CollectionReference, Query ou DocumentReference).
+ * Essencial para evitar loops infinitos em hooks que dependem de referências estáveis.
+ */
 export function useMemoFirebase<T>(factory: () => T, deps: React.DependencyList): T & {__memo?: boolean} {
   return useMemo(() => {
     const result = factory() as any;
