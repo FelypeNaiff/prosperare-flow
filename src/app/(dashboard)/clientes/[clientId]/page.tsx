@@ -44,14 +44,6 @@ import { EditClientModal } from "@/components/clients/edit-client-modal"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/hooks/use-toast"
 
-const GROUPS = [
-  { id: 'fiscal_simples', name: 'FISCAL SIMPLES' },
-  { id: 'pessoal_geral', name: 'PESSOAL GERAL' },
-  { id: 'contabil_mensal', name: 'CONTÁBIL MENSAL' },
-  { id: 'mei_completo', name: 'MEI COMPLETO' },
-  { id: 'lucro_presumido', name: 'LUCRO PRESUMIDO' }
-]
-
 export default function DetalhesClientePage() {
   const params = useParams()
   const router = useRouter()
@@ -62,6 +54,10 @@ export default function DetalhesClientePage() {
 
   const clientRef = useMemoFirebase(() => clientId ? doc(firestore, "clients", clientId) : null, [firestore, clientId])
   const { data: client, isLoading } = useDoc(clientRef)
+
+  // Busca grupos reais do banco de dados
+  const groupsQuery = useMemoFirebase(() => collection(firestore, "obligation_groups"), [firestore])
+  const { data: dbGroups = [] } = useCollection(groupsQuery)
 
   // Grupo de Obrigações Multi-escolha
   const handleToggleGroup = (groupId: string) => {
@@ -74,7 +70,7 @@ export default function DetalhesClientePage() {
     updateDocumentNonBlocking(clientRef!, { obligationGroups: newGroups })
   }
 
-  // Função para Gerar Tarefas Automáticas
+  // Função para Gerar Tarefas Automáticas baseadas nos grupos reais
   const handleGenerateTasks = async () => {
     if (!client || !client.obligationGroups?.length) {
       toast({ variant: "destructive", title: "Erro", description: "Vincule ao menos um grupo de obrigações primeiro." })
@@ -88,24 +84,35 @@ export default function DetalhesClientePage() {
       const currentYear = now.getFullYear()
       const monthYearLabel = `${currentMonth.toString().padStart(2, '0')}/${currentYear}`
 
-      for (const groupId of client.obligationGroups) {
-        const groupInfo = GROUPS.find(g => g.id === groupId)
-        
-        const newTask = {
-          clientId: client.id,
-          clientName: client.corporateName,
-          title: `${groupInfo?.name} - Competência ${monthYearLabel}`,
-          status: 'todo',
-          groupId: groupId,
-          createdAt: new Date().toISOString(),
-          dueDate: new Date(currentYear, currentMonth - 1, 20).toISOString(),
-          responsibleId: client.accountingContactUserId || "Geral"
-        }
+      let tasksCreated = 0
 
-        await addDocumentNonBlocking(collection(firestore, "tasks"), newTask)
+      for (const groupId of client.obligationGroups) {
+        const groupInfo = dbGroups.find(g => g.id === groupId)
+        if (!groupInfo || !groupInfo.processes) continue
+
+        for (const process of groupInfo.processes) {
+          const newTask = {
+            clientId: client.id,
+            clientName: client.corporateName,
+            title: `${process.title} - Competência ${monthYearLabel}`,
+            status: 'todo',
+            groupId: groupId,
+            groupName: groupInfo.name,
+            createdAt: new Date().toISOString(),
+            dueDate: new Date(currentYear, currentMonth - 1, parseInt(process.dueDay) || 20).toISOString(),
+            responsibleId: client.accountingContactUserId || "Geral"
+          }
+
+          await addDocumentNonBlocking(collection(firestore, "tasks"), newTask)
+          tasksCreated++
+        }
       }
 
-      toast({ title: "Processos Gerados!", description: `Tarefas de ${monthYearLabel} criadas com sucesso.` })
+      if (tasksCreated > 0) {
+        toast({ title: "Processos Gerados!", description: `${tasksCreated} tarefas de ${monthYearLabel} criadas.` })
+      } else {
+        toast({ variant: "warning", title: "Atenção", description: "Os grupos selecionados não possuem processos configurados." })
+      }
     } catch (error) {
       toast({ variant: "destructive", title: "Erro ao gerar", description: "Não foi possível criar as tarefas." })
     } finally {
@@ -151,20 +158,20 @@ export default function DetalhesClientePage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] gap-2" onClick={() => setIsEditOpen(true)}>
+          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] gap-2 font-black uppercase text-xs" onClick={() => setIsEditOpen(true)}>
             <Edit2 className="h-4 w-4" /> Editar Dados
           </Button>
           <ClientCommunicationTool 
             client={{ name: client.corporateName, email: client.email, regime: client.taxRegime }}
             trigger={
-              <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] gap-2">
+              <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] gap-2 font-black uppercase text-xs">
                 <Mail className="h-4 w-4" /> Mensagem IA
               </Button>
             }
           />
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 shadow-lg shadow-emerald-500/20" onClick={handleGenerateTasks} disabled={isGenerating}>
+          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 shadow-lg shadow-emerald-500/20 font-black uppercase text-xs" onClick={handleGenerateTasks} disabled={isGenerating}>
             {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
-            GERAR TAREFAS
+            GERAR TAREFAS DO MÊS
           </Button>
         </div>
       </div>
@@ -205,10 +212,10 @@ export default function DetalhesClientePage() {
             <p className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Grupos Ativos</p>
             <div className="flex flex-wrap gap-1">
               {client.obligationGroups?.length > 0 ? client.obligationGroups.map((gId: string) => (
-                <Badge key={gId} variant="secondary" className="bg-[#E3F0F9] text-[#2574A9] text-[8px] font-black uppercase">
-                  {GROUPS.find(g => g.id === gId)?.name || gId}
+                <Badge key={gId} variant="secondary" className="bg-[#E3F0F9] text-[#2574A9] text-[8px] font-black uppercase border-none">
+                  {dbGroups.find(g => g.id === gId)?.name || gId}
                 </Badge>
-              )) : <span className="text-[10px] font-bold text-[#E74C3C]">NENHUM GRUPO</span>}
+              )) : <span className="text-[10px] font-bold text-[#E74C3C] uppercase">Nenhum Grupo</span>}
             </div>
           </CardContent>
         </Card>
@@ -264,23 +271,33 @@ export default function DetalhesClientePage() {
 
               <Card className="border-[#D2D7DB]">
                 <CardHeader className="bg-[#F7F7F7]/50 border-b flex flex-row items-center justify-between">
-                  <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Grupos de Obrigações</CardTitle>
+                  <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Vincular Grupos de Obrigações</CardTitle>
                   <Layers className="h-4 w-4 text-[#1FA67A]" />
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {GROUPS.map((group) => (
-                      <div key={group.id} className="flex items-center space-x-3 p-3 rounded-xl border bg-white hover:bg-[#F7F7F7] transition-colors cursor-pointer" onClick={() => handleToggleGroup(group.id)}>
+                    {dbGroups.length > 0 ? dbGroups.map((group) => (
+                      <div key={group.id} className={cn(
+                        "flex items-center space-x-3 p-3 rounded-xl border bg-white hover:bg-[#F7F7F7] transition-colors cursor-pointer",
+                        client.obligationGroups?.includes(group.id) && "border-[#1FA67A] bg-[#1FA67A]/5"
+                      )} onClick={() => handleToggleGroup(group.id)}>
                         <Checkbox 
                           id={group.id} 
                           checked={client.obligationGroups?.includes(group.id)} 
                           onCheckedChange={() => handleToggleGroup(group.id)}
                         />
-                        <Label htmlFor={group.id} className="text-xs font-black text-[#39586D] cursor-pointer uppercase">
-                          {group.name}
-                        </Label>
+                        <div className="flex flex-col">
+                          <Label htmlFor={group.id} className="text-xs font-black text-[#39586D] cursor-pointer uppercase">
+                            {group.name}
+                          </Label>
+                          <span className="text-[8px] font-bold text-[#98A7AA] uppercase">{group.processes?.length || 0} processos definidos</span>
+                        </div>
                       </div>
-                    ))}
+                    )) : (
+                      <p className="col-span-2 text-center py-4 text-[10px] font-bold text-[#98A7AA] uppercase italic">
+                        Nenhum grupo cadastrado no sistema. Vá em Processos > Grupos para criar.
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -323,8 +340,8 @@ export default function DetalhesClientePage() {
                 <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Obrigações e Tarefas do Cliente</CardTitle>
                 <CardDescription className="text-xs font-bold text-[#98A7AA]">Fluxo de trabalho específico para {client.corporateName}.</CardDescription>
               </div>
-              <Button className="bg-[#1FA67A] gap-2 h-8 text-xs font-bold" onClick={handleGenerateTasks} disabled={isGenerating}>
-                <Plus className="h-3.5 w-3.5" /> Nova Tarefa Avulsa
+              <Button className="bg-[#1FA67A] gap-2 h-8 text-xs font-black uppercase" onClick={handleGenerateTasks} disabled={isGenerating}>
+                <Plus className="h-3.5 w-3.5" /> Adicionar Tarefa
               </Button>
             </CardHeader>
             <CardContent className="p-0">
@@ -385,7 +402,7 @@ function ClientTasksList({ clientId }: { clientId: string }) {
   if (!tasks || tasks.length === 0) {
     return (
       <div className="p-12 text-center text-[#98A7AA] font-bold italic">
-        Nenhuma tarefa vinculada. Clique em "GERAR TAREFAS" no topo para carregar o mês.
+        Nenhuma tarefa vinculada. Clique em "GERAR TAREFAS DO MÊS" no topo para carregar o modelo.
       </div>
     )
   }
@@ -400,12 +417,15 @@ function ClientTasksList({ clientId }: { clientId: string }) {
               task.status === 'done' ? 'bg-[#1FA67A]' : 'bg-[#F2B705]'
             )} />
             <div>
-              <p className="text-sm font-bold text-[#2C4156]">{task.title}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold text-[#2C4156]">{task.title}</p>
+                {task.groupName && <Badge variant="secondary" className="text-[7px] font-black uppercase h-4">{task.groupName}</Badge>}
+              </div>
               <p className="text-[10px] text-[#98A7AA] font-black uppercase">Vencimento: {new Date(task.dueDate).toLocaleDateString('pt-BR')}</p>
             </div>
           </div>
           <Badge className={cn(
-            "text-[9px] font-black uppercase",
+            "text-[9px] font-black uppercase border-none",
             task.status === 'done' ? 'bg-[#7ED6B5] text-[#1FA67A]' : 'bg-[#FEF3C7] text-[#F2B705]'
           )}>
             {task.status === 'done' ? 'Concluído' : 'Pendente'}

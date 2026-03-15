@@ -80,5 +80,9 @@ service cloud.firestore {
     match /officeSettings/{id} {
       allow read, write: if isSignedIn();
     }
+
+    match /obligation_groups/{id} {
+      allow read, write: if isSignedIn();
+    }
   }
 }
