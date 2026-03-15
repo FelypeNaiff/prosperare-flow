@@ -84,7 +84,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             } else {
               // Provisionamento automático para o administrador principal
               if (firebaseUser.email === "felypenaiff01@gmail.com") {
-                const newUserRef = doc(collection(firestore, "users"));
+                const newUserRef = doc(usersRef);
                 const adminData = {
                   id: newUserRef.id,
                   fullName: "Felype Naiff",
@@ -96,7 +96,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                   departmentIds: ["Diretoria", "Administrativo"]
                 };
                 
-                // Realiza o set e a própria atualização de estado via snapshot cuidará do resto
+                // Realiza o provisionamento. O snapshot disparará novamente após a criação.
                 setDoc(newUserRef, adminData).catch(() => {});
               } else {
                 setState(prev => ({ 
@@ -109,7 +109,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
               }
             }
           }, (err) => {
-            setState(prev => ({ ...prev, isUserLoading: false, isAuthChecking: false, userError: err }));
+            // Em caso de erro de permissão na consulta de usuário, ainda tentamos manter o estado de login
+            setState(prev => ({ ...prev, user: firebaseUser, isUserLoading: false, isAuthChecking: false, userError: err }));
           });
 
           return () => unsubscribeDb();

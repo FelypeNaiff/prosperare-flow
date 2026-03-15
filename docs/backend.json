@@ -77,8 +77,8 @@
         "comments": { "type": "array" }
       }
     },
-    "Task": {
-      "title": "Task",
+    "Ticket": {
+      "title": "Ticket",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -86,7 +86,8 @@
         "clientName": { "type": "string" },
         "title": { "type": "string" },
         "status": { "type": "string" },
-        "dueDate": { "type": "string" }
+        "responsibleId": { "type": "string" },
+        "createdAt": { "type": "string" }
       }
     },
     "Installment": {
@@ -142,9 +143,9 @@
       "schema": { "$ref": "#/backend/entities/Processo" },
       "description": "Actual process instances."
     },
-    "/tasks/{id}": {
-      "schema": { "$ref": "#/backend/entities/Task" },
-      "description": "Individual process tasks."
+    "/tickets/{id}": {
+      "schema": { "$ref": "#/backend/entities/Ticket" },
+      "description": "Internal support tickets."
     },
     "/installments/{id}": {
       "schema": { "$ref": "#/backend/entities/Installment" },
