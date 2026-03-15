@@ -37,7 +37,7 @@ export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
 
   // Query de estágios (colunas)
   const stagesQuery = useMemoFirebase(() => query(collection(firestore, "irpf_stages"), orderBy("order", "asc")), [firestore])
-  const { data: dbStages = [], isLoading: loadingStages } = useCollection(stagesQuery)
+  const { data: dbStages, isLoading: loadingStages } = useCollection(stagesQuery)
 
   // Fallback para colunas padrão se o banco estiver vazio
   const DEFAULT_COLUMNS = [
@@ -48,13 +48,13 @@ export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
     { id: 'completed', title: '✅ CONCLUIDA' },
   ]
 
-  const columns = dbStages.length > 0 ? dbStages : DEFAULT_COLUMNS
+  const columns = (dbStages && dbStages.length > 0) ? dbStages : DEFAULT_COLUMNS
 
   const irpfQuery = useMemoFirebase(() => 
     user ? query(collection(firestore, "irpf_declarations"), where("responsibleId", "==", user.uid)) : null,
     [firestore, user]
   )
-  const { data: declarations = [], isLoading: loadingDecls } = useCollection(irpfQuery)
+  const { data: declarations, isLoading: loadingDecls } = useCollection(irpfQuery)
 
   const filteredCards = (declarations || []).filter(c => 
     c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -89,7 +89,7 @@ export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
     const cardId = e.dataTransfer.getData("cardId")
     if (!cardId) return
 
-    const card = declarations.find(d => d.id === cardId)
+    const card = (declarations || []).find(d => d.id === cardId)
     if (card && card.status !== targetStatus) {
       updateDocumentNonBlocking(doc(firestore, "irpf_declarations", cardId), { 
         status: targetStatus,

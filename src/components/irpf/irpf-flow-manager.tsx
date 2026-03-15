@@ -28,10 +28,9 @@ import { collection, query, orderBy, doc } from "firebase/firestore"
 export function IrpfFlowManager({ open, onOpenChange }: { open: boolean, onOpenChange: (v: boolean) => void }) {
   const firestore = useFirestore()
   const [newFlowTitle, setNewFlowTitle] = useState("")
-  const [isAdding, setIsAdding] = useState(false)
 
   const stagesQuery = useMemoFirebase(() => query(collection(firestore, "irpf_stages"), orderBy("order", "asc")), [firestore])
-  const { data: stages = [], isLoading } = useCollection(stagesQuery)
+  const { data: stages, isLoading } = useCollection(stagesQuery)
 
   const handleAddFlow = () => {
     if (!newFlowTitle) return
@@ -41,7 +40,7 @@ export function IrpfFlowManager({ open, onOpenChange }: { open: boolean, onOpenC
     setDocumentNonBlocking(flowRef, {
       id,
       title: newFlowTitle.toUpperCase(),
-      order: stages.length + 1
+      order: (stages?.length || 0) + 1
     }, { merge: true })
     
     setNewFlowTitle("")
@@ -54,6 +53,7 @@ export function IrpfFlowManager({ open, onOpenChange }: { open: boolean, onOpenC
   }
 
   const handleMove = (id: string, currentOrder: number, direction: 'up' | 'down') => {
+    if (!stages) return
     const targetOrder = direction === 'up' ? currentOrder - 1 : currentOrder + 1
     const targetStage = stages.find(s => s.order === targetOrder)
     const currentStage = stages.find(s => s.id === id)
@@ -93,7 +93,7 @@ export function IrpfFlowManager({ open, onOpenChange }: { open: boolean, onOpenC
             <div className="border rounded-xl divide-y bg-white overflow-hidden shadow-sm">
               {isLoading ? (
                 <div className="p-8 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#1FA67A]" /></div>
-              ) : stages.length > 0 ? (
+              ) : stages && stages.length > 0 ? (
                 stages.map((stage, index) => (
                   <div key={stage.id} className="p-3 flex items-center justify-between group hover:bg-[#F7F7F7] transition-colors">
                     <div className="flex items-center gap-3">
@@ -114,7 +114,7 @@ export function IrpfFlowManager({ open, onOpenChange }: { open: boolean, onOpenC
                         variant="ghost" 
                         size="icon" 
                         className="h-7 w-7 text-[#98A7AA]"
-                        disabled={index === stages.length - 1}
+                        disabled={index === (stages?.length || 0) - 1}
                         onClick={() => handleMove(stage.id, stage.order, 'down')}
                       >
                         <MoveDown className="h-3 w-3" />
