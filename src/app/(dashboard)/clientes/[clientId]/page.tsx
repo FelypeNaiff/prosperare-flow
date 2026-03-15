@@ -38,11 +38,12 @@ import { ClientInstallmentsTab } from "@/components/installments/client-installm
 import { ClientCommunicationTool } from "@/components/clients/client-communication-tool"
 import { Label } from "@/components/ui/label"
 import { useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase"
-import { doc, collection, query, where, getDocs } from "firebase/firestore"
-import { useState, useEffect } from "react"
+import { doc, collection } from "firebase/firestore"
+import { useState } from "react"
 import { EditClientModal } from "@/components/clients/edit-client-modal"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 export default function DetalhesClientePage() {
   const params = useParams()
@@ -53,32 +54,29 @@ export default function DetalhesClientePage() {
   const [isGenerating, setIsGenerating] = useState(false)
 
   const clientRef = useMemoFirebase(() => clientId ? doc(firestore, "clients", clientId) : null, [firestore, clientId])
-  const { data: client, isLoading } = useDoc(clientRef)
+  const { data: client, isLoading: loadingClient } = useDoc(clientRef)
 
-  // Busca grupos reais do banco de dados
   const groupsQuery = useMemoFirebase(() => collection(firestore, "obligation_groups"), [firestore])
-  const { data: dbGroups } = useCollection(groupsQuery)
+  const { data: dbGroups = [], isLoading: loadingGroups } = useCollection(groupsQuery)
 
-  // Grupo de Obrigações Multi-escolha
   const handleToggleGroup = (groupId: string) => {
-    if (!client) return
+    if (!client || !clientRef) return
     const currentGroups = client.obligationGroups || []
     const newGroups = currentGroups.includes(groupId)
       ? currentGroups.filter((id: string) => id !== groupId)
       : [...currentGroups, groupId]
     
-    updateDocumentNonBlocking(clientRef!, { obligationGroups: newGroups })
+    updateDocumentNonBlocking(clientRef, { obligationGroups: newGroups })
   }
 
-  // Função para Gerar Tarefas Automáticas baseadas nos grupos reais
   const handleGenerateTasks = async () => {
     if (!client || !client.obligationGroups?.length) {
       toast({ variant: "destructive", title: "Erro", description: "Vincule ao menos um grupo de obrigações primeiro." })
       return
     }
 
-    if (!dbGroups) {
-      toast({ variant: "destructive", title: "Erro", description: "Aguardando sincronização de grupos." })
+    if (!dbGroups || dbGroups.length === 0) {
+      toast({ variant: "destructive", title: "Erro", description: "Nenhum modelo de grupo localizado." })
       return
     }
 
@@ -108,24 +106,22 @@ export default function DetalhesClientePage() {
             responsibleId: client.accountingContactUserId || "Geral"
           }
 
-          await addDocumentNonBlocking(collection(firestore, "tasks"), newTask)
+          addDocumentNonBlocking(collection(firestore, "tasks"), newTask)
           tasksCreated++
         }
       }
 
       if (tasksCreated > 0) {
         toast({ title: "Processos Gerados!", description: `${tasksCreated} tarefas de ${monthYearLabel} criadas.` })
-      } else {
-        toast({ variant: "warning", title: "Atenção", description: "Os grupos selecionados não possuem processos configurados." })
       }
     } catch (error) {
-      toast({ variant: "destructive", title: "Erro ao gerar", description: "Não foi possível criar as tarefas." })
+      toast({ variant: "destructive", title: "Erro ao gerar", description: "Houve uma falha na criação das tarefas." })
     } finally {
       setIsGenerating(false)
     }
   }
 
-  if (isLoading) {
+  if (loadingClient) {
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-[#1FA67A]" />
@@ -146,7 +142,6 @@ export default function DetalhesClientePage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Header do Cliente */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-[#39586D]">
@@ -181,7 +176,6 @@ export default function DetalhesClientePage() {
         </div>
       </div>
 
-      {/* Grid de Resumo */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="border-[#D2D7DB] border-l-4 border-l-[#1FA67A]">
           <CardContent className="p-4 space-y-2">
@@ -218,7 +212,7 @@ export default function DetalhesClientePage() {
             <div className="flex flex-wrap gap-1">
               {client.obligationGroups?.length > 0 ? client.obligationGroups.map((gId: string) => (
                 <Badge key={gId} variant="secondary" className="bg-[#E3F0F9] text-[#2574A9] text-[8px] font-black uppercase border-none">
-                  {dbGroups?.find(g => g.id === gId)?.name || gId}
+                  {dbGroups?.find((g: any) => g.id === gId)?.name || gId}
                 </Badge>
               )) : <span className="text-[10px] font-bold text-[#E74C3C] uppercase">Nenhum Grupo</span>}
             </div>
@@ -226,7 +220,6 @@ export default function DetalhesClientePage() {
         </Card>
       </div>
 
-      {/* Tabs de Gestão */}
       <Tabs defaultValue="dados" className="space-y-6">
         <div className="bg-white p-1 rounded-xl border shadow-sm inline-flex overflow-x-auto w-full max-w-full">
           <TabsList className="bg-transparent h-10">
@@ -281,7 +274,7 @@ export default function DetalhesClientePage() {
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {dbGroups && dbGroups.length > 0 ? dbGroups.map((group) => (
+                    {dbGroups && dbGroups.length > 0 ? dbGroups.map((group: any) => (
                       <div key={group.id} className={cn(
                         "flex items-center space-x-3 p-3 rounded-xl border bg-white hover:bg-[#F7F7F7] transition-colors cursor-pointer",
                         client.obligationGroups?.includes(group.id) && "border-[#1FA67A] bg-[#1FA67A]/5"
@@ -397,10 +390,12 @@ function InfoItem({ label, value }: { label: string, value: any }) {
 function ClientTasksList({ clientId }: { clientId: string }) {
   const firestore = useFirestore()
   const tasksQuery = useMemoFirebase(() => 
-    query(collection(firestore, "tasks"), where("clientId", "==", clientId)),
-    [firestore, clientId]
+    query(collection(firestore, "tasks")),
+    [firestore]
   )
-  const { data: tasks, isLoading } = useCollection(tasksQuery)
+  const { data: allTasks, isLoading } = useCollection(tasksQuery)
+  
+  const tasks = (allTasks || []).filter((t: any) => t.clientId === clientId)
 
   if (isLoading) return <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#1FA67A]" /></div>
 
@@ -426,7 +421,7 @@ function ClientTasksList({ clientId }: { clientId: string }) {
                 <p className="text-sm font-bold text-[#2C4156]">{task.title}</p>
                 {task.groupName && <Badge variant="secondary" className="text-[7px] font-black uppercase h-4">{task.groupName}</Badge>}
               </div>
-              <p className="text-[10px] text-[#98A7AA] font-black uppercase">Vencimento: {new Date(task.dueDate).toLocaleDateString('pt-BR')}</p>
+              <p className="text-[10px] text-[#98A7AA] font-black uppercase">Vencimento: {task.dueDate ? new Date(task.dueDate).toLocaleDateString('pt-BR') : '--'}</p>
             </div>
           </div>
           <Badge className={cn(

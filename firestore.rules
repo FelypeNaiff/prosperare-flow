@@ -2,24 +2,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
     /**
-     * CONTAHUB SECURITY RULES - PROTOTYPING MODE
-     * Permite que qualquer usuário autenticado leia e escreva em qualquer coleção.
+     * MODO PROTOTIPAGEM TOTAL - PROSPERARE FLOW
+     * Permite acesso total a qualquer coleção para usuários logados.
+     * Isso evita erros de permissão durante o desenvolvimento de novos módulos.
      */
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // Regra global para prototipagem: usuários logados podem acessar qualquer documento
-    match /{collectionName}/{docId=**} {
-      allow read, write: if isSignedIn();
-    }
-
-    // Regra específica para o perfil de usuário
-    match /users/{userId} {
-      allow read, write: if isSignedIn();
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
