@@ -5,87 +5,20 @@ service cloud.firestore {
 
     /**
      * CONTAHUB SECURITY RULES - PROTOTYPING MODE
+     * Permite que qualquer usuário autenticado leia e escreva em qualquer coleção.
      */
-
-    // --- Global Helper Functions ---
 
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    // Regra global para prototipagem: usuários logados podem acessar qualquer documento
+    match /{collectionName}/{docId=**} {
+      allow read, write: if isSignedIn();
     }
 
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
-    }
-
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
-    function isAdminOrSocio() {
-      let profile = getUserData().profile;
-      return isSignedIn() && (profile == 'ADMINISTRADOR' || profile == 'SÓCIO' || profile == 'Administrador');
-    }
-
-    // --- Collection Rules ---
-
+    // Regra específica para o perfil de usuário
     match /users/{userId} {
-      allow get, list, create, update: if isSignedIn();
-      allow delete: if isAdminOrSocio();
-    }
-
-    match /clients/{clientId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /tasks/{id} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /tickets/{id} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /certificates/{id} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /installments/{id} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /clientAccesses/{id} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /receivables/{id} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /payables/{id} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /contracts/{id} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /irpf_declarations/{id} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /irpf_stages/{id} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /officeSettings/{id} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /obligation_groups/{id} {
       allow read, write: if isSignedIn();
     }
   }
