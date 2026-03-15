@@ -29,7 +29,6 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    // Auditoria: Só permitir query se houver referência e usuário autenticado
     const auth = getAuth();
     if (!memoizedTargetRefOrQuery || !auth.currentUser) {
       setData(null);
