@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -37,7 +36,8 @@ import {
   Search,
   X,
   FileText,
-  CalendarClock
+  CalendarClock,
+  CheckCircle2
 } from "lucide-react"
 import { useFirestore, setDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase"
 import { doc, collection } from "firebase/firestore"
