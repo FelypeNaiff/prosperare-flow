@@ -12,22 +12,14 @@ import {
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-/** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
 
-/**
- * Interface for the return value of the useCollection hook.
- * @template T Type of the document data.
- */
 export interface UseCollectionResult<T> {
-  data: WithId<T>[] | null; // Document data with ID, or null.
-  isLoading: boolean;       // True if loading.
-  error: FirestoreError | Error | null; // Error object, or null.
+  data: WithId<T>[] | null;
+  isLoading: boolean;
+  error: FirestoreError | Error | null;
 }
 
-/**
- * React hook to subscribe to a Firestore collection or query in real-time.
- */
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
 ): UseCollectionResult<T> {
@@ -59,10 +51,15 @@ export function useCollection<T = any>(
       },
       (err: FirestoreError) => {
         let path = 'Query';
-        if (memoizedTargetRefOrQuery instanceof CollectionReference) {
-          path = memoizedTargetRefOrQuery.path;
-        } else if ((memoizedTargetRefOrQuery as any)._query?.path) {
-          path = (memoizedTargetRefOrQuery as any)._query.path.canonicalString();
+        try {
+          if (memoizedTargetRefOrQuery instanceof CollectionReference) {
+            path = memoizedTargetRefOrQuery.path;
+          } else {
+            // Attempt to extract path from internal query object if possible
+            path = (memoizedTargetRefOrQuery as any)._query?.path?.canonicalString() || 'Query';
+          }
+        } catch (e) {
+          path = 'Query';
         }
 
         const contextualError = new FirestorePermissionError({

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -58,20 +57,17 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
       const competenceDate = parse(formData.competencia, "yyyy-MM", new Date())
       
       const id = Math.random().toString(36).substr(2, 9)
-      const processRef = doc(firestore, "processos", id)
+      const processRef = doc(firestore, "processes", id)
 
-      // Calcular Prazo (Vencimento)
       const day = model.prazoFixo || 20
       let dueDate = setDate(competenceDate, day)
       
-      // Ajuste de competência para o prazo
       if (model.competencia === 'mes_anterior') {
         dueDate = addMonths(dueDate, 1) 
       } else if (model.competencia === 'mes_seguinte') {
         dueDate = addMonths(dueDate, -1)
       }
 
-      // Validar se dia existe no mês (ex: 31/02 -> 28/02)
       const lastDay = lastDayOfMonth(dueDate)
       if (dueDate > lastDay) dueDate = lastDay
 

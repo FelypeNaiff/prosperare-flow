@@ -30,7 +30,7 @@ export function NotificationBell() {
     )
   }, [firestore, user])
 
-  const { data: notifications, isLoading } = useCollection(notificationsQuery)
+  const { data: notifications = [], isLoading } = useCollection(notificationsQuery)
   const unreadCount = (notifications || []).filter(n => !n.read).length
 
   const markAsRead = (id: string) => {

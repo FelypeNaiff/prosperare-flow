@@ -20,7 +20,6 @@
     "Client": {
       "title": "Client",
       "type": "object",
-      "description": "Client account details.",
       "properties": {
         "id": { "type": "string" },
         "corporateName": { "type": "string" },
@@ -152,6 +151,42 @@
     "/contracts/{id}": {
       "schema": { "$ref": "#/backend/entities/Contract" },
       "description": "Service contracts."
+    },
+    "/payables/{id}": {
+      "schema": { "type": "object" },
+      "description": "Accounts payable."
+    },
+    "/receivables/{id}": {
+      "schema": { "type": "object" },
+      "description": "Accounts receivable."
+    },
+    "/clientAccesses/{id}": {
+      "schema": { "type": "object" },
+      "description": "Password vault."
+    },
+    "/obligation_groups/{id}": {
+      "schema": { "type": "object" },
+      "description": "Groups of obligations."
+    },
+    "/irpf_declarations/{id}": {
+      "schema": { "type": "object" },
+      "description": "IRPF declarations."
+    },
+    "/irpf_stages/{id}": {
+      "schema": { "type": "object" },
+      "description": "IRPF Kanban stages."
+    },
+    "/installments/{id}": {
+      "schema": { "type": "object" },
+      "description": "Installment agreements."
+    },
+    "/officeSettings/{id}": {
+      "schema": { "type": "object" },
+      "description": "Global office settings."
+    },
+    "/tickets/{id}": {
+      "schema": { "type": "object" },
+      "description": "Internal tickets."
     }
   }
 }
