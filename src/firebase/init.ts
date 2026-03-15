@@ -15,24 +15,35 @@ let cachedFirestore: Firestore | undefined;
  * Evita o erro INTERNAL ASSERTION FAILED (ID: ca9) garantindo instâncias únicas.
  */
 export function initializeFirebase() {
-  if (!cachedApp) {
-    // Em Next.js, verificamos se já existe uma app para evitar re-inicialização no HMR
-    cachedApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-  }
+  try {
+    if (!cachedApp) {
+      // Em Next.js, verificamos se já existe uma app para evitar re-inicialização no HMR
+      cachedApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    }
 
-  if (!cachedAuth) {
-    cachedAuth = getAuth(cachedApp);
-  }
+    if (!cachedAuth) {
+      cachedAuth = getAuth(cachedApp);
+    }
 
-  if (!cachedFirestore) {
-    cachedFirestore = getFirestore(cachedApp);
-  }
+    if (!cachedFirestore) {
+      cachedFirestore = getFirestore(cachedApp);
+    }
 
-  return {
-    firebaseApp: cachedApp,
-    auth: cachedAuth,
-    firestore: cachedFirestore
-  };
+    return {
+      firebaseApp: cachedApp,
+      auth: cachedAuth,
+      firestore: cachedFirestore
+    };
+  } catch (error) {
+    console.error("Critical: Failed to initialize Firebase services:", error);
+    // Retorna objetos nulos para evitar quebras em cascata, 
+    // mas o app provavelmente precisará recarregar.
+    return {
+      firebaseApp: cachedApp as FirebaseApp,
+      auth: cachedAuth as Auth,
+      firestore: cachedFirestore as Firestore
+    };
+  }
 }
 
 /**

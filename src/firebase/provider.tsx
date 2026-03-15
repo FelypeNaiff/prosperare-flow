@@ -1,6 +1,6 @@
 'use client';
 
-import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
+import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect, useRef } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore, onSnapshot, doc, setDoc, getDoc } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
@@ -43,8 +43,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     isUserLoading: true,
     isAuthChecking: true,
     userError: null,
-    userLoaded: false, // Só vira true após validação completa
+    userLoaded: false,
   });
+
+  // Ref para gerenciar a limpeza do listener do Firestore independente do Auth
+  const dbUnsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!auth || !firestore) return;
@@ -52,6 +55,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const unsubscribeAuth = onAuthStateChanged(
       auth,
       async (firebaseUser) => {
+        // Limpa listener anterior se existir
+        if (dbUnsubscribeRef.current) {
+          dbUnsubscribeRef.current();
+          dbUnsubscribeRef.current = null;
+        }
+
         if (!firebaseUser) {
           setState({
             user: null,
@@ -64,33 +73,32 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // Tenta localizar o documento do colaborador pelo UID (ID oficial)
         const userDocRef = doc(firestore, "users", firebaseUser.uid);
         
         try {
           const uidSnap = await getDoc(userDocRef);
           
           if (uidSnap.exists()) {
-            const userData = { ...uidSnap.data(), id: uidSnap.id };
+            const initialData = { ...uidSnap.data(), id: uidSnap.id };
+            
             setState(prev => ({ 
               ...prev, 
               user: firebaseUser, 
-              userData, 
+              userData: initialData, 
               isUserLoading: false, 
               isAuthChecking: false,
               userLoaded: true 
             }));
             
-            // Listener em tempo real para mudanças no perfil
-            const unsubscribeDb = onSnapshot(userDocRef, (snapshot) => {
+            // Ativa o listener em tempo real
+            dbUnsubscribeRef.current = onSnapshot(userDocRef, (snapshot) => {
               if (snapshot.exists()) {
                 const updatedData = { ...snapshot.data(), id: snapshot.id };
                 setState(prev => ({ ...prev, userData: updatedData }));
               }
             });
-            return () => unsubscribeDb();
           } else {
-            // Provisionamento automático para o administrador principal
+            // Provisionamento para o administrador felypenaiff01@gmail.com
             if (firebaseUser.email === "felypenaiff01@gmail.com") {
               const adminData = {
                 id: firebaseUser.uid,
@@ -102,7 +110,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 createdAt: new Date().toISOString(),
                 departmentIds: ["Diretoria", "Administrativo"]
               };
-              // Salva usando o UID como ID do documento
+              
               await setDoc(userDocRef, adminData, { merge: true });
               
               setState(prev => ({ 
@@ -114,7 +122,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 userLoaded: true 
               }));
             } else {
-              // E-mail logado via Google mas não cadastrado como colaborador
+              // Usuário autenticado mas sem perfil de colaborador
               setState(prev => ({ 
                 ...prev, 
                 user: firebaseUser, 
@@ -125,9 +133,16 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
               }));
             }
           }
-        } catch (error) {
-          console.error("Erro ao carregar perfil do usuário:", error);
-          setState(prev => ({ ...prev, isUserLoading: false, isAuthChecking: false, userLoaded: true }));
+        } catch (error: any) {
+          console.error("Erro no fluxo de autenticação/perfil:", error);
+          setState(prev => ({ 
+            ...prev, 
+            user: firebaseUser,
+            isUserLoading: false, 
+            isAuthChecking: false, 
+            userLoaded: true,
+            userError: error
+          }));
         }
       },
       (error) => {
@@ -135,7 +150,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       }
     );
 
-    return () => unsubscribeAuth();
+    return () => {
+      unsubscribeAuth();
+      if (dbUnsubscribeRef.current) dbUnsubscribeRef.current();
+    };
   }, [auth, firestore]);
 
   const contextValue = useMemo((): FirebaseContextState => {
