@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { 
   Sheet, 
   SheetContent, 
@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
@@ -77,7 +76,6 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
   const [isPaid, setIsPaid] = useState(false)
   const [localData, setLocalData] = useState({ name: "", cpf: "", govPass: "" })
 
-  // Busca estágios reais para o seletor
   const stagesQuery = useMemoFirebase(() => query(collection(firestore, "irpf_stages"), orderBy("order", "asc")), [firestore])
   const { data: dbStages } = useCollection(stagesQuery)
   const availableStages = (dbStages && dbStages.length > 0) ? dbStages : DEFAULT_STAGES
@@ -102,19 +100,19 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
     updateDocumentNonBlocking(docRef, data)
   }
 
+  const handleStageChange = (stageId: string) => {
+    const stageIndex = availableStages.findIndex((s: any) => s.id === stageId)
+    const newProgress = Math.round(((stageIndex + 1) / availableStages.length) * 100)
+    handleUpdate({ status: stageId, progress: newProgress })
+  }
+
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text)
-    toast({
-      title: "Copiado!",
-      description: `${label} copiado para a área de transferência.`
-    })
+    toast({ title: "Copiado!", description: `${label} copiado.` })
   }
 
   const toggleTag = (tagName: string) => {
-    const newTags = activeTags.includes(tagName)
-      ? activeTags.filter(t => t !== tagName)
-      : [...activeTags, tagName]
-    
+    const newTags = activeTags.includes(tagName) ? activeTags.filter(t => t !== tagName) : [...activeTags, tagName]
     setActiveTags(newTags)
     handleUpdate({ tags: newTags })
   }
@@ -130,7 +128,7 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                   <div className="w-8 h-8 border-2 border-[#172B4D] rounded-full flex items-center justify-center shrink-0">
                     <UserCircle className="h-5 w-5 text-[#172B4D]" />
                   </div>
-                  <SheetTitle className="text-2xl font-black text-[#172B4D] leading-tight">Ficha do Contribuinte</SheetTitle>
+                  <SheetTitle className="text-2xl font-black text-[#172B4D] leading-tight uppercase">Ficha do Contribuinte</SheetTitle>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="h-8 w-8 rounded-full">
                   <X className="h-4 w-4" />
@@ -144,7 +142,7 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                     value={localData.name} 
                     onChange={(e) => setLocalData({...localData, name: e.target.value})}
                     onBlur={() => handleUpdate({ name: localData.name })}
-                    className="border-[#D2D7DB] font-bold text-[#172B4D]"
+                    className="border-[#D2D7DB] font-bold text-[#172B4D] uppercase"
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -161,10 +159,10 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                     <Label className="text-[10px] font-black text-[#5E6C84] uppercase tracking-wider">Etapa do Fluxo</Label>
                     <Select 
                       value={declaration.status} 
-                      onValueChange={(v) => handleUpdate({ status: v })}
+                      onValueChange={handleStageChange}
                     >
                       <SelectTrigger className="border-[#D2D7DB] font-black text-[#172B4D] uppercase text-[10px]">
-                        <SelectValue placeholder="Selecione a etapa" />
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {availableStages.map((stage: any) => (
@@ -189,7 +187,7 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                       <Badge 
                         key={tagName} 
                         className={cn(
-                          "px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-wide shadow-sm border-none cursor-pointer hover:brightness-90",
+                          "px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-wide border-none cursor-pointer",
                           tag?.color || "bg-slate-400 text-white"
                         )}
                         onClick={() => toggleTag(tagName)}
@@ -198,35 +196,22 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                       </Badge>
                     )
                   })}
-                  
                   <Popover>
                     <PopoverTrigger asChild>
-                      <button className="h-8 w-8 rounded bg-[#EBEDF0] hover:bg-[#D2D7DB] flex items-center justify-center transition-colors shadow-sm">
+                      <button className="h-8 w-8 rounded bg-[#EBEDF0] hover:bg-[#D2D7DB] flex items-center justify-center shadow-sm">
                         <Plus className="h-4 w-4 text-[#172B4D]" />
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-72 p-0 bg-white border-[#D2D7DB] shadow-2xl" align="start">
+                    <PopoverContent className="w-72 p-0 bg-white border-[#D2D7DB] shadow-2xl">
                       <div className="p-3 border-b flex items-center justify-between bg-[#F4F5F7]">
-                        <span className="text-xs font-bold text-[#5E6C84] uppercase text-center w-full">Etiquetas Sugeridas</span>
+                        <span className="text-xs font-bold text-[#5E6C84] uppercase text-center w-full">Etiquetas</span>
                       </div>
                       <div className="p-3 space-y-1 max-h-[300px] overflow-y-auto">
                         {AVAILABLE_TAGS.map((tag) => (
-                          <div key={tag.name} className="flex items-center gap-2 group">
-                            <Checkbox 
-                              checked={activeTags.includes(tag.name)} 
-                              onCheckedChange={() => toggleTag(tag.name)}
-                              id={`tag-${tag.name}`}
-                              className="h-4 w-4 rounded border-[#D2D7DB]"
-                            />
-                            <button
-                              onClick={() => toggleTag(tag.name)}
-                              className={cn(
-                                "flex-1 flex items-center justify-between px-3 py-2 rounded text-[10px] font-black uppercase tracking-wide transition-all hover:brightness-90",
-                                tag.color
-                              )}
-                            >
+                          <div key={tag.name} className="flex items-center gap-2">
+                            <Checkbox checked={activeTags.includes(tag.name)} onCheckedChange={() => toggleTag(tag.name)} id={`tag-${tag.name}`} />
+                            <button onClick={() => toggleTag(tag.name)} className={cn("flex-1 text-left px-3 py-2 rounded text-[10px] font-black uppercase tracking-wide", tag.color)}>
                               {tag.name}
-                              {activeTags.includes(tag.name) && <Check className="h-3 w-3" />}
                             </button>
                           </div>
                         ))}
@@ -239,7 +224,7 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
               <div className="space-y-3">
                 <Label className="text-[11px] font-black text-[#5E6C84] uppercase tracking-wider">Senha GOV.BR</Label>
                 <div className="flex gap-2">
-                  <div className="flex-1 bg-[#F4F5F7] border border-[#D2D7DB] rounded p-2 flex items-center justify-between">
+                  <div className="flex-1 bg-[#F4F5F7] border border-[#D2D7DB] rounded p-2 flex items-center justify-between overflow-hidden">
                     <span className="text-xs font-mono font-bold truncate pr-2">{showGovPass ? localData.govPass : '••••••••'}</span>
                     <div className="flex gap-2 shrink-0">
                       <button onClick={() => setShowGovPass(!showGovPass)} className="text-[#5E6C84]">
@@ -259,30 +244,24 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-[#F4F5F7] p-6 rounded-2xl border">
               <div className="space-y-3">
                 <Label className="text-[11px] font-black text-[#5E6C84] uppercase tracking-wider flex items-center gap-2">
-                  <DollarSign className="h-3 w-3" /> Valor do Serviço
+                  <DollarSign className="h-3 w-3" /> Honorários
                 </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-xs font-bold text-[#5E6C84]">R$</span>
-                  <Input 
-                    type="number" 
-                    className="pl-9 bg-white border-[#D2D7DB] font-black text-[#172B4D]" 
-                    value={serviceValue}
-                    onChange={(e) => {
-                      const val = Number(e.target.value)
-                      setServiceValue(val)
-                      handleUpdate({ value: val })
-                    }}
-                  />
-                </div>
+                <Input 
+                  type="number" 
+                  className="bg-white border-[#D2D7DB] font-black text-[#172B4D]" 
+                  value={serviceValue}
+                  onChange={(e) => {
+                    const val = Number(e.target.value)
+                    setServiceValue(val)
+                    handleUpdate({ value: val })
+                  }}
+                />
               </div>
               <div className="space-y-3">
-                <Label className="text-[11px] font-black text-[#5E6C84] uppercase tracking-wider">Status do Pagamento</Label>
+                <Label className="text-[11px] font-black text-[#5E6C84] uppercase tracking-wider">Pagamento</Label>
                 <div className="flex items-center justify-between bg-white p-2.5 rounded-lg border border-[#D2D7DB]">
-                  <span className={cn(
-                    "text-xs font-black uppercase tracking-widest",
-                    isPaid ? "text-[#1FA67A]" : "text-[#E74C3C]"
-                  )}>
-                    {isPaid ? "Pago" : "Pendente"}
+                  <span className={cn("text-xs font-black uppercase", isPaid ? "text-[#1FA67A]" : "text-[#E74C3C]")}>
+                    {isPaid ? "PAGO" : "PENDENTE"}
                   </span>
                   <Switch checked={isPaid} onCheckedChange={(v) => { setIsPaid(v); handleUpdate({ isPaid: v }); }} />
                 </div>
@@ -290,20 +269,15 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
             </div>
 
             <div className="space-y-4">
-              <h4 className="text-[11px] font-black text-[#172B4D] uppercase tracking-widest flex items-center gap-2">
-                <div className="w-1 h-4 bg-[#1FA67A] rounded-full" />
-                Anotações e Progresso
-              </h4>
-              <div className="bg-[#F4F5F7] p-4 rounded-xl border border-[#D2D7DB] space-y-3">
-                <Textarea 
-                  placeholder="Escreva aqui detalhes sobre a movimentação, pendências ou dúvidas com o cliente..." 
-                  className="bg-white border-[#D2D7DB] text-sm h-32"
-                  value={declaration.notes || ""}
-                  onChange={(e) => handleUpdate({ notes: e.target.value })}
-                />
-              </div>
+              <h4 className="text-[11px] font-black text-[#172B4D] uppercase tracking-widest flex items-center gap-2">Anotações e Progresso</h4>
+              <Textarea 
+                placeholder="Detalhes sobre a declaração..." 
+                className="bg-white border-[#D2D7DB] text-sm h-32"
+                value={declaration.notes || ""}
+                onChange={(e) => handleUpdate({ notes: e.target.value })}
+              />
               <div className="space-y-2">
-                <div className="flex justify-between text-[10px] font-black text-[#5E6C84] uppercase tracking-widest">
+                <div className="flex justify-between text-[10px] font-black text-[#5E6C84] uppercase">
                   <span>Progresso Geral</span>
                   <span>{declaration.progress || 0}%</span>
                 </div>
@@ -313,21 +287,19 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
           </div>
         </ScrollArea>
 
-        <div className="p-6 border-t bg-[#F4F5F7] flex items-center justify-between">
+        <div className="p-6 border-t bg-[#F4F5F7] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8 border-2 border-white shadow-sm">
+            <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-[#172B4D] text-white text-[10px] font-black">R</AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-              <span className="text-[10px] font-black text-[#5E6C84] uppercase tracking-widest">Responsável</span>
+              <span className="text-[10px] font-black text-[#5E6C84] uppercase">Responsável</span>
               <span className="text-xs font-bold text-[#172B4D]">Você</span>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button className="h-9 bg-[#1FA67A] font-black text-[10px] uppercase tracking-widest gap-2 shadow-lg shadow-emerald-500/20" onClick={() => handleUpdate({ status: 'completed', progress: 100 })}>
-              <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar Processo
-            </Button>
-          </div>
+          <Button className="h-9 bg-[#1FA67A] font-black text-[10px] uppercase gap-2 shadow-lg" onClick={() => handleUpdate({ status: 'completed', progress: 100 })}>
+            <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
+          </Button>
         </div>
       </SheetContent>
     </Sheet>

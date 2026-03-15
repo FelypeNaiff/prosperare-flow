@@ -5,93 +5,69 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user account within the ContaHub system, managed by the Administrator.",
+      "description": "Represents a user account within the ContaHub system.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
-        "fullName": {
-          "type": "string",
-          "description": "The full name of the user."
-        },
-        "email": {
-          "type": "string",
-          "description": "The Gmail address used for Google OAuth login."
-        },
-        "profile": {
-          "type": "string",
-          "description": "The role or profile of the user within the system.",
-          "enum": ["ADMINISTRADOR", "SÓCIO", "CONTADOR/GESTOR", "ASSISTENTE"]
-        },
-        "departmentId": {
-          "type": "string",
-          "description": "Reference to the Department this user belongs to."
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the user account.",
-          "enum": ["ATIVO", "INATIVO"]
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "profile": { "type": "string", "enum": ["ADMINISTRADOR", "SÓCIO", "CONTADOR/GESTOR", "ASSISTENTE"] },
+        "status": { "type": "string", "enum": ["ATIVO", "INATIVO"] },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "fullName",
-        "email",
-        "profile",
-        "status",
-        "createdAt"
-      ]
+      "required": ["id", "fullName", "email", "profile", "status", "createdAt"]
     },
-    "IrpfDeclaration": {
-      "title": "IrpfDeclaration",
+    "ProcessoModelo": {
+      "title": "ProcessoModelo",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "name": { "type": "string" },
-        "cpf": { "type": "string" },
-        "govPass": { "type": "string" },
-        "status": { "type": "string" },
-        "progress": { "type": "number" },
-        "value": { "type": "number" },
-        "isPaid": { "type": "boolean" },
-        "responsibleId": { "type": "string" },
-        "tags": { "type": "array", "items": { "type": "string" } },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "nome": { "type": "string" },
+        "descricao": { "type": "string" },
+        "tipo": { "type": "string", "enum": ["recorrente", "esporadico"] },
+        "regimes": { "type": "array", "items": { "type": "string" } },
+        "departamento": { "type": "string" },
+        "dataGeracaoRecorrencia": { "type": "number" },
+        "recorrencia": { "type": "string", "enum": ["mensal", "bimestral", "trimestral", "semestral", "anual", "unica"] },
+        "prazoFixo": { "type": "number" },
+        "competencia": { "type": "string", "enum": ["mes_prazo", "mes_anterior", "mes_seguinte"] },
+        "tarefas": { "type": "array" },
+        "clientesVinculados": { "type": "array", "items": { "type": "string" } },
+        "clientesExcluidos": { "type": "array", "items": { "type": "string" } },
+        "ativo": { "type": "boolean" }
+      }
+    },
+    "Processo": {
+      "title": "Processo",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "modeloId": { "type": "string" },
+        "clienteId": { "type": "string" },
+        "nomeProcesso": { "type": "string" },
+        "situacao": { "type": "string", "enum": ["a_fazer", "em_progresso", "concluido", "em_multa", "dispensado"] },
+        "prazo": { "type": "string", "format": "date-time" },
+        "prazoMeta": { "type": "string", "format": "date-time" },
+        "atrasoGeraMulta": { "type": "boolean" },
+        "tarefas": { "type": "array" }
       }
     }
   },
   "auth": {
-    "providers": [
-      "google.com",
-      "password"
-    ]
+    "providers": ["google.com", "password"]
   },
   "firestore": {
     "structure": [
       {
         "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores individual user profiles."
-        }
+        "definition": { "entityName": "User", "description": "Stores individual user profiles." }
       },
       {
-        "path": "/irpf_declarations/{id}",
-        "definition": {
-          "entityName": "IrpfDeclaration",
-          "schema": {
-            "$ref": "#/backend/entities/IrpfDeclaration"
-          },
-          "description": "Stores IRPF declarations individual by collaborator."
-        }
+        "path": "/processoModelos/{id}",
+        "definition": { "entityName": "ProcessoModelo", "description": "Blueprints for recurring or sporadic tasks." }
+      },
+      {
+        "path": "/processos/{id}",
+        "definition": { "entityName": "Processo", "description": "Actual process instances for clients." }
       }
     ]
   }
