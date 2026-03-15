@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -30,7 +31,8 @@ import {
   Link as LinkIcon,
   ClipboardList,
   Send,
-  AtSign
+  AtSign,
+  UserPlus
 } from "lucide-react"
 import { 
   Select, 
@@ -86,7 +88,7 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
       id: Math.random().toString(36).substr(2, 9),
       text: newComment,
       createdAt: new Date().toISOString(),
-      user: "Você" // No futuro pegar do useUser
+      user: "Você"
     }
     
     handleUpdate('comments', [...comments, comment])
@@ -94,7 +96,7 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
     toast({ title: "Comentário adicionado" })
   }
 
-  const progress = localTarefas.length > 0 
+  const progressValue = localTarefas.length > 0 
     ? Math.round((localTarefas.filter(t => t.situacao === 'concluido').length / localTarefas.length) * 100)
     : 0
 
@@ -135,10 +137,8 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
                   </Select>
                 </div>
                 <div className="h-10 w-px bg-[#D2D7DB] hidden md:block" />
-                <StatItem label="Vencimento" value={process.prazo ? new Date(process.prazo).toLocaleDateString('pt-BR') : '--'} icon={Clock} color="text-[#E74C3C]" />
-                <StatItem label="Meta Interna" value={process.prazoMeta ? new Date(process.prazoMeta).toLocaleDateString('pt-BR') : '--'} icon={ArrowUpRight} color="text-[#2574A9]" />
                 
-                <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-[#D2D7DB]/50 shadow-sm min-w-[180px]">
+                <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-[#D2D7DB]/50 shadow-sm min-w-[160px]">
                   <div className="p-1.5 bg-[#F7F7F7] rounded-lg text-[#2C4156]">
                     <User className="h-3.5 w-3.5" />
                   </div>
@@ -157,6 +157,29 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
                     </Select>
                   </div>
                 </div>
+
+                <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-[#D2D7DB]/50 shadow-sm min-w-[160px]">
+                  <div className="p-1.5 bg-[#F7F7F7] rounded-lg text-[#1FA67A]">
+                    <UserPlus className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="flex flex-col flex-1">
+                    <span className="text-[8px] font-black text-[#98A7AA] uppercase leading-none mb-1">Auxiliar</span>
+                    <Select value={process.auxiliarId || "Nenhum"} onValueChange={(v) => handleUpdate('auxiliarId', v)}>
+                      <SelectTrigger className="h-5 border-none p-0 text-[10px] font-bold text-[#2C4156] shadow-none focus:ring-0">
+                        <SelectValue placeholder="Escolher..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Nenhum" className="text-[10px] font-bold">NENHUM</SelectItem>
+                        {team?.map(u => (
+                          <SelectItem key={u.id} value={u.fullName} className="text-[10px] font-bold uppercase">{u.fullName}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <StatItem label="Vencimento" value={process.prazo ? new Date(process.prazo).toLocaleDateString('pt-BR') : '--'} icon={Clock} color="text-[#E74C3C]" />
+                <StatItem label="Meta Interna" value={process.prazoMeta ? new Date(process.prazoMeta).toLocaleDateString('pt-BR') : '--'} icon={ArrowUpRight} color="text-[#2574A9]" />
               </div>
             </header>
 
@@ -252,9 +275,9 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
               <div className="space-y-1.5">
                 <div className="flex justify-between text-[10px] font-black text-[#98A7AA] uppercase">
                   <span>Conclusão</span>
-                  <span>{progress}%</span>
+                  <span>{progressValue}%</span>
                 </div>
-                <Progress value={progress} className="h-1.5 bg-white" />
+                <Progress value={progressValue} className="h-1.5 bg-white" />
               </div>
             </header>
 

@@ -16,12 +16,16 @@ import {
   ChevronRight,
   MoreVertical,
   Loader2,
-  CalendarDays
+  CalendarDays,
+  Trash2,
+  UserPlus,
+  X
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { 
   Table, 
   TableBody, 
@@ -33,32 +37,66 @@ import {
 import { 
   useFirestore, 
   useCollection, 
-  useMemoFirebase 
+  useMemoFirebase,
+  useUser,
+  deleteDocumentNonBlocking,
+  updateDocumentNonBlocking
 } from "@/firebase"
-import { collection, query, orderBy } from "firebase/firestore"
+import { collection, query, orderBy, doc } from "firebase/firestore"
 import { cn } from "@/lib/utils"
 import { ProcessDetailsDrawer } from "@/components/processes/process-details-drawer"
 import { CreateProcessModal } from "@/components/processes/create-process-modal"
 import { format, parseISO, isValid } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { toast } from "@/hooks/use-toast"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export default function ProcessosPage() {
   const firestore = useFirestore()
+  const { user, userData } = useUser()
   const [searchTerm, setSearchTerm] = useState("")
   const [expandedMonths, setExpandedModels] = useState<string[]>([])
   const [selectedProcess, setSelectedProcess] = useState<any>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
 
   // Queries reais
   const processesQuery = useMemoFirebase(() => 
     query(collection(firestore, "processos"), orderBy("prazo", "asc")), 
     [firestore]
   )
-  const { data: processes, isLoading } = useCollection(processesQuery)
+  const { data: rawProcesses, isLoading } = useCollection(processesQuery)
 
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
   const { data: clients } = useCollection(clientsQuery)
+
+  const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
+  const { data: team = [] } = useCollection(usersQuery)
+
+  // Filtro de Segurança por Colaborador
+  const processes = useMemo(() => {
+    if (!rawProcesses || !userData) return []
+    
+    // Admin e Sócio vêem tudo
+    if (userData.profile === 'ADMINISTRADOR' || userData.profile === 'SÓCIO') {
+      return rawProcesses
+    }
+
+    // Outros perfis vêem apenas onde são Responsável ou Auxiliar
+    return rawProcesses.filter(p => 
+      p.responsavelId === userData.fullName || 
+      p.responsavelId === userData.id ||
+      p.auxiliarId === userData.fullName ||
+      p.auxiliarId === userData.id ||
+      p.responsavelId === "Geral"
+    )
+  }, [rawProcesses, userData])
 
   // Agrupamento por Mês de Competência
   const groupedData = useMemo(() => {
@@ -83,7 +121,6 @@ export default function ProcessosPage() {
       groups[monthKey].push(p)
     })
 
-    // Ordena os meses
     return Object.entries(groups).sort((a, b) => {
       if (a[0] === "Sem Competência") return 1
       if (b[0] === "Sem Competência") return -1
@@ -117,7 +154,29 @@ export default function ProcessosPage() {
     setIsDrawerOpen(true)
   }
 
-  // Auto-expandir o mês atual se houver dados
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])
+  }
+
+  const handleBatchDelete = () => {
+    if (confirm(`Deseja excluir permanentemente ${selectedIds.length} processos?`)) {
+      selectedIds.forEach(id => {
+        deleteDocumentNonBlocking(doc(firestore, "processos", id))
+      })
+      toast({ title: "Processos excluídos", variant: "destructive" })
+      setSelectedIds([])
+    }
+  }
+
+  const handleBatchAssign = (userName: string) => {
+    selectedIds.forEach(id => {
+      updateDocumentNonBlocking(doc(firestore, "processos", id), { responsavelId: userName })
+    })
+    toast({ title: `${selectedIds.length} processos atribuídos a ${userName}` })
+    setSelectedIds([])
+  }
+
+  // Auto-expandir o mês atual
   useMemo(() => {
     if (groupedData.length > 0 && expandedMonths.length === 0) {
       setExpandedModels([groupedData[0].id])
@@ -153,6 +212,38 @@ export default function ProcessosPage() {
         <KpiMiniCard label="Dispensado" value={stats.waived} icon={XCircle} color="bg-[#39586D]" />
       </div>
 
+      {/* Barra de Ações em Lote */}
+      {selectedIds.length > 0 && (
+        <div className="sticky top-20 z-30 bg-[#2C4156] text-white p-4 rounded-xl shadow-2xl flex items-center justify-between animate-in slide-in-from-top-4">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => setSelectedIds([])} className="text-white hover:bg-white/10">
+              <X className="h-4 w-4" />
+            </Button>
+            <span className="font-black uppercase text-xs tracking-widest">{selectedIds.length} Processos Selecionados</span>
+          </div>
+          <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-white text-[#2C4156] font-black uppercase text-[10px] hover:bg-white/90">
+                  <UserPlus className="h-3 w-3 mr-2" /> Atribuir Responsável
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuItem onClick={() => handleBatchAssign("Geral")} className="font-bold text-xs uppercase">GERAL</DropdownMenuItem>
+                {team.map(u => (
+                  <DropdownMenuItem key={u.id} onClick={() => handleBatchAssign(u.fullName)} className="font-bold text-xs uppercase">
+                    {u.fullName}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="destructive" className="font-black uppercase text-[10px]" onClick={handleBatchDelete}>
+              <Trash2 className="h-3 w-3 mr-2" /> Apagar Lote
+            </Button>
+          </div>
+        </div>
+      )}
+
       <Card className="border-[#D2D7DB] shadow-sm overflow-hidden">
         <CardContent className="p-0">
           <div className="p-4 border-b bg-[#F7F7F7]/50 flex flex-col md:flex-row justify-between gap-4">
@@ -169,18 +260,13 @@ export default function ProcessosPage() {
               <Button variant="outline" size="sm" className="text-[10px] font-black uppercase border-[#D2D7DB] gap-1 shrink-0">
                 <Filter className="h-3 w-3" /> Filtrar
               </Button>
-              <Button variant="outline" size="sm" className="text-[10px] font-black uppercase border-[#D2D7DB] shrink-0">
-                Edição em lote
-              </Button>
-              <Button variant="outline" size="sm" className="text-[10px] font-black uppercase border-[#D2D7DB] shrink-0 text-[#1FA67A]">
-                Gerar Guias
-              </Button>
             </div>
           </div>
 
           <Table>
             <TableHeader className="bg-[#2C4156]">
               <TableRow className="hover:bg-transparent">
+                <TableHead className="text-white font-black uppercase text-[10px] w-12"></TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px] w-12"></TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px]">Empresa / Processo</TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px] text-center">Situação</TableHead>
@@ -192,12 +278,12 @@ export default function ProcessosPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="h-32 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="h-32 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" /></TableCell></TableRow>
               ) : groupedData.length > 0 ? (
                 groupedData.map((group) => (
                   <React.Fragment key={group.id}>
                     <TableRow className="bg-[#F4F5F7] cursor-pointer group" onClick={() => toggleExpand(group.id)}>
-                      <TableCell className="text-center">
+                      <TableCell colSpan={2} className="text-center">
                         {expandedMonths.includes(group.id) ? <ChevronDown className="h-4 w-4 text-[#2C4156]" /> : <ChevronRight className="h-4 w-4 text-[#98A7AA]" />}
                       </TableCell>
                       <TableCell colSpan={6} className="py-3">
@@ -221,8 +307,19 @@ export default function ProcessosPage() {
                       })
                       .map(p => {
                         const client = (clients || []).find(c => c.id === p.clienteId)
+                        const isSelected = selectedIds.includes(p.id)
                         return (
-                          <TableRow key={p.id} className="hover:bg-[#F7F7F7] border-l-4 border-l-[#1FA67A]/20 transition-colors">
+                          <TableRow key={p.id} className={cn(
+                            "hover:bg-[#F7F7F7] border-l-4 border-l-[#1FA67A]/20 transition-colors",
+                            isSelected && "bg-[#1FA67A]/5 border-l-[#1FA67A]"
+                          )}>
+                            <TableCell className="text-center">
+                              <Checkbox 
+                                checked={isSelected} 
+                                onCheckedChange={() => toggleSelect(p.id)}
+                                className="h-5 w-5 data-[state=checked]:bg-[#1FA67A]"
+                              />
+                            </TableCell>
                             <TableCell></TableCell>
                             <TableCell className="py-4" onClick={() => handleOpenProcess(p)}>
                               <div className="flex flex-col">
@@ -278,7 +375,7 @@ export default function ProcessosPage() {
                   </React.Fragment>
                 ))
               ) : (
-                <TableRow><TableCell colSpan={7} className="h-32 text-center text-[#98A7AA] font-bold italic uppercase text-xs">Nenhum processo localizado para este período.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="h-32 text-center text-[#98A7AA] font-bold italic uppercase text-xs">Nenhum processo localizado para este período.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>

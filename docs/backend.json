@@ -48,7 +48,9 @@
         "prazo": { "type": "string", "format": "date-time" },
         "prazoMeta": { "type": "string", "format": "date-time" },
         "atrasoGeraMulta": { "type": "boolean" },
-        "tarefas": { "type": "array" }
+        "tarefas": { "type": "array" },
+        "responsavelId": { "type": "string" },
+        "auxiliarId": { "type": "string" }
       }
     }
   },
