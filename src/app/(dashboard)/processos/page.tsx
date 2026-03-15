@@ -58,7 +58,7 @@ import {
 
 export default function ProcessosPage() {
   const firestore = useFirestore()
-  const { userData } = useUser()
+  const { userData, userLoaded } = useUser()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCompetence, setSelectedCompetence] = useState<Date>(startOfMonth(new Date()))
   const [selectedProcess, setSelectedProcess] = useState<any>(null)
@@ -66,16 +66,23 @@ export default function ProcessosPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
 
+  // Query segura: só dispara se userLoaded for true
   const processesQuery = useMemoFirebase(() => 
-    query(collection(firestore, "processes"), orderBy("prazo", "asc")), 
-    [firestore]
+    userLoaded ? query(collection(firestore, "processes"), orderBy("prazo", "asc")) : null, 
+    [firestore, userLoaded]
   )
   const { data: rawProcesses, isLoading } = useCollection(processesQuery)
 
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
+  const clientsQuery = useMemoFirebase(() => 
+    userLoaded ? collection(firestore, "clients") : null, 
+    [firestore, userLoaded]
+  )
   const { data: clients } = useCollection(clientsQuery)
 
-  const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
+  const usersQuery = useMemoFirebase(() => 
+    userLoaded ? collection(firestore, "users") : null, 
+    [firestore, userLoaded]
+  )
   const { data: team = [] } = useCollection(usersQuery)
 
   const filteredProcesses = useMemo(() => {

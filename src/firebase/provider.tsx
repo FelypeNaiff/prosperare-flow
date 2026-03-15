@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect, useRef } from 'react';
@@ -50,7 +49,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     isUserLoading: true,
     isAuthChecking: true,
     userError: null,
-    userLoaded: false,
+    userLoaded: false, // Inicia como falso até completar o fluxo
   });
 
   const dbUnsubscribeRef = useRef<(() => void) | null>(null);
@@ -61,6 +60,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const unsubscribeAuth = onAuthStateChanged(
       auth,
       async (firebaseUser) => {
+        // Limpa ouvintes anteriores
         if (dbUnsubscribeRef.current) {
           dbUnsubscribeRef.current();
           dbUnsubscribeRef.current = null;
@@ -73,7 +73,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             isUserLoading: false,
             isAuthChecking: false,
             userError: null,
-            userLoaded: true,
+            userLoaded: true, // Verificado: nenhum usuário
           });
           return;
         }
@@ -128,7 +128,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 userLoaded: true 
               }));
             } else {
-              // Outros usuários que conseguiram logar mas não estão autorizados ainda
+              // Usuário autenticado mas sem perfil autorizado
               setState(prev => ({ 
                 ...prev, 
                 user: firebaseUser, 
@@ -140,6 +140,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             }
           }
         } catch (error: any) {
+          console.error("Firestore error in provider:", error);
           setState(prev => ({ 
             ...prev, 
             user: firebaseUser,

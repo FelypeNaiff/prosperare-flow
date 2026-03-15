@@ -52,6 +52,7 @@ import {
   useFirestore, 
   useCollection, 
   useMemoFirebase, 
+  useUser,
   setDocumentNonBlocking, 
   deleteDocumentNonBlocking 
 } from "@/firebase"
@@ -62,11 +63,16 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 export default function ClientesPage() {
   const firestore = useFirestore()
   const router = useRouter()
+  const { userLoaded } = useUser()
   const [searchTerm, setSearchTerm] = useState("")
   const [isNewClientOpen, setIsNewClientOpen] = useState(false)
   const [isLoadingCnpj, setIsLoadingCnpj] = useState(false)
   
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
+  // Garantia de query segura: só dispara se userLoaded for true
+  const clientsQuery = useMemoFirebase(() => 
+    userLoaded ? collection(firestore, "clients") : null, 
+    [firestore, userLoaded]
+  )
   const { data: clients = [], isLoading } = useCollection(clientsQuery)
   
   const [newClient, setNewClient] = useState({
