@@ -126,9 +126,9 @@ export default function GruposObrigacoesPage() {
           <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
           <p className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Sincronizando Grupos...</p>
         </div>
-      ) : groups.length > 0 ? (
+      ) : (groups || []).length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {groups.map((group) => (
+          {groups?.map((group) => (
             <Card key={group.id} className="border-[#D2D7DB] hover:shadow-md transition-shadow group relative overflow-hidden bg-white">
               <div className="absolute top-0 left-0 w-1.5 h-full" style={{ backgroundColor: group.color }} />
               <CardHeader className="pb-2">

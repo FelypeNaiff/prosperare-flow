@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo } from "react"
@@ -78,8 +79,9 @@ export default function ContratosPage() {
   })
 
   const stats = useMemo(() => {
-    const active = contracts.filter(c => c.status === 'Ativo').length
-    const revenue = contracts.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0)
+    const list = contracts || []
+    const active = list.filter(c => c.status === 'Ativo').length
+    const revenue = list.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0)
     return { active, revenue }
   }, [contracts])
 
@@ -89,7 +91,7 @@ export default function ContratosPage() {
       return
     }
 
-    const client = clients.find(c => c.id === newContract.clientId)
+    const client = (clients || []).find(c => c.id === newContract.clientId)
     const id = Math.random().toString(36).substr(2, 9)
     const contractRef = doc(firestore, "contracts", id)
     
@@ -127,7 +129,7 @@ export default function ContratosPage() {
     setIsPreviewOpen(true)
   }
 
-  const filteredContracts = contracts.filter(c => 
+  const filteredContracts = (contracts || []).filter(c => 
     c.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     c.clientCnpj?.includes(searchTerm)
   )
@@ -242,7 +244,7 @@ export default function ContratosPage() {
               <Select value={newContract.clientId} onValueChange={(v) => setNewContract({...newContract, clientId: v})}>
                 <SelectTrigger className="border-[#D2D7DB]"><SelectValue placeholder="Selecione o cliente cadastrado" /></SelectTrigger>
                 <SelectContent>
-                  {clients.map(client => (
+                  {(clients || []).map(client => (
                     <SelectItem key={client.id} value={client.id}>{client.corporateName}</SelectItem>
                   ))}
                 </SelectContent>
