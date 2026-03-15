@@ -31,14 +31,15 @@ export function NotificationBell() {
     )
   }, [firestore, user])
 
-  const { data: notifications = [], isLoading } = useCollection(notificationsQuery)
-  const unreadCount = notifications.filter(n => !n.read).length
+  const { data: notifications, isLoading } = useCollection(notificationsQuery)
+  const unreadCount = (notifications || []).filter(n => !n.read).length
 
   const markAsRead = (id: string) => {
     updateDocumentNonBlocking(doc(firestore, "notifications", id), { read: true })
   }
 
   const markAllAsRead = () => {
+    if (!notifications) return
     notifications.filter(n => !n.read).forEach(n => {
       updateDocumentNonBlocking(doc(firestore, "notifications", n.id), { read: true })
     })
@@ -75,7 +76,7 @@ export function NotificationBell() {
           <div className="flex flex-col">
             {isLoading ? (
               <div className="py-20 text-center"><RefreshCw className="h-6 w-6 animate-spin mx-auto text-[#98A7AA]" /></div>
-            ) : notifications.length > 0 ? (
+            ) : notifications && notifications.length > 0 ? (
               notifications.map((notif) => (
                 <DropdownMenuItem 
                   key={notif.id} 
