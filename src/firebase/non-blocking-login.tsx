@@ -1,36 +1,27 @@
-
 'use client';
 import {
   Auth,
-  signInAnonymously,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
   signOut
 } from 'firebase/auth';
 
 /** Initiate Google sign-in (non-blocking). */
-export function initiateGoogleSignIn(authInstance: Auth): void {
+export async function initiateGoogleSignIn(authInstance: Auth): Promise<void> {
   const provider = new GoogleAuthProvider();
-  signInWithPopup(authInstance, provider).catch((error) => {
-    console.error("Erro ao fazer login com Google:", error);
-  });
-}
-
-/** Initiate anonymous sign-in (non-blocking). */
-export function initiateAnonymousSignIn(authInstance: Auth): void {
-  signInAnonymously(authInstance);
-}
-
-/** Initiate email/password sign-up (non-blocking). */
-export function initiateEmailSignUp(authInstance: Auth, email: string, password: string): void {
-  createUserWithEmailAndPassword(authInstance, email, password);
-}
-
-/** Initiate email/password sign-in (non-blocking). */
-export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): void {
-  signInWithEmailAndPassword(authInstance, email, password);
+  try {
+    await signInWithPopup(authInstance, provider);
+  } catch (error: any) {
+    // Usuário fechou o popup — não é erro real, ignorar silenciosamente
+    if (
+      error.code === 'auth/popup-closed-by-user' ||
+      error.code === 'auth/cancelled-popup-request'
+    ) {
+      return;
+    }
+    // Outros erros reais — logar normalmente
+    console.error('Erro de autenticação:', error);
+  }
 }
 
 /** Logout (non-blocking). */

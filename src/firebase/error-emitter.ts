@@ -38,8 +38,9 @@ function createEventEmitter<T extends Record<string, any>>() {
 
       // Check if it's a permission error and we are in development mode
       if (eventName === 'permission-error' && process.env.NODE_ENV === 'development') {
+        // Log silently to console instead of triggering the Next.js error overlay
         console.warn('[Firestore Permission Denied]', (data as any).message);
-        return; // Stop propagation to the listener that throws to overlay
+        return; 
       }
 
       events[eventName]?.forEach(callback => callback(data));
