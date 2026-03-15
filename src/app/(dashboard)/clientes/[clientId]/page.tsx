@@ -21,7 +21,10 @@ import {
   AlertTriangle,
   RefreshCw,
   Loader2,
-  Plus
+  Plus,
+  Edit2,
+  PlayCircle,
+  Layers
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
@@ -34,23 +37,89 @@ import { ProcurationTab } from "@/components/clients/procuration-tab"
 import { ClientInstallmentsTab } from "@/components/installments/client-installments-tab"
 import { ClientCommunicationTool } from "@/components/clients/client-communication-tool"
 import { Label } from "@/components/ui/label"
-import { useFirestore, useDoc, useMemoFirebase } from "@/firebase"
-import { doc } from "firebase/firestore"
+import { useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase"
+import { doc, collection, query, where, getDocs } from "firebase/firestore"
+import { useState, useEffect } from "react"
+import { EditClientModal } from "@/components/clients/edit-client-modal"
+import { Checkbox } from "@/components/ui/checkbox"
+import { toast } from "@/hooks/use-toast"
+
+const GROUPS = [
+  { id: 'fiscal_simples', name: 'FISCAL SIMPLES' },
+  { id: 'pessoal_geral', name: 'PESSOAL GERAL' },
+  { id: 'contabil_mensal', name: 'CONTÁBIL MENSAL' },
+  { id: 'mei_completo', name: 'MEI COMPLETO' },
+  { id: 'lucro_presumido', name: 'LUCRO PRESUMIDO' }
+]
 
 export default function DetalhesClientePage() {
   const params = useParams()
   const router = useRouter()
   const firestore = useFirestore()
   const clientId = params.clientId as string
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
 
   const clientRef = useMemoFirebase(() => clientId ? doc(firestore, "clients", clientId) : null, [firestore, clientId])
   const { data: client, isLoading } = useDoc(clientRef)
+
+  // Grupo de Obrigações Multi-escolha
+  const handleToggleGroup = (groupId: string) => {
+    if (!client) return
+    const currentGroups = client.obligationGroups || []
+    const newGroups = currentGroups.includes(groupId)
+      ? currentGroups.filter((id: string) => id !== groupId)
+      : [...currentGroups, groupId]
+    
+    updateDocumentNonBlocking(clientRef!, { obligationGroups: newGroups })
+  }
+
+  // Função para Gerar Tarefas Automáticas
+  const handleGenerateTasks = async () => {
+    if (!client || !client.obligationGroups?.length) {
+      toast({ variant: "destructive", title: "Erro", description: "Vincule ao menos um grupo de obrigações primeiro." })
+      return
+    }
+
+    setIsGenerating(true)
+    try {
+      const now = new Date()
+      const currentMonth = now.getMonth() + 1
+      const currentYear = now.getFullYear()
+      const monthYearLabel = `${currentMonth.toString().padStart(2, '0')}/${currentYear}`
+
+      // Para fins de MVP, simulamos a criação das tarefas baseadas nos grupos selecionados
+      // Em uma versão avançada, buscaria modelos de uma coleção 'obligation_templates'
+      for (const groupId of client.obligationGroups) {
+        const groupInfo = GROUPS.find(g => g.id === groupId)
+        
+        const newTask = {
+          clientId: client.id,
+          clientName: client.corporateName,
+          title: `${groupInfo?.name} - Competência ${monthYearLabel}`,
+          status: 'todo',
+          groupId: groupId,
+          createdAt: new Date().toISOString(),
+          dueDate: new Date(currentYear, currentMonth - 1, 20).toISOString(), // Vence dia 20 do mês
+          responsibleId: client.accountingContactUserId || "Geral"
+        }
+
+        await addDocumentNonBlocking(collection(firestore, "tasks"), newTask)
+      }
+
+      toast({ title: "Processos Gerados!", description: `Tarefas de ${monthYearLabel} criadas com sucesso.` })
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erro ao gerar", description: "Não foi possível criar as tarefas." })
+    } finally {
+      setIsGenerating(false)
+    }
+  }
 
   if (isLoading) {
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-[#1FA67A]" />
-        <p className="text-xs font-black uppercase text-[#98A7AA] tracking-widest animate-pulse">Carregando Ficha 360º...</p>
+        <p className="text-xs font-black uppercase text-[#98A7AA] tracking-widest animate-pulse">Sincronizando Ficha 360º...</p>
       </div>
     )
   }
@@ -84,6 +153,9 @@ export default function DetalhesClientePage() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] gap-2" onClick={() => setIsEditOpen(true)}>
+            <Edit2 className="h-4 w-4" /> Editar Dados
+          </Button>
           <ClientCommunicationTool 
             client={{ name: client.corporateName, email: client.email, regime: client.taxRegime }}
             trigger={
@@ -92,8 +164,9 @@ export default function DetalhesClientePage() {
               </Button>
             }
           />
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2">
-            <RefreshCw className="h-4 w-4" /> Sincronizar e-CAC
+          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 shadow-lg shadow-emerald-500/20" onClick={handleGenerateTasks} disabled={isGenerating}>
+            {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
+            GERAR TAREFAS
           </Button>
         </div>
       </div>
@@ -123,17 +196,22 @@ export default function DetalhesClientePage() {
           <CardContent className="p-4 space-y-1">
             <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Honorário</p>
             <p className="text-lg font-black text-[#1FA67A]">
-              R$ {(client.honorariumValue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {(Number(client.honorariumValue) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
-            <p className="text-[10px] font-bold text-[#39586D] uppercase">Vencimento todo dia {client.honorariumDueDateDay || 10}</p>
+            <p className="text-[10px] font-bold text-[#39586D] uppercase">Vencimento dia {client.honorariumDueDateDay || 10}</p>
           </CardContent>
         </Card>
 
-        <Card className="border-[#D2D7DB] bg-[#FEE2E2]/10 border-l-[#E74C3C]">
-          <CardContent className="p-4 space-y-1 text-[#E74C3C]">
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Pendências</p>
-            <p className="text-lg font-black flex items-center gap-2">0 Pendências <CheckCircle2 className="h-5 w-5 text-[#1FA67A]" /></p>
-            <p className="text-[10px] font-bold uppercase">Situação Regular</p>
+        <Card className="border-[#D2D7DB] bg-white">
+          <CardContent className="p-4 space-y-1">
+            <p className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Grupos Ativos</p>
+            <div className="flex flex-wrap gap-1">
+              {client.obligationGroups?.length > 0 ? client.obligationGroups.map((gId: string) => (
+                <Badge key={gId} variant="secondary" className="bg-[#E3F0F9] text-[#2574A9] text-[8px] font-black uppercase">
+                  {GROUPS.find(g => g.id === gId)?.name || gId}
+                </Badge>
+              )) : <span className="text-[10px] font-bold text-[#E74C3C]">NENHUM GRUPO</span>}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -146,10 +224,10 @@ export default function DetalhesClientePage() {
               <Building2 className="h-3.5 w-3.5" /> Ficha Cadastral
             </TabsTrigger>
             <TabsTrigger value="processos" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4 shrink-0">
-              <Activity className="h-3.5 w-3.5" /> Processos
+              <Activity className="h-3.5 w-3.5" /> Processos Real-Time
             </TabsTrigger>
             <TabsTrigger value="certidoes" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4 shrink-0">
-              <ShieldCheck className="h-3.5 w-3.5" /> Certidões
+              <ShieldCheck className="h-3.5 w-3.5" /> Certidões (CND)
             </TabsTrigger>
             <TabsTrigger value="parcelamentos" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4 shrink-0">
               <CreditCard className="h-3.5 w-3.5" /> Parcelamentos
@@ -165,27 +243,52 @@ export default function DetalhesClientePage() {
 
         <TabsContent value="dados" className="m-0 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="md:col-span-2 border-[#D2D7DB]">
-              <CardHeader className="bg-[#F7F7F7]/50 border-b">
-                <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Dados Gerais</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 grid grid-cols-2 gap-6">
-                <InfoItem label="Razão Social" value={client.corporateName} />
-                <InfoItem label="CNPJ" value={client.cnpj} />
-                <InfoItem label="Inscrição Estadual" value={client.stateRegistration || "ISENTO"} />
-                <InfoItem label="Inscrição Municipal" value={client.cityRegistration || "--"} />
-                <InfoItem label="Regime" value={client.taxRegime} />
-                <InfoItem label="Data de Abertura" value={client.openingDate || "--"} />
-                <div className="col-span-2 space-y-2 border-t pt-4">
-                  <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Endereço Completo</Label>
-                  <div className="flex items-center gap-2 text-sm font-bold text-[#39586D]">
-                    <MapPin className="h-4 w-4 text-[#1FA67A]" /> {client.city} - {client.state}
+            <div className="md:col-span-2 space-y-6">
+              <Card className="border-[#D2D7DB]">
+                <CardHeader className="bg-[#F7F7F7]/50 border-b">
+                  <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Dados Gerais</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 grid grid-cols-2 gap-6">
+                  <InfoItem label="Razão Social" value={client.corporateName} />
+                  <InfoItem label="CNPJ" value={client.cnpj} />
+                  <InfoItem label="Inscrição Estadual" value={client.stateRegistration || "ISENTO"} />
+                  <InfoItem label="Inscrição Municipal" value={client.cityRegistration || "--"} />
+                  <InfoItem label="Regime" value={client.taxRegime} />
+                  <InfoItem label="Data de Abertura" value={client.openingDate || "--"} />
+                  <div className="col-span-2 space-y-2 border-t pt-4">
+                    <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Endereço Completo</Label>
+                    <div className="flex items-center gap-2 text-sm font-bold text-[#39586D]">
+                      <MapPin className="h-4 w-4 text-[#1FA67A]" /> {client.address}, {client.neighborhood} - {client.city}/{client.state}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="border-[#D2D7DB]">
+              <Card className="border-[#D2D7DB]">
+                <CardHeader className="bg-[#F7F7F7]/50 border-b flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Grupos de Obrigações</CardTitle>
+                  <Layers className="h-4 w-4 text-[#1FA67A]" />
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {GROUPS.map((group) => (
+                      <div key={group.id} className="flex items-center space-x-3 p-3 rounded-xl border bg-white hover:bg-[#F7F7F7] transition-colors cursor-pointer" onClick={() => handleToggleGroup(group.id)}>
+                        <Checkbox 
+                          id={group.id} 
+                          checked={client.obligationGroups?.includes(group.id)} 
+                          onCheckedChange={() => handleToggleGroup(group.id)}
+                        />
+                        <Label htmlFor={group.id} className="text-xs font-black text-[#39586D] cursor-pointer uppercase">
+                          {group.name}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="border-[#D2D7DB] h-fit">
               <CardHeader className="bg-[#F7F7F7]/50 border-b">
                 <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Contatos Principais</CardTitle>
               </CardHeader>
@@ -206,9 +309,10 @@ export default function DetalhesClientePage() {
                     </div>
                   </div>
                 </div>
-                <Button variant="outline" className="w-full border-[#D2D7DB] font-bold text-[#39586D]">
-                  Gerenciar Contatos
-                </Button>
+                <div className="pt-4 border-t">
+                  <p className="text-[10px] font-black text-[#98A7AA] uppercase mb-2">Pessoa de Contato</p>
+                  <p className="text-sm font-bold text-[#2C4156]">{client.companyContactPerson || "Não informado"}</p>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -221,12 +325,12 @@ export default function DetalhesClientePage() {
                 <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Obrigações e Tarefas do Cliente</CardTitle>
                 <CardDescription className="text-xs font-bold text-[#98A7AA]">Fluxo de trabalho específico para {client.corporateName}.</CardDescription>
               </div>
-              <Button className="bg-[#1FA67A] gap-2 h-8 text-xs font-bold">
-                <Plus className="h-3.5 w-3.5" /> Nova Tarefa
+              <Button className="bg-[#1FA67A] gap-2 h-8 text-xs font-bold" onClick={handleGenerateTasks} disabled={isGenerating}>
+                <Plus className="h-3.5 w-3.5" /> Nova Tarefa Avulsa
               </Button>
             </CardHeader>
-            <CardContent className="p-12 text-center text-[#98A7AA] font-bold italic">
-              Nenhum processo em andamento para este cliente.
+            <CardContent className="p-0">
+              <ClientTasksList clientId={clientId} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -251,15 +355,66 @@ export default function DetalhesClientePage() {
           <ProcurationTab clientId={clientId} />
         </TabsContent>
       </Tabs>
+
+      <EditClientModal 
+        open={isEditOpen} 
+        onOpenChange={setIsEditOpen} 
+        client={client} 
+      />
     </div>
   )
 }
 
-function InfoItem({ label, value }: { label: string, value: string }) {
+function InfoItem({ label, value }: { label: string, value: any }) {
   return (
     <div className="space-y-1">
       <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">{label}</Label>
       <p className="text-sm font-bold text-[#2C4156]">{value || '--'}</p>
+    </div>
+  )
+}
+
+function ClientTasksList({ clientId }: { clientId: string }) {
+  const firestore = useFirestore()
+  const tasksQuery = useMemoFirebase(() => 
+    query(collection(firestore, "tasks"), where("clientId", "==", clientId)),
+    [firestore, clientId]
+  )
+  const { data: tasks = [], isLoading } = useDoc(tasksQuery as any) // usando as any por simplicidade de mock/real
+
+  if (isLoading) return <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#1FA67A]" /></div>
+
+  // Mock visual para quando não há tarefas reais mas queremos mostrar o que o gerador faz
+  if (!tasks || (Array.isArray(tasks) && tasks.length === 0)) {
+    return (
+      <div className="p-12 text-center text-[#98A7AA] font-bold italic">
+        Nenhuma tarefa vinculada. Clique em "GERAR TAREFAS" no topo para carregar o mês.
+      </div>
+    )
+  }
+
+  return (
+    <div className="divide-y">
+      {(Array.isArray(tasks) ? tasks : []).map((task: any) => (
+        <div key={task.id} className="p-4 flex items-center justify-between hover:bg-[#F7F7F7] transition-colors">
+          <div className="flex items-center gap-4">
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              task.status === 'done' ? 'bg-[#1FA67A]' : 'bg-[#F2B705]'
+            )} />
+            <div>
+              <p className="text-sm font-bold text-[#2C4156]">{task.title}</p>
+              <p className="text-[10px] text-[#98A7AA] font-black uppercase">Vencimento: {new Date(task.dueDate).toLocaleDateString('pt-BR')}</p>
+            </div>
+          </div>
+          <Badge className={cn(
+            "text-[9px] font-black uppercase",
+            task.status === 'done' ? 'bg-[#7ED6B5] text-[#1FA67A]' : 'bg-[#FEF3C7] text-[#F2B705]'
+          )}>
+            {task.status === 'done' ? 'Concluído' : 'Pendente'}
+          </Badge>
+        </div>
+      ))}
     </div>
   )
 }

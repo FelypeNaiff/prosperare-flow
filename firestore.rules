@@ -22,12 +22,7 @@ service cloud.firestore {
     }
 
     function getUserData() {
-      // Safely get user data, handle case where doc might not exist yet
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
-    function hasRole(role) {
-      return isSignedIn() && getUserData().profile == role;
     }
 
     function isAdminOrSocio() {
@@ -38,42 +33,27 @@ service cloud.firestore {
     // --- Collection Rules ---
 
     match /users/{userId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn(); 
-      allow create: if isSignedIn(); 
-      allow update: if isSignedIn(); 
+      allow get, list, create, update: if isSignedIn();
       allow delete: if isAdminOrSocio();
-
-      match /notifications/{notificationId} {
-        allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId);
-        allow update: if isExistingOwner(userId);
-        allow delete: if isExistingOwner(userId);
-      }
-    }
-
-    match /departments/{id} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isAdminOrSocio();
-    }
-
-    match /officeSettings/{id} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isAdminOrSocio();
     }
 
     match /clients/{clientId} {
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isAdminOrSocio();
+      allow read, write: if isSignedIn();
     }
 
     match /tasks/{id} {
       allow read, write: if isSignedIn();
     }
 
-    match /tickets/{id} {
+    match /certificates/{id} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /installments/{id} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /clientAccesses/{id} {
       allow read, write: if isSignedIn();
     }
 
@@ -97,17 +77,8 @@ service cloud.firestore {
       allow read, write: if isSignedIn();
     }
 
-    match /clientAccesses/{id} {
+    match /officeSettings/{id} {
       allow read, write: if isSignedIn();
-    }
-
-    match /installments/{id} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /actionLogs/{actionLogId} {
-      allow get, list: if isAdminOrSocio();
-      allow create: if isSignedIn();
     }
   }
 }
