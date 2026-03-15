@@ -42,7 +42,8 @@
         "taxRegime": { "type": "string" },
         "email": { "type": "string" },
         "phone": { "type": "string" },
-        "status": { "type": "string" }
+        "status": { "type": "string" },
+        "obligationGroups": { "type": "array", "items": { "type": "string" } }
       }
     },
     "ProcessoModelo": {
@@ -51,7 +52,6 @@
       "properties": {
         "id": { "type": "string" },
         "nome": { "type": "string" },
-        "descricao": { "type": "string" },
         "tipo": { "type": "string", "enum": ["recorrente", "esporadico"] },
         "departamento": { "type": "string" },
         "tarefas": { "type": "array" }
@@ -65,7 +65,67 @@
         "modeloId": { "type": "string" },
         "clienteId": { "type": "string" },
         "nomeProcesso": { "type": "string" },
-        "situacao": { "type": "string", "enum": ["a_fazer", "em_progresso", "concluido", "em_multa", "dispensado"] }
+        "situacao": { "type": "string", "enum": ["a_fazer", "em_progresso", "concluido", "em_multa", "dispensado"] },
+        "competencia": { "type": "string" }
+      }
+    },
+    "Ticket": {
+      "title": "Ticket",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string" },
+        "responsibleId": { "type": "string" }
+      }
+    },
+    "ObligationGroup": {
+      "title": "ObligationGroup",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "dept": { "type": "string" },
+        "processes": { "type": "array" }
+      }
+    },
+    "Certificate": {
+      "title": "Certificate",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "tipo": { "type": "string" },
+        "validade": { "type": "string" }
+      }
+    },
+    "Installment": {
+      "title": "Installment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "tipo": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
+    "FinanceRecord": {
+      "title": "FinanceRecord",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "valor": { "type": "number" },
+        "situacao": { "type": "string" }
+      }
+    },
+    "Contract": {
+      "title": "Contract",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "value": { "type": "number" }
       }
     }
   },
@@ -92,6 +152,38 @@
     "/processos/{id}": {
       "schema": { "$ref": "#/backend/entities/Processo" },
       "description": "Actual process instances."
+    },
+    "/tickets/{id}": {
+      "schema": { "$ref": "#/backend/entities/Ticket" },
+      "description": "Internal demands."
+    },
+    "/obligation_groups/{id}": {
+      "schema": { "$ref": "#/backend/entities/ObligationGroup" },
+      "description": "Groups of obligations."
+    },
+    "/certificates/{id}": {
+      "schema": { "$ref": "#/backend/entities/Certificate" },
+      "description": "Digital certificates."
+    },
+    "/installments/{id}": {
+      "schema": { "$ref": "#/backend/entities/Installment" },
+      "description": "Debt installments."
+    },
+    "/receivables/{id}": {
+      "schema": { "$ref": "#/backend/entities/FinanceRecord" },
+      "description": "Accounts receivable."
+    },
+    "/payables/{id}": {
+      "schema": { "$ref": "#/backend/entities/FinanceRecord" },
+      "description": "Accounts payable."
+    },
+    "/contracts/{id}": {
+      "schema": { "$ref": "#/backend/entities/Contract" },
+      "description": "Service contracts."
+    },
+    "/officeSettings/{id}": {
+      "schema": { "type": "object" },
+      "description": "Global office settings."
     }
   }
 }

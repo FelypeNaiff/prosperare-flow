@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -13,7 +14,6 @@ interface FirebaseProviderProps {
   auth: Auth;
 }
 
-// Internal state for user authentication and Firestore profile
 interface UserAuthState {
   user: User | null;
   userData: any | null;
@@ -22,7 +22,6 @@ interface UserAuthState {
   userError: Error | null;
 }
 
-// Combined state for the Firebase context
 export interface FirebaseContextState {
   areServicesAvailable: boolean;
   firebaseApp: FirebaseApp | null;
@@ -69,7 +68,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       (firebaseUser) => {
         if (firebaseUser) {
-          // If logged in, fetch the Firestore record by email to verify if they are a collaborator
           const usersRef = collection(firestore, "users");
           const q = firestoreQuery(usersRef, where("email", "==", firebaseUser.email));
           
@@ -84,7 +82,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 isAuthChecking: false 
               }));
             } else {
-              // BOOTSTRAP LOGIC: If the specific requested email logs in and is not found, auto-create admin record
               if (firebaseUser.email === "felypenaiff01@gmail.com") {
                 const newUserRef = doc(collection(firestore, "users"));
                 const adminData = {
@@ -98,12 +95,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                   departmentIds: ["Diretoria", "Administrativo"]
                 };
                 
-                // Create the record silently. The onSnapshot will fire again automatically.
-                setDoc(newUserRef, adminData).catch(err => {
-                  console.error("Erro ao provisionar administrador:", err);
+                setDoc(newUserRef, adminData).catch(() => {
+                  // Erro de provisionamento tratado silenciosamente para não quebrar o app
                 });
               } else {
-                // Authenticated but not in the collaborators list
                 setState(prev => ({ 
                   ...prev, 
                   user: firebaseUser, 
@@ -114,13 +109,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
               }
             }
           }, (err) => {
-            console.error("Db access error:", err);
             setState(prev => ({ ...prev, isUserLoading: false, isAuthChecking: false, userError: err }));
           });
 
           return () => unsubscribeDb();
         } else {
-          // Not logged in
           setState({ 
             user: null, 
             userData: null, 

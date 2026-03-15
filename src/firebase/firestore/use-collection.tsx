@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -50,7 +51,6 @@ export function useCollection<T = any>(
     setIsLoading(true);
     setError(null);
 
-    // Subscreve ao listener em tempo real
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,
       (snapshot: QuerySnapshot<DocumentData>) => {
@@ -63,10 +63,18 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-        // Evita acessar propriedades internas (_query) para prevenir erros de asserção do SDK
-        const path: string = memoizedTargetRefOrQuery.type === 'collection'
-          ? (memoizedTargetRefOrQuery as CollectionReference).path
-          : 'Query'; 
+        let path = 'Query';
+        if (memoizedTargetRefOrQuery.type === 'collection') {
+          path = (memoizedTargetRefOrQuery as CollectionReference).path;
+        } else {
+          try {
+            // Tenta extrair o path de forma segura da Query (SDK JS v9+)
+            // @ts-ignore - Acesso a propriedade interna para debug context
+            path = memoizedTargetRefOrQuery._query?.path?.canonicalString() || 'Query';
+          } catch {
+            path = 'Query';
+          }
+        }
 
         const contextualError = new FirestorePermissionError({
           operation: 'list',
@@ -77,7 +85,6 @@ export function useCollection<T = any>(
         setData(null);
         setIsLoading(false);
 
-        // Propaga o erro globalmente através do emitter
         errorEmitter.emit('permission-error', contextualError);
       }
     );
@@ -85,7 +92,6 @@ export function useCollection<T = any>(
     return () => unsubscribe();
   }, [memoizedTargetRefOrQuery]);
 
-  // Validação de segurança obrigatória no Firebase Studio
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
     throw new Error(memoizedTargetRefOrQuery + ' was not properly memoized using useMemoFirebase');
   }
