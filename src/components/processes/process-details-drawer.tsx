@@ -28,7 +28,9 @@ import {
   AlertTriangle,
   MoreVertical,
   Link as LinkIcon,
-  ClipboardList
+  ClipboardList,
+  Send,
+  AtSign
 } from "lucide-react"
 import { 
   Select, 
@@ -38,16 +40,22 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { useFirestore, updateDocumentNonBlocking } from "@/firebase"
-import { doc } from "firebase/firestore"
+import { Input } from "@/components/ui/input"
+import { useFirestore, updateDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase"
+import { doc, collection } from "firebase/firestore"
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Switch } from "@/components/ui/switch"
+import { toast } from "@/hooks/use-toast"
 
 export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
   const firestore = useFirestore()
   const [localTarefas, setLocalTarefas] = useState<any[]>([])
+  const [newComment, setNewComment] = useState("")
+  
+  const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
+  const { data: team = [] } = useCollection(usersQuery)
 
   useEffect(() => {
     if (process) {
@@ -68,6 +76,22 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
     )
     setLocalTarefas(newTarefas)
     handleUpdate('tarefas', newTarefas)
+  }
+
+  const handleAddComment = () => {
+    if (!newComment.trim()) return
+    
+    const comments = process.comments || []
+    const comment = {
+      id: Math.random().toString(36).substr(2, 9),
+      text: newComment,
+      createdAt: new Date().toISOString(),
+      user: "Você" // No futuro pegar do useUser
+    }
+    
+    handleUpdate('comments', [...comments, comment])
+    setNewComment("")
+    toast({ title: "Comentário adicionado" })
   }
 
   const progress = localTarefas.length > 0 
@@ -113,7 +137,26 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
                 <div className="h-10 w-px bg-[#D2D7DB] hidden md:block" />
                 <StatItem label="Vencimento" value={process.prazo ? new Date(process.prazo).toLocaleDateString('pt-BR') : '--'} icon={Clock} color="text-[#E74C3C]" />
                 <StatItem label="Meta Interna" value={process.prazoMeta ? new Date(process.prazoMeta).toLocaleDateString('pt-BR') : '--'} icon={ArrowUpRight} color="text-[#2574A9]" />
-                <StatItem label="Responsável" value={process.responsavelId || 'Geral'} icon={User} color="text-[#2C4156]" isAvatar />
+                
+                <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-[#D2D7DB]/50 shadow-sm min-w-[180px]">
+                  <div className="p-1.5 bg-[#F7F7F7] rounded-lg text-[#2C4156]">
+                    <User className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="flex flex-col flex-1">
+                    <span className="text-[8px] font-black text-[#98A7AA] uppercase leading-none mb-1">Responsável</span>
+                    <Select value={process.responsavelId} onValueChange={(v) => handleUpdate('responsavelId', v)}>
+                      <SelectTrigger className="h-5 border-none p-0 text-[10px] font-bold text-[#2C4156] shadow-none focus:ring-0">
+                        <SelectValue placeholder="Escolher..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Geral" className="text-[10px] font-bold">GERAL</SelectItem>
+                        {team?.map(u => (
+                          <SelectItem key={u.id} value={u.fullName} className="text-[10px] font-bold uppercase">{u.fullName}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
             </header>
 
@@ -140,32 +183,63 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
                   />
                 </div>
 
-                <Tabs defaultValue="anexos">
-                  <TabsList className="bg-[#F7F7F7] p-1 h-10 border">
-                    <TabsTrigger value="anexos" className="text-[10px] font-black uppercase gap-2 px-6">
-                      <Paperclip className="h-3.5 w-3.5" /> Anexos
-                    </TabsTrigger>
-                    <TabsTrigger value="hub" className="text-[10px] font-black uppercase gap-2 px-6">
-                      <LinkIcon className="h-3.5 w-3.5" /> ConnectHub
-                    </TabsTrigger>
-                    <TabsTrigger value="comments" className="text-[10px] font-black uppercase gap-2 px-6">
-                      <MessageCircle className="h-3.5 w-3.5" /> Comentários
+                <Tabs defaultValue="comments" className="w-full">
+                  <TabsList className="bg-[#F7F7F7] p-1 h-10 border mb-4">
+                    <TabsTrigger value="comments" className="text-[10px] font-black uppercase gap-2 px-8">
+                      <MessageCircle className="h-3.5 w-3.5" /> Comentários e Menções
                     </TabsTrigger>
                   </TabsList>
-                  <TabsContent value="anexos" className="pt-4 h-48 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-[#98A7AA] space-y-2">
-                    <Paperclip className="h-8 w-8 opacity-20" />
-                    <p className="text-xs font-bold uppercase">Nenhum documento anexado</p>
-                    <Button variant="outline" size="sm" className="h-8 text-[10px] font-black uppercase">Fazer Upload</Button>
+                  
+                  <TabsContent value="comments" className="space-y-6">
+                    <div className="bg-[#F7F7F7] p-4 rounded-2xl border border-[#D2D7DB] shadow-inner">
+                      <div className="relative">
+                        <AtSign className="absolute left-3 top-3 h-4 w-4 text-[#98A7AA]" />
+                        <Textarea 
+                          className="pl-9 h-24 bg-white border-[#D2D7DB] text-xs resize-none"
+                          placeholder="Digite aqui para comentar. Use @ para mencionar um colega..."
+                          value={newComment}
+                          onChange={(e) => setNewComment(e.target.value)}
+                        />
+                        <Button 
+                          className="absolute bottom-2 right-2 h-8 bg-[#1FA67A] text-[10px] font-black uppercase gap-2"
+                          onClick={handleAddComment}
+                        >
+                          <Send className="h-3 w-3" /> Enviar
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      {process.comments?.length > 0 ? (
+                        process.comments.map((c: any) => (
+                          <div key={c.id} className="flex gap-3 items-start p-3 bg-white border rounded-xl hover:shadow-sm transition-shadow">
+                            <Avatar className="h-8 w-8 border">
+                              <AvatarFallback className="bg-[#2C4156] text-white text-[10px] font-black">{c.user.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-black text-[#2C4156] uppercase">{c.user}</span>
+                                <span className="text-[9px] font-bold text-[#98A7AA]">{new Date(c.createdAt).toLocaleString('pt-BR')}</span>
+                              </div>
+                              <p className="text-xs text-[#39586D] leading-relaxed">{c.text}</p>
+                            </div>
+                          </div>
+                        )).reverse()
+                      ) : (
+                        <div className="py-12 text-center text-[#98A7AA] text-[10px] font-black uppercase tracking-widest border-2 border-dashed rounded-2xl opacity-40">
+                          Nenhum comentário registrado.
+                        </div>
+                      )}
+                    </div>
                   </TabsContent>
                 </Tabs>
               </div>
             </ScrollArea>
 
-            <footer className="p-6 border-t bg-[#F7F7F7] flex justify-between items-center">
-              <Button className="bg-[#1FA67A] font-black uppercase text-xs px-8 shadow-lg shadow-emerald-500/20">
-                Enviar Documentos p/ Cliente
+            <footer className="p-6 border-t bg-[#F7F7F7] flex justify-end items-center">
+              <Button variant="ghost" className="text-[#E74C3C] font-bold text-xs uppercase underline" onClick={() => handleUpdate('situacao', 'dispensado')}>
+                Dispensar Processo
               </Button>
-              <Button variant="ghost" className="text-[#98A7AA] font-bold text-xs uppercase underline">Dispensar Processo</Button>
             </footer>
           </div>
 
@@ -219,11 +293,6 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
                 )}
               </div>
             </ScrollArea>
-
-            <footer className="p-4 border-t bg-white flex gap-2">
-              <Button variant="outline" size="sm" className="flex-1 text-[9px] font-black uppercase h-8">+ Padrão</Button>
-              <Button variant="outline" size="sm" className="flex-1 text-[9px] font-black uppercase h-8 border-[#2574A9] text-[#2574A9]">MonitorHub</Button>
-            </footer>
           </div>
         </div>
       </SheetContent>
