@@ -28,6 +28,7 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
+    // Auditoria: Nunca iniciar listener sem uma referência válida
     if (!memoizedTargetRefOrQuery) {
       setData(null);
       setIsLoading(false);
@@ -55,6 +56,7 @@ export function useCollection<T = any>(
           if (memoizedTargetRefOrQuery instanceof CollectionReference) {
             path = memoizedTargetRefOrQuery.path;
           } else {
+            // Tenta extrair o caminho da query para o log de erro contextual
             path = (memoizedTargetRefOrQuery as any)._query?.path?.canonicalString() || 'Query';
           }
         } catch (e) {
@@ -70,10 +72,12 @@ export function useCollection<T = any>(
         setData(null);
         setIsLoading(false);
 
+        // Dispara o listener global de erros para o NextJS Overlay
         errorEmitter.emit('permission-error', contextualError);
       }
     );
 
+    // Auditoria: Cleanup obrigatório para evitar vazamento de memória e erros de permissão pós-logout
     return () => unsubscribe();
   }, [memoizedTargetRefOrQuery]);
 

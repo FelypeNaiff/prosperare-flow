@@ -134,6 +134,33 @@
         "id": { "type": "string" },
         "clientId": { "type": "string" }
       }
+    },
+    "Payable": {
+      "title": "Payable",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "descricao": { "type": "string" },
+        "valor": { "type": "number" }
+      }
+    },
+    "Receivable": {
+      "title": "Receivable",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "descricao": { "type": "string" },
+        "valor": { "type": "number" }
+      }
+    },
+    "IrpfStage": {
+      "title": "IrpfStage",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "order": { "type": "number" }
+      }
     }
   },
   "auth": {
@@ -195,6 +222,18 @@
     "/clientAccesses/{id}": {
       "schema": { "$ref": "#/backend/entities/ClientAccess" },
       "description": "Password vault."
+    },
+    "/payables/{id}": {
+      "schema": { "$ref": "#/backend/entities/Payable" },
+      "description": "Accounts payable."
+    },
+    "/receivables/{id}": {
+      "schema": { "$ref": "#/backend/entities/Receivable" },
+      "description": "Accounts receivable."
+    },
+    "/irpf_stages/{id}": {
+      "schema": { "$ref": "#/backend/entities/IrpfStage" },
+      "description": "IRPF Kanban stages."
     }
   }
 }

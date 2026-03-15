@@ -63,15 +63,17 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   useEffect(() => {
     if (!auth || !firestore) return;
 
+    // Listener de autenticação em tempo real
     const unsubscribeAuth = onAuthStateChanged(
       auth,
       async (firebaseUser) => {
         if (firebaseUser) {
+          // Auditoria: SEMPRE buscar pelo UID do Firebase Auth
           const userDocRef = doc(firestore, "users", firebaseUser.uid);
-          
           const uidSnap = await getDoc(userDocRef);
           
           if (uidSnap.exists()) {
+            // Usuário já provisionado via UID
             const unsubscribeDb = onSnapshot(userDocRef, (snapshot) => {
               if (snapshot.exists()) {
                 const userData = { ...snapshot.data(), id: snapshot.id };
@@ -86,10 +88,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             });
             return () => unsubscribeDb();
           } else {
+            // Primeiro acesso: Tentar localizar por e-mail na base de colaboradores
             const q = query(collection(firestore, "users"), where("email", "==", firebaseUser.email));
             const querySnapshot = await getDocs(q);
 
             if (!querySnapshot.empty) {
+              // Encontrou pré-cadastro: Vincular ao UID definitivo
               const existingData = querySnapshot.docs[0].data();
               const finalData = {
                 ...existingData,
@@ -108,6 +112,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 isAuthChecking: false 
               }));
             } else if (firebaseUser.email === "felypenaiff01@gmail.com") {
+              // Provisionamento automático do Administrador Principal
               const adminData = {
                 id: firebaseUser.uid,
                 fullName: "Felype Naiff",
@@ -128,6 +133,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 isAuthChecking: false 
               }));
             } else {
+              // Usuário logado mas NÃO cadastrado como colaborador
               setState(prev => ({ 
                 ...prev, 
                 user: firebaseUser, 
@@ -138,6 +144,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             }
           }
         } else {
+          // Usuário deslogado
           setState({ 
             user: null, 
             userData: null, 

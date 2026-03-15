@@ -20,15 +20,16 @@ export function NotificationBell() {
   const { user } = useUser()
   const firestore = useFirestore()
 
+  // Auditoria: Garantir que a query só é instanciada se o usuário estiver autenticado
   const notificationsQuery = useMemoFirebase(() => {
-    if (!user) return null
+    if (!user?.uid) return null
     return query(
       collection(firestore, "notifications"),
       where("userId", "==", user.uid),
       orderBy("createdAt", "desc"),
       limit(20)
     )
-  }, [firestore, user])
+  }, [firestore, user?.uid])
 
   const { data: notifications = [], isLoading } = useCollection(notificationsQuery)
   const unreadCount = (notifications || []).filter(n => !n.read).length
