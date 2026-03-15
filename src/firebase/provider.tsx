@@ -82,11 +82,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 isAuthChecking: false 
               }));
             } else {
-              // Provisionamento automático para o administrador principal
+              // Provisionamento automático para o administrador principal usando o UID como ID do documento
               if (firebaseUser.email === "felypenaiff01@gmail.com") {
-                const newUserRef = doc(usersRef);
+                const newUserRef = doc(firestore, "users", firebaseUser.uid);
                 const adminData = {
-                  id: newUserRef.id,
+                  id: firebaseUser.uid,
                   fullName: "Felype Naiff",
                   email: firebaseUser.email,
                   profile: "ADMINISTRADOR",

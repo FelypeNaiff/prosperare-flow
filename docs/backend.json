@@ -77,6 +77,23 @@
         "comments": { "type": "array" }
       }
     },
+    "Task": {
+      "title": "Task",
+      "type": "object",
+      "description": "Individual task or obligation instance.",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string" },
+        "groupId": { "type": "string" },
+        "groupName": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "responsibleId": { "type": "string" }
+      }
+    },
     "Ticket": {
       "title": "Ticket",
       "type": "object",
@@ -142,6 +159,10 @@
     "/processos/{id}": {
       "schema": { "$ref": "#/backend/entities/Processo" },
       "description": "Actual process instances."
+    },
+    "/tasks/{id}": {
+      "schema": { "$ref": "#/backend/entities/Task" },
+      "description": "Individual process tasks."
     },
     "/tickets/{id}": {
       "schema": { "$ref": "#/backend/entities/Ticket" },

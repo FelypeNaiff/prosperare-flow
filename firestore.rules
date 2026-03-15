@@ -4,72 +4,10 @@ service cloud.firestore {
   match /databases/{database}/documents {
     /**
      * PROSPERARE FLOW - SECURITY RULES
-     * Regras explícitas para garantir acesso total a usuários autenticados em todas as coleções.
+     * Versão: 1.0.5 - 2026-03-15
+     * Acesso total concedido a qualquer usuário autenticado.
      */
     
-    // Regra para notificações (correção do erro reportado)
-    match /notifications/{notificationId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Regra para usuários e perfis
-    match /users/{userId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Regra para clientes e acessos
-    match /clients/{clientId} {
-      allow read, write: if request.auth != null;
-    }
-    match /clientAccesses/{id} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Regra para processos e inteligência
-    match /processos/{id} {
-      allow read, write: if request.auth != null;
-    }
-    match /processoModelos/{id} {
-      allow read, write: if request.auth != null;
-    }
-    match /tasks/{id} {
-      allow read, write: if request.auth != null;
-    }
-    match /obligation_groups/{id} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Regra para financeiro
-    match /contracts/{id} {
-      allow read, write: if request.auth != null;
-    }
-    match /receivables/{id} {
-      allow read, write: if request.auth != null;
-    }
-    match /payables/{id} {
-      allow read, write: if request.auth != null;
-    }
-    match /officeSettings/{id} {
-      allow read, write: if request.auth != null;
-    }
-    match /installments/{id} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Regra para IRPF
-    match /irpf_declarations/{id} {
-      allow read, write: if request.auth != null;
-    }
-    match /irpf_stages/{id} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Regra para tickets de atendimento
-    match /tickets/{id} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Regra de segurança recursiva global (Fallback)
     match /{document=**} {
       allow read, write: if request.auth != null;
     }
