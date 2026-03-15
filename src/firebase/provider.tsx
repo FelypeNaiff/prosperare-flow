@@ -43,7 +43,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     isUserLoading: true,
     isAuthChecking: true,
     userError: null,
-    userLoaded: false,
+    userLoaded: false, // Só vira true após validação completa
   });
 
   useEffect(() => {
@@ -64,6 +64,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
+        // Tenta localizar o documento do colaborador pelo UID (ID oficial)
         const userDocRef = doc(firestore, "users", firebaseUser.uid);
         
         try {
@@ -80,6 +81,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
               userLoaded: true 
             }));
             
+            // Listener em tempo real para mudanças no perfil
             const unsubscribeDb = onSnapshot(userDocRef, (snapshot) => {
               if (snapshot.exists()) {
                 const updatedData = { ...snapshot.data(), id: snapshot.id };
@@ -88,7 +90,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             });
             return () => unsubscribeDb();
           } else {
-            // Provisioning for the main admin
+            // Provisionamento automático para o administrador principal
             if (firebaseUser.email === "felypenaiff01@gmail.com") {
               const adminData = {
                 id: firebaseUser.uid,
@@ -100,17 +102,19 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 createdAt: new Date().toISOString(),
                 departmentIds: ["Diretoria", "Administrativo"]
               };
+              // Salva usando o UID como ID do documento
               await setDoc(userDocRef, adminData, { merge: true });
+              
               setState(prev => ({ 
                 ...prev, 
                 user: firebaseUser, 
                 userData: adminData, 
                 isUserLoading: false, 
-                isAuthChecking: false,
+                isAuthChecking: false, 
                 userLoaded: true 
               }));
             } else {
-              // Not a registered collaborator
+              // E-mail logado via Google mas não cadastrado como colaborador
               setState(prev => ({ 
                 ...prev, 
                 user: firebaseUser, 
@@ -122,7 +126,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             }
           }
         } catch (error) {
-          console.error("Error loading user profile:", error);
+          console.error("Erro ao carregar perfil do usuário:", error);
           setState(prev => ({ ...prev, isUserLoading: false, isAuthChecking: false, userLoaded: true }));
         }
       },
@@ -161,13 +165,13 @@ export const useFirebase = () => {
 
 export const useAuth = () => {
   const { auth } = useFirebase();
-  if (!auth) throw new Error('Firebase Auth not available.');
+  if (!auth) throw new Error('Firebase Auth não disponível.');
   return auth;
 };
 
 export const useFirestore = () => {
   const { firestore } = useFirebase();
-  if (!firestore) throw new Error('Firebase Firestore not available.');
+  if (!firestore) throw new Error('Firebase Firestore não disponível.');
   return firestore;
 };
 
@@ -176,6 +180,10 @@ export const useUser = () => {
   return { user, userData, isUserLoading, isAuthChecking, userError, userLoaded };
 };
 
+/**
+ * Hook para memoizar referências e queries do Firestore.
+ * Essencial para evitar loops infinitos de re-renderização.
+ */
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T & {__memo?: boolean} {
   return useMemo(() => {
     const result = factory() as any;

@@ -11,27 +11,22 @@ let cachedAuth: Auth | undefined;
 let cachedFirestore: Firestore | undefined;
 
 /**
- * Inicializa os serviços do Firebase garantindo que não haja múltiplas instâncias
- * que possam causar erros internos de asserção (como o ID: ca9).
+ * Inicializa os serviços do Firebase de forma determinística.
+ * Evita o erro INTERNAL ASSERTION FAILED (ID: ca9) garantindo instâncias únicas.
  */
 export function initializeFirebase() {
   if (!cachedApp) {
-    if (!getApps().length) {
-      try {
-        // Tenta inicialização automática do ambiente (Firebase App Hosting)
-        cachedApp = initializeApp();
-      } catch (e) {
-        // Fallback para o objeto de configuração manual
-        cachedApp = initializeApp(firebaseConfig);
-      }
-    } else {
-      cachedApp = getApp();
-    }
+    // Em Next.js, verificamos se já existe uma app para evitar re-inicialização no HMR
+    cachedApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
   }
 
-  // Garante que os serviços sejam inicializados apenas uma vez para o app
-  if (!cachedAuth) cachedAuth = getAuth(cachedApp);
-  if (!cachedFirestore) cachedFirestore = getFirestore(cachedApp);
+  if (!cachedAuth) {
+    cachedAuth = getAuth(cachedApp);
+  }
+
+  if (!cachedFirestore) {
+    cachedFirestore = getFirestore(cachedApp);
+  }
 
   return {
     firebaseApp: cachedApp,
