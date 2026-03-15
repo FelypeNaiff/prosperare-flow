@@ -3,14 +3,13 @@
 
 import { useState, useEffect } from "react"
 import { useAuth, useUser } from "@/firebase"
-import { initiateGoogleSignIn, initiateEmailSignIn, initiateEmailSignUp } from "@/firebase/non-blocking-login"
+import { initiateEmailSignIn, initiateEmailSignUp } from "@/firebase/non-blocking-login"
 import { useRouter } from "next/navigation"
 import { TrendingUp, Loader2, ShieldCheck, Lock, Mail, Key } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
@@ -29,11 +28,6 @@ export default function LoginPage() {
       router.push("/dashboard")
     }
   }, [user, isUserLoading, router])
-
-  const handleGoogleLogin = () => {
-    setIsLoggingIn(true)
-    initiateGoogleSignIn(auth)
-  }
 
   const handleEmailLogin = (e: React.FormEvent) => {
     e.preventDefault()
@@ -114,96 +108,56 @@ export default function LoginPage() {
                <TrendingUp className="h-12 w-12 text-[#1FA67A]" />
             </div>
             <CardTitle className="text-2xl font-black uppercase tracking-tight">Portal de Acesso</CardTitle>
-            <CardDescription className="text-white/60 font-medium">Escolha seu método de entrada preferido.</CardDescription>
+            <CardDescription className="text-white/60 font-medium">Entre com suas credenciais corporativas.</CardDescription>
           </CardHeader>
           
           <CardContent className="p-6">
-            <Tabs defaultValue="google" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 bg-[#F7F7F7] border border-[#D2D7DB]">
-                <TabsTrigger value="google" className="font-bold text-xs uppercase data-[state=active]:bg-[#2C4156] data-[state=active]:text-white">
-                  Google
-                </TabsTrigger>
-                <TabsTrigger value="email" className="font-bold text-xs uppercase data-[state=active]:bg-[#2C4156] data-[state=active]:text-white">
-                  E-mail
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="google" className="space-y-4">
+            <form onSubmit={handleEmailLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">E-mail Corporativo</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
+                  <Input 
+                    type="email" 
+                    placeholder="seu@email.com" 
+                    className="pl-10 border-[#D2D7DB]" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Senha</Label>
+                <div className="relative">
+                  <Key className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
+                  <Input 
+                    type="password" 
+                    placeholder="••••••••" 
+                    className="pl-10 border-[#D2D7DB]" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 pt-2">
                 <Button 
-                  className="w-full h-14 bg-white hover:bg-slate-50 text-slate-700 border-2 border-[#D2D7DB] font-bold text-lg flex items-center justify-center gap-4 transition-all shadow-sm"
-                  onClick={handleGoogleLogin}
+                  type="submit" 
+                  className="bg-[#2C4156] font-bold uppercase text-xs"
                   disabled={isLoggingIn}
                 >
-                  {isLoggingIn ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <div className="relative w-6 h-6">
-                      <Image 
-                        src="https://picsum.photos/seed/google/24/24" 
-                        alt="Google" 
-                        width={24} 
-                        height={24} 
-                        className="rounded-full"
-                        data-ai-hint="google logo"
-                      />
-                    </div>
-                  )}
-                  Entrar com Google
+                  {isLoggingIn ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar"}
                 </Button>
-                <p className="text-[10px] text-center text-[#98A7AA] font-black uppercase tracking-widest">
-                  Método recomendado para usuários corporativos
-                </p>
-              </TabsContent>
-
-              <TabsContent value="email" className="space-y-4">
-                <form onSubmit={handleEmailLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">E-mail Corporativo</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
-                      <Input 
-                        type="email" 
-                        placeholder="seu@email.com" 
-                        className="pl-10 border-[#D2D7DB]" 
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Senha</Label>
-                    <div className="relative">
-                      <Key className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
-                      <Input 
-                        type="password" 
-                        placeholder="••••••••" 
-                        className="pl-10 border-[#D2D7DB]" 
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 pt-2">
-                    <Button 
-                      type="submit" 
-                      className="bg-[#2C4156] font-bold uppercase text-xs"
-                      disabled={isLoggingIn}
-                    >
-                      {isLoggingIn ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar"}
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      className="border-[#D2D7DB] font-bold uppercase text-xs"
-                      onClick={handleEmailSignUp}
-                      disabled={isLoggingIn}
-                    >
-                      Cadastrar
-                    </Button>
-                  </div>
-                </form>
-              </TabsContent>
-            </Tabs>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="border-[#D2D7DB] font-bold uppercase text-xs"
+                  onClick={handleEmailSignUp}
+                  disabled={isLoggingIn}
+                >
+                  Cadastrar
+                </Button>
+              </div>
+            </form>
             
             <div className="relative mt-8">
               <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-[#D2D7DB]"></span></div>
