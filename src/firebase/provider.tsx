@@ -61,7 +61,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   });
 
   useEffect(() => {
-    if (!auth) return;
+    if (!auth || !firestore) return;
 
     const unsubscribeAuth = onAuthStateChanged(
       auth,
@@ -81,7 +81,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 isAuthChecking: false 
               }));
             } else {
-              // Provisionamento automático para o administrador principal usando o UID como ID do documento
+              // Provisionamento automático para o administrador principal
               if (firebaseUser.email === "felypenaiff01@gmail.com") {
                 const adminData = {
                   id: firebaseUser.uid,
@@ -180,7 +180,7 @@ export const useUser = () => {
 };
 
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T & {__memo?: boolean} {
-  const memoized = useMemo(factory, deps) as any;
+  const memoized = factory() as any;
   if(typeof memoized === 'object' && memoized !== null) memoized.__memo = true;
   return memoized;
 }

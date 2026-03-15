@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo } from "react"
@@ -67,9 +66,8 @@ export default function ProcessosPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
 
-  // Queries reais
   const processesQuery = useMemoFirebase(() => 
-    query(collection(firestore, "processos"), orderBy("prazo", "asc")), 
+    query(collection(firestore, "processes"), orderBy("prazo", "asc")), 
     [firestore]
   )
   const { data: rawProcesses, isLoading } = useCollection(processesQuery)
@@ -80,21 +78,17 @@ export default function ProcessosPage() {
   const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
   const { data: team = [] } = useCollection(usersQuery)
 
-  // Filtro de Segurança e Competência
   const filteredProcesses = useMemo(() => {
     if (!rawProcesses || !userData) return []
     
     const competenceKey = format(selectedCompetence, "yyyy-MM")
 
     return rawProcesses.filter(p => {
-      // Filtro de Competência
       const pComp = p.competencia ? format(typeof p.competencia === 'string' ? parseISO(p.competencia) : new Date(p.competencia), "yyyy-MM") : ""
       if (pComp !== competenceKey) return false
 
-      // Filtro de Perfil (Admin/Sócio vê tudo)
       if (userData.profile === 'ADMINISTRADOR' || userData.profile === 'SÓCIO') return true
 
-      // Outros perfis vêem apenas onde são Responsável ou Auxiliar
       return (
         p.responsavelId === userData.fullName || 
         p.responsavelId === userData.id ||
@@ -105,7 +99,6 @@ export default function ProcessosPage() {
     })
   }, [rawProcesses, userData, selectedCompetence])
 
-  // Hierarquia: Departamento -> Obrigação -> [Clientes]
   const hierarchicalData = useMemo(() => {
     const departments: Record<string, any> = {}
 
@@ -152,14 +145,14 @@ export default function ProcessosPage() {
 
   const handleBatchDelete = () => {
     if (confirm(`Deseja excluir permanentemente ${selectedIds.length} processos?`)) {
-      selectedIds.forEach(id => deleteDocumentNonBlocking(doc(firestore, "processos", id)))
+      selectedIds.forEach(id => deleteDocumentNonBlocking(doc(firestore, "processes", id)))
       toast({ title: "Processos excluídos", variant: "destructive" })
       setSelectedIds([])
     }
   }
 
   const handleBatchAssign = (userName: string) => {
-    selectedIds.forEach(id => updateDocumentNonBlocking(doc(firestore, "processos", id), { responsavelId: userName }))
+    selectedIds.forEach(id => updateDocumentNonBlocking(doc(firestore, "processes", id), { responsavelId: userName }))
     toast({ title: `${selectedIds.length} processos atribuídos a ${userName}` })
     setSelectedIds([])
   }
@@ -189,10 +182,6 @@ export default function ProcessosPage() {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          
-          <Button variant="outline" className="border-[#D2D7DB] gap-2 font-bold text-[#39586D] h-11">
-            <CalendarIcon className="h-4 w-4" />
-          </Button>
           
           <Button 
             className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg h-11 px-6"
@@ -255,9 +244,6 @@ export default function ProcessosPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button variant="outline" size="sm" className="text-[10px] font-black uppercase border-[#D2D7DB] gap-1 shrink-0">
-              <Filter className="h-3 w-3" /> Filtrar Lista
-            </Button>
           </div>
 
           {isLoading ? (

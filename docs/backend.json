@@ -11,7 +11,9 @@
         "profile": { "type": "string", "enum": ["ADMINISTRADOR", "SÓCIO", "CONTADOR/GESTOR", "ASSISTENTE"] },
         "role": { "type": "string" },
         "status": { "type": "string", "enum": ["ATIVO", "INATIVO"] },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "departmentId": { "type": "string" },
+        "departmentIds": { "type": "array", "items": { "type": "string" } }
       },
       "required": ["id", "fullName", "email", "profile", "status", "createdAt"]
     },
@@ -23,16 +25,22 @@
         "id": { "type": "string" },
         "corporateName": { "type": "string" },
         "cnpj": { "type": "string" },
-        "email": { "type": "string" }
+        "email": { "type": "string" },
+        "taxRegime": { "type": "string" },
+        "healthScore": { "type": "number" },
+        "obligationGroups": { "type": "array", "items": { "type": "string" } }
       }
     },
-    "Processo": {
-      "title": "Processo",
+    "Process": {
+      "title": "Process",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "nomeProcesso": { "type": "string" },
-        "situacao": { "type": "string" }
+        "situacao": { "type": "string" },
+        "clienteId": { "type": "string" },
+        "departamento": { "type": "string" },
+        "prazo": { "type": "string", "format": "date-time" }
       }
     },
     "Task": {
@@ -41,11 +49,12 @@
       "properties": {
         "id": { "type": "string" },
         "title": { "type": "string" },
-        "status": { "type": "string" }
+        "status": { "type": "string" },
+        "clientId": { "type": "string" }
       }
     },
-    "ProcessoModelo": {
-      "title": "ProcessoModelo",
+    "ProcessModel": {
+      "title": "ProcessModel",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -57,7 +66,8 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "tipo": { "type": "string" }
+        "tipo": { "type": "string" },
+        "clientId": { "type": "string" }
       }
     },
     "Notification": {
@@ -67,7 +77,9 @@
         "id": { "type": "string" },
         "userId": { "type": "string" },
         "title": { "type": "string" },
-        "read": { "type": "boolean" }
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
       }
     },
     "ChatMessage": {
@@ -83,7 +95,8 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "valor": { "type": "number" }
+        "valor": { "type": "number" },
+        "tipo": { "type": "string" }
       }
     },
     "Contract": {
@@ -91,49 +104,50 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "value": { "type": "number" }
+        "value": { "type": "number" },
+        "clientId": { "type": "string" }
       }
     }
   },
   "auth": {
-    "providers": ["google.com"]
+    "providers": ["google.com", "password"]
   },
   "firestore": {
     "/users/{userId}": {
       "schema": { "$ref": "#/backend/entities/User" },
-      "description": "User profiles indexed by UID."
+      "description": "User profiles indexed by Auth UID."
     },
     "/clients/{id}": {
       "schema": { "$ref": "#/backend/entities/Client" },
       "description": "Client database."
     },
-    "/processos/{id}": {
-      "schema": { "$ref": "#/backend/entities/Processo" },
-      "description": "Active processes."
+    "/processes/{id}": {
+      "schema": { "$ref": "#/backend/entities/Process" },
+      "description": "Active processes/obligations."
     },
     "/tasks/{id}": {
       "schema": { "$ref": "#/backend/entities/Task" },
-      "description": "Process tasks."
+      "description": "Process checklist tasks."
     },
     "/processoModelos/{id}": {
-      "schema": { "$ref": "#/backend/entities/ProcessoModelo" },
-      "description": "Checklist models."
+      "schema": { "$ref": "#/backend/entities/ProcessModel" },
+      "description": "Intelligent checklist models."
     },
     "/certifications/{id}": {
       "schema": { "$ref": "#/backend/entities/Certification" },
-      "description": "Client certifications."
+      "description": "Client certifications (CNDs)."
     },
     "/notifications/{id}": {
       "schema": { "$ref": "#/backend/entities/Notification" },
-      "description": "User notifications."
+      "description": "User notification system."
     },
     "/chatMessages/{id}": {
       "schema": { "$ref": "#/backend/entities/ChatMessage" },
-      "description": "Internal communication."
+      "description": "Internal team communication."
     },
     "/financialEntries/{id}": {
       "schema": { "$ref": "#/backend/entities/FinancialEntry" },
-      "description": "Cash flow entries."
+      "description": "Cash flow transactions."
     },
     "/contracts/{id}": {
       "schema": { "$ref": "#/backend/entities/Contract" },

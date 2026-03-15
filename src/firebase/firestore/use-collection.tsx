@@ -27,10 +27,6 @@ export interface UseCollectionResult<T> {
 
 /**
  * React hook to subscribe to a Firestore collection or query in real-time.
- * 
- * IMPORTANT: The query/reference MUST be memoized using useMemoFirebase.
- *  
- * @template T Optional type for document data. Defaults to any.
  */
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
@@ -62,9 +58,12 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-        const path = memoizedTargetRefOrQuery instanceof CollectionReference 
-          ? memoizedTargetRefOrQuery.path 
-          : 'Query';
+        let path = 'Query';
+        if (memoizedTargetRefOrQuery instanceof CollectionReference) {
+          path = memoizedTargetRefOrQuery.path;
+        } else if ((memoizedTargetRefOrQuery as any)._query?.path) {
+          path = (memoizedTargetRefOrQuery as any)._query.path.canonicalString();
+        }
 
         const contextualError = new FirestorePermissionError({
           operation: 'list',
