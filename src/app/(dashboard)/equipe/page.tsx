@@ -12,10 +12,11 @@ import {
   Save,
   ShieldCheck,
   X,
-  Edit2
+  Edit2,
+  Lock
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { 
   Table, 
@@ -77,18 +78,25 @@ export default function EquipePage() {
     fullName: "",
     profile: "ASSISTENTE",
     departmentIds: [] as string[],
-    status: "ATIVO"
+    status: "ATIVO",
+    pin: "1234"
   })
 
   const [editFormData, setEditFormData] = useState({
     fullName: "",
     profile: "",
-    departmentIds: [] as string[]
+    departmentIds: [] as string[],
+    pin: ""
   })
 
   const handleRegister = () => {
-    if (!newMember.fullName || !newMember.profile) {
-      toast({ title: "Erro", description: "O nome completo é obrigatório.", variant: "destructive" })
+    if (!newMember.fullName || !newMember.profile || !newMember.pin) {
+      toast({ title: "Erro", description: "Nome, Perfil e PIN são obrigatórios.", variant: "destructive" })
+      return
+    }
+
+    if (newMember.pin.length !== 4) {
+      toast({ title: "Erro", description: "O PIN deve ter exatamente 4 dígitos.", variant: "destructive" })
       return
     }
 
@@ -98,15 +106,14 @@ export default function EquipePage() {
     const userData = {
       ...newMember,
       id: userId,
-      createdAt: new Date().toISOString(),
-      pin: "1234"
+      createdAt: new Date().toISOString()
     }
 
     setIsInviteOpen(false)
     setDocumentNonBlocking(userRef, userData, { merge: true })
     
-    setNewMember({ fullName: "", profile: "ASSISTENTE", departmentIds: [], status: "ATIVO" })
-    toast({ title: "Colaborador Cadastrado!", description: "Perfil pronto para uso com PIN 1234." })
+    setNewMember({ fullName: "", profile: "ASSISTENTE", departmentIds: [], status: "ATIVO", pin: "1234" })
+    toast({ title: "Colaborador Cadastrado!", description: `Perfil pronto para uso com PIN ${userData.pin}.` })
   }
 
   const handleOpenEdit = (member: any) => {
@@ -114,14 +121,20 @@ export default function EquipePage() {
     setEditFormData({
       fullName: member.fullName || "",
       profile: member.profile || "ASSISTENTE",
-      departmentIds: member.departmentIds || []
+      departmentIds: member.departmentIds || [],
+      pin: member.pin || "1234"
     })
     setIsEditOpen(true)
   }
 
   const handleUpdateMember = () => {
-    if (!selectedMember) return
+    if (!selectedMember || !editFormData.pin) return
     
+    if (editFormData.pin.length !== 4) {
+      toast({ title: "Erro", description: "O PIN deve ter exatamente 4 dígitos.", variant: "destructive" })
+      return
+    }
+
     const userRef = doc(firestore, "users", selectedMember.id)
     updateDocumentNonBlocking(userRef, {
       ...editFormData,
@@ -213,7 +226,12 @@ export default function EquipePage() {
                             {member.fullName?.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="font-bold text-sm text-[#2C4156] uppercase">{member.fullName}</span>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-sm text-[#2C4156] uppercase">{member.fullName}</span>
+                          <span className="text-[9px] text-[#98A7AA] flex items-center gap-1 font-bold">
+                            <Lock className="h-2 w-2" /> PIN: {member.pin || "----"}
+                          </span>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -283,7 +301,7 @@ export default function EquipePage() {
           <DialogHeader className="p-6 bg-[#2C4156] text-white">
             <DialogTitle className="text-2xl font-black uppercase tracking-tight">Nova Identidade</DialogTitle>
             <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
-              Identidade para uso com acesso mestre pscsucesso@gmail.com.
+              Defina o nome e o código de acesso (PIN) do novo colaborador.
             </DialogDescription>
           </DialogHeader>
           
@@ -295,6 +313,17 @@ export default function EquipePage() {
                 value={newMember.fullName} 
                 onChange={(e) => setNewMember({...newMember, fullName: e.target.value.toUpperCase()})}
                 className="border-[#D2D7DB] font-bold uppercase h-11"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Senha de Acesso (PIN 4 Dígitos)</Label>
+              <Input 
+                placeholder="Ex: 1234" 
+                maxLength={4}
+                value={newMember.pin} 
+                onChange={(e) => setNewMember({...newMember, pin: e.target.value.replace(/\D/g, '')})}
+                className="border-[#D2D7DB] font-mono font-bold h-11 text-center text-lg tracking-widest"
               />
             </div>
             
@@ -358,6 +387,16 @@ export default function EquipePage() {
                 value={editFormData.fullName} 
                 onChange={(e) => setEditFormData({...editFormData, fullName: e.target.value.toUpperCase()})}
                 className="border-[#D2D7DB] font-bold uppercase h-11"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Senha de Acesso (PIN 4 Dígitos)</Label>
+              <Input 
+                maxLength={4}
+                value={editFormData.pin} 
+                onChange={(e) => setEditFormData({...editFormData, pin: e.target.value.replace(/\D/g, '')})}
+                className="border-[#D2D7DB] font-mono font-bold h-11 text-center text-lg tracking-widest"
               />
             </div>
             
