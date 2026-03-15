@@ -25,6 +25,7 @@ export interface FirebaseContextState extends UserAuthState {
 
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
+// Lista de administradores para provisionamento automático no primeiro acesso
 const ADMIN_LIST: Record<string, { name: string, dept: string }> = {
   "pscsucesso@gmail.com": { name: "Administrador Geral", dept: "Diretoria" },
   "felypenaiff01@gmail.com": { name: "Felype Naiff", dept: "Diretoria" },
@@ -44,9 +45,11 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   const dbUnsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
+    // Monitora o estado da autenticação usando o singleton estável
     const unsubscribeAuth = onAuthStateChanged(
       authInstance,
       async (firebaseUser) => {
+        // Limpa ouvintes anteriores do banco de dados ao mudar de usuário
         if (dbUnsubscribeRef.current) {
           dbUnsubscribeRef.current();
           dbUnsubscribeRef.current = null;
@@ -80,6 +83,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
               userLoaded: true 
             }));
             
+            // Inicia ouvinte reativo para o perfil do usuário
             dbUnsubscribeRef.current = onSnapshot(userDocRef, (snapshot) => {
               if (snapshot.exists()) {
                 const updatedData = { ...snapshot.data(), id: snapshot.id };
@@ -89,6 +93,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
               console.warn("[FirebaseProvider] Profile listener error:", err.message);
             });
           } else {
+            // Provisionamento automático de administradores semente
             const email = firebaseUser.email?.toLowerCase();
             const adminConfig = email ? ADMIN_LIST[email] : null;
 
@@ -104,7 +109,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
                 departmentIds: [adminConfig.dept, "Fiscal", "TI"]
               };
               
-              // Uso de mutação não-bloqueante para evitar ca9
+              // Uso de mutação não-bloqueante para evitar erros ca9 no banco
               setDocumentNonBlocking(userDocRef, adminData, { merge: true });
               
               setState(prev => ({ 
