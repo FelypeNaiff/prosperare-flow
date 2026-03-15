@@ -15,7 +15,7 @@ let cachedFirestore: Firestore | undefined;
  * Evita o erro INTERNAL ASSERTION FAILED (ID: ca9) garantindo instâncias únicas.
  */
 export function initializeFirebase() {
-  if (typeof window === 'undefined') return {} as any;
+  if (typeof window === 'undefined') return { firebaseApp: null, auth: null, firestore: null } as any;
 
   try {
     if (!cachedApp) {

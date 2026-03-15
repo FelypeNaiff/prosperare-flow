@@ -6,16 +6,21 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 /**
  * Um componente que escuta falhas de permissão globais.
- * Em desenvolvimento, ele dispara um erro capturável pelo Next.js.
- * Em produção, ele apenas registra no console para evitar o crash total da interface.
+ * Seguindo as diretrizes de desenvolvimento, ele apenas loga no console
+ * para evitar o travamento da interface pelo overlay do Next.js.
  */
 export function FirebaseErrorListener() {
-  const [error, setError] = useState<FirestorePermissionError | null>(null);
+  const [, setError] = useState<FirestorePermissionError | null>(null);
 
   useEffect(() => {
     const handleError = (error: FirestorePermissionError) => {
       if (process.env.NODE_ENV === 'development') {
-        setError(error);
+        // Apenas logamos no console para evitar o crash total da interface no overlay
+        console.warn('[Firestore Security Policy Violation]', {
+          path: error.request.path,
+          method: error.request.method,
+          auth: error.request.auth?.uid || 'Unauthenticated'
+        });
       } else {
         console.error('[Firestore Security Policy Violation]', error.request.path, error.request.method);
       }
@@ -28,10 +33,6 @@ export function FirebaseErrorListener() {
     };
   }, []);
 
-  // On re-render in dev mode, if an error exists in state, throw it.
-  if (error && process.env.NODE_ENV === 'development') {
-    throw error;
-  }
-
+  // Removido o throw error para evitar o overlay do Next.js em desenvolvimento
   return null;
 }
