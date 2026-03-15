@@ -37,7 +37,7 @@ import { ProcurationTab } from "@/components/clients/procuration-tab"
 import { ClientInstallmentsTab } from "@/components/installments/client-installments-tab"
 import { ClientCommunicationTool } from "@/components/clients/client-communication-tool"
 import { Label } from "@/components/ui/label"
-import { useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase"
+import { useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase"
 import { doc, collection, query, where, getDocs } from "firebase/firestore"
 import { useState, useEffect } from "react"
 import { EditClientModal } from "@/components/clients/edit-client-modal"
@@ -88,8 +88,6 @@ export default function DetalhesClientePage() {
       const currentYear = now.getFullYear()
       const monthYearLabel = `${currentMonth.toString().padStart(2, '0')}/${currentYear}`
 
-      // Para fins de MVP, simulamos a criação das tarefas baseadas nos grupos selecionados
-      // Em uma versão avançada, buscaria modelos de uma coleção 'obligation_templates'
       for (const groupId of client.obligationGroups) {
         const groupInfo = GROUPS.find(g => g.id === groupId)
         
@@ -100,7 +98,7 @@ export default function DetalhesClientePage() {
           status: 'todo',
           groupId: groupId,
           createdAt: new Date().toISOString(),
-          dueDate: new Date(currentYear, currentMonth - 1, 20).toISOString(), // Vence dia 20 do mês
+          dueDate: new Date(currentYear, currentMonth - 1, 20).toISOString(),
           responsibleId: client.accountingContactUserId || "Geral"
         }
 
@@ -380,12 +378,11 @@ function ClientTasksList({ clientId }: { clientId: string }) {
     query(collection(firestore, "tasks"), where("clientId", "==", clientId)),
     [firestore, clientId]
   )
-  const { data: tasks = [], isLoading } = useDoc(tasksQuery as any) // usando as any por simplicidade de mock/real
+  const { data: tasks, isLoading } = useCollection(tasksQuery)
 
   if (isLoading) return <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#1FA67A]" /></div>
 
-  // Mock visual para quando não há tarefas reais mas queremos mostrar o que o gerador faz
-  if (!tasks || (Array.isArray(tasks) && tasks.length === 0)) {
+  if (!tasks || tasks.length === 0) {
     return (
       <div className="p-12 text-center text-[#98A7AA] font-bold italic">
         Nenhuma tarefa vinculada. Clique em "GERAR TAREFAS" no topo para carregar o mês.
@@ -395,7 +392,7 @@ function ClientTasksList({ clientId }: { clientId: string }) {
 
   return (
     <div className="divide-y">
-      {(Array.isArray(tasks) ? tasks : []).map((task: any) => (
+      {tasks.map((task: any) => (
         <div key={task.id} className="p-4 flex items-center justify-between hover:bg-[#F7F7F7] transition-colors">
           <div className="flex items-center gap-4">
             <div className={cn(
