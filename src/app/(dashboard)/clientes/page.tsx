@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -14,7 +15,6 @@ import {
   ShieldCheck,
   Eye,
   Trash2,
-  Printer,
   FileDown
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -171,7 +171,7 @@ export default function ClientesPage() {
     }
   }
 
-  const handlePrint = () => {
+  const handleExportPDF = () => {
     window.print()
   }
 
@@ -182,48 +182,13 @@ export default function ClientesPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #print-section, #print-section * {
-            visibility: visible;
-          }
-          #print-section {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            background: white;
-          }
-          .no-print {
-            display: none !important;
-          }
-          table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-          }
-          th, td {
-            border: 1px solid #D2D7DB !important;
-            padding: 8px !important;
-            text-align: left !important;
-          }
-          th {
-            background-color: #2C4156 !important;
-            color: white !important;
-            -webkit-print-color-adjust: exact;
-          }
-        }
-      `}</style>
-
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão de Clientes</h1>
           <p className="text-[#98A7AA] font-bold text-sm">Administre sua base de empresas e acompanhe a regularidade.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={handlePrint}>
+          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={handleExportPDF}>
             <FileDown className="h-4 w-4" /> Exportar Relatório PDF
           </Button>
           <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-bold shadow-lg" onClick={() => setIsNewClientOpen(true)}>
@@ -232,7 +197,7 @@ export default function ClientesPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 no-print">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 print:hidden">
         <KpiCard label="Total de Clientes" value={clients?.length || 0} icon={Building2} color="primary" />
         <KpiCard label="Certificados OK" value={0} icon={ShieldCheck} color="success" />
         <KpiCard label="Vencendo (30d)" value={0} icon={Clock} color="warning" />
@@ -240,8 +205,8 @@ export default function ClientesPage() {
         <KpiCard label="Alertas Críticos" value={0} icon={AlertTriangle} color="destructive" />
       </div>
 
-      <Card className="border-[#D2D7DB] shadow-sm overflow-hidden" id="print-section">
-        <CardHeader className="pb-3 border-b bg-[#F7F7F7]/50 no-print">
+      <Card className="border-[#D2D7DB] shadow-sm overflow-hidden print:border-none print:shadow-none">
+        <CardHeader className="pb-3 border-b bg-[#F7F7F7]/50 print:hidden">
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
             <Input
@@ -253,34 +218,34 @@ export default function ClientesPage() {
           </div>
         </CardHeader>
         
-        {/* Cabeçalho Exclusivo para Impressão */}
-        <div className="hidden print:block p-8 border-b-2 border-[#2C4156]">
+        {/* Cabeçalho Exclusivo para o PDF (Visível apenas na Impressão) */}
+        <div className="hidden print:block p-8 border-b-2 border-[#2C4156] mb-6">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-black text-[#2C4156] uppercase tracking-tighter">Prosperare <span className="text-[#1FA67A]">Flow</span></h2>
-              <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.3em]">Relatório de Clientes Cadastrados</p>
+              <h2 className="text-3xl font-black text-[#2C4156] uppercase tracking-tighter">PROSPERARE <span className="text-[#1FA67A]">FLOW</span></h2>
+              <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.4em] mt-1">Relatório Oficial de Clientes Cadastrados</p>
             </div>
             <div className="text-right">
-              <p className="text-[10px] font-bold text-[#39586D] uppercase">Documento Oficial Interno</p>
-              <p className="text-[9px] text-[#98A7AA] font-mono">Gerado em: {new Date().toLocaleString('pt-BR')}</p>
+              <p className="text-[10px] font-bold text-[#39586D] uppercase">Documento Interno de Gestão</p>
+              <p className="text-[9px] text-[#98A7AA] font-mono mt-1">Gerado em: {new Date().toLocaleString('pt-BR')}</p>
             </div>
           </div>
         </div>
 
         <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-[#2C4156]">
+          <Table className="print:w-full">
+            <TableHeader className="bg-[#2C4156] print:bg-[#2C4156]">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px]">Empresa / Razão Social</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">CNPJ</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Regime Tributário</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Responsável</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right no-print">Ações</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] print:text-white">Empresa / Razão Social</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] print:text-white">CNPJ</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] print:text-white">Regime Tributário</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] print:text-white">Responsável</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] text-right print:hidden">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow className="no-print">
+                <TableRow className="print:hidden">
                   <TableCell colSpan={5} className="h-32 text-center">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
                     <p className="text-[10px] font-black text-[#98A7AA] uppercase mt-2">Sincronizando Base...</p>
@@ -288,7 +253,7 @@ export default function ClientesPage() {
                 </TableRow>
               ) : filteredClients.length > 0 ? (
                 filteredClients.map((client) => (
-                  <TableRow key={client.id} className="hover:bg-[#F7F7F7]/50 transition-colors">
+                  <TableRow key={client.id} className="hover:bg-[#F7F7F7]/50 transition-colors print:border-b print:border-[#D2D7DB]">
                     <TableCell className="font-bold text-[#2C4156] uppercase text-xs">
                       {client.corporateName}
                     </TableCell>
@@ -296,14 +261,14 @@ export default function ClientesPage() {
                       {client.cnpj}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="font-black text-[9px] uppercase border-[#D2D7DB] text-[#39586D]">
+                      <Badge variant="outline" className="font-black text-[9px] uppercase border-[#D2D7DB] text-[#39586D] print:border-[#D2D7DB]">
                         {client.taxRegime}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-[10px] font-bold text-[#39586D] uppercase">
                       {client.accountingContactUserId || "Geral"}
                     </TableCell>
-                    <TableCell className="text-right no-print">
+                    <TableCell className="text-right print:hidden">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="text-[#98A7AA]"><MoreHorizontal className="h-4 w-4" /></Button>
@@ -330,7 +295,7 @@ export default function ClientesPage() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={5} className="h-32 text-center text-[#98A7AA] font-bold uppercase text-xs">
-                    Nenhum cliente localizado.
+                    Nenhum cliente localizado na base de dados.
                   </TableCell>
                 </TableRow>
               )}
@@ -338,10 +303,10 @@ export default function ClientesPage() {
           </Table>
         </CardContent>
         
-        {/* Rodapé de Página para Impressão */}
-        <div className="hidden print:block p-4 text-center border-t border-[#D2D7DB]">
-          <p className="text-[8px] font-black text-[#98A7AA] uppercase tracking-widest">
-            Prosperare Flow — Sistema de Gestão Contábil Inteligente • Página 1 de 1
+        {/* Rodapé de Página para o PDF */}
+        <div className="hidden print:block p-12 text-center border-t border-[#D2D7DB] mt-8">
+          <p className="text-[8px] font-black text-[#98A7AA] uppercase tracking-[0.3em]">
+            Prosperare Flow — Inteligência e Gestão Contábil Digital • www.prosperare.flow
           </p>
         </div>
       </Card>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from "react"
@@ -60,9 +61,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <div className="print:hidden">
+        <AppSidebar />
+      </div>
       <SidebarInset className="bg-[#F7F7F7]">
-        <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-white px-6 sticky top-0 z-40">
+        <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-white px-6 sticky top-0 z-40 print:hidden">
           <SidebarTrigger className="text-[#2C4156]" />
           
           <div className="flex-1 flex items-center gap-4 overflow-hidden">
@@ -111,17 +114,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
         
-        <main className="p-4 md:p-8 flex-1 overflow-x-hidden">
+        <main className="p-4 md:p-8 flex-1 overflow-x-hidden print:p-0 print:m-0 print:bg-white">
           {children}
         </main>
 
-        <footer className="h-12 border-t bg-white flex items-center justify-between px-8 text-[11px] text-[#98A7AA] font-medium">
+        <footer className="h-12 border-t bg-white flex items-center justify-between px-8 text-[11px] text-[#98A7AA] font-medium print:hidden">
           <span>Prosperare Flow © 2026 — Gestão Digital Integrada</span>
           <div className="flex gap-4">
             <span className="text-[9px] font-black uppercase text-[#1FA67A]">Operador: {selectedUser.fullName}</span>
           </div>
         </footer>
-        <ChatWidget />
+        <div className="print:hidden">
+          <ChatWidget />
+        </div>
       </SidebarInset>
     </SidebarProvider>
   )
