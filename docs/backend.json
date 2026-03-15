@@ -25,7 +25,8 @@
         "cnpj": { "type": "string" },
         "email": { "type": "string" },
         "taxRegime": { "type": "string" },
-        "healthScore": { "type": "number" }
+        "healthScore": { "type": "number" },
+        "obligationGroups": { "type": "array", "items": { "type": "string" } }
       }
     },
     "Process": {
@@ -35,7 +36,8 @@
         "id": { "type": "string" },
         "nomeProcesso": { "type": "string" },
         "situacao": { "type": "string" },
-        "clienteId": { "type": "string" }
+        "clienteId": { "type": "string" },
+        "competencia": { "type": "string" }
       }
     },
     "Task": {
@@ -61,7 +63,8 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "tipo": { "type": "string" }
+        "tipo": { "type": "string" },
+        "clientId": { "type": "string" }
       }
     },
     "Notification": {
@@ -99,6 +102,38 @@
         "id": { "type": "string" },
         "value": { "type": "number" }
       }
+    },
+    "ObligationGroup": {
+      "title": "ObligationGroup",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" }
+      }
+    },
+    "Installment": {
+      "title": "Installment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" }
+      }
+    },
+    "IrpfDeclaration": {
+      "title": "IrpfDeclaration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "cpf": { "type": "string" }
+      }
+    },
+    "ClientAccess": {
+      "title": "ClientAccess",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" }
+      }
     }
   },
   "auth": {
@@ -119,7 +154,7 @@
     },
     "/tasks/{id}": {
       "schema": { "$ref": "#/backend/entities/Task" },
-      "description": "Tasks within processes."
+      "description": "Internal tickets and tasks."
     },
     "/processoModelos/{id}": {
       "schema": { "$ref": "#/backend/entities/ProcessModel" },
@@ -144,6 +179,22 @@
     "/contracts/{id}": {
       "schema": { "$ref": "#/backend/entities/Contract" },
       "description": "Service contracts."
+    },
+    "/obligation_groups/{id}": {
+      "schema": { "$ref": "#/backend/entities/ObligationGroup" },
+      "description": "Groups for automation."
+    },
+    "/installments/{id}": {
+      "schema": { "$ref": "#/backend/entities/Installment" },
+      "description": "Debt installments."
+    },
+    "/irpf_declarations/{id}": {
+      "schema": { "$ref": "#/backend/entities/IrpfDeclaration" },
+      "description": "Tax declarations."
+    },
+    "/clientAccesses/{id}": {
+      "schema": { "$ref": "#/backend/entities/ClientAccess" },
+      "description": "Password vault."
     }
   }
 }

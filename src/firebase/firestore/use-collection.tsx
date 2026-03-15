@@ -28,7 +28,6 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    // PASSO 4: Só inicia a subscrição se houver uma referência válida (Proteção request.auth)
     if (!memoizedTargetRefOrQuery) {
       setData(null);
       setIsLoading(false);
@@ -56,7 +55,6 @@ export function useCollection<T = any>(
           if (memoizedTargetRefOrQuery instanceof CollectionReference) {
             path = memoizedTargetRefOrQuery.path;
           } else {
-            // Tenta obter o caminho da query de forma segura
             path = (memoizedTargetRefOrQuery as any)._query?.path?.canonicalString() || 'Query';
           }
         } catch (e) {
@@ -76,7 +74,6 @@ export function useCollection<T = any>(
       }
     );
 
-    // PASSO 4: Cleanup garante o unsubscribe correto
     return () => unsubscribe();
   }, [memoizedTargetRefOrQuery]);
 

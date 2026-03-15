@@ -1,11 +1,10 @@
-
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore, onSnapshot, doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -70,11 +69,9 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         if (firebaseUser) {
           const userDocRef = doc(firestore, "users", firebaseUser.uid);
           
-          // 1. Tenta buscar direto pelo UID (Usuário já vinculado)
           const uidSnap = await getDoc(userDocRef);
           
           if (uidSnap.exists()) {
-            // Usuário já tem documento com UID, inicia listener em tempo real
             const unsubscribeDb = onSnapshot(userDocRef, (snapshot) => {
               if (snapshot.exists()) {
                 const userData = { ...snapshot.data(), id: snapshot.id };
@@ -89,16 +86,15 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             });
             return () => unsubscribeDb();
           } else {
-            // 2. Não encontrado por UID, busca por Email (Usuário pré-cadastrado ou Admin)
             const q = query(collection(firestore, "users"), where("email", "==", firebaseUser.email));
             const querySnapshot = await getDocs(q);
 
             if (!querySnapshot.empty) {
-              // Encontrado por email! Vincula ao UID para acessos futuros rápidos
               const existingData = querySnapshot.docs[0].data();
               const finalData = {
                 ...existingData,
                 id: firebaseUser.uid,
+                role: existingData.profile || "ASSISTENTE",
                 updatedAt: new Date().toISOString()
               };
               
@@ -112,7 +108,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 isAuthChecking: false 
               }));
             } else if (firebaseUser.email === "felypenaiff01@gmail.com") {
-              // 3. Caso especial: Provisionamento do Administrador Master
               const adminData = {
                 id: firebaseUser.uid,
                 fullName: "Felype Naiff",
@@ -133,7 +128,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 isAuthChecking: false 
               }));
             } else {
-              // 4. Usuário logou no Google mas não está na lista de colaboradores
               setState(prev => ({ 
                 ...prev, 
                 user: firebaseUser, 
@@ -144,7 +138,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             }
           }
         } else {
-          // Deslogado
           setState({ 
             user: null, 
             userData: null, 
