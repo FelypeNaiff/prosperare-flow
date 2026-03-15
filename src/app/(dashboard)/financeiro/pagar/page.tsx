@@ -16,7 +16,9 @@ import {
   Filter,
   CheckCircle2,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Repeat,
+  TrendingUp
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -41,6 +43,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase"
@@ -66,7 +69,8 @@ export default function ContasAPagarPage() {
     data: "",
     valor: 0,
     situacao: "Pendente",
-    recorrente: false
+    recorrente: false,
+    tipoValor: "Fixo"
   })
 
   const handleCreateAccount = () => {
@@ -81,7 +85,7 @@ export default function ContasAPagarPage() {
     setDocumentNonBlocking(docRef, { ...newAccount, id, createdAt: new Date().toISOString() }, { merge: true })
     
     setIsNewAccountOpen(false)
-    setNewAccount({ descricao: "", entidade: "", categoria: "Sistemas", data: "", valor: 0, situacao: "Pendente", recorrente: false })
+    setNewAccount({ descricao: "", entidade: "", categoria: "Sistemas", data: "", valor: 0, situacao: "Pendente", recorrente: false, tipoValor: "Fixo" })
     toast({ title: "Conta lançada!", description: "A despesa foi salva no banco de dados." })
   }
 
@@ -116,7 +120,6 @@ export default function ContasAPagarPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
-      {/* Header com Navegação Temporal */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-3xl font-black text-[#2C4156] tracking-tight">Contas A Pagar</h1>
         
@@ -135,7 +138,6 @@ export default function ContasAPagarPage() {
         </div>
       </div>
 
-      {/* Barra de Ações Principais */}
       <div className="flex flex-wrap gap-2">
         <Button 
           className="bg-[#E74C3C] hover:bg-[#E74C3C]/90 gap-2 font-black uppercase text-xs h-11 px-6 shadow-lg shadow-red-500/10" 
@@ -163,7 +165,6 @@ export default function ContasAPagarPage() {
         )}
       </div>
 
-      {/* Busca e Filtros */}
       <div className="space-y-4">
         <div className="relative">
           <Search className="absolute left-3 top-3.5 h-4 w-4 text-[#98A7AA]" />
@@ -204,7 +205,6 @@ export default function ContasAPagarPage() {
         </div>
       </div>
 
-      {/* Tabela de Contas */}
       <Card className="border-[#D2D7DB] shadow-sm bg-white overflow-hidden">
         <CardContent className="p-0">
           <Table>
@@ -249,7 +249,12 @@ export default function ContasAPagarPage() {
                         className="data-[state=checked]:bg-[#E74C3C]"
                       />
                     </TableCell>
-                    <TableCell className="font-bold text-[#2C4156]">{item.descricao}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-[#2C4156]">{item.descricao}</span>
+                        {item.recorrente && <Repeat className="h-3 w-3 text-[#1FA67A]" title={`Recorrência ${item.tipoValor}`} />}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-[#39586D] font-medium">{item.entidade}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-[9px] font-bold uppercase border-[#D2D7DB] text-[#98A7AA]">
@@ -292,7 +297,6 @@ export default function ContasAPagarPage() {
         </CardContent>
       </Card>
 
-      {/* Diálogo de Nova Conta */}
       <Dialog open={isNewAccountOpen} onOpenChange={setIsNewAccountOpen}>
         <DialogContent className="max-w-md border-none shadow-2xl">
           <DialogHeader>
@@ -320,6 +324,35 @@ export default function ContasAPagarPage() {
                 <Input type="date" value={newAccount.data} onChange={(e) => setNewAccount({...newAccount, data: e.target.value})} className="border-[#D2D7DB]" />
               </div>
             </div>
+            
+            <div className="p-4 bg-[#F7F7F7] rounded-xl border border-[#D2D7DB] space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-[10px] font-black uppercase text-[#2C4156]">Conta Recorrente</Label>
+                  <p className="text-[9px] text-[#98A7AA] font-bold uppercase">Repetir todo mês</p>
+                </div>
+                <Switch 
+                  checked={newAccount.recorrente} 
+                  onCheckedChange={(checked) => setNewAccount({...newAccount, recorrente: checked})} 
+                />
+              </div>
+
+              {newAccount.recorrente && (
+                <div className="animate-in fade-in slide-in-from-top-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA] mb-2 block">Tipo de Recorrência</Label>
+                  <Select value={newAccount.tipoValor} onValueChange={(v) => setNewAccount({...newAccount, tipoValor: v})}>
+                    <SelectTrigger className="bg-white border-[#D2D7DB]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Fixo" className="text-xs font-bold uppercase">Valor Fixo</SelectItem>
+                      <SelectItem value="Variavel" className="text-xs font-bold uppercase">Valor Variável</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Categoria Contábil</Label>
               <Select value={newAccount.categoria} onValueChange={(v) => setNewAccount({...newAccount, categoria: v})}>
