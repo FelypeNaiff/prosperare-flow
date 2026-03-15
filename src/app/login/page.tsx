@@ -3,13 +3,11 @@
 
 import { useState, useEffect } from "react"
 import { useAuth, useUser } from "@/firebase"
-import { initiateEmailSignIn, initiateEmailSignUp } from "@/firebase/non-blocking-login"
+import { initiateGoogleSignIn } from "@/firebase/non-blocking-login"
 import { useRouter } from "next/navigation"
-import { TrendingUp, Loader2, ShieldCheck, Lock, Mail, Key } from "lucide-react"
+import { TrendingUp, Loader2, ShieldCheck, Lock, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { toast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
@@ -19,9 +17,6 @@ export default function LoginPage() {
   const { user, isUserLoading } = useUser()
   const router = useRouter()
   const [isLoggingIn, setIsLoggingIn] = useState(false)
-  
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
 
   useEffect(() => {
     if (user && !isUserLoading) {
@@ -29,24 +24,18 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router])
 
-  const handleEmailLogin = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email || !password) {
-      toast({ variant: "destructive", title: "Erro", description: "Preencha e-mail e senha." })
-      return
-    }
+  const handleGoogleLogin = () => {
     setIsLoggingIn(true)
-    initiateEmailSignIn(auth, email, password)
-  }
-
-  const handleEmailSignUp = () => {
-    if (!email || !password) {
-      toast({ variant: "destructive", title: "Erro", description: "Preencha e-mail e senha para cadastrar." })
-      return
+    try {
+      initiateGoogleSignIn(auth)
+    } catch (error) {
+      setIsLoggingIn(false)
+      toast({ 
+        variant: "destructive", 
+        title: "Erro na autenticação", 
+        description: "Não foi possível iniciar o login com Google." 
+      })
     }
-    setIsLoggingIn(true)
-    initiateEmailSignUp(auth, email, password)
-    toast({ title: "Cadastro iniciado", description: "Verifique sua caixa de entrada se necessário." })
   }
 
   const heroImage = PlaceHolderImages.find(i => i.id === 'office-hero')
@@ -60,8 +49,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 overflow-hidden">
-      {/* Coluna Visual */}
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 overflow-hidden bg-[#F7F7F7]">
+      {/* Coluna Visual (Esquerda) */}
       <div className="hidden lg:flex flex-col items-center justify-center bg-[#2C4156] p-12 text-white relative overflow-hidden">
         {heroImage && (
           <Image 
@@ -100,71 +89,63 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Coluna Login */}
-      <div className="flex items-center justify-center bg-[#F7F7F7] p-6 relative">
-        <Card className="w-full max-w-md border-[#D2D7DB] shadow-2xl overflow-hidden z-10">
+      {/* Coluna Login (Direita) */}
+      <div className="flex items-center justify-center p-6 relative">
+        <Card className="w-full max-w-md border-[#D2D7DB] shadow-2xl overflow-hidden z-10 bg-white">
           <CardHeader className="text-center space-y-2 bg-[#2C4156] text-white pb-8">
             <div className="lg:hidden flex justify-center mb-4">
                <TrendingUp className="h-12 w-12 text-[#1FA67A]" />
             </div>
             <CardTitle className="text-2xl font-black uppercase tracking-tight">Portal de Acesso</CardTitle>
-            <CardDescription className="text-white/60 font-medium">Entre com suas credenciais corporativas.</CardDescription>
+            <CardDescription className="text-white/60 font-medium">Utilize sua conta corporativa para entrar.</CardDescription>
           </CardHeader>
           
-          <CardContent className="p-6">
-            <form onSubmit={handleEmailLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">E-mail Corporativo</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
-                  <Input 
-                    type="email" 
-                    placeholder="seu@email.com" 
-                    className="pl-10 border-[#D2D7DB]" 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
+          <CardContent className="p-8 space-y-8">
+            <div className="space-y-4">
+              <Button 
+                onClick={handleGoogleLogin}
+                disabled={isLoggingIn}
+                className="w-full h-14 bg-white hover:bg-[#F7F7F7] text-[#2C4156] border-2 border-[#D2D7DB] font-bold text-base gap-3 shadow-sm transition-all"
+              >
+                {isLoggingIn ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <svg className="h-5 w-5" viewBox="0 0 24 24">
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.48-.98 7.31-2.64l-3.57-2.77c-1.01.68-2.31 1.09-3.74 1.09-2.87 0-5.3-1.94-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.15c-.22-.66-.35-1.36-.35-2.15s.13-1.49.35-2.15V7.01H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.99l3.66-2.84z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.01l3.66 2.84c.86-2.59 3.29-4.53 12-4.53z"
+                      fill="#EA4335"
+                    />
+                  </svg>
+                )}
+                {isLoggingIn ? "Autenticando..." : "Entrar com Google"}
+              </Button>
+              
+              <div className="flex items-center gap-2 p-4 bg-[#E3F0F9]/30 rounded-xl border border-[#2574A9]/10">
+                <LogIn className="h-5 w-5 text-[#2574A9] shrink-0" />
+                <p className="text-[11px] text-[#39586D] leading-tight font-medium">
+                  Este sistema é restrito a colaboradores autorizados. O acesso é monitorado e protegido por protocolos de segurança.
+                </p>
               </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Senha</Label>
-                <div className="relative">
-                  <Key className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
-                  <Input 
-                    type="password" 
-                    placeholder="••••••••" 
-                    className="pl-10 border-[#D2D7DB]" 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <Button 
-                  type="submit" 
-                  className="bg-[#2C4156] font-bold uppercase text-xs"
-                  disabled={isLoggingIn}
-                >
-                  {isLoggingIn ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar"}
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="border-[#D2D7DB] font-bold uppercase text-xs"
-                  onClick={handleEmailSignUp}
-                  disabled={isLoggingIn}
-                >
-                  Cadastrar
-                </Button>
-              </div>
-            </form>
+            </div>
             
-            <div className="relative mt-8">
+            <div className="relative">
               <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-[#D2D7DB]"></span></div>
-              <div className="relative flex justify-center text-[10px] uppercase font-black text-[#98A7AA] bg-white px-2">Autenticação Segura</div>
+              <div className="relative flex justify-center text-[10px] uppercase font-black text-[#98A7AA] bg-white px-2">Prosperare Cloud</div>
             </div>
 
-            <p className="text-center text-[10px] text-[#98A7AA] font-bold leading-relaxed mt-6">
+            <p className="text-center text-[10px] text-[#98A7AA] font-bold leading-relaxed">
               Ao acessar, você concorda com nossos termos de uso e políticas de privacidade de dados contábeis.
             </p>
           </CardContent>
