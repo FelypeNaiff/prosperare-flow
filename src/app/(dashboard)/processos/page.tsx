@@ -38,6 +38,7 @@ import {
 import { collection, query, orderBy } from "firebase/firestore"
 import { cn } from "@/lib/utils"
 import { ProcessDetailsDrawer } from "@/components/processes/process-details-drawer"
+import { CreateProcessModal } from "@/components/processes/create-process-modal"
 import { format, parseISO, isValid } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -47,6 +48,7 @@ export default function ProcessosPage() {
   const [expandedMonths, setExpandedModels] = useState<string[]>([])
   const [selectedProcess, setSelectedProcess] = useState<any>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
   // Queries reais
   const processesQuery = useMemoFirebase(() => 
@@ -57,9 +59,6 @@ export default function ProcessosPage() {
 
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
   const { data: clients } = useCollection(clientsQuery)
-
-  const modelsQuery = useMemoFirebase(() => collection(firestore, "processoModelos"), [firestore])
-  const { data: models } = useCollection(modelsQuery)
 
   // Agrupamento por Mês de Competência
   const groupedData = useMemo(() => {
@@ -84,11 +83,11 @@ export default function ProcessosPage() {
       groups[monthKey].push(p)
     })
 
-    // Ordena os meses (mais recentes primeiro ou conforme a data)
+    // Ordena os meses
     return Object.entries(groups).sort((a, b) => {
       if (a[0] === "Sem Competência") return 1
       if (b[0] === "Sem Competência") return -1
-      return 0 // Simplificado, idealmente converter de volta pra data pra sort real
+      return 0
     }).map(([month, items]) => ({
       id: month,
       label: month.toUpperCase(),
@@ -120,7 +119,6 @@ export default function ProcessosPage() {
 
   // Auto-expandir o mês atual se houver dados
   useMemo(() => {
-    const currentMonth = format(new Date(), "MMMM yyyy", { locale: ptBR }).toUpperCase()
     if (groupedData.length > 0 && expandedMonths.length === 0) {
       setExpandedModels([groupedData[0].id])
     }
@@ -137,7 +135,10 @@ export default function ProcessosPage() {
           <Button variant="outline" className="border-[#D2D7DB] gap-2 font-bold text-[#39586D]">
             <CalendarIcon className="h-4 w-4" /> Calendário
           </Button>
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg">
+          <Button 
+            className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg"
+            onClick={() => setIsCreateModalOpen(true)}
+          >
             <Plus className="h-4 w-4" /> Criar Processo
           </Button>
         </div>
@@ -288,6 +289,11 @@ export default function ProcessosPage() {
         open={isDrawerOpen} 
         onOpenChange={setIsDrawerOpen} 
         process={selectedProcess} 
+      />
+
+      <CreateProcessModal 
+        open={isCreateModalOpen} 
+        onOpenChange={setIsCreateModalOpen} 
       />
     </div>
   )
