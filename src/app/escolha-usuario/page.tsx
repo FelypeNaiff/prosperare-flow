@@ -154,10 +154,10 @@ export default function EscolhaUsuarioPage() {
             <div className="w-16 h-16 rounded-2xl bg-[#F7F7F7] flex items-center justify-center border">
               <Lock className="h-8 w-8 text-[#2C4156]" />
             </div>
-            <div className="space-y-1">
-              <h3 className="text-xl font-black text-[#2C4156] uppercase leading-tight">Olá, {selectedCollab?.fullName?.split(' ')[0]}</h3>
-              <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Confirme seu PIN de acesso</p>
-            </div>
+            <DialogHeader className="space-y-1">
+              <DialogTitle className="text-xl font-black text-[#2C4156] uppercase leading-tight">Olá, {selectedCollab?.fullName?.split(' ')[0]}</DialogTitle>
+              <DialogDescription className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Confirme seu PIN de acesso</DialogDescription>
+            </DialogHeader>
             <Input 
               type="password" 
               maxLength={4}

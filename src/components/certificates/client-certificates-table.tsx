@@ -20,6 +20,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -135,7 +136,10 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Nova Certidão Manual</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Nova Certidão Manual</DialogTitle>
+            <DialogDescription>Preencha os dados da certidão para manter o histórico de regularidade atualizado.</DialogDescription>
+          </DialogHeader>
           <div className="p-4 text-center text-sm text-muted-foreground">
             Funcionalidade de upload em desenvolvimento.
           </div>

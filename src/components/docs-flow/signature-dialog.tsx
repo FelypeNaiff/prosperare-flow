@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -106,6 +105,10 @@ export function SignatureDialog({
           </>
         ) : (
           <div className="py-8 text-center space-y-6">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Documento Enviado</DialogTitle>
+              <DialogDescription>O documento foi encaminhado para assinatura digital com sucesso.</DialogDescription>
+            </DialogHeader>
             <div className="w-20 h-20 bg-[#7ED6B5]/20 rounded-full flex items-center justify-center mx-auto animate-in zoom-in">
               <CheckCircle2 className="h-10 w-10 text-[#1FA67A]" />
             </div>
