@@ -64,7 +64,7 @@ export default function AtendimentosPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false)
 
-  // Queries Reais
+  // PASSO 5: Unificação de nomes de coleções conforme backend.json
   const ticketsQuery = useMemoFirebase(() => collection(firestore, "tickets"), [firestore])
   const { data: tickets = [], isLoading: loadingTickets } = useCollection(ticketsQuery)
 
@@ -74,7 +74,7 @@ export default function AtendimentosPage() {
   const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
   const { data: team = [] } = useCollection(usersQuery)
 
-  const templatesQuery = useMemoFirebase(() => collection(firestore, "process_templates"), [firestore])
+  const templatesQuery = useMemoFirebase(() => collection(firestore, "processoModelos"), [firestore])
   const { data: templates = [] } = useCollection(templatesQuery)
 
   const [newTicket, setNewTicket] = useState({
@@ -101,7 +101,7 @@ export default function AtendimentosPage() {
       clientId: newTicket.clientId,
       clientName: client?.corporateName || "Empresa Avulsa",
       templateId: newTicket.templateId || null,
-      title: template?.title || newTicket.title,
+      title: template?.nome || newTicket.title,
       responsibleId: newTicket.responsibleId,
       responsibleName: responsible?.fullName || "Responsável",
       notes: newTicket.notes,
@@ -237,7 +237,6 @@ export default function AtendimentosPage() {
         ))}
       </div>
 
-      {/* Modal de Novo Atendimento / Demanda */}
       <Dialog open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen}>
         <DialogContent className="max-w-xl p-0 overflow-hidden border-none shadow-2xl">
           <DialogHeader className="p-6 bg-[#2C4156] text-white">
@@ -282,7 +281,7 @@ export default function AtendimentosPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {(templates || []).map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                      <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

@@ -28,7 +28,7 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    // Só inicia a subscrição se houver uma referência válida
+    // PASSO 4: Só inicia a subscrição se houver uma referência válida (Proteção request.auth)
     if (!memoizedTargetRefOrQuery) {
       setData(null);
       setIsLoading(false);
@@ -76,7 +76,7 @@ export function useCollection<T = any>(
       }
     );
 
-    // Cleanup garante o unsubscribe correto
+    // PASSO 4: Cleanup garante o unsubscribe correto
     return () => unsubscribe();
   }, [memoizedTargetRefOrQuery]);
 
