@@ -46,7 +46,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     userLoaded: false,
   });
 
-  // Ref para gerenciar a limpeza do listener do Firestore independente do Auth
   const dbUnsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -55,7 +54,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const unsubscribeAuth = onAuthStateChanged(
       auth,
       async (firebaseUser) => {
-        // Limpa listener anterior se existir
         if (dbUnsubscribeRef.current) {
           dbUnsubscribeRef.current();
           dbUnsubscribeRef.current = null;
@@ -80,7 +78,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           
           if (uidSnap.exists()) {
             const initialData = { ...uidSnap.data(), id: uidSnap.id };
-            
             setState(prev => ({ 
               ...prev, 
               user: firebaseUser, 
@@ -90,7 +87,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
               userLoaded: true 
             }));
             
-            // Ativa o listener em tempo real
             dbUnsubscribeRef.current = onSnapshot(userDocRef, (snapshot) => {
               if (snapshot.exists()) {
                 const updatedData = { ...snapshot.data(), id: snapshot.id };
@@ -98,11 +94,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
               }
             });
           } else {
-            // Provisionamento para o administrador felypenaiff01@gmail.com
-            if (firebaseUser.email === "felypenaiff01@gmail.com") {
+            // Se for o e-mail geral do escritório, provisiona como administrador
+            if (firebaseUser.email === "pscsucesso@gmail.com") {
               const adminData = {
                 id: firebaseUser.uid,
-                fullName: firebaseUser.displayName || "Felype Naiff",
+                fullName: "Sucesso Prosperare",
                 email: firebaseUser.email,
                 profile: "ADMINISTRADOR",
                 role: "ADMINISTRADOR",
@@ -122,7 +118,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 userLoaded: true 
               }));
             } else {
-              // Usuário autenticado mas sem perfil de colaborador
+              // Qualquer outro usuário autenticado mas não cadastrado fica como null
               setState(prev => ({ 
                 ...prev, 
                 user: firebaseUser, 
@@ -134,7 +130,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             }
           }
         } catch (error: any) {
-          console.error("Erro no fluxo de autenticação/perfil:", error);
           setState(prev => ({ 
             ...prev, 
             user: firebaseUser,
@@ -169,7 +164,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   return (
     <FirebaseContext.Provider value={contextValue}>
-      <FirebaseErrorListener />
       {children}
     </FirebaseContext.Provider>
   );
@@ -198,10 +192,6 @@ export const useUser = () => {
   return { user, userData, isUserLoading, isAuthChecking, userError, userLoaded };
 };
 
-/**
- * Hook para memoizar referências e queries do Firestore.
- * Essencial para evitar loops infinitos de re-renderização.
- */
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T & {__memo?: boolean} {
   return useMemo(() => {
     const result = factory() as any;
