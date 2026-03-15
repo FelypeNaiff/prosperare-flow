@@ -3,30 +3,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     /**
-     * MODO PROTOTIPAGEM TOTAL - PROSPERARE FLOW
-     * Permite acesso total a qualquer coleção para usuários logados.
-     * Adicionando regras explícitas para coleções principais para garantir a propagação correta.
+     * PROSPERARE FLOW - SECURITY RULES
+     * Permite acesso total de leitura e escrita para qualquer usuário autenticado.
+     * Esta regra recursiva abrange todas as coleções e subcoleções do sistema.
      */
     match /{document=**} {
       allow read, write: if request.auth != null;
     }
-
-    match /users/{docId} { allow read, write: if request.auth != null; }
-    match /notifications/{docId} { allow read, write: if request.auth != null; }
-    match /clients/{docId} { allow read, write: if request.auth != null; }
-    match /processos/{docId} { allow read, write: if request.auth != null; }
-    match /processoModelos/{docId} { allow read, write: if request.auth != null; }
-    match /tickets/{docId} { allow read, write: if request.auth != null; }
-    match /obligation_groups/{docId} { allow read, write: if request.auth != null; }
-    match /tasks/{docId} { allow read, write: if request.auth != null; }
-    match /certificates/{docId} { allow read, write: if request.auth != null; }
-    match /clientAccesses/{docId} { allow read, write: if request.auth != null; }
-    match /installments/{docId} { allow read, write: if request.auth != null; }
-    match /receivables/{docId} { allow read, write: if request.auth != null; }
-    match /payables/{docId} { allow read, write: if request.auth != null; }
-    match /contracts/{docId} { allow read, write: if request.auth != null; }
-    match /irpf_declarations/{docId} { allow read, write: if request.auth != null; }
-    match /irpf_stages/{docId} { allow read, write: if request.auth != null; }
-    match /officeSettings/{docId} { allow read, write: if request.auth != null; }
   }
 }

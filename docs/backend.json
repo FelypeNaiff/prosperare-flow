@@ -11,7 +11,9 @@
         "email": { "type": "string" },
         "profile": { "type": "string", "enum": ["ADMINISTRADOR", "SÓCIO", "CONTADOR/GESTOR", "ASSISTENTE"] },
         "status": { "type": "string", "enum": ["ATIVO", "INATIVO"] },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "departmentId": { "type": "string" },
+        "departmentIds": { "type": "array", "items": { "type": "string" } }
       },
       "required": ["id", "fullName", "email", "profile", "status", "createdAt"]
     },
@@ -43,7 +45,8 @@
         "email": { "type": "string" },
         "phone": { "type": "string" },
         "status": { "type": "string" },
-        "obligationGroups": { "type": "array", "items": { "type": "string" } }
+        "obligationGroups": { "type": "array", "items": { "type": "string" } },
+        "healthScore": { "type": "number" }
       }
     },
     "ProcessoModelo": {
@@ -54,7 +57,9 @@
         "nome": { "type": "string" },
         "tipo": { "type": "string", "enum": ["recorrente", "esporadico"] },
         "departamento": { "type": "string" },
-        "tarefas": { "type": "array" }
+        "tarefas": { "type": "array" },
+        "prazoFixo": { "type": "number" },
+        "competencia": { "type": "string" }
       }
     },
     "Processo": {
@@ -66,38 +71,22 @@
         "clienteId": { "type": "string" },
         "nomeProcesso": { "type": "string" },
         "situacao": { "type": "string", "enum": ["a_fazer", "em_progresso", "concluido", "em_multa", "dispensado"] },
-        "competencia": { "type": "string" }
+        "competencia": { "type": "string" },
+        "responsavelId": { "type": "string" },
+        "auxiliarId": { "type": "string" },
+        "comments": { "type": "array" }
       }
     },
-    "Ticket": {
-      "title": "Ticket",
+    "Task": {
+      "title": "Task",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
         "title": { "type": "string" },
         "status": { "type": "string" },
-        "responsibleId": { "type": "string" }
-      }
-    },
-    "ObligationGroup": {
-      "title": "ObligationGroup",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "dept": { "type": "string" },
-        "processes": { "type": "array" }
-      }
-    },
-    "Certificate": {
-      "title": "Certificate",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "clientId": { "type": "string" },
-        "tipo": { "type": "string" },
-        "validade": { "type": "string" }
+        "dueDate": { "type": "string" }
       }
     },
     "Installment": {
@@ -106,26 +95,26 @@
       "properties": {
         "id": { "type": "string" },
         "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
         "tipo": { "type": "string" },
-        "status": { "type": "string" }
+        "status": { "type": "string" },
+        "value": { "type": "number" },
+        "totalParcels": { "type": "number" },
+        "currentParcel": { "type": "number" },
+        "dueDay": { "type": "number" }
       }
     },
-    "FinanceRecord": {
-      "title": "FinanceRecord",
+    "IrpfDeclaration": {
+      "title": "IrpfDeclaration",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "valor": { "type": "number" },
-        "situacao": { "type": "string" }
-      }
-    },
-    "Contract": {
-      "title": "Contract",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "clientId": { "type": "string" },
-        "value": { "type": "number" }
+        "name": { "type": "string" },
+        "cpf": { "type": "string" },
+        "responsibleId": { "type": "string" },
+        "status": { "type": "string" },
+        "progress": { "type": "number" },
+        "tags": { "type": "array" }
       }
     }
   },
@@ -153,33 +142,41 @@
       "schema": { "$ref": "#/backend/entities/Processo" },
       "description": "Actual process instances."
     },
-    "/tickets/{id}": {
-      "schema": { "$ref": "#/backend/entities/Ticket" },
-      "description": "Internal demands."
-    },
-    "/obligation_groups/{id}": {
-      "schema": { "$ref": "#/backend/entities/ObligationGroup" },
-      "description": "Groups of obligations."
-    },
-    "/certificates/{id}": {
-      "schema": { "$ref": "#/backend/entities/Certificate" },
-      "description": "Digital certificates."
+    "/tasks/{id}": {
+      "schema": { "$ref": "#/backend/entities/Task" },
+      "description": "Individual process tasks."
     },
     "/installments/{id}": {
       "schema": { "$ref": "#/backend/entities/Installment" },
       "description": "Debt installments."
     },
+    "/irpf_declarations/{id}": {
+      "schema": { "$ref": "#/backend/entities/IrpfDeclaration" },
+      "description": "IRPF Tax declarations."
+    },
+    "/irpf_stages/{id}": {
+      "schema": { "type": "object" },
+      "description": "Custom stages for IRPF Kanban."
+    },
+    "/clientAccesses/{id}": {
+      "schema": { "type": "object" },
+      "description": "Secure access storage for clients."
+    },
+    "/obligation_groups/{id}": {
+      "schema": { "type": "object" },
+      "description": "Groups of obligations for automation."
+    },
+    "/contracts/{id}": {
+      "schema": { "type": "object" },
+      "description": "Service contracts."
+    },
     "/receivables/{id}": {
-      "schema": { "$ref": "#/backend/entities/FinanceRecord" },
+      "schema": { "type": "object" },
       "description": "Accounts receivable."
     },
     "/payables/{id}": {
-      "schema": { "$ref": "#/backend/entities/FinanceRecord" },
+      "schema": { "type": "object" },
       "description": "Accounts payable."
-    },
-    "/contracts/{id}": {
-      "schema": { "$ref": "#/backend/entities/Contract" },
-      "description": "Service contracts."
     },
     "/officeSettings/{id}": {
       "schema": { "type": "object" },

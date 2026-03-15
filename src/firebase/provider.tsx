@@ -82,6 +82,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 isAuthChecking: false 
               }));
             } else {
+              // Provisionamento automático para o administrador principal
               if (firebaseUser.email === "felypenaiff01@gmail.com") {
                 const newUserRef = doc(collection(firestore, "users"));
                 const adminData = {
@@ -95,9 +96,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                   departmentIds: ["Diretoria", "Administrativo"]
                 };
                 
-                setDoc(newUserRef, adminData).catch(() => {
-                  // Erro de provisionamento tratado silenciosamente para não quebrar o app
-                });
+                // Realiza o set e a própria atualização de estado via snapshot cuidará do resto
+                setDoc(newUserRef, adminData).catch(() => {});
               } else {
                 setState(prev => ({ 
                   ...prev, 
