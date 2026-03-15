@@ -2,7 +2,6 @@
 {
   "entities": {
     "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
       "description": "Represents a user account within the ContaHub system.",
@@ -16,6 +15,36 @@
       },
       "required": ["id", "fullName", "email", "profile", "status", "createdAt"]
     },
+    "Notification": {
+      "title": "Notification",
+      "type": "object",
+      "description": "System notification for a specific user.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string", "enum": ["assignment", "mention"] },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "processId": { "type": "string" }
+      },
+      "required": ["id", "userId", "title", "message", "type", "read", "createdAt"]
+    },
+    "Client": {
+      "title": "Client",
+      "type": "object",
+      "description": "Client account details.",
+      "properties": {
+        "id": { "type": "string" },
+        "corporateName": { "type": "string" },
+        "cnpj": { "type": "string" },
+        "taxRegime": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
     "ProcessoModelo": {
       "title": "ProcessoModelo",
       "type": "object",
@@ -24,16 +53,8 @@
         "nome": { "type": "string" },
         "descricao": { "type": "string" },
         "tipo": { "type": "string", "enum": ["recorrente", "esporadico"] },
-        "regimes": { "type": "array", "items": { "type": "string" } },
         "departamento": { "type": "string" },
-        "dataGeracaoRecorrencia": { "type": "number" },
-        "recorrencia": { "type": "string", "enum": ["mensal", "bimestral", "trimestral", "semestral", "anual", "unica"] },
-        "prazoFixo": { "type": "number" },
-        "competencia": { "type": "string", "enum": ["mes_prazo", "mes_anterior", "mes_seguinte"] },
-        "tarefas": { "type": "array" },
-        "clientesVinculados": { "type": "array", "items": { "type": "string" } },
-        "clientesExcluidos": { "type": "array", "items": { "type": "string" } },
-        "ativo": { "type": "boolean" }
+        "tarefas": { "type": "array" }
       }
     },
     "Processo": {
@@ -44,13 +65,7 @@
         "modeloId": { "type": "string" },
         "clienteId": { "type": "string" },
         "nomeProcesso": { "type": "string" },
-        "situacao": { "type": "string", "enum": ["a_fazer", "em_progresso", "concluido", "em_multa", "dispensado"] },
-        "prazo": { "type": "string", "format": "date-time" },
-        "prazoMeta": { "type": "string", "format": "date-time" },
-        "atrasoGeraMulta": { "type": "boolean" },
-        "tarefas": { "type": "array" },
-        "responsavelId": { "type": "string" },
-        "auxiliarId": { "type": "string" }
+        "situacao": { "type": "string", "enum": ["a_fazer", "em_progresso", "concluido", "em_multa", "dispensado"] }
       }
     }
   },
@@ -58,19 +73,25 @@
     "providers": ["google.com", "password"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": { "entityName": "User", "description": "Stores individual user profiles." }
-      },
-      {
-        "path": "/processoModelos/{id}",
-        "definition": { "entityName": "ProcessoModelo", "description": "Blueprints for recurring or sporadic tasks." }
-      },
-      {
-        "path": "/processos/{id}",
-        "definition": { "entityName": "Processo", "description": "Actual process instances for clients." }
-      }
-    ]
+    "/users/{userId}": {
+      "schema": { "$ref": "#/backend/entities/User" },
+      "description": "Stores individual user profiles."
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/backend/entities/Notification" },
+      "description": "User notifications."
+    },
+    "/clients/{clientId}": {
+      "schema": { "$ref": "#/backend/entities/Client" },
+      "description": "Client profiles."
+    },
+    "/processoModelos/{id}": {
+      "schema": { "$ref": "#/backend/entities/ProcessoModelo" },
+      "description": "Blueprints for processes."
+    },
+    "/processos/{id}": {
+      "schema": { "$ref": "#/backend/entities/Processo" },
+      "description": "Actual process instances."
+    }
   }
 }
