@@ -27,7 +27,8 @@ import {
   FileText,
   AlertTriangle,
   MoreVertical,
-  Link as LinkIcon
+  Link as LinkIcon,
+  ClipboardList
 } from "lucide-react"
 import { 
   Select, 
