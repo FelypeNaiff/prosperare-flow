@@ -23,11 +23,12 @@ import {
 import { useFirestore, updateDocumentNonBlocking } from "@/firebase"
 import { doc } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
-import { Save, Loader2 } from "lucide-react"
-import { formatCNPJ } from "@/lib/utils"
+import { Save, Loader2, RefreshCw } from "lucide-react"
+import { formatCNPJ, validateCNPJ } from "@/lib/utils"
 
 export function EditClientModal({ open, onOpenChange, client }: any) {
   const firestore = useFirestore()
+  const [isSyncing, setIsSyncing] = useState(false)
   const [formData, setFormData] = useState({
     corporateName: "",
     cnpj: "",
@@ -39,6 +40,9 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
     neighborhood: "",
     city: "",
     state: "",
+    openingDate: "",
+    stateRegistration: "",
+    cityRegistration: "",
     honorariumValue: 0,
     honorariumDueDateDay: 10
   })
@@ -56,11 +60,48 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
         neighborhood: client.neighborhood || "",
         city: client.city || "",
         state: client.state || "",
+        openingDate: client.openingDate || "",
+        stateRegistration: client.stateRegistration || "",
+        cityRegistration: client.cityRegistration || "",
         honorariumValue: client.honorariumValue || 0,
         honorariumDueDateDay: client.honorariumDueDateDay || 10
       })
     }
   }, [client, open])
+
+  const syncWithReceita = async () => {
+    const cleanCnpj = formData.cnpj.replace(/\D/g, "")
+    if (cleanCnpj.length !== 14) {
+      toast({ variant: "destructive", title: "CNPJ Inválido", description: "Verifique o número informado." })
+      return
+    }
+
+    setIsSyncing(true)
+    try {
+      // Usando BrasilAPI que é mais amigável para chamadas client-side sem proxy
+      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`)
+      if (!response.ok) throw new Error("Erro na consulta")
+      const data = await response.json()
+
+      setFormData(prev => ({
+        ...prev,
+        corporateName: data.razao_social || prev.corporateName,
+        address: data.logradouro ? `${data.logradouro}${data.numero ? ', ' + data.numero : ''}` : prev.address,
+        neighborhood: data.bairro || prev.neighborhood,
+        city: data.municipio || prev.city,
+        state: data.uf || prev.state,
+        openingDate: data.data_inicio_atividade || prev.openingDate,
+        email: data.email || prev.email,
+        phone: data.ddd_telefone_1 || prev.phone
+      }))
+
+      toast({ title: "Dados Sincronizados!", description: "As informações foram atualizadas conforme a Receita Federal." })
+    } catch (error) {
+      toast({ variant: "destructive", title: "Falha na Sincronização", description: "Não foi possível obter os dados automaticamente agora." })
+    } finally {
+      setIsSyncing(false)
+    }
+  }
 
   const handleSave = () => {
     if (!client?.id) return
@@ -86,21 +127,32 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
         </DialogHeader>
 
         <div className="p-6 grid grid-cols-2 gap-5 bg-white">
+          <div className="col-span-2 flex items-end gap-3">
+            <div className="flex-1 space-y-2">
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA]">CNPJ</Label>
+              <Input 
+                value={formData.cnpj}
+                onChange={(e) => setFormData({...formData, cnpj: formatCNPJ(e.target.value)})}
+                className="border-[#D2D7DB] font-mono font-bold"
+              />
+            </div>
+            <Button 
+              variant="outline" 
+              className="h-10 border-[#1FA67A] text-[#1FA67A] font-bold gap-2"
+              onClick={syncWithReceita}
+              disabled={isSyncing}
+            >
+              {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Sincronizar API
+            </Button>
+          </div>
+
           <div className="col-span-2 space-y-2">
             <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Razão Social</Label>
             <Input 
               value={formData.corporateName}
-              onChange={(e) => setFormData({...formData, corporateName: e.target.value})}
+              onChange={(e) => setFormData({...formData, corporateName: e.target.value.toUpperCase()})}
               className="border-[#D2D7DB] font-bold"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-[#98A7AA]">CNPJ</Label>
-            <Input 
-              value={formData.cnpj}
-              onChange={(e) => setFormData({...formData, cnpj: formatCNPJ(e.target.value)})}
-              className="border-[#D2D7DB] font-mono"
             />
           </div>
 
@@ -115,6 +167,16 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
                 <SelectItem value="Lucro Real">Lucro Real</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Data de Abertura</Label>
+            <Input 
+              type="date"
+              value={formData.openingDate}
+              onChange={(e) => setFormData({...formData, openingDate: e.target.value})}
+              className="border-[#D2D7DB]"
+            />
           </div>
 
           <div className="space-y-2">
@@ -141,6 +203,10 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
               <div className="col-span-2 space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Logradouro / Rua</Label>
                 <Input value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Bairro</Label>
+                <Input value={formData.neighborhood} onChange={(e) => setFormData({...formData, neighborhood: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Cidade</Label>

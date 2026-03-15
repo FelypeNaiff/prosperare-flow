@@ -124,7 +124,7 @@ export function AccessDataTab({ clientId }: AccessDataTabProps) {
       <div className="grid grid-cols-1 gap-4">
         {isLoading ? (
           <div className="py-12 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" /></div>
-        ) : accesses.length > 0 ? (
+        ) : accesses && accesses.length > 0 ? (
           accesses.map((access) => (
             <Card key={access.id} className="hover:shadow-sm transition-shadow border-[#D2D7DB]">
               <CardContent className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -141,7 +141,7 @@ export function AccessDataTab({ clientId }: AccessDataTabProps) {
                         </a>
                       )}
                     </p>
-                    <p className="text-[10px] text-[#98A7AA] font-mono">{access.url || "URL não informada"}</p>
+                    <p className="text-[10px] text-[#98A7AA] font-mono truncate max-w-[200px]">{access.url || "URL não informada"}</p>
                   </div>
                 </div>
 

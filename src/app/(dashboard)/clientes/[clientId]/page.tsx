@@ -38,7 +38,7 @@ import { ClientInstallmentsTab } from "@/components/installments/client-installm
 import { ClientCommunicationTool } from "@/components/clients/client-communication-tool"
 import { Label } from "@/components/ui/label"
 import { useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase"
-import { doc, collection } from "firebase/firestore"
+import { doc, collection, query, where, orderBy } from "firebase/firestore"
 import { useState } from "react"
 import { EditClientModal } from "@/components/clients/edit-client-modal"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -57,7 +57,7 @@ export default function DetalhesClientePage() {
   const { data: client, isLoading: loadingClient } = useDoc(clientRef)
 
   const groupsQuery = useMemoFirebase(() => collection(firestore, "obligation_groups"), [firestore])
-  const { data: dbGroups = [], isLoading: loadingGroups } = useCollection(groupsQuery)
+  const { data: dbGroups = [] } = useCollection(groupsQuery)
 
   const handleToggleGroup = (groupId: string) => {
     if (!client || !clientRef) return
@@ -75,11 +75,6 @@ export default function DetalhesClientePage() {
       return
     }
 
-    if (!dbGroups || dbGroups.length === 0) {
-      toast({ variant: "destructive", title: "Erro", description: "Nenhum modelo de grupo localizado." })
-      return
-    }
-
     setIsGenerating(true)
     try {
       const now = new Date()
@@ -90,7 +85,7 @@ export default function DetalhesClientePage() {
       let tasksCreated = 0
 
       for (const groupId of client.obligationGroups) {
-        const groupInfo = dbGroups.find(g => g.id === groupId)
+        const groupInfo = dbGroups?.find((g: any) => g.id === groupId)
         if (!groupInfo || !groupInfo.processes) continue
 
         for (const process of groupInfo.processes) {
@@ -390,12 +385,10 @@ function InfoItem({ label, value }: { label: string, value: any }) {
 function ClientTasksList({ clientId }: { clientId: string }) {
   const firestore = useFirestore()
   const tasksQuery = useMemoFirebase(() => 
-    query(collection(firestore, "tasks")),
-    [firestore]
+    query(collection(firestore, "tasks"), where("clientId", "==", clientId), orderBy("createdAt", "desc")),
+    [firestore, clientId]
   )
-  const { data: allTasks, isLoading } = useCollection(tasksQuery)
-  
-  const tasks = (allTasks || []).filter((t: any) => t.clientId === clientId)
+  const { data: tasks, isLoading } = useCollection(tasksQuery)
 
   if (isLoading) return <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#1FA67A]" /></div>
 
