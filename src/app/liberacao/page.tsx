@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useUser, useAuth } from "@/firebase"
 import { initiateLogout } from "@/firebase/non-blocking-login"
-import { TrendingUp, ShieldCheck, ArrowRight, Loader2, LogOut, CheckCircle2 } from "lucide-react"
+import { TrendingUp, ShieldCheck, ArrowRight, Loader2, LogOut, CheckCircle2, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -58,9 +58,9 @@ export default function LiberacaoPage() {
           
           <div className="space-y-1">
             <h1 className="text-3xl font-black text-[#2C4156] tracking-tighter uppercase">
-              Bem-vindo ao <span className="text-[#1FA67A]">Sucesso!</span>
+              Liberação de <span className="text-[#1FA67A]">Acesso</span>
             </h1>
-            <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.3em]">Ambiente Autorizado: {user.email}</p>
+            <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.3em]">Perfil Identificado: {userData?.fullName || user.email}</p>
           </div>
         </div>
 
@@ -82,7 +82,7 @@ export default function LiberacaoPage() {
                   <ShieldCheck className="h-5 w-5 text-[#1FA67A]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-[#2C4156] uppercase">Perfil Administrativo</h3>
+                  <h3 className="text-sm font-black text-[#2C4156] uppercase">Perfil Autorizado</h3>
                   <p className="text-xs text-[#39586D] font-medium leading-relaxed">Acesso total liberado para gestão de clientes, processos e financeiro.</p>
                 </div>
               </div>
@@ -98,7 +98,7 @@ export default function LiberacaoPage() {
                   <Loader2 className="h-6 w-6 animate-spin" />
                 ) : (
                   <>
-                    Liberar Acesso ao Sistema
+                    Confirmar e Entrar
                     <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
@@ -106,10 +106,10 @@ export default function LiberacaoPage() {
 
               <Button 
                 variant="ghost" 
-                onClick={handleLogout}
-                className="w-full text-[10px] font-black text-[#E74C3C] uppercase tracking-widest hover:bg-red-50"
+                onClick={() => router.push("/escolha-usuario")}
+                className="w-full text-[10px] font-black text-[#98A7AA] uppercase tracking-widest hover:bg-slate-50"
               >
-                <LogOut className="h-3 w-3 mr-2" /> Encerrar Sessão
+                <User className="h-3 w-3 mr-2" /> Trocar de Perfil
               </Button>
             </div>
           </CardContent>

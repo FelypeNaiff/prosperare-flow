@@ -25,7 +25,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user && !isUserLoading) {
-      router.push("/liberacao")
+      router.push("/escolha-usuario")
     }
   }, [user, isUserLoading, router])
 
@@ -35,7 +35,7 @@ export default function LoginPage() {
     setIsLoggingIn(true)
     try {
       await initiateEmailSignIn(auth, email, password)
-      router.push("/liberacao")
+      router.push("/escolha-usuario")
     } catch (error: any) {
       setIsLoggingIn(false)
       let message = "Erro ao realizar login. Tente novamente."
