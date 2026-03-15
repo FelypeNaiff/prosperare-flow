@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -65,7 +64,8 @@ export default function GruposObrigacoesPage() {
   const groupsQuery = useMemoFirebase(() => collection(firestore, "obligation_groups"), [firestore])
   const { data: groups = [], isLoading } = useCollection(groupsQuery)
 
-  const templatesQuery = useMemoFirebase(() => collection(firestore, "process_templates"), [firestore])
+  // Corrigido para buscar da coleção correta de modelos
+  const templatesQuery = useMemoFirebase(() => collection(firestore, "processoModelos"), [firestore])
   const { data: templates = [] } = useCollection(templatesQuery)
 
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
@@ -158,7 +158,12 @@ export default function GruposObrigacoesPage() {
   const handleSelectTemplate = (templateId: string) => {
     const template = templates?.find(t => t.id === templateId)
     if (template) {
-      setNewProcess({ ...newProcess, templateId, title: template.title })
+      setNewProcess({ 
+        ...newProcess, 
+        templateId, 
+        title: template.nome || template.title,
+        dueDay: template.prazoFixo?.toString() || "20"
+      })
     }
   }
 
@@ -339,11 +344,11 @@ export default function GruposObrigacoesPage() {
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Cor de Identificação</Label>
                       <div className="flex gap-2">
-                        <Input 
+                        <input 
                           type="color"
                           value={formData.color} 
                           onChange={(e) => setFormData({...formData, color: e.target.value})}
-                          className="border-[#D2D7DB] w-12 h-10 p-1"
+                          className="border-[#D2D7DB] w-12 h-10 p-1 rounded-md"
                         />
                         <Input readOnly value={formData.color} className="flex-1 font-mono uppercase text-xs" />
                       </div>
@@ -355,14 +360,14 @@ export default function GruposObrigacoesPage() {
                   <div className="bg-[#F7F7F7] p-5 rounded-2xl border border-[#D2D7DB] space-y-5 shadow-inner">
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                       <div className="md:col-span-6 space-y-1.5">
-                        <Label className="text-[9px] font-black uppercase text-[#98A7AA]">Vincular Modelo</Label>
+                        <Label className="text-[9px] font-black uppercase text-[#98A7AA]">Vincular Modelo de Checklist</Label>
                         <Select value={newProcess.templateId} onValueChange={handleSelectTemplate}>
                           <SelectTrigger className="bg-white border-[#D2D7DB] h-10">
                             <SelectValue placeholder="Selecione um modelo..." />
                           </SelectTrigger>
                           <SelectContent>
                             {(templates || []).map(t => (
-                              <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                              <SelectItem key={t.id} value={t.id} className="font-bold uppercase text-xs">{t.nome || t.title}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -495,5 +500,16 @@ export default function GruposObrigacoesPage() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+function TabTrigger({ value, label }: { value: string, label: string }) {
+  return (
+    <TabsTrigger 
+      value={value} 
+      className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#1FA67A] data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none px-0 font-black uppercase text-[10px] tracking-widest shrink-0"
+    >
+      {label}
+    </TabsTrigger>
   )
 }
