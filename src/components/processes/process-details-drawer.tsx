@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
-import { useFirestore, updateDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase"
+import { useFirestore, updateDocumentNonBlocking, useCollection, useMemoFirebase, useUser, setDocumentNonBlocking } from "@/firebase"
 import { doc, collection } from "firebase/firestore"
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
@@ -53,6 +53,7 @@ import { toast } from "@/hooks/use-toast"
 
 export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
   const firestore = useFirestore()
+  const { userData } = useUser()
   const [localTarefas, setLocalTarefas] = useState<any[]>([])
   const [newComment, setNewComment] = useState("")
   
@@ -67,9 +68,37 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
 
   if (!process) return null
 
+  const notifyUser = (userId: string, title: string, message: string, type: 'assignment' | 'mention') => {
+    const id = Math.random().toString(36).substr(2, 9)
+    const notificationRef = doc(firestore, "notifications", id)
+    setDocumentNonBlocking(notificationRef, {
+      id,
+      userId,
+      title,
+      message,
+      type,
+      read: false,
+      createdAt: new Date().toISOString(),
+      processId: process.id
+    }, { merge: true })
+  }
+
   const handleUpdate = (field: string, value: any) => {
     const docRef = doc(firestore, "processos", process.id)
     updateDocumentNonBlocking(docRef, { [field]: value })
+
+    // Se for alteração de responsável ou auxiliar, notifica o usuário
+    if (field === 'responsavelId' || field === 'auxiliarId') {
+      const selectedUser = team?.find(u => u.fullName === value)
+      if (selectedUser && selectedUser.id) {
+        notifyUser(
+          selectedUser.id, 
+          field === 'responsavelId' ? "Novo Processo Atribuído" : "Você é Auxiliar em um Processo",
+          `Você foi definido como ${field === 'responsavelId' ? 'Responsável' : 'Auxiliar'} no processo "${process.nomeProcesso}" para ${process.client?.corporateName}.`,
+          'assignment'
+        )
+      }
+    }
   }
 
   const toggleTarefa = (tarefaId: string) => {
@@ -88,10 +117,28 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
       id: Math.random().toString(36).substr(2, 9),
       text: newComment,
       createdAt: new Date().toISOString(),
-      user: "Você"
+      user: userData?.fullName || "Usuário"
     }
     
     handleUpdate('comments', [...comments, comment])
+
+    // Lógica de Menção (@)
+    const mentions = newComment.match(/@(\w+ \w+|\w+)/g)
+    if (mentions) {
+      mentions.forEach(mention => {
+        const name = mention.substring(1)
+        const mentionedUser = team?.find(u => u.fullName?.toLowerCase() === name.toLowerCase())
+        if (mentionedUser && mentionedUser.id) {
+          notifyUser(
+            mentionedUser.id,
+            "Você foi mencionado",
+            `${userData?.fullName} mencionou você em um comentário no processo de ${process.client?.corporateName}.`,
+            'mention'
+          )
+        }
+      })
+    }
+
     setNewComment("")
     toast({ title: "Comentário adicionado" })
   }
