@@ -8,8 +8,8 @@ import { auth as authInstance, firestore as firestoreInstance, firebaseApp as ap
 
 interface UserAuthState {
   user: User | null;
-  userData: any | null; // Firebase Auth User Data (pscsucesso)
-  selectedUser: any | null; // The chosen Collaborator
+  userData: any | null; 
+  selectedUser: any | null; 
   isUserLoading: boolean;
   isAuthChecking: boolean;
   userLoaded: boolean;
@@ -37,7 +37,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   });
 
   useEffect(() => {
-    // Check for persisted collaborator session
+    // Carregar colaborador persistido
     const saved = localStorage.getItem('prosperare_selected_user');
     if (saved) {
       try {

@@ -22,8 +22,8 @@ export interface UseCollectionResult<T> {
 }
 
 /**
- * Hook reativo para assinar coleções ou queries do Firestore.
- * Estabilizado para evitar INTERNAL ASSERTION FAILED (ID: ca9).
+ * Hook resiliente para coleções.
+ * Aguarda a estabilização da instância global para evitar INTERNAL ASSERTION FAILED.
  */
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
@@ -33,8 +33,7 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    // Só inicia o ouvinte se a query for válida e o auth singleton estiver pronto
-    if (!memoizedTargetRefOrQuery || !auth.currentUser) {
+    if (!memoizedTargetRefOrQuery) {
       setData(null);
       setIsLoading(false);
       setError(null);
@@ -56,20 +55,9 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-        let path = 'Query';
-        try {
-          if (memoizedTargetRefOrQuery instanceof CollectionReference) {
-            path = memoizedTargetRefOrQuery.path;
-          } else {
-            path = (memoizedTargetRefOrQuery as any)._query?.path?.canonicalString() || 'Query';
-          }
-        } catch (e) {
-          path = 'Query';
-        }
-
         const contextualError = new FirestorePermissionError({
           operation: 'list',
-          path,
+          path: 'Collection',
         });
 
         setError(contextualError);

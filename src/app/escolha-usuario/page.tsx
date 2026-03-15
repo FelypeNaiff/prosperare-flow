@@ -6,7 +6,7 @@ import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from "
 import { initiateLogout } from "@/firebase/non-blocking-login"
 import { TrendingUp, Plus, LogOut, Loader2, ShieldCheck, Lock, User as UserIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { collection } from "firebase/firestore"
@@ -31,7 +31,7 @@ export default function EscolhaUsuarioPage() {
   const [pin, setPin] = useState("")
   const [isPinOpen, setIsPinOpen] = useState(false)
 
-  // Fetch registered collaborators from Firestore
+  // Busca colaboradores reais cadastrados no Firestore
   const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
   const { data: team = [], isLoading } = useCollection(usersQuery)
 
@@ -47,12 +47,13 @@ export default function EscolhaUsuarioPage() {
   }
 
   const handleVerifyPin = () => {
+    // PIN padrão conforme solicitado
     if (pin === "1234") {
       setSelectedUser(selectedCollab)
-      toast({ title: "Bem-vindo!", description: `Identidade ${selectedCollab.fullName} confirmada.` })
+      toast({ title: "Identidade Confirmada!", description: `Bem-vindo, ${selectedCollab.fullName}.` })
       router.push("/dashboard")
     } else {
-      toast({ variant: "destructive", title: "Senha Incorreta", description: "O PIN padrão é 1234." })
+      toast({ variant: "destructive", title: "Senha Incorreta", description: "O PIN padrão de acesso é 1234." })
       setPin("")
     }
   }
@@ -122,7 +123,7 @@ export default function EscolhaUsuarioPage() {
           ) : (
             <div className="text-center py-12 space-y-4 opacity-40">
               <UserIcon className="h-12 w-12 mx-auto" />
-              <p className="text-xs font-black uppercase tracking-widest">Nenhum colaborador cadastrado.</p>
+              <p className="text-xs font-black uppercase tracking-widest">Nenhum colaborador cadastrado no banco.</p>
             </div>
           )}
         </div>
@@ -158,7 +159,7 @@ export default function EscolhaUsuarioPage() {
               maxLength={4}
               value={pin}
               onChange={(e) => setPin(e.target.value)}
-              className="text-center h-14 text-2xl font-black tracking-[0.5em] bg-[#F7F7F7] border-[#D2D7DB]"
+              className="text-center h-14 text-2xl font-black tracking-[0.5em] bg-[#F7F7F7] border-[#D2D7DB] focus-visible:ring-[#1FA67A]"
               placeholder="••••"
               autoFocus
               onKeyDown={(e) => e.key === 'Enter' && handleVerifyPin()}

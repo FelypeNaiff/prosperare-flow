@@ -17,7 +17,7 @@ export default function LoginPage() {
   const { user, isUserLoading } = useUser()
   const router = useRouter()
   
-  const [email, setEmail] = useState("pscsucesso@gmail.com")
+  const [email] = useState("pscsucesso@gmail.com")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoggingIn, setIsLoggingIn] = useState(false)
@@ -30,19 +30,13 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (email !== "pscsucesso@gmail.com") {
-      toast({ variant: "destructive", title: "Acesso Negado", description: "Utilize apenas o e-mail mestre do escritório." })
-      return
-    }
-
     setIsLoggingIn(true)
     try {
       await initiateEmailSignIn(auth, email, password)
       router.push("/escolha-usuario")
     } catch (error: any) {
       setIsLoggingIn(false)
-      toast({ variant: "destructive", title: "Falha no acesso", description: "Credenciais mestres inválidas." })
+      toast({ variant: "destructive", title: "Falha no acesso", description: "Senha mestre incorreta ou erro de conexão." })
     }
   }
 
@@ -99,7 +93,7 @@ export default function LoginPage() {
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-[#98A7AA]" />
                   <Input 
                     type={showPassword ? "text" : "password"}
-                    placeholder="Sua senha mestre"
+                    placeholder="Digite a senha mestre"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10 h-12 bg-[#F7F7F7] border-none font-bold text-[#2C4156] focus-visible:ring-[#1FA67A]"
