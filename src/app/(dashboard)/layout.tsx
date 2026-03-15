@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -24,7 +23,7 @@ import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, userData, isUserLoading, isAuthChecking } = useUser()
+  const { user, userData, isUserLoading, isAuthChecking, userLoaded } = useUser()
   const auth = useAuth()
   const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
@@ -35,17 +34,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [])
 
   useEffect(() => {
-    if (mounted && !isUserLoading && !isAuthChecking) {
+    if (mounted && userLoaded) {
       if (!user) {
         router.push("/login")
       } else if (!userData) {
-        // Usuário logado no Google mas e-mail não consta na base de colaboradores
+        // Logged in via Google but email not in collaborators base
         router.push("/unauthorized")
       }
     }
-  }, [mounted, user, userData, isUserLoading, isAuthChecking, router])
+  }, [mounted, user, userData, userLoaded, router])
 
-  if (!mounted || isUserLoading || isAuthChecking) {
+  if (!mounted || !userLoaded || isUserLoading || isAuthChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F7F7F7]">
         <div className="flex flex-col items-center gap-4">
@@ -56,7 +55,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     )
   }
 
-  // Se logado mas não autorizado, não renderiza o conteúdo do dashboard
   if (!user || !userData) return null
 
   const pathSegments = pathname.split('/').filter(Boolean)

@@ -19,18 +19,24 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection } from "firebase/firestore"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default function DashboardPage() {
   const firestore = useFirestore()
+  const { userLoaded } = useUser()
   
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
+  const clientsQuery = useMemoFirebase(() => 
+    userLoaded ? collection(firestore, "clients") : null, 
+    [firestore, userLoaded]
+  )
   const { data: clients, isLoading: loadingClients } = useCollection(clientsQuery)
   
-  // Auditoria: Unificando para a coleção 'tasks' conforme o blueprint de auditoria
-  const tasksQuery = useMemoFirebase(() => collection(firestore, "tasks"), [firestore])
+  const tasksQuery = useMemoFirebase(() => 
+    userLoaded ? collection(firestore, "tasks") : null, 
+    [firestore, userLoaded]
+  )
   const { data: tasks, isLoading: loadingTasks } = useCollection(tasksQuery)
 
   const stats = useMemo(() => ({

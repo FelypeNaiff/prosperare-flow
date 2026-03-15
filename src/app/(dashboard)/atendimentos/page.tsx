@@ -26,6 +26,7 @@ import {
   useFirestore, 
   useCollection, 
   useMemoFirebase, 
+  useUser,
   setDocumentNonBlocking, 
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking
@@ -58,20 +59,32 @@ const COLUMNS = [
 
 export default function AtendimentosPage() {
   const firestore = useFirestore()
+  const { userLoaded } = useUser()
   const [searchTerm, setSearchTerm] = useState("")
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false)
 
-  // Auditoria: Unificando para a coleção 'tasks' conforme blueprint
-  const tasksQuery = useMemoFirebase(() => collection(firestore, "tasks"), [firestore])
+  const tasksQuery = useMemoFirebase(() => 
+    userLoaded ? collection(firestore, "tasks") : null, 
+    [firestore, userLoaded]
+  )
   const { data: tickets = [], isLoading: loadingTickets } = useCollection(tasksQuery)
 
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
+  const clientsQuery = useMemoFirebase(() => 
+    userLoaded ? collection(firestore, "clients") : null, 
+    [firestore, userLoaded]
+  )
   const { data: clients = [] } = useCollection(clientsQuery)
 
-  const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
+  const usersQuery = useMemoFirebase(() => 
+    userLoaded ? collection(firestore, "users") : null, 
+    [firestore, userLoaded]
+  )
   const { data: team = [] } = useCollection(usersQuery)
 
-  const templatesQuery = useMemoFirebase(() => collection(firestore, "processoModelos"), [firestore])
+  const templatesQuery = useMemoFirebase(() => 
+    userLoaded ? collection(firestore, "processoModelos") : null, 
+    [firestore, userLoaded]
+  )
   const { data: templates = [] } = useCollection(templatesQuery)
 
   const [newTicket, setNewTicket] = useState({

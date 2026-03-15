@@ -17,19 +17,19 @@ import { useFirestore, useCollection, useMemoFirebase, useUser, updateDocumentNo
 import { collection, query, where, orderBy, limit, doc } from "firebase/firestore"
 
 export function NotificationBell() {
-  const { user } = useUser()
+  const { user, userLoaded } = useUser()
   const firestore = useFirestore()
 
-  // Auditoria: Garantir que a query só é instanciada se o usuário estiver autenticado
   const notificationsQuery = useMemoFirebase(() => {
-    if (!user?.uid) return null
+    // Audit: Only query if user is fully loaded and document exists
+    if (!userLoaded || !user?.uid) return null
     return query(
       collection(firestore, "notifications"),
       where("userId", "==", user.uid),
       orderBy("createdAt", "desc"),
       limit(20)
     )
-  }, [firestore, user?.uid])
+  }, [firestore, userLoaded, user?.uid])
 
   const { data: notifications = [], isLoading } = useCollection(notificationsQuery)
   const unreadCount = (notifications || []).filter(n => !n.read).length

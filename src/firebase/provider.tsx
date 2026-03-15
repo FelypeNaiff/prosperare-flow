@@ -19,6 +19,7 @@ interface UserAuthState {
   isUserLoading: boolean;
   isAuthChecking: boolean;
   userError: Error | null;
+  userLoaded: boolean;
 }
 
 export interface FirebaseContextState {
@@ -31,6 +32,7 @@ export interface FirebaseContextState {
   isUserLoading: boolean;
   isAuthChecking: boolean;
   userError: Error | null;
+  userLoaded: boolean;
 }
 
 export interface FirebaseServicesAndUser {
@@ -42,6 +44,7 @@ export interface FirebaseServicesAndUser {
   isUserLoading: boolean;
   isAuthChecking: boolean;
   userError: Error | null;
+  userLoaded: boolean;
 }
 
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
@@ -58,6 +61,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     isUserLoading: true,
     isAuthChecking: true,
     userError: null,
+    userLoaded: false,
   });
 
   useEffect(() => {
@@ -67,30 +71,34 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       async (firebaseUser) => {
         if (firebaseUser) {
-          // Auditoria: SEMPRE buscar pelo UID do Firebase Auth como chave do documento
           const userDocRef = doc(firestore, "users", firebaseUser.uid);
           const uidSnap = await getDoc(userDocRef);
           
           if (uidSnap.exists()) {
+            const userData = { ...uidSnap.data(), id: uidSnap.id };
+            setState(prev => ({ 
+              ...prev, 
+              user: firebaseUser, 
+              userData, 
+              isUserLoading: false, 
+              isAuthChecking: false,
+              userLoaded: true 
+            }));
+            
+            // Setup real-time listener for user profile
             const unsubscribeDb = onSnapshot(userDocRef, (snapshot) => {
               if (snapshot.exists()) {
-                const userData = { ...snapshot.data(), id: snapshot.id };
-                setState(prev => ({ 
-                  ...prev, 
-                  user: firebaseUser, 
-                  userData, 
-                  isUserLoading: false, 
-                  isAuthChecking: false 
-                }));
+                const updatedData = { ...snapshot.data(), id: snapshot.id };
+                setState(prev => ({ ...prev, userData: updatedData }));
               }
             });
             return () => unsubscribeDb();
           } else {
-            // Provisionamento Admin ou vínculo por e-mail
+            // Provisioning Admin or linking by email
             if (firebaseUser.email === "felypenaiff01@gmail.com") {
               const adminData = {
                 id: firebaseUser.uid,
-                fullName: "Felype Naiff",
+                fullName: firebaseUser.displayName || "Felype Naiff",
                 email: firebaseUser.email,
                 profile: "ADMINISTRADOR",
                 role: "ADMINISTRADOR",
@@ -99,7 +107,14 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 departmentIds: ["Diretoria", "Administrativo"]
               };
               await setDoc(userDocRef, adminData, { merge: true });
-              setState(prev => ({ ...prev, user: firebaseUser, userData: adminData, isUserLoading: false, isAuthChecking: false }));
+              setState(prev => ({ 
+                ...prev, 
+                user: firebaseUser, 
+                userData: adminData, 
+                isUserLoading: false, 
+                isAuthChecking: false,
+                userLoaded: true 
+              }));
             } else {
               const q = query(collection(firestore, "users"), where("email", "==", firebaseUser.email));
               const querySnapshot = await getDocs(q);
@@ -107,18 +122,40 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 const existingData = querySnapshot.docs[0].data();
                 const finalData = { ...existingData, id: firebaseUser.uid, role: existingData.profile || "ASSISTENTE", updatedAt: new Date().toISOString() };
                 await setDoc(userDocRef, finalData, { merge: true });
-                setState(prev => ({ ...prev, user: firebaseUser, userData: finalData, isUserLoading: false, isAuthChecking: false }));
+                setState(prev => ({ 
+                  ...prev, 
+                  user: firebaseUser, 
+                  userData: finalData, 
+                  isUserLoading: false, 
+                  isAuthChecking: false,
+                  userLoaded: true 
+                }));
               } else {
-                setState(prev => ({ ...prev, user: firebaseUser, userData: null, isUserLoading: false, isAuthChecking: false }));
+                // No profile found for this email
+                setState(prev => ({ 
+                  ...prev, 
+                  user: firebaseUser, 
+                  userData: null, 
+                  isUserLoading: false, 
+                  isAuthChecking: false,
+                  userLoaded: true 
+                }));
               }
             }
           }
         } else {
-          setState({ user: null, userData: null, isUserLoading: false, isAuthChecking: false, userError: null });
+          setState({ 
+            user: null, 
+            userData: null, 
+            isUserLoading: false, 
+            isAuthChecking: false, 
+            userError: null,
+            userLoaded: true 
+          });
         }
       },
       (error) => {
-        setState(prev => ({ ...prev, isUserLoading: false, isAuthChecking: false, userError: error }));
+        setState(prev => ({ ...prev, isUserLoading: false, isAuthChecking: false, userError: error, userLoaded: true }));
       }
     );
 
@@ -137,6 +174,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       isUserLoading: state.isUserLoading,
       isAuthChecking: state.isAuthChecking,
       userError: state.userError,
+      userLoaded: state.userLoaded,
     };
   }, [firebaseApp, firestore, auth, state]);
 
@@ -163,6 +201,7 @@ export const useFirebase = (): FirebaseServicesAndUser => {
     isUserLoading: context.isUserLoading,
     isAuthChecking: context.isAuthChecking,
     userError: context.userError,
+    userLoaded: context.userLoaded,
   };
 };
 
@@ -170,8 +209,8 @@ export const useAuth = () => useFirebase().auth;
 export const useFirestore = () => useFirebase().firestore;
 export const useFirebaseApp = () => useFirebase().firebaseApp;
 export const useUser = () => {
-  const { user, userData, isUserLoading, isAuthChecking, userError } = useFirebase();
-  return { user, userData, isUserLoading, isAuthChecking, userError };
+  const { user, userData, isUserLoading, isAuthChecking, userError, userLoaded } = useFirebase();
+  return { user, userData, isUserLoading, isAuthChecking, userError, userLoaded };
 };
 
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T & {__memo?: boolean} {
