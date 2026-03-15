@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -58,6 +57,7 @@ import {
 } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 import { lookupCnpjAction } from "@/app/actions/cnpj-lookup"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 export default function ClientesPage() {
   const firestore = useFirestore()
