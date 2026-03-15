@@ -1,9 +1,10 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/layout/app-sidebar"
-import { User as UserIcon, ChevronRight, Home, Loader2, ShieldAlert } from "lucide-react"
+import { User as UserIcon, ChevronRight, Home, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { 
   DropdownMenu, 
@@ -38,7 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (!user) {
         router.push("/login")
       } else if (!userData) {
-        // Logged in but not a collaborator in the database
+        // Usuário logado no Google mas e-mail não consta na base de colaboradores
         router.push("/unauthorized")
       }
     }
@@ -55,7 +56,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     )
   }
 
-  // Final safety check: if auth check finished and no userData, don't render dashboard
+  // Se logado mas não autorizado, não renderiza o conteúdo do dashboard
   if (!user || !userData) return null
 
   const pathSegments = pathname.split('/').filter(Boolean)

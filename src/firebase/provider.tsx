@@ -1,8 +1,9 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, onSnapshot, doc, setDoc } from 'firebase/firestore';
+import { Firestore, onSnapshot, doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 
@@ -65,53 +66,85 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     const unsubscribeAuth = onAuthStateChanged(
       auth,
-      (firebaseUser) => {
+      async (firebaseUser) => {
         if (firebaseUser) {
-          // PASSO 3: Busca o perfil usando o UID como ID do documento
           const userDocRef = doc(firestore, "users", firebaseUser.uid);
           
-          const unsubscribeDb = onSnapshot(userDocRef, (snapshot) => {
-            if (snapshot.exists()) {
-              const userData = { ...snapshot.data(), id: snapshot.id };
-              setState(prev => ({ 
-                ...prev, 
-                user: firebaseUser, 
-                userData, 
-                isUserLoading: false, 
-                isAuthChecking: false 
-              }));
-            } else {
-              // PASSO 3: Provisionamento do Administrador via SETDOC com UID
-              if (firebaseUser.email === "felypenaiff01@gmail.com") {
-                const adminData = {
-                  id: firebaseUser.uid,
-                  fullName: "Felype Naiff",
-                  email: firebaseUser.email,
-                  profile: "ADMINISTRADOR",
-                  role: "ADMINISTRADOR",
-                  status: "ATIVO",
-                  createdAt: new Date().toISOString(),
-                  departmentIds: ["Diretoria", "Administrativo"]
-                };
-                
-                // Usa setDoc para garantir o ID = UID
-                setDoc(userDocRef, adminData, { merge: true }).catch(() => {});
-              } else {
+          // 1. Tenta buscar direto pelo UID (Usuário já vinculado)
+          const uidSnap = await getDoc(userDocRef);
+          
+          if (uidSnap.exists()) {
+            // Usuário já tem documento com UID, inicia listener em tempo real
+            const unsubscribeDb = onSnapshot(userDocRef, (snapshot) => {
+              if (snapshot.exists()) {
+                const userData = { ...snapshot.data(), id: snapshot.id };
                 setState(prev => ({ 
                   ...prev, 
                   user: firebaseUser, 
-                  userData: null, 
+                  userData, 
                   isUserLoading: false, 
                   isAuthChecking: false 
                 }));
               }
-            }
-          }, (err) => {
-            setState(prev => ({ ...prev, user: firebaseUser, isUserLoading: false, isAuthChecking: false, userError: err }));
-          });
+            });
+            return () => unsubscribeDb();
+          } else {
+            // 2. Não encontrado por UID, busca por Email (Usuário pré-cadastrado ou Admin)
+            const q = query(collection(firestore, "users"), where("email", "==", firebaseUser.email));
+            const querySnapshot = await getDocs(q);
 
-          return () => unsubscribeDb();
+            if (!querySnapshot.empty) {
+              // Encontrado por email! Vincula ao UID para acessos futuros rápidos
+              const existingData = querySnapshot.docs[0].data();
+              const finalData = {
+                ...existingData,
+                id: firebaseUser.uid,
+                updatedAt: new Date().toISOString()
+              };
+              
+              await setDoc(userDocRef, finalData, { merge: true });
+              
+              setState(prev => ({ 
+                ...prev, 
+                user: firebaseUser, 
+                userData: finalData, 
+                isUserLoading: false, 
+                isAuthChecking: false 
+              }));
+            } else if (firebaseUser.email === "felypenaiff01@gmail.com") {
+              // 3. Caso especial: Provisionamento do Administrador Master
+              const adminData = {
+                id: firebaseUser.uid,
+                fullName: "Felype Naiff",
+                email: firebaseUser.email,
+                profile: "ADMINISTRADOR",
+                role: "ADMINISTRADOR",
+                status: "ATIVO",
+                createdAt: new Date().toISOString(),
+                departmentIds: ["Diretoria", "Administrativo"]
+              };
+              
+              await setDoc(userDocRef, adminData, { merge: true });
+              setState(prev => ({ 
+                ...prev, 
+                user: firebaseUser, 
+                userData: adminData, 
+                isUserLoading: false, 
+                isAuthChecking: false 
+              }));
+            } else {
+              // 4. Usuário logou no Google mas não está na lista de colaboradores
+              setState(prev => ({ 
+                ...prev, 
+                user: firebaseUser, 
+                userData: null, 
+                isUserLoading: false, 
+                isAuthChecking: false 
+              }));
+            }
+          }
         } else {
+          // Deslogado
           setState({ 
             user: null, 
             userData: null, 
