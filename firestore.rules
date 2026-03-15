@@ -1,13 +1,6 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    /**
-     * PROSPERARE FLOW - SECURITY RULES
-     * Versão: 1.0.5 - 2026-03-15
-     * Acesso total concedido a qualquer usuário autenticado.
-     */
-    
     match /{document=**} {
       allow read, write: if request.auth != null;
     }

@@ -1,37 +1,19 @@
-
 {
   "entities": {
     "User": {
       "title": "User",
       "type": "object",
-      "description": "Represents a user account within the ContaHub system.",
+      "description": "Represents a user account within the system.",
       "properties": {
         "id": { "type": "string" },
         "fullName": { "type": "string" },
         "email": { "type": "string" },
         "profile": { "type": "string", "enum": ["ADMINISTRADOR", "SÓCIO", "CONTADOR/GESTOR", "ASSISTENTE"] },
+        "role": { "type": "string" },
         "status": { "type": "string", "enum": ["ATIVO", "INATIVO"] },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "departmentId": { "type": "string" },
-        "departmentIds": { "type": "array", "items": { "type": "string" } }
+        "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "fullName", "email", "profile", "status", "createdAt"]
-    },
-    "Notification": {
-      "title": "Notification",
-      "type": "object",
-      "description": "System notification for a specific user.",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "title": { "type": "string" },
-        "message": { "type": "string" },
-        "type": { "type": "string", "enum": ["assignment", "mention"] },
-        "read": { "type": "boolean" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "processId": { "type": "string" }
-      },
-      "required": ["id", "userId", "title", "message", "type", "read", "createdAt"]
     },
     "Client": {
       "title": "Client",
@@ -41,25 +23,7 @@
         "id": { "type": "string" },
         "corporateName": { "type": "string" },
         "cnpj": { "type": "string" },
-        "taxRegime": { "type": "string" },
-        "email": { "type": "string" },
-        "phone": { "type": "string" },
-        "status": { "type": "string" },
-        "obligationGroups": { "type": "array", "items": { "type": "string" } },
-        "healthScore": { "type": "number" }
-      }
-    },
-    "ProcessoModelo": {
-      "title": "ProcessoModelo",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "nome": { "type": "string" },
-        "tipo": { "type": "string", "enum": ["recorrente", "esporadico"] },
-        "departamento": { "type": "string" },
-        "tarefas": { "type": "array" },
-        "prazoFixo": { "type": "number" },
-        "competencia": { "type": "string" }
+        "email": { "type": "string" }
       }
     },
     "Processo": {
@@ -67,142 +31,113 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "modeloId": { "type": "string" },
-        "clienteId": { "type": "string" },
         "nomeProcesso": { "type": "string" },
-        "situacao": { "type": "string", "enum": ["a_fazer", "em_progresso", "concluido", "em_multa", "dispensado"] },
-        "competencia": { "type": "string" },
-        "responsavelId": { "type": "string" },
-        "auxiliarId": { "type": "string" },
-        "comments": { "type": "array" }
+        "situacao": { "type": "string" }
       }
     },
     "Task": {
       "title": "Task",
       "type": "object",
-      "description": "Individual task or obligation instance.",
       "properties": {
         "id": { "type": "string" },
-        "clientId": { "type": "string" },
-        "clientName": { "type": "string" },
         "title": { "type": "string" },
-        "status": { "type": "string" },
-        "groupId": { "type": "string" },
-        "groupName": { "type": "string" },
-        "createdAt": { "type": "string" },
-        "dueDate": { "type": "string" },
-        "responsibleId": { "type": "string" }
+        "status": { "type": "string" }
       }
     },
-    "Ticket": {
-      "title": "Ticket",
+    "ProcessoModelo": {
+      "title": "ProcessoModelo",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "clientId": { "type": "string" },
-        "clientName": { "type": "string" },
+        "nome": { "type": "string" }
+      }
+    },
+    "Certification": {
+      "title": "Certification",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tipo": { "type": "string" }
+      }
+    },
+    "Notification": {
+      "title": "Notification",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
         "title": { "type": "string" },
-        "status": { "type": "string" },
-        "responsibleId": { "type": "string" },
-        "createdAt": { "type": "string" }
+        "read": { "type": "boolean" }
       }
     },
-    "Installment": {
-      "title": "Installment",
+    "ChatMessage": {
+      "title": "ChatMessage",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "clientId": { "type": "string" },
-        "clientName": { "type": "string" },
-        "tipo": { "type": "string" },
-        "status": { "type": "string" },
-        "value": { "type": "number" },
-        "totalParcels": { "type": "number" },
-        "currentParcel": { "type": "number" },
-        "dueDay": { "type": "number" }
+        "text": { "type": "string" }
       }
     },
-    "IrpfDeclaration": {
-      "title": "IrpfDeclaration",
+    "FinancialEntry": {
+      "title": "FinancialEntry",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "name": { "type": "string" },
-        "cpf": { "type": "string" },
-        "responsibleId": { "type": "string" },
-        "status": { "type": "string" },
-        "progress": { "type": "number" },
-        "tags": { "type": "array" }
+        "valor": { "type": "number" }
+      }
+    },
+    "Contract": {
+      "title": "Contract",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "value": { "type": "number" }
       }
     }
   },
   "auth": {
-    "providers": ["google.com", "password"]
+    "providers": ["google.com"]
   },
   "firestore": {
     "/users/{userId}": {
       "schema": { "$ref": "#/backend/entities/User" },
-      "description": "Stores individual user profiles."
+      "description": "User profiles indexed by UID."
     },
-    "/notifications/{notificationId}": {
-      "schema": { "$ref": "#/backend/entities/Notification" },
-      "description": "User notifications."
-    },
-    "/clients/{clientId}": {
+    "/clients/{id}": {
       "schema": { "$ref": "#/backend/entities/Client" },
-      "description": "Client profiles."
-    },
-    "/processoModelos/{id}": {
-      "schema": { "$ref": "#/backend/entities/ProcessoModelo" },
-      "description": "Blueprints for processes."
+      "description": "Client database."
     },
     "/processos/{id}": {
       "schema": { "$ref": "#/backend/entities/Processo" },
-      "description": "Actual process instances."
+      "description": "Active processes."
     },
     "/tasks/{id}": {
       "schema": { "$ref": "#/backend/entities/Task" },
-      "description": "Individual process tasks."
+      "description": "Process tasks."
     },
-    "/tickets/{id}": {
-      "schema": { "$ref": "#/backend/entities/Ticket" },
-      "description": "Internal support tickets."
+    "/processoModelos/{id}": {
+      "schema": { "$ref": "#/backend/entities/ProcessoModelo" },
+      "description": "Checklist models."
     },
-    "/installments/{id}": {
-      "schema": { "$ref": "#/backend/entities/Installment" },
-      "description": "Debt installments."
+    "/certifications/{id}": {
+      "schema": { "$ref": "#/backend/entities/Certification" },
+      "description": "Client certifications."
     },
-    "/irpf_declarations/{id}": {
-      "schema": { "$ref": "#/backend/entities/IrpfDeclaration" },
-      "description": "IRPF Tax declarations."
+    "/notifications/{id}": {
+      "schema": { "$ref": "#/backend/entities/Notification" },
+      "description": "User notifications."
     },
-    "/irpf_stages/{id}": {
-      "schema": { "type": "object" },
-      "description": "Custom stages for IRPF Kanban."
+    "/chatMessages/{id}": {
+      "schema": { "$ref": "#/backend/entities/ChatMessage" },
+      "description": "Internal communication."
     },
-    "/clientAccesses/{id}": {
-      "schema": { "type": "object" },
-      "description": "Secure access storage for clients."
-    },
-    "/obligation_groups/{id}": {
-      "schema": { "type": "object" },
-      "description": "Groups of obligations for automation."
+    "/financialEntries/{id}": {
+      "schema": { "$ref": "#/backend/entities/FinancialEntry" },
+      "description": "Cash flow entries."
     },
     "/contracts/{id}": {
-      "schema": { "type": "object" },
+      "schema": { "$ref": "#/backend/entities/Contract" },
       "description": "Service contracts."
-    },
-    "/receivables/{id}": {
-      "schema": { "type": "object" },
-      "description": "Accounts receivable."
-    },
-    "/payables/{id}": {
-      "schema": { "type": "object" },
-      "description": "Accounts payable."
-    },
-    "/officeSettings/{id}": {
-      "schema": { "type": "object" },
-      "description": "Global office settings."
     }
   }
 }

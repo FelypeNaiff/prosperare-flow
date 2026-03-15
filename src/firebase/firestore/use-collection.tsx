@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -63,18 +62,9 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-        let path = 'Query';
-        if (memoizedTargetRefOrQuery.type === 'collection') {
-          path = (memoizedTargetRefOrQuery as CollectionReference).path;
-        } else {
-          try {
-            // Tenta extrair o path de forma segura da Query (SDK JS v9+)
-            // @ts-ignore - Acesso a propriedade interna para debug context
-            path = memoizedTargetRefOrQuery._query?.path?.canonicalString() || 'Query';
-          } catch {
-            path = 'Query';
-          }
-        }
+        const path = memoizedTargetRefOrQuery instanceof CollectionReference 
+          ? memoizedTargetRefOrQuery.path 
+          : 'Query';
 
         const contextualError = new FirestorePermissionError({
           operation: 'list',
@@ -93,7 +83,7 @@ export function useCollection<T = any>(
   }, [memoizedTargetRefOrQuery]);
 
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
-    throw new Error(memoizedTargetRefOrQuery + ' was not properly memoized using useMemoFirebase');
+    throw new Error('Firestore target was not properly memoized using useMemoFirebase');
   }
 
   return { data, isLoading, error };

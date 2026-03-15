@@ -1,7 +1,6 @@
-
 "use client"
 
-import { Bell, AtSign, RefreshCw, FileWarning, Clock, Mail, CheckCircle2 } from "lucide-react"
+import { Bell, AtSign, RefreshCw, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -44,6 +43,8 @@ export function NotificationBell() {
       updateDocumentNonBlocking(doc(firestore, "notifications", n.id), { read: true })
     })
   }
+
+  if (!user) return null
 
   return (
     <DropdownMenu>

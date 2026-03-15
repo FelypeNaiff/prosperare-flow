@@ -1,9 +1,8 @@
-
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, collection, query, where, onSnapshot, query as firestoreQuery, doc, setDoc } from 'firebase/firestore';
+import { Firestore, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 
@@ -68,12 +67,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       (firebaseUser) => {
         if (firebaseUser) {
-          const usersRef = collection(firestore, "users");
-          const q = firestoreQuery(usersRef, where("email", "==", firebaseUser.email));
+          // Busca direta pelo documento usando o UID como ID
+          const userDocRef = doc(firestore, "users", firebaseUser.uid);
           
-          const unsubscribeDb = onSnapshot(q, (snapshot) => {
-            if (!snapshot.empty) {
-              const userData = { ...snapshot.docs[0].data(), id: snapshot.docs[0].id };
+          const unsubscribeDb = onSnapshot(userDocRef, (snapshot) => {
+            if (snapshot.exists()) {
+              const userData = { ...snapshot.data(), id: snapshot.id };
               setState(prev => ({ 
                 ...prev, 
                 user: firebaseUser, 
@@ -84,20 +83,20 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             } else {
               // Provisionamento automático para o administrador principal usando o UID como ID do documento
               if (firebaseUser.email === "felypenaiff01@gmail.com") {
-                const newUserRef = doc(firestore, "users", firebaseUser.uid);
                 const adminData = {
                   id: firebaseUser.uid,
                   fullName: "Felype Naiff",
                   email: firebaseUser.email,
                   profile: "ADMINISTRADOR",
+                  role: "ADMINISTRADOR",
                   status: "ATIVO",
                   createdAt: new Date().toISOString(),
                   departmentId: "Diretoria",
                   departmentIds: ["Diretoria", "Administrativo"]
                 };
                 
-                // Realiza o provisionamento. O snapshot disparará novamente após a criação.
-                setDoc(newUserRef, adminData).catch(() => {});
+                // Realiza o provisionamento via setDoc com ID manual (UID)
+                setDoc(userDocRef, adminData).catch(() => {});
               } else {
                 setState(prev => ({ 
                   ...prev, 
@@ -109,7 +108,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
               }
             }
           }, (err) => {
-            // Em caso de erro de permissão na consulta de usuário, ainda tentamos manter o estado de login
             setState(prev => ({ ...prev, user: firebaseUser, isUserLoading: false, isAuthChecking: false, userError: err }));
           });
 
