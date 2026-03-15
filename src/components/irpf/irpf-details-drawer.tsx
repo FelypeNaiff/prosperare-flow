@@ -24,7 +24,8 @@ import {
   UserCircle,
   X,
   Check,
-  DollarSign
+  DollarSign,
+  ListRestart
 } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -39,8 +40,15 @@ import {
 } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
-import { useFirestore, updateDocumentNonBlocking } from "@/firebase"
-import { doc } from "firebase/firestore"
+import { useFirestore, updateDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase"
+import { doc, collection, query, orderBy } from "firebase/firestore"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 const AVAILABLE_TAGS = [
   { name: 'AGUARDANDO RETORNO...', color: 'bg-[#F2B705] text-white' },
@@ -53,6 +61,14 @@ const AVAILABLE_TAGS = [
   { name: 'GOV', color: 'bg-[#566573] text-white' },
 ]
 
+const DEFAULT_STAGES = [
+  { id: 'not_started', title: '⚪ NÃO INICIADO' },
+  { id: 'filling', title: '⚙️ EM PREENCHIMENTO' },
+  { id: 'awaiting_production', title: '⏳ AGUARDANDO PRODUÇÃO' },
+  { id: 'sent', title: '📤 ENVIADO RFB' },
+  { id: 'completed', title: '✅ CONCLUIDA' },
+]
+
 export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
   const firestore = useFirestore()
   const [showGovPass, setShowGovPass] = useState(false)
@@ -60,6 +76,11 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
   const [serviceValue, setServiceValue] = useState(0)
   const [isPaid, setIsPaid] = useState(false)
   const [localData, setLocalData] = useState({ name: "", cpf: "", govPass: "" })
+
+  // Busca estágios reais para o seletor
+  const stagesQuery = useMemoFirebase(() => query(collection(firestore, "irpf_stages"), orderBy("order", "asc")), [firestore])
+  const { data: dbStages } = useCollection(stagesQuery)
+  const availableStages = (dbStages && dbStages.length > 0) ? dbStages : DEFAULT_STAGES
 
   useEffect(() => {
     if (declaration) {
@@ -116,7 +137,7 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-black text-[#5E6C84] uppercase tracking-wider">Nome Completo</Label>
                   <Input 
@@ -126,14 +147,34 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                     className="border-[#D2D7DB] font-bold text-[#172B4D]"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black text-[#5E6C84] uppercase tracking-wider">CPF</Label>
-                  <Input 
-                    value={localData.cpf} 
-                    onChange={(e) => setLocalData({...localData, cpf: e.target.value})}
-                    onBlur={() => handleUpdate({ cpf: localData.cpf })}
-                    className="border-[#D2D7DB] font-mono"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black text-[#5E6C84] uppercase tracking-wider">CPF</Label>
+                    <Input 
+                      value={localData.cpf} 
+                      onChange={(e) => setLocalData({...localData, cpf: e.target.value})}
+                      onBlur={() => handleUpdate({ cpf: localData.cpf })}
+                      className="border-[#D2D7DB] font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black text-[#5E6C84] uppercase tracking-wider">Etapa do Fluxo</Label>
+                    <Select 
+                      value={declaration.status} 
+                      onValueChange={(v) => handleUpdate({ status: v })}
+                    >
+                      <SelectTrigger className="border-[#D2D7DB] font-black text-[#172B4D] uppercase text-[10px]">
+                        <SelectValue placeholder="Selecione a etapa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableStages.map((stage: any) => (
+                          <SelectItem key={stage.id} value={stage.id} className="text-[10px] font-black uppercase">
+                            {stage.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
             </div>
