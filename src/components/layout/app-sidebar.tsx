@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from "react"
@@ -122,6 +123,7 @@ const items = [
     subItems: [
       { title: "Contas a Receber", url: "/financeiro/receber", icon: ArrowUpRight },
       { title: "Contas a Pagar", url: "/financeiro/pagar", icon: ArrowDownRight },
+      { title: "Calendário Financeiro", url: "/financeiro/calendario", icon: Calendar },
       { title: "Gestão de Contratos", url: "/financeiro/contratos", icon: FileText },
       { title: "DRE Gerencial", url: "/financeiro/dre", icon: PieChart },
       { title: "Fluxo de Caixa", url: "/financeiro/fluxo", icon: LineChart },
