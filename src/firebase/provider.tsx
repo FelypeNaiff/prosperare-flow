@@ -2,9 +2,10 @@
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect, useRef } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, onSnapshot, doc, setDoc, getDoc } from 'firebase/firestore';
+import { Firestore, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { auth as authInstance, firestore as firestoreInstance, firebaseApp as appInstance } from './init';
+import { setDocumentNonBlocking } from './non-blocking-updates';
 
 interface UserAuthState {
   user: User | null;
@@ -43,11 +44,9 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   const dbUnsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    // Escuta mudanças de autenticação usando o singleton estável global
     const unsubscribeAuth = onAuthStateChanged(
       authInstance,
       async (firebaseUser) => {
-        // Limpa ouvintes anteriores para evitar loops
         if (dbUnsubscribeRef.current) {
           dbUnsubscribeRef.current();
           dbUnsubscribeRef.current = null;
@@ -81,15 +80,15 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
               userLoaded: true 
             }));
             
-            // Inicia ouvinte em tempo real para o perfil do usuário
             dbUnsubscribeRef.current = onSnapshot(userDocRef, (snapshot) => {
               if (snapshot.exists()) {
                 const updatedData = { ...snapshot.data(), id: snapshot.id };
                 setState(prev => ({ ...prev, userData: updatedData }));
               }
+            }, (err) => {
+              console.warn("[FirebaseProvider] Profile listener error:", err.message);
             });
           } else {
-            // Lógica de provisionamento para administradores semente
             const email = firebaseUser.email?.toLowerCase();
             const adminConfig = email ? ADMIN_LIST[email] : null;
 
@@ -105,7 +104,8 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
                 departmentIds: [adminConfig.dept, "Fiscal", "TI"]
               };
               
-              await setDoc(userDocRef, adminData, { merge: true });
+              // Uso de mutação não-bloqueante para evitar ca9
+              setDocumentNonBlocking(userDocRef, adminData, { merge: true });
               
               setState(prev => ({ 
                 ...prev, 
@@ -116,7 +116,6 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
                 userLoaded: true 
               }));
             } else {
-              // Usuário autenticado mas sem perfil no banco
               setState(prev => ({ 
                 ...prev, 
                 user: firebaseUser, 
@@ -179,10 +178,6 @@ export const useUser = () => {
   return { user, userData, isUserLoading, isAuthChecking, userError, userLoaded };
 };
 
-/**
- * Hook para memoizar alvos do Firestore (CollectionReference, Query ou DocumentReference).
- * Essencial para evitar loops infinitos em hooks que dependem de referências estáveis.
- */
 export function useMemoFirebase<T>(factory: () => T, deps: React.DependencyList): T & {__memo?: boolean} {
   return useMemo(() => {
     const result = factory() as any;

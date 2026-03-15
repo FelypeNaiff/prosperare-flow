@@ -6,8 +6,8 @@ import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
 /**
- * Singleton Pattern Robusto para Next.js:
- * Armazenamos as instâncias no objeto global para sobreviver ao Hot Module Replacement (HMR).
+ * Singleton Pattern Definitivo para Next.js:
+ * Armazenamos as instâncias no objeto global para sobreviver ao HMR.
  * Isso evita o erro "INTERNAL ASSERTION FAILED: Unexpected state (ID: ca9)".
  */
 
@@ -17,27 +17,29 @@ const globalForFirebase = globalThis as unknown as {
   firebaseFirestore: Firestore | undefined;
 };
 
-export const firebaseApp = 
+const app = 
   globalForFirebase.firebaseApp ?? 
   (getApps().length > 0 ? getApp() : initializeApp(firebaseConfig));
 
-export const auth = 
+const authInstance = 
   globalForFirebase.firebaseAuth ?? 
-  getAuth(firebaseApp);
+  getAuth(app);
 
-export const firestore = 
+const firestoreInstance = 
   globalForFirebase.firebaseFirestore ?? 
-  getFirestore(firebaseApp);
+  getFirestore(app);
 
 if (process.env.NODE_ENV !== 'production') {
-  globalForFirebase.firebaseApp = firebaseApp;
-  globalForFirebase.firebaseAuth = auth;
-  globalForFirebase.firebaseFirestore = firestore;
+  globalForFirebase.firebaseApp = app;
+  globalForFirebase.firebaseAuth = authInstance;
+  globalForFirebase.firebaseFirestore = firestoreInstance;
 }
+
+export { app as firebaseApp, authInstance as auth, firestoreInstance as firestore };
 
 /**
  * Função de conveniência para compatibilidade.
  */
 export function initializeFirebase() {
-  return { firebaseApp, auth, firestore };
+  return { firebaseApp: app, auth: authInstance, firestore: firestoreInstance };
 }

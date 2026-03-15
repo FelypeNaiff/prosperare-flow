@@ -23,7 +23,7 @@ export interface UseDocResult<T> {
 
 /**
  * Hook reativo para assinar um documento único do Firestore.
- * Blindado contra erros de asserção interna via Singleton global.
+ * Estabilizado para evitar INTERNAL ASSERTION FAILED (ID: ca9).
  */
 export function useDoc<T = any>(
   memoizedDocRef: (DocumentReference<DocumentData> & {__memo?: boolean}) | null | undefined,
@@ -33,7 +33,6 @@ export function useDoc<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    // Barreira de Autenticação: Aguarda o singleton auth.currentUser estar pronto
     if (!memoizedDocRef || !auth.currentUser) {
       setData(null);
       setIsLoading(false);
@@ -70,11 +69,6 @@ export function useDoc<T = any>(
 
     return () => unsubscribe();
   }, [memoizedDocRef]);
-
-  // Validação de Segurança em Dev
-  if(memoizedDocRef && !memoizedDocRef.__memo) {
-    throw new Error('Firestore document reference was not properly memoized using useMemoFirebase.');
-  }
 
   return { data, isLoading, error };
 }

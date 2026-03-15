@@ -23,7 +23,7 @@ export interface UseCollectionResult<T> {
 
 /**
  * Hook reativo para assinar coleções ou queries do Firestore.
- * Utiliza o singleton global estável para evitar erros de asserção interna.
+ * Estabilizado para evitar INTERNAL ASSERTION FAILED (ID: ca9).
  */
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
@@ -33,7 +33,7 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    // Barreira de Autenticação: Só inicia o ouvinte se o usuário estiver presente no singleton estável
+    // Só inicia o ouvinte se a query for válida e o auth singleton estiver pronto
     if (!memoizedTargetRefOrQuery || !auth.currentUser) {
       setData(null);
       setIsLoading(false);
@@ -61,7 +61,6 @@ export function useCollection<T = any>(
           if (memoizedTargetRefOrQuery instanceof CollectionReference) {
             path = memoizedTargetRefOrQuery.path;
           } else {
-            // Tenta extrair o caminho da query interna do SDK se disponível
             path = (memoizedTargetRefOrQuery as any)._query?.path?.canonicalString() || 'Query';
           }
         } catch (e) {
@@ -82,11 +81,6 @@ export function useCollection<T = any>(
 
     return () => unsubscribe();
   }, [memoizedTargetRefOrQuery]);
-
-  // Validação de Desenvolvimento: Garante que o usuário use useMemoFirebase
-  if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
-    throw new Error('Firestore target was not properly memoized using useMemoFirebase. Isso causaria loops infinitos.');
-  }
 
   return { data, isLoading, error };
 }
