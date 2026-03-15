@@ -13,7 +13,8 @@ import {
   Loader2,
   ShieldCheck,
   Eye,
-  Trash2
+  Trash2,
+  Printer
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -169,6 +170,10 @@ export default function ClientesPage() {
     }
   }
 
+  const handlePrint = () => {
+    window.print()
+  }
+
   const filteredClients = (clients || []).filter(c => 
     c.corporateName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     c.cnpj?.includes(searchTerm)
@@ -176,17 +181,42 @@ export default function ClientesPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #print-section, #print-section * {
+            visibility: visible;
+          }
+          #print-section {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
         <div>
           <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão de Clientes</h1>
           <p className="text-[#98A7AA] font-bold text-sm">Administre sua base de empresas e acompanhe a regularidade.</p>
         </div>
-        <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-bold shadow-lg" onClick={() => setIsNewClientOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Novo Cliente
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={handlePrint}>
+            <Printer className="h-4 w-4" /> Imprimir Relação
+          </Button>
+          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-bold shadow-lg" onClick={() => setIsNewClientOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Novo Cliente
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 no-print">
         <KpiCard label="Total de Clientes" value={clients?.length || 0} icon={Building2} color="primary" />
         <KpiCard label="Certificados OK" value={0} icon={ShieldCheck} color="success" />
         <KpiCard label="Vencendo (30d)" value={0} icon={Clock} color="warning" />
@@ -194,8 +224,8 @@ export default function ClientesPage() {
         <KpiCard label="Alertas Críticos" value={0} icon={AlertTriangle} color="destructive" />
       </div>
 
-      <Card className="border-[#D2D7DB] shadow-sm">
-        <CardHeader className="pb-3 border-b bg-[#F7F7F7]/50">
+      <Card className="border-[#D2D7DB] shadow-sm" id="print-section">
+        <CardHeader className="pb-3 border-b bg-[#F7F7F7]/50 no-print">
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
             <Input
@@ -206,20 +236,24 @@ export default function ClientesPage() {
             />
           </div>
         </CardHeader>
+        <div className="hidden print:block p-6 border-b">
+          <h2 className="text-xl font-black text-[#2C4156] uppercase">Relação de Clientes - Prosperare Flow</h2>
+          <p className="text-xs text-[#98A7AA] font-bold">Gerado em: {new Date().toLocaleString('pt-BR')}</p>
+        </div>
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-[#2C4156]">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="text-white font-black uppercase text-[10px]">Empresa</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Regime</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Responsável</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Status</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Ações</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] print:hidden">Regime</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] print:hidden">Responsável</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] print:hidden">Status</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] text-right no-print">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
+                <TableRow className="no-print">
                   <TableCell colSpan={5} className="h-32 text-center">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
                     <p className="text-[10px] font-black text-[#98A7AA] uppercase mt-2">Sincronizando Base...</p>
@@ -230,18 +264,18 @@ export default function ClientesPage() {
                   <TableRow key={client.id} className="hover:bg-[#F7F7F7]/50 transition-colors">
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-bold text-[#2C4156]">{client.corporateName}</span>
+                        <span className="font-bold text-[#2C4156] uppercase">{client.corporateName}</span>
                         <span className="text-[10px] text-[#98A7AA] font-mono">{client.cnpj}</span>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="print:hidden">
                       <Badge variant="outline" className="font-black text-[9px] uppercase border-[#D2D7DB]">{client.taxRegime}</Badge>
                     </TableCell>
-                    <TableCell className="text-xs font-bold text-[#39586D]">{client.accountingContactUserId || "Geral"}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-xs font-bold text-[#39586D] print:hidden">{client.accountingContactUserId || "Geral"}</TableCell>
+                    <TableCell className="print:hidden">
                       <Badge className="bg-[#7ED6B5] text-[#1FA67A] border-none text-[9px] font-black uppercase">Ativa</Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right no-print">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="text-[#98A7AA]"><MoreHorizontal className="h-4 w-4" /></Button>
@@ -367,7 +401,7 @@ export default function ClientesPage() {
               </div>
 
               <div className="col-span-2 pt-2 border-t mt-2">
-                <h4 className="text-[9px] font-black text-[#1FA67A] uppercase tracking-widest mb-4">Localização e Sede</h4>
+                <h4 className="text-[10px] font-black text-[#1FA67A] uppercase tracking-widest mb-4">Localização e Sede</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2 space-y-2">
                     <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Endereço</Label>

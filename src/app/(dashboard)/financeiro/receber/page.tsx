@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo } from "react"
@@ -72,9 +71,12 @@ export default function ContasAReceberPage() {
   const receivablesQuery = useMemoFirebase(() => collection(firestore, "receivables"), [firestore])
   const { data: items = [], isLoading } = useCollection(receivablesQuery)
 
+  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
+  const { data: clients = [] } = useCollection(clientsQuery)
+
   const [newAccount, setNewAccount] = useState({
     descricao: "",
-    cliente: "",
+    clientId: "",
     pagamento: "PIX",
     data: "",
     valor: 0,
@@ -97,18 +99,26 @@ export default function ContasAReceberPage() {
   const totalValue = filteredItems.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0)
 
   const handleCreateAccount = () => {
-    if (!newAccount.descricao || !newAccount.cliente || !newAccount.valor) {
+    if (!newAccount.descricao || !newAccount.clientId || !newAccount.valor) {
       toast({ title: "Erro", description: "Preencha os dados da conta.", variant: "destructive" })
       return
     }
-    
+
+    const selectedClient = clients?.find(c => c.id === newAccount.clientId)
     const id = Math.random().toString(36).substr(2, 9)
     const docRef = doc(firestore, "receivables", id)
     
-    setDocumentNonBlocking(docRef, { ...newAccount, id, createdAt: new Date().toISOString() }, { merge: true })
+    const accountData = {
+      ...newAccount,
+      id,
+      cliente: selectedClient?.corporateName || "Cliente Avulso",
+      createdAt: new Date().toISOString()
+    }
+
+    setDocumentNonBlocking(docRef, accountData, { merge: true })
     
     setIsNewAccountOpen(false)
-    setNewAccount({ descricao: "", cliente: "", pagamento: "PIX", data: "", valor: 0, situacao: "Pendente", recorrente: false, tipoValor: "Fixo" })
+    setNewAccount({ descricao: "", clientId: "", pagamento: "PIX", data: "", valor: 0, situacao: "Pendente", recorrente: false, tipoValor: "Fixo" })
     toast({ title: "Honorário Lançado!", description: "O registro de entrada foi criado na nuvem." })
   }
 
@@ -287,7 +297,7 @@ export default function ContasAReceberPage() {
                         {item.recorrente && <Repeat className="h-3 w-3 text-[#1FA67A]" title={`Recorrência ${item.tipoValor}`} />}
                       </div>
                     </TableCell>
-                    <TableCell className="text-[#39586D] font-medium">{item.cliente}</TableCell>
+                    <TableCell className="text-[#39586D] font-medium uppercase text-xs">{item.cliente}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-[9px] font-bold uppercase border-[#D2D7DB] text-[#98A7AA]">
                         {item.pagamento}
@@ -371,7 +381,16 @@ export default function ContasAReceberPage() {
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Empresa / Cliente</Label>
-              <Input placeholder="Nome da empresa cliente" value={newAccount.cliente} onChange={(e) => setNewAccount({...newAccount, cliente: e.target.value.toUpperCase()})} className="border-[#D2D7DB]" />
+              <Select value={newAccount.clientId} onValueChange={(v) => setNewAccount({...newAccount, clientId: v})}>
+                <SelectTrigger className="border-[#D2D7DB] font-bold h-11">
+                  <SelectValue placeholder="Selecione o cliente da base..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(clients || []).map(client => (
+                    <SelectItem key={client.id} value={client.id} className="uppercase font-bold text-xs">{client.corporateName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
