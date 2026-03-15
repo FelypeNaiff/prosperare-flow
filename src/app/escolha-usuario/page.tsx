@@ -47,7 +47,7 @@ export default function EscolhaUsuarioPage() {
   }
 
   const handleVerifyPin = () => {
-    // PIN padrão conforme solicitado
+    // PIN padrão conforme solicitado: 1234
     if (pin === "1234") {
       setSelectedUser(selectedCollab)
       toast({ title: "Identidade Confirmada!", description: `Bem-vindo, ${selectedCollab.fullName}.` })

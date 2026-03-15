@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { User as UserIcon, ChevronRight, Home, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -23,7 +24,7 @@ import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, selectedUser, isUserLoading, isAuthChecking, userLoaded, logoutSelectedUser } = useUser()
+  const { user, selectedUser, isUserLoading, isAuthChecking, userLoaded } = useUser()
   const auth = useAuth()
   const [mounted, setMounted] = useState(false)
   const pathname = usePathname()

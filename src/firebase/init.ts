@@ -7,7 +7,7 @@ import { firebaseConfig } from './config';
 
 /**
  * Singleton Pattern Absoluto:
- * Garante que apenas uma instância de cada serviço exista, mesmo com HMR.
+ * Garante que apenas uma instância de cada serviço exista, mesmo com HMR do Next.js.
  */
 const globalForFirebase = globalThis as unknown as {
   firebaseApp: FirebaseApp | undefined;

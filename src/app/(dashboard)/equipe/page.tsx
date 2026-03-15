@@ -85,7 +85,7 @@ export default function EquipePage() {
       ...newMember,
       id: userId,
       createdAt: new Date().toISOString(),
-      pin: "1234", // Default PIN
+      pin: "1234", // Default PIN conforme solicitado
       createdBy: "admin"
     }
 
