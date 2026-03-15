@@ -1,5 +1,4 @@
-
-"use client"
+'use client';
 
 import { useState, useEffect } from "react"
 import { useAuth, useUser } from "@/firebase"
@@ -18,7 +17,7 @@ export default function LoginPage() {
   const { user, isUserLoading } = useUser()
   const router = useRouter()
   
-  const [email, setEmail] = useState("")
+  const [email, setEmail] = useState("pscsucesso@gmail.com")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoggingIn, setIsLoggingIn] = useState(false)
@@ -32,19 +31,18 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    if (email !== "pscsucesso@gmail.com") {
+      toast({ variant: "destructive", title: "Acesso Negado", description: "Utilize apenas o e-mail mestre do escritório." })
+      return
+    }
+
     setIsLoggingIn(true)
     try {
       await initiateEmailSignIn(auth, email, password)
       router.push("/escolha-usuario")
     } catch (error: any) {
       setIsLoggingIn(false)
-      let message = "Erro ao realizar login. Tente novamente."
-      
-      if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-        message = "E-mail ou senha incorretos."
-      }
-      
-      toast({ variant: "destructive", title: "Falha no acesso", description: message })
+      toast({ variant: "destructive", title: "Falha no acesso", description: "Credenciais mestres inválidas." })
     }
   }
 
@@ -75,7 +73,7 @@ export default function LoginPage() {
             <Alert className="bg-[#7ED6B5]/20 border-none rounded-none p-4 flex items-start gap-3">
               <ShieldCheck className="h-5 w-5 text-[#1FA67A] shrink-0 mt-0.5" />
               <AlertDescription className="text-[11px] font-bold text-[#1FA67A] leading-tight uppercase">
-                Acesso Restrito: Utilize suas credenciais corporativas individuais para entrar.
+                Acesso Mestre: Entre com a conta principal do escritório para prosseguir.
               </AlertDescription>
             </Alert>
           </CardHeader>
@@ -83,27 +81,25 @@ export default function LoginPage() {
           <CardContent className="p-8 space-y-6">
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">E-mail Corporativo</Label>
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">E-mail Administrativo</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-[#98A7AA]" />
                   <Input 
                     type="email"
-                    placeholder="seu@email.com.br"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 h-12 bg-[#F7F7F7] border-none font-bold text-[#2C4156] focus-visible:ring-[#1FA67A]"
-                    required
+                    readOnly
+                    className="pl-10 h-12 bg-[#F7F7F7] border-none font-bold text-[#2C4156] opacity-70 cursor-not-allowed"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Senha de Acesso</Label>
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Senha Mestre</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-[#98A7AA]" />
                   <Input 
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="Sua senha mestre"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10 h-12 bg-[#F7F7F7] border-none font-bold text-[#2C4156] focus-visible:ring-[#1FA67A]"
@@ -127,16 +123,10 @@ export default function LoginPage() {
                 {isLoggingIn ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  "Entrar no Sistema"
+                  "Liberar Acesso Team"
                 )}
               </Button>
             </form>
-
-            <div className="pt-2 text-center">
-              <button className="text-[10px] font-black text-[#98A7AA] uppercase hover:text-[#1FA67A] tracking-widest transition-colors">
-                Dificuldades com a senha?
-              </button>
-            </div>
           </CardContent>
         </Card>
 
@@ -147,17 +137,13 @@ export default function LoginPage() {
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-white uppercase leading-none mb-1">Suporte Técnico</span>
-              <span className="text-[9px] font-bold text-white/60 uppercase tracking-tighter">Fale com nossa central de ajuda</span>
+              <span className="text-[9px] font-bold text-white/60 uppercase tracking-tighter">Central de Ajuda Prosperare</span>
             </div>
           </div>
           <Button variant="ghost" className="text-[10px] font-black text-[#1FA67A] uppercase h-8 hover:bg-white/5">
             Suporte On-line
           </Button>
         </div>
-
-        <p className="text-center text-[9px] text-[#98A7AA] font-bold uppercase tracking-widest leading-relaxed px-8">
-          Ambiente Protegido. Acesso exclusivo para administradores e colaboradores autorizados.
-        </p>
       </div>
     </div>
   )

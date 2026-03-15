@@ -1,4 +1,4 @@
-"use client"
+'use client';
 
 import { useState } from "react"
 import { 
@@ -7,9 +7,11 @@ import {
   Search, 
   Trash2, 
   Settings, 
-  Mail, 
   Loader2,
-  MoreHorizontal
+  MoreHorizontal,
+  UserPlus,
+  ShieldCheck,
+  Save
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -65,15 +67,14 @@ export default function EquipePage() {
 
   const [newMember, setNewMember] = useState({
     fullName: "",
-    email: "",
-    profile: "",
+    profile: "ASSISTENTE",
     departmentIds: [] as string[],
     status: "ATIVO"
   })
 
-  const handleInvite = () => {
-    if (!newMember.fullName || !newMember.email || !newMember.profile) {
-      toast({ title: "Erro", description: "Preencha os campos obrigatórios.", variant: "destructive" })
+  const handleRegister = () => {
+    if (!newMember.fullName || !newMember.profile) {
+      toast({ title: "Erro", description: "O nome completo é obrigatório.", variant: "destructive" })
       return
     }
 
@@ -84,19 +85,15 @@ export default function EquipePage() {
       ...newMember,
       id: userId,
       createdAt: new Date().toISOString(),
-      departmentId: newMember.departmentIds[0] || "Geral", // Legacy field for schema support
-      createdByUserId: "admin"
+      pin: "1234", // Default PIN
+      createdBy: "admin"
     }
 
-    // Fecha o modal imediatamente para melhor UX
     setIsInviteOpen(false)
-    
-    // Salva no Firestore
     setDocumentNonBlocking(userRef, userData, { merge: true })
     
-    // Reseta o formulário
-    setNewMember({ fullName: "", email: "", profile: "", departmentIds: [], status: "ATIVO" })
-    toast({ title: "Membro Convidado!", description: "O cadastro foi salvo no banco de dados." })
+    setNewMember({ fullName: "", profile: "ASSISTENTE", departmentIds: [], status: "ATIVO" })
+    toast({ title: "Colaborador Cadastrado!", description: "Perfil pronto para acesso com PIN 1234." })
   }
 
   const handleDeleteMember = (id: string) => {
@@ -114,8 +111,7 @@ export default function EquipePage() {
   }
 
   const filteredTeam = (team || []).filter(m => 
-    m.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    m.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
@@ -123,23 +119,11 @@ export default function EquipePage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão da Equipe</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Controle de colaboradores e níveis de acesso.</p>
+          <p className="text-[#98A7AA] font-bold text-sm">Gerencie as identidades que utilizam o acesso mestre.</p>
         </div>
-        <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-bold shadow-lg shadow-emerald-500/20" onClick={() => setIsInviteOpen(true)}>
-          <Plus className="h-4 w-4" /> Convidar Colaborador
+        <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-bold shadow-lg" onClick={() => setIsInviteOpen(true)}>
+          <UserPlus className="h-4 w-4" /> Novo Colaborador
         </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-[#D2D7DB] bg-white">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-[#2C4156]/10 rounded-xl text-[#2C4156]"><Users className="h-6 w-6" /></div>
-            <div>
-              <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest leading-none mb-1">Membros Ativos</p>
-              <p className="text-2xl font-black text-[#2C4156]">{team?.length || 0}</p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <Card className="border-[#D2D7DB] shadow-sm">
@@ -147,7 +131,7 @@ export default function EquipePage() {
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
             <Input
-              placeholder="Buscar por nome ou e-mail..."
+              placeholder="Buscar por nome..."
               className="pl-10 bg-white border-[#D2D7DB]"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -170,7 +154,6 @@ export default function EquipePage() {
                 <TableRow>
                   <TableCell colSpan={5} className="h-32 text-center">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
-                    <p className="text-[10px] font-black text-[#98A7AA] uppercase mt-2">Carregando Equipe...</p>
                   </TableCell>
                 </TableRow>
               ) : filteredTeam.length > 0 ? (
@@ -183,23 +166,16 @@ export default function EquipePage() {
                             {member.fullName?.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-sm text-[#2C4156]">{member.fullName}</span>
-                          <span className="text-[10px] font-bold text-[#98A7AA]">{member.email}</span>
-                        </div>
+                        <span className="font-bold text-sm text-[#2C4156]">{member.fullName}</span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {member.departmentIds?.length > 0 ? (
-                          member.departmentIds.map((dept: string) => (
-                            <Badge key={dept} variant="secondary" className="text-[8px] font-black uppercase bg-[#F7F7F7] border-[#D2D7DB] text-[#39586D]">
-                              {dept}
-                            </Badge>
-                          ))
-                        ) : (
-                          <span className="text-[10px] text-[#98A7AA] italic">Geral</span>
-                        )}
+                        {member.departmentIds?.map((dept: string) => (
+                          <Badge key={dept} variant="secondary" className="text-[8px] font-black uppercase bg-[#F7F7F7] border-[#D2D7DB] text-[#39586D]">
+                            {dept}
+                          </Badge>
+                        ))}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -223,7 +199,7 @@ export default function EquipePage() {
                             className="gap-2 text-xs font-bold text-[#E74C3C] cursor-pointer" 
                             onClick={() => handleDeleteMember(member.id)}
                           >
-                            <Trash2 className="h-3 w-3" /> Excluir Colaborador
+                            <Trash2 className="h-3 w-3" /> Excluir Perfil
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -233,8 +209,7 @@ export default function EquipePage() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={5} className="h-32 text-center text-[#98A7AA] font-bold">
-                    <Users className="h-8 w-8 mx-auto mb-2 opacity-20" />
-                    Nenhum colaborador cadastrado. Comece convidando sua equipe.
+                    Nenhum colaborador cadastrado.
                   </TableCell>
                 </TableRow>
               )}
@@ -246,9 +221,9 @@ export default function EquipePage() {
       <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
         <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl">
           <DialogHeader className="p-6 bg-[#2C4156] text-white">
-            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Convidar Membro</DialogTitle>
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Novo Colaborador</DialogTitle>
             <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
-              O colaborador receberá acesso imediato via Google OAuth.
+              O acesso será feito via PIN compartilhado (Padrão: 1234).
             </DialogDescription>
           </DialogHeader>
           
@@ -258,30 +233,20 @@ export default function EquipePage() {
               <Input 
                 placeholder="Ex: João da Silva" 
                 value={newMember.fullName} 
-                onChange={(e) => setNewMember({...newMember, fullName: e.target.value})}
-                className="border-[#D2D7DB]"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">E-mail (Gmail corporativo)</Label>
-              <Input 
-                type="email" 
-                placeholder="nome@empresa.com.br" 
-                value={newMember.email} 
-                onChange={(e) => setNewMember({...newMember, email: e.target.value})}
-                className="border-[#D2D7DB]"
+                onChange={(e) => setNewMember({...newMember, fullName: e.target.value.toUpperCase()})}
+                className="border-[#D2D7DB] font-bold uppercase"
               />
             </div>
             
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Perfil de Acesso</Label>
-              <Select onValueChange={(v) => setNewMember({...newMember, profile: v})}>
+              <Select value={newMember.profile} onValueChange={(v) => setNewMember({...newMember, profile: v})}>
                 <SelectTrigger className="border-[#D2D7DB]">
-                  <SelectValue placeholder="Selecione o nível de privilégio" />
+                  <SelectValue placeholder="Nível de privilégio" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="SÓCIO">Sócio / Proprietário</SelectItem>
-                  <SelectItem value="ADMINISTRADOR">Administrador do Sistema</SelectItem>
+                  <SelectItem value="ADMINISTRADOR">Administrador</SelectItem>
                   <SelectItem value="CONTADOR/GESTOR">Contador / Gestor</SelectItem>
                   <SelectItem value="ASSISTENTE">Assistente / Analista</SelectItem>
                 </SelectContent>
@@ -289,20 +254,16 @@ export default function EquipePage() {
             </div>
 
             <div className="space-y-3">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Departamentos (Múltiplos)</Label>
-              <div className="grid grid-cols-2 gap-2 p-4 bg-[#F7F7F7] rounded-xl border border-[#D2D7DB] shadow-inner">
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Departamentos</Label>
+              <div className="grid grid-cols-2 gap-2 p-4 bg-[#F7F7F7] rounded-xl border border-[#D2D7DB]">
                 {DEPARTMENTS_LIST.map((dept) => (
-                  <div key={dept} className="flex items-center space-x-2 group">
+                  <div key={dept} className="flex items-center space-x-2">
                     <Checkbox 
                       id={`dept-${dept}`} 
                       checked={newMember.departmentIds.includes(dept)}
                       onCheckedChange={() => toggleDepartment(dept)}
-                      className="data-[state=checked]:bg-[#1FA67A] data-[state=checked]:border-[#1FA67A]"
                     />
-                    <label 
-                      htmlFor={`dept-${dept}`} 
-                      className="text-[10px] font-black uppercase cursor-pointer text-[#39586D] group-hover:text-[#1FA67A] transition-colors"
-                    >
+                    <label htmlFor={`dept-${dept}`} className="text-[10px] font-black uppercase cursor-pointer text-[#39586D]">
                       {dept}
                     </label>
                   </div>
@@ -312,9 +273,9 @@ export default function EquipePage() {
           </div>
 
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t">
-            <Button variant="outline" onClick={() => setIsInviteOpen(false)} className="border-[#D2D7DB] font-bold text-xs">Cancelar</Button>
-            <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-8 shadow-lg shadow-emerald-500/20" onClick={handleInvite}>
-              <Mail className="h-4 w-4 mr-2" /> Enviar Convite Real
+            <Button variant="outline" onClick={() => setIsInviteOpen(false)} className="font-bold text-xs">Cancelar</Button>
+            <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-8" onClick={handleRegister}>
+              <Save className="h-4 w-4 mr-2" /> Cadastrar Identidade
             </Button>
           </DialogFooter>
         </DialogContent>

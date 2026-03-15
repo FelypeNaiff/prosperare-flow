@@ -1,5 +1,4 @@
-
-"use client"
+'use client';
 
 import * as React from "react"
 import { 
@@ -36,7 +35,8 @@ import {
   BrainCircuit,
   CreditCard as InstallmentIcon,
   FileSignature,
-  FileStack
+  FileStack,
+  UsersRound
 } from "lucide-react"
 
 import {
@@ -63,11 +63,9 @@ import { initiateLogout } from "@/firebase/non-blocking-login"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import Image from "next/image"
-import { PlaceHolderImages } from "@/lib/placeholder-images"
 
 const items = [
   {
@@ -97,7 +95,6 @@ const items = [
     url: "/processos",
     icon: Files,
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
-    badge: 0,
     subItems: [
       { title: "Todos os Processos", url: "/processos", icon: Files },
       { title: "Grupos de Obrigações", url: "/processos/grupos", icon: Layers },
@@ -115,16 +112,6 @@ const items = [
     subItems: [
       { title: "Gerar Documentos", url: "/docs-flow", icon: FileSignature },
       { title: "Histórico de Docs", url: "/docs-flow/historico", icon: History },
-    ]
-  },
-  {
-    title: "Certidões (CND)",
-    url: "/certidoes",
-    icon: ShieldCheck,
-    profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR"],
-    subItems: [
-      { title: "Painel Geral", url: "/certidoes", icon: PieChart },
-      { title: "Visão por Empresa", url: "/certidoes", icon: Building },
     ]
   },
   {
@@ -149,7 +136,6 @@ const items = [
       { title: "Colaboradores", url: "/equipe", icon: Users },
       { title: "Departamentos", url: "/equipe/departamentos", icon: Building2 },
       { title: "Permissões", url: "/equipe/permissoes", icon: Lock },
-      { title: "Histórico de Ações", url: "/equipe/historico", icon: History },
     ]
   },
   {
@@ -163,18 +149,17 @@ const items = [
       { title: "Certificado Digital", url: "/configuracoes/certificado", icon: Key },
       { title: "Agendamento Automático", url: "/configuracoes/agendamento", icon: CalendarClock },
       { title: "WhatsApp", url: "/configuracoes/whatsapp", icon: MessageSquare },
-      { title: "Segurança & Logs", url: "/configuracoes/seguranca", icon: Lock },
       { title: "Aparência", url: "/configuracoes/aparencia", icon: Palette },
       { title: "Integrações", url: "/configuracoes/integracoes", icon: LinkIcon },
-      { title: "Plano e Assinatura", url: "/configuracoes/plano", icon: CreditCard },
     ]
   },
 ]
 
 export function AppSidebar() {
-  const { user, userData } = useUser()
+  const { selectedUser, logoutSelectedUser } = useUser()
   const auth = useAuth()
   const pathname = usePathname()
+  const router = useRouter()
   
   const [openItem, setOpenItem] = React.useState<string | null>(() => {
     const active = items.find(item => 
@@ -184,11 +169,9 @@ export function AppSidebar() {
   })
 
   const filteredItems = React.useMemo(() => {
-    if (!userData) return []
-    return items.filter(item => item.profiles.includes(userData.profile))
-  }, [userData])
-
-  const avatarUrl = user?.photoURL || PlaceHolderImages.find(i => i.id === 'user-avatar-placeholder')?.imageUrl
+    if (!selectedUser) return []
+    return items.filter(item => item.profiles.includes(selectedUser.profile))
+  }, [selectedUser])
 
   return (
     <Sidebar className="border-r-0 bg-[#2C4156] text-white">
@@ -202,10 +185,11 @@ export function AppSidebar() {
               <span className="text-white font-bold text-xl leading-none tracking-tight">PROSPERARE</span>
               <span className="text-[#1FA67A] font-bold text-xl leading-none tracking-tight">FLOW</span>
             </div>
-            <span className="text-[#98A7AA] text-[10px] uppercase font-bold tracking-[0.2em] mt-1">Sistema Contábil</span>
+            <span className="text-[#98A7AA] text-[10px] uppercase font-bold tracking-[0.2em] mt-1">Gestão Team</span>
           </div>
         </div>
       </SidebarHeader>
+      
       <SidebarContent className="px-2 mt-4 scrollbar-hide">
         <SidebarGroup>
           <SidebarGroupContent>
@@ -233,11 +217,6 @@ export function AppSidebar() {
                           <item.icon className={cn("h-5 w-5", isActive && "text-[#1FA67A]")} />
                           <span className={cn("text-sm font-medium", isActive && "font-bold")}>{item.title}</span>
                           <div className="ml-auto flex items-center gap-2">
-                            {item.badge ? (
-                              <Badge variant="destructive" className="px-1.5 h-4 min-w-4 flex items-center justify-center text-[9px] bg-[#E74C3C] border-none">
-                                {item.badge}
-                              </Badge>
-                            ) : null}
                             <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isOpen && "rotate-180")} />
                           </div>
                         </SidebarMenuButton>
@@ -264,29 +243,34 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
       <SidebarFooter className="p-4 bg-[#39586D]/30 border-t border-white/10">
-        {user && userData && (
+        {selectedUser && (
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative w-9 h-9">
                 <Avatar className="h-9 w-9 border-2 border-[#1FA67A]/50">
-                  <AvatarImage src={avatarUrl} alt={userData.fullName || "User"} />
-                  <AvatarFallback className="bg-white text-[#2C4156] font-bold">
-                    {userData.fullName?.charAt(0) || user.email?.charAt(0)}
+                  <AvatarFallback className="bg-white text-[#2C4156] font-black text-xs">
+                    {selectedUser.fullName?.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#1FA67A] border-2 border-[#39586D] rounded-full" />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-semibold text-white truncate">{userData.fullName || user.displayName || user.email}</span>
-                <span className="text-[10px] text-[#98A7AA] font-medium uppercase tracking-wider truncate">
-                  {userData.profile}
+                <span className="text-xs font-bold text-white truncate">{selectedUser.fullName?.split(' ')[0]}</span>
+                <span className="text-[8px] text-[#98A7AA] font-black uppercase tracking-wider truncate">
+                  {selectedUser.profile}
                 </span>
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="text-white/50 hover:text-[#E74C3C] hover:bg-transparent" onClick={() => initiateLogout(auth)}>
-              <LogOut className="h-5 w-5" />
-            </Button>
+            <div className="flex gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/50 hover:text-[#2574A9]" onClick={() => router.push("/escolha-usuario")}>
+                <UsersRound className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/50 hover:text-[#E74C3C]" onClick={() => initiateLogout(auth)}>
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
       </SidebarFooter>
