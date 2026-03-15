@@ -11,7 +11,7 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { getAuth } from 'firebase/auth';
+import { auth } from '@/firebase/init';
 
 export type WithId<T> = T & { id: string };
 
@@ -29,7 +29,7 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    const auth = getAuth();
+    // Usamos o singleton estável do auth para verificar login
     if (!memoizedTargetRefOrQuery || !auth.currentUser) {
       setData(null);
       setIsLoading(false);

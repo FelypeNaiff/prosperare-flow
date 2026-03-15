@@ -1,16 +1,10 @@
 'use client';
 
-import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect, useRef } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore, onSnapshot, doc, setDoc, getDoc } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
-
-interface FirebaseProviderProps {
-  children: ReactNode;
-  firebaseApp: FirebaseApp;
-  firestore: Firestore;
-  auth: Auth;
-}
+import { auth as authInstance, firestore as firestoreInstance, firebaseApp as appInstance } from './init';
 
 interface UserAuthState {
   user: User | null;
@@ -30,37 +24,29 @@ export interface FirebaseContextState extends UserAuthState {
 
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
-// Lista de Administradores Nativa para Provisionamento Inicial
 const ADMIN_LIST: Record<string, { name: string, dept: string }> = {
   "pscsucesso@gmail.com": { name: "Administrador Geral", dept: "Diretoria" },
   "felypenaiff01@gmail.com": { name: "Felype Naiff", dept: "Diretoria" },
   "thalyssonluiz@gmail.com": { name: "Thalysson Luiz", dept: "Diretoria" }
 };
 
-export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
-  children,
-  firebaseApp,
-  firestore,
-  auth,
-}) => {
+export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, setState] = useState<UserAuthState>({
     user: null,
     userData: null,
     isUserLoading: true,
     isAuthChecking: true,
     userError: null,
-    userLoaded: false, // Inicia como falso até completar o fluxo
+    userLoaded: false,
   });
 
   const dbUnsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (!auth || !firestore) return;
-
+    // Escuta mudanças de autenticação usando o singleton estável
     const unsubscribeAuth = onAuthStateChanged(
-      auth,
+      authInstance,
       async (firebaseUser) => {
-        // Limpa ouvintes anteriores
         if (dbUnsubscribeRef.current) {
           dbUnsubscribeRef.current();
           dbUnsubscribeRef.current = null;
@@ -73,12 +59,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             isUserLoading: false,
             isAuthChecking: false,
             userError: null,
-            userLoaded: true, // Verificado: nenhum usuário
+            userLoaded: true,
           });
           return;
         }
 
-        const userDocRef = doc(firestore, "users", firebaseUser.uid);
+        const userDocRef = doc(firestoreInstance, "users", firebaseUser.uid);
         
         try {
           const uidSnap = await getDoc(userDocRef);
@@ -101,7 +87,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
               }
             });
           } else {
-            // Provisionamento de Administradores conforme lista inicial
             const email = firebaseUser.email?.toLowerCase();
             const adminConfig = email ? ADMIN_LIST[email] : null;
 
@@ -128,7 +113,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 userLoaded: true 
               }));
             } else {
-              // Usuário autenticado mas sem perfil autorizado
               setState(prev => ({ 
                 ...prev, 
                 user: firebaseUser, 
@@ -150,9 +134,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             userError: error
           }));
         }
-      },
-      (error) => {
-        setState(prev => ({ ...prev, isUserLoading: false, isAuthChecking: false, userError: error, userLoaded: true }));
       }
     );
 
@@ -160,18 +141,17 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       unsubscribeAuth();
       if (dbUnsubscribeRef.current) dbUnsubscribeRef.current();
     };
-  }, [auth, firestore]);
+  }, []);
 
   const contextValue = useMemo((): FirebaseContextState => {
-    const servicesAvailable = !!(firebaseApp && firestore && auth);
     return {
-      areServicesAvailable: servicesAvailable,
-      firebaseApp: servicesAvailable ? firebaseApp : null,
-      firestore: servicesAvailable ? firestore : null,
-      auth: servicesAvailable ? auth : null,
+      areServicesAvailable: true,
+      firebaseApp: appInstance,
+      firestore: firestoreInstance,
+      auth: authInstance,
       ...state,
     };
-  }, [firebaseApp, firestore, auth, state]);
+  }, [state]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>
@@ -186,17 +166,9 @@ export const useFirebase = () => {
   return context;
 };
 
-export const useAuth = () => {
-  const { auth } = useFirebase();
-  if (!auth) throw new Error('Firebase Auth não disponível.');
-  return auth;
-};
-
-export const useFirestore = () => {
-  const { firestore } = useFirebase();
-  if (!firestore) throw new Error('Firebase Firestore não disponível.');
-  return firestore;
-};
+export const useAuth = () => authInstance;
+export const useFirestore = () => firestoreInstance;
+export const useFirebaseApp = () => appInstance;
 
 export const useUser = () => {
   const { user, userData, isUserLoading, isAuthChecking, userError, userLoaded } = useFirebase();
