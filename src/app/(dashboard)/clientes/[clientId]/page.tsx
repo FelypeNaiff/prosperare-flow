@@ -57,7 +57,7 @@ export default function DetalhesClientePage() {
 
   // Busca grupos reais do banco de dados
   const groupsQuery = useMemoFirebase(() => collection(firestore, "obligation_groups"), [firestore])
-  const { data: dbGroups = [] } = useCollection(groupsQuery)
+  const { data: dbGroups } = useCollection(groupsQuery)
 
   // Grupo de Obrigações Multi-escolha
   const handleToggleGroup = (groupId: string) => {
@@ -74,6 +74,11 @@ export default function DetalhesClientePage() {
   const handleGenerateTasks = async () => {
     if (!client || !client.obligationGroups?.length) {
       toast({ variant: "destructive", title: "Erro", description: "Vincule ao menos um grupo de obrigações primeiro." })
+      return
+    }
+
+    if (!dbGroups) {
+      toast({ variant: "destructive", title: "Erro", description: "Aguardando sincronização de grupos." })
       return
     }
 
@@ -213,7 +218,7 @@ export default function DetalhesClientePage() {
             <div className="flex flex-wrap gap-1">
               {client.obligationGroups?.length > 0 ? client.obligationGroups.map((gId: string) => (
                 <Badge key={gId} variant="secondary" className="bg-[#E3F0F9] text-[#2574A9] text-[8px] font-black uppercase border-none">
-                  {dbGroups.find(g => g.id === gId)?.name || gId}
+                  {dbGroups?.find(g => g.id === gId)?.name || gId}
                 </Badge>
               )) : <span className="text-[10px] font-bold text-[#E74C3C] uppercase">Nenhum Grupo</span>}
             </div>
@@ -276,7 +281,7 @@ export default function DetalhesClientePage() {
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {dbGroups.length > 0 ? dbGroups.map((group) => (
+                    {dbGroups && dbGroups.length > 0 ? dbGroups.map((group) => (
                       <div key={group.id} className={cn(
                         "flex items-center space-x-3 p-3 rounded-xl border bg-white hover:bg-[#F7F7F7] transition-colors cursor-pointer",
                         client.obligationGroups?.includes(group.id) && "border-[#1FA67A] bg-[#1FA67A]/5"
