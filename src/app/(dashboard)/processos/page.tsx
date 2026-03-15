@@ -19,7 +19,8 @@ import {
   CalendarDays,
   Trash2,
   UserPlus,
-  X
+  X,
+  ChevronLeft
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -46,7 +47,7 @@ import { collection, query, orderBy, doc } from "firebase/firestore"
 import { cn } from "@/lib/utils"
 import { ProcessDetailsDrawer } from "@/components/processes/process-details-drawer"
 import { CreateProcessModal } from "@/components/processes/create-process-modal"
-import { format, parseISO, isValid } from "date-fns"
+import { format, parseISO, isValid, addMonths, subMonths, startOfMonth } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { toast } from "@/hooks/use-toast"
 import {
@@ -58,9 +59,9 @@ import {
 
 export default function ProcessosPage() {
   const firestore = useFirestore()
-  const { user, userData } = useUser()
+  const { userData } = useUser()
   const [searchTerm, setSearchTerm] = useState("")
-  const [expandedMonths, setExpandedModels] = useState<string[]>([])
+  const [selectedCompetence, setSelectedCompetence] = useState<Date>(startOfMonth(new Date()))
   const [selectedProcess, setSelectedProcess] = useState<any>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -79,61 +80,56 @@ export default function ProcessosPage() {
   const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
   const { data: team = [] } = useCollection(usersQuery)
 
-  // Filtro de Segurança por Colaborador
-  const processes = useMemo(() => {
+  // Filtro de Segurança e Competência
+  const filteredProcesses = useMemo(() => {
     if (!rawProcesses || !userData) return []
     
-    // Admin e Sócio vêem tudo
-    if (userData.profile === 'ADMINISTRADOR' || userData.profile === 'SÓCIO') {
-      return rawProcesses
-    }
+    const competenceKey = format(selectedCompetence, "yyyy-MM")
 
-    // Outros perfis vêem apenas onde são Responsável ou Auxiliar
-    return rawProcesses.filter(p => 
-      p.responsavelId === userData.fullName || 
-      p.responsavelId === userData.id ||
-      p.auxiliarId === userData.fullName ||
-      p.auxiliarId === userData.id ||
-      p.responsavelId === "Geral"
-    )
-  }, [rawProcesses, userData])
+    return rawProcesses.filter(p => {
+      // Filtro de Competência
+      const pComp = p.competencia ? format(typeof p.competencia === 'string' ? parseISO(p.competencia) : new Date(p.competencia), "yyyy-MM") : ""
+      if (pComp !== competenceKey) return false
 
-  // Agrupamento por Mês de Competência
-  const groupedData = useMemo(() => {
-    if (!processes) return []
-    
-    const groups: Record<string, any[]> = {}
-    
-    processes.forEach(p => {
-      let monthKey = "Sem Competência"
-      if (p.competencia) {
-        try {
-          const date = typeof p.competencia === 'string' ? parseISO(p.competencia) : new Date(p.competencia)
-          if (isValid(date)) {
-            monthKey = format(date, "MMMM yyyy", { locale: ptBR })
-          }
-        } catch (e) {
-          console.error("Erro ao formatar data de competência", e)
-        }
-      }
+      // Filtro de Perfil (Admin/Sócio vê tudo)
+      if (userData.profile === 'ADMINISTRADOR' || userData.profile === 'SÓCIO') return true
 
-      if (!groups[monthKey]) groups[monthKey] = []
-      groups[monthKey].push(p)
+      // Outros perfis vêem apenas onde são Responsável ou Auxiliar
+      return (
+        p.responsavelId === userData.fullName || 
+        p.responsavelId === userData.id ||
+        p.auxiliarId === userData.fullName ||
+        p.auxiliarId === userData.id ||
+        p.responsavelId === "Geral"
+      )
+    })
+  }, [rawProcesses, userData, selectedCompetence])
+
+  // Hierarquia: Departamento -> Obrigação -> [Clientes]
+  const hierarchicalData = useMemo(() => {
+    const departments: Record<string, any> = {}
+
+    filteredProcesses.forEach(p => {
+      const dept = p.departamento || "Geral"
+      const obName = p.nomeProcesso || "Processo Avulso"
+
+      if (!departments[dept]) departments[dept] = {}
+      if (!departments[dept][obName]) departments[dept][obName] = []
+      
+      departments[dept][obName].push(p)
     })
 
-    return Object.entries(groups).sort((a, b) => {
-      if (a[0] === "Sem Competência") return 1
-      if (b[0] === "Sem Competência") return -1
-      return 0
-    }).map(([month, items]) => ({
-      id: month,
-      label: month.toUpperCase(),
-      processos: items
+    return Object.entries(departments).map(([deptName, obligations]) => ({
+      name: deptName,
+      obligations: Object.entries(obligations).map(([obName, items]) => ({
+        name: obName,
+        items: items as any[]
+      }))
     }))
-  }, [processes])
+  }, [filteredProcesses])
 
   const stats = useMemo(() => {
-    const list = processes || []
+    const list = filteredProcesses || []
     return {
       total: list.length,
       late: list.filter(p => p.situacao === 'em_multa').length,
@@ -142,11 +138,7 @@ export default function ProcessosPage() {
       done: list.filter(p => p.situacao === 'concluido').length,
       waived: list.filter(p => p.situacao === 'dispensado').length,
     }
-  }, [processes])
-
-  const toggleExpand = (id: string) => {
-    setExpandedModels(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])
-  }
+  }, [filteredProcesses])
 
   const handleOpenProcess = (process: any) => {
     const client = (clients || []).find(c => c.id === process.clienteId)
@@ -160,42 +152,50 @@ export default function ProcessosPage() {
 
   const handleBatchDelete = () => {
     if (confirm(`Deseja excluir permanentemente ${selectedIds.length} processos?`)) {
-      selectedIds.forEach(id => {
-        deleteDocumentNonBlocking(doc(firestore, "processos", id))
-      })
+      selectedIds.forEach(id => deleteDocumentNonBlocking(doc(firestore, "processos", id)))
       toast({ title: "Processos excluídos", variant: "destructive" })
       setSelectedIds([])
     }
   }
 
   const handleBatchAssign = (userName: string) => {
-    selectedIds.forEach(id => {
-      updateDocumentNonBlocking(doc(firestore, "processos", id), { responsavelId: userName })
-    })
+    selectedIds.forEach(id => updateDocumentNonBlocking(doc(firestore, "processos", id), { responsavelId: userName }))
     toast({ title: `${selectedIds.length} processos atribuídos a ${userName}` })
     setSelectedIds([])
   }
 
-  // Auto-expandir o mês atual
-  useMemo(() => {
-    if (groupedData.length > 0 && expandedMonths.length === 0) {
-      setExpandedModels([groupedData[0].id])
-    }
-  }, [groupedData])
+  const changeMonth = (direction: 'next' | 'prev') => {
+    setSelectedCompetence(prev => direction === 'next' ? addMonths(prev, 1) : subMonths(prev, 1))
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão de Produção</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Acompanhamento de entregas agrupado por competência mensal.</p>
+          <p className="text-[#98A7AA] font-bold text-sm">Controle de obrigações por departamento e processo.</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="border-[#D2D7DB] gap-2 font-bold text-[#39586D]">
-            <CalendarIcon className="h-4 w-4" /> Calendário
+        
+        <div className="flex items-center gap-3">
+          <div className="flex items-center bg-white border border-[#D2D7DB] rounded-xl px-2 py-1 shadow-sm">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => changeMonth('prev')}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="px-4 flex flex-col items-center min-w-[140px]">
+              <span className="text-[10px] font-black text-[#98A7AA] uppercase leading-none">Competência</span>
+              <span className="text-xs font-black text-[#2C4156] uppercase">{format(selectedCompetence, "MMMM yyyy", { locale: ptBR })}</span>
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => changeMonth('next')}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <Button variant="outline" className="border-[#D2D7DB] gap-2 font-bold text-[#39586D] h-11">
+            <CalendarIcon className="h-4 w-4" />
           </Button>
+          
           <Button 
-            className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg"
+            className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg h-11 px-6"
             onClick={() => setIsCreateModalOpen(true)}
           >
             <Plus className="h-4 w-4" /> Criar Processo
@@ -212,7 +212,6 @@ export default function ProcessosPage() {
         <KpiMiniCard label="Dispensado" value={stats.waived} icon={XCircle} color="bg-[#39586D]" />
       </div>
 
-      {/* Barra de Ações em Lote */}
       {selectedIds.length > 0 && (
         <div className="sticky top-20 z-30 bg-[#2C4156] text-white p-4 rounded-xl shadow-2xl flex items-center justify-between animate-in slide-in-from-top-4">
           <div className="flex items-center gap-4">
@@ -256,129 +255,111 @@ export default function ProcessosPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
-              <Button variant="outline" size="sm" className="text-[10px] font-black uppercase border-[#D2D7DB] gap-1 shrink-0">
-                <Filter className="h-3 w-3" /> Filtrar
-              </Button>
-            </div>
+            <Button variant="outline" size="sm" className="text-[10px] font-black uppercase border-[#D2D7DB] gap-1 shrink-0">
+              <Filter className="h-3 w-3" /> Filtrar Lista
+            </Button>
           </div>
 
-          <Table>
-            <TableHeader className="bg-[#2C4156]">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px] w-12"></TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] w-12"></TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Empresa / Processo</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-center">Situação</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-center">Vencimento</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-center">Meta Interna</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Resp.</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="h-32 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" /></TableCell></TableRow>
-              ) : groupedData.length > 0 ? (
-                groupedData.map((group) => (
-                  <React.Fragment key={group.id}>
-                    <TableRow className="bg-[#F4F5F7] cursor-pointer group" onClick={() => toggleExpand(group.id)}>
-                      <TableCell colSpan={2} className="text-center">
-                        {expandedMonths.includes(group.id) ? <ChevronDown className="h-4 w-4 text-[#2C4156]" /> : <ChevronRight className="h-4 w-4 text-[#98A7AA]" />}
-                      </TableCell>
-                      <TableCell colSpan={6} className="py-3">
-                        <div className="flex items-center gap-3">
-                          <CalendarDays className="h-4 w-4 text-[#1FA67A]" />
-                          <span className="font-black text-[#2C4156] uppercase text-xs tracking-widest">{group.label}</span>
-                          <Badge variant="secondary" className="bg-white text-[#2C4156] border text-[9px] font-black">
-                            {group.processos.length} PROCESSOS
-                          </Badge>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    {expandedMonths.includes(group.id) && group.processos
-                      .filter(p => {
-                        const client = (clients || []).find(c => c.id === p.clienteId)
-                        const searchLower = searchTerm.toLowerCase()
-                        return !searchTerm || 
-                          client?.corporateName?.toLowerCase().includes(searchLower) ||
-                          client?.cnpj?.includes(searchTerm) ||
-                          p.nomeProcesso?.toLowerCase().includes(searchLower)
-                      })
-                      .map(p => {
-                        const client = (clients || []).find(c => c.id === p.clienteId)
-                        const isSelected = selectedIds.includes(p.id)
-                        return (
-                          <TableRow key={p.id} className={cn(
-                            "hover:bg-[#F7F7F7] border-l-4 border-l-[#1FA67A]/20 transition-colors",
-                            isSelected && "bg-[#1FA67A]/5 border-l-[#1FA67A]"
-                          )}>
-                            <TableCell className="text-center">
-                              <Checkbox 
-                                checked={isSelected} 
-                                onCheckedChange={() => toggleSelect(p.id)}
-                                className="h-5 w-5 data-[state=checked]:bg-[#1FA67A]"
-                              />
-                            </TableCell>
-                            <TableCell></TableCell>
-                            <TableCell className="py-4" onClick={() => handleOpenProcess(p)}>
-                              <div className="flex flex-col">
-                                <span className="text-[9px] font-black text-[#1FA67A] uppercase tracking-tighter mb-0.5">
-                                  {p.nomeProcesso || 'Processo'}
-                                </span>
-                                <span className="text-xs font-black text-[#2C4156] uppercase leading-tight">{client?.corporateName || 'Cliente não identificado'}</span>
-                                <span className="text-[9px] font-mono text-[#98A7AA]">{client?.cnpj}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Badge className={cn(
-                                "text-[9px] font-black uppercase border-none px-3",
-                                p.situacao === 'concluido' ? "bg-[#7ED6B5] text-[#1FA67A]" :
-                                p.situacao === 'em_multa' ? "bg-[#FEE2E2] text-[#E74C3C]" :
-                                p.situacao === 'em_progresso' ? "bg-[#E3F0F9] text-[#2574A9]" : "bg-[#F3F4F6] text-[#98A7AA]"
-                              )}>
-                                {p.situacao?.replace('_', ' ') || 'A Fazer'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <div className="flex flex-col items-center">
-                                <span className="text-[10px] font-black text-[#39586D]">
-                                  {p.prazo ? format(typeof p.prazo === 'string' ? parseISO(p.prazo) : new Date(p.prazo), 'dd/MM') : '--'}
-                                </span>
-                                <span className="text-[8px] font-bold text-[#98A7AA] uppercase">Vencimento</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <div className="flex flex-col items-center">
-                                <span className="text-[10px] font-black text-[#2574A9]">
-                                  {p.prazoMeta ? format(typeof p.prazoMeta === 'string' ? parseISO(p.prazoMeta) : new Date(p.prazoMeta), 'dd/MM') : '--'}
-                                </span>
-                                <span className="text-[8px] font-bold text-[#98A7AA] uppercase">Interno</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-[#2C4156] flex items-center justify-center text-white text-[8px] font-black uppercase">
-                                  {p.responsavelId?.charAt(0) || 'G'}
-                                </div>
-                                <span className="text-[10px] font-bold text-[#39586D] truncate max-w-[80px]">{p.responsavelId || 'Geral'}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]" onClick={() => handleOpenProcess(p)}>
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                  </React.Fragment>
-                ))
-              ) : (
-                <TableRow><TableCell colSpan={8} className="h-32 text-center text-[#98A7AA] font-bold italic uppercase text-xs">Nenhum processo localizado para este período.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
+          {isLoading ? (
+            <div className="h-64 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" /></div>
+          ) : hierarchicalData.length > 0 ? (
+            <div className="divide-y divide-[#D2D7DB]">
+              {hierarchicalData.map((dept) => (
+                <div key={dept.name} className="bg-white">
+                  <div className="bg-[#2C4156]/5 px-6 py-2 border-y border-[#D2D7DB]/50">
+                    <h2 className="text-[11px] font-black text-[#2C4156] uppercase tracking-[0.2em]">{dept.name}</h2>
+                  </div>
+                  
+                  {dept.obligations.map((ob) => (
+                    <div key={ob.name} className="border-b last:border-none">
+                      <div className="bg-[#F7F7F7] px-8 py-3 flex items-center gap-3">
+                        <div className="w-1 h-4 bg-[#1FA67A] rounded-full" />
+                        <h3 className="text-xs font-black text-[#39586D] uppercase tracking-wider">{ob.name}</h3>
+                        <Badge variant="outline" className="text-[8px] h-4 px-1.5 font-bold border-[#D2D7DB] text-[#98A7AA]">
+                          {ob.items.length} CLIENTES
+                        </Badge>
+                      </div>
+
+                      <Table>
+                        <TableBody>
+                          {ob.items
+                            .filter(p => {
+                              const client = (clients || []).find(c => c.id === p.clienteId)
+                              const searchLower = searchTerm.toLowerCase()
+                              return !searchTerm || 
+                                client?.corporateName?.toLowerCase().includes(searchLower) ||
+                                client?.cnpj?.includes(searchTerm)
+                            })
+                            .map(p => {
+                              const client = (clients || []).find(c => c.id === p.clienteId)
+                              const isSelected = selectedIds.includes(p.id)
+                              return (
+                                <TableRow key={p.id} className={cn(
+                                  "hover:bg-[#F7F7F7] transition-colors group",
+                                  isSelected && "bg-[#1FA67A]/5"
+                                )}>
+                                  <TableCell className="w-12 text-center pl-8">
+                                    <Checkbox 
+                                      checked={isSelected} 
+                                      onCheckedChange={() => toggleSelect(p.id)}
+                                      className="h-5 w-5 data-[state=checked]:bg-[#1FA67A]"
+                                    />
+                                  </TableCell>
+                                  <TableCell className="py-4" onClick={() => handleOpenProcess(p)}>
+                                    <div className="flex flex-col">
+                                      <span className="text-xs font-black text-[#2C4156] uppercase leading-tight">{client?.corporateName || 'Cliente não identificado'}</span>
+                                      <span className="text-[9px] font-mono text-[#98A7AA]">{client?.cnpj}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-center w-40">
+                                    <Badge className={cn(
+                                      "text-[9px] font-black uppercase border-none px-3",
+                                      p.situacao === 'concluido' ? "bg-[#7ED6B5] text-[#1FA67A]" :
+                                      p.situacao === 'em_multa' ? "bg-[#FEE2E2] text-[#E74C3C]" :
+                                      p.situacao === 'em_progresso' ? "bg-[#E3F0F9] text-[#2574A9]" : "bg-[#F3F4F6] text-[#98A7AA]"
+                                    )}>
+                                      {p.situacao?.replace('_', ' ') || 'A Fazer'}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-center w-32">
+                                    <div className="flex flex-col items-center">
+                                      <span className="text-[10px] font-black text-[#39586D]">
+                                        {p.prazo ? format(typeof p.prazo === 'string' ? parseISO(p.prazo) : new Date(p.prazo), 'dd/MM') : '--'}
+                                      </span>
+                                      <span className="text-[8px] font-bold text-[#98A7AA] uppercase tracking-tighter">Vencimento</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="w-40">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-6 h-6 rounded-full bg-[#2C4156] flex items-center justify-center text-white text-[8px] font-black uppercase">
+                                        {p.responsavelId?.charAt(0) || 'G'}
+                                      </div>
+                                      <span className="text-[10px] font-bold text-[#39586D] truncate max-w-[100px] uppercase">{p.responsavelId || 'Geral'}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right pr-8 w-12">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]" onClick={() => handleOpenProcess(p)}>
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              )
+                            })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="h-64 flex flex-col items-center justify-center text-center p-12 bg-white">
+              <CalendarDays className="h-12 w-12 text-[#D2D7DB] mb-4" />
+              <h3 className="text-lg font-black text-[#2C4156] uppercase">Sem processos para {format(selectedCompetence, "MMMM", { locale: ptBR })}</h3>
+              <p className="text-sm text-[#98A7AA] font-bold max-w-sm">Nenhum fluxo de trabalho foi localizado nesta competência.</p>
+              <Button className="mt-6 bg-[#1FA67A] font-black uppercase text-xs" onClick={() => setIsCreateModalOpen(true)}>Instanciar Novo Processo</Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -398,13 +379,13 @@ export default function ProcessosPage() {
 
 function KpiMiniCard({ label, value, icon: Icon, color }: any) {
   return (
-    <Card className="border-none shadow-sm overflow-hidden bg-white">
-      <CardContent className="p-0 flex flex-col">
+    <Card className="border-none shadow-sm overflow-hidden bg-white h-20">
+      <CardContent className="p-0 flex flex-col h-full">
         <div className={cn("h-1", color)} />
-        <div className="p-4 flex items-center justify-between">
+        <div className="p-4 flex items-center justify-between flex-1">
           <div>
             <p className="text-[9px] font-black text-[#98A7AA] uppercase tracking-widest leading-none mb-1">{label}</p>
-            <p className="text-xl font-black text-[#2C4156]">{value}</p>
+            <p className="text-xl font-black text-[#2C4156] leading-none">{value}</p>
           </div>
           <Icon className="h-4 w-4 text-[#D2D7DB]" />
         </div>
