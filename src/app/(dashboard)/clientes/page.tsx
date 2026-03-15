@@ -57,6 +57,7 @@ import {
   deleteDocumentNonBlocking 
 } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
+import { lookupCnpjAction } from "@/app/actions/cnpj-lookup"
 
 export default function ClientesPage() {
   const firestore = useFirestore()
@@ -70,14 +71,20 @@ export default function ClientesPage() {
   
   const [newClient, setNewClient] = useState({
     corporateName: "",
+    nomeFantasia: "",
     cnpj: "",
-    taxRegime: "",
-    accountingContactUserId: "",
+    taxRegime: "Simples Nacional",
+    accountingContactUserId: "Geral",
     status: "ATIVO",
     email: "",
     phone: "",
     city: "",
-    state: ""
+    state: "",
+    zipCode: "",
+    address: "",
+    neighborhood: "",
+    openingDate: "",
+    primaryCnae: ""
   })
 
   const lookupCnpj = async (cnpjValue: string) => {
@@ -91,27 +98,17 @@ export default function ClientesPage() {
 
     setIsLoadingCnpj(true)
     try {
-      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`)
-      if (!response.ok) throw new Error("CNPJ não encontrado")
-      const data = await response.json()
+      const data = await lookupCnpjAction(cleanCnpj);
       
-      let regimeSugerido = "Outros"
-      if (data.opcao_pelo_mei) regimeSugerido = "MEI"
-      else if (data.opcao_pelo_simples) regimeSugerido = "Simples Nacional"
-
       setNewClient(prev => ({
         ...prev,
-        corporateName: data.razao_social || prev.corporateName,
-        taxRegime: regimeSugerido,
-        email: data.email || prev.email,
-        phone: data.ddd_telefone_1 || prev.phone,
-        city: data.municipio || prev.city,
-        state: data.uf || prev.state
+        ...data,
+        taxRegime: data.taxRegime !== "Consultar no Portal" ? data.taxRegime : prev.taxRegime
       }))
       
-      toast({ title: "Dados Localizados!", description: data.razao_social })
-    } catch (error) {
-      toast({ variant: "destructive", title: "Atenção", description: "Não foi possível buscar os dados automaticamente." })
+      toast({ title: "Dados Sincronizados!", description: data.corporateName })
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Atenção", description: error.message || "Busca automática falhou." })
     } finally {
       setIsLoadingCnpj(false)
     }
@@ -130,31 +127,32 @@ export default function ClientesPage() {
       ...newClient,
       id: clientId,
       createdAt: new Date().toISOString(),
-      openingDate: new Date().toISOString().split('T')[0],
-      primaryCnae: "0000-0/00",
       companyContactPerson: "Responsável",
-      address: "Centro",
-      neighborhood: "Centro",
-      zipCode: "00000-000",
       honorariumDueDateDay: 10,
-      honorariumValue: 0
+      honorariumValue: 0,
+      healthScore: 100,
+      obligationGroups: []
     }
 
-    // Fecha modal imediatamente
     setIsNewClientOpen(false)
-    
     setDocumentNonBlocking(clientRef, clientData, { merge: true })
     
     setNewClient({ 
       corporateName: "", 
+      nomeFantasia: "",
       cnpj: "", 
-      taxRegime: "", 
-      accountingContactUserId: "", 
+      taxRegime: "Simples Nacional", 
+      accountingContactUserId: "Geral", 
       status: "ATIVO", 
       email: "",
       phone: "",
       city: "",
-      state: ""
+      state: "",
+      zipCode: "",
+      address: "",
+      neighborhood: "",
+      openingDate: "",
+      primaryCnae: ""
     })
     toast({ title: "Cliente cadastrado!", description: "A empresa foi salva permanentemente." })
   }
@@ -273,73 +271,126 @@ export default function ClientesPage() {
       </Card>
 
       <Dialog open={isNewClientOpen} onOpenChange={setIsNewClientOpen}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden border-none shadow-2xl">
+        <DialogContent className="max-w-3xl p-0 overflow-hidden border-none shadow-2xl">
           <DialogHeader className="p-6 bg-[#2C4156] text-white">
-            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Novo Cliente (Sincronização API)</DialogTitle>
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Novo Cliente (Inteligência API)</DialogTitle>
             <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
-              Insira o CNPJ para puxar os dados automaticamente da Receita Federal.
+              Insira o CNPJ para capturar dados completos da ReceitaWS automaticamente.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid grid-cols-2 gap-5 p-6 bg-white">
-            <div className="col-span-2 md:col-span-1 space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">CNPJ (Busca Automática)</Label>
-              <div className="relative">
+          <ScrollArea className="max-h-[70vh]">
+            <div className="grid grid-cols-2 gap-5 p-6 bg-white">
+              <div className="col-span-2 md:col-span-1 space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">CNPJ (Busca Automática)</Label>
+                <div className="relative">
+                  <Input 
+                    placeholder="00.000.000/0000-00" 
+                    value={newClient.cnpj}
+                    onChange={(e) => setNewClient({...newClient, cnpj: formatCNPJ(e.target.value)})}
+                    onBlur={(e) => lookupCnpj(e.target.value)}
+                    className="font-mono font-bold border-[#D2D7DB] pr-10"
+                  />
+                  {isLoadingCnpj && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-[#1FA67A]" />}
+                </div>
+              </div>
+
+              <div className="col-span-2 md:col-span-1 space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Regime Tributário</Label>
+                <Select value={newClient.taxRegime} onValueChange={(v) => setNewClient({...newClient, taxRegime: v})}>
+                  <SelectTrigger className="border-[#D2D7DB]"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Simples Nacional">Simples Nacional</SelectItem>
+                    <SelectItem value="MEI">MEI</SelectItem>
+                    <SelectItem value="Lucro Presumido">Lucro Presumido</SelectItem>
+                    <SelectItem value="Lucro Real">Lucro Real</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="col-span-2 space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Razão Social</Label>
                 <Input 
-                  placeholder="00.000.000/0000-00" 
-                  value={newClient.cnpj}
-                  onChange={(e) => setNewClient({...newClient, cnpj: formatCNPJ(e.target.value)})}
-                  onBlur={(e) => lookupCnpj(e.target.value)}
-                  className="font-mono font-bold border-[#D2D7DB] pr-10"
+                  placeholder="Razão Social" 
+                  value={newClient.corporateName}
+                  onChange={(e) => setNewClient({...newClient, corporateName: e.target.value.toUpperCase()})}
+                  className="border-[#D2D7DB] font-bold"
                 />
-                {isLoadingCnpj && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-[#1FA67A]" />}
+              </div>
+
+              <div className="col-span-2 md:col-span-1 space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Nome Fantasia</Label>
+                <Input 
+                  placeholder="Nome Fantasia" 
+                  value={newClient.nomeFantasia}
+                  onChange={(e) => setNewClient({...newClient, nomeFantasia: e.target.value.toUpperCase()})}
+                  className="border-[#D2D7DB]"
+                />
+              </div>
+
+              <div className="col-span-2 md:col-span-1 space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Data de Abertura</Label>
+                <Input 
+                  type="date"
+                  value={newClient.openingDate}
+                  onChange={(e) => setNewClient({...newClient, openingDate: e.target.value})}
+                  className="border-[#D2D7DB]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">E-mail Corporativo</Label>
+                <Input 
+                  type="email"
+                  placeholder="contato@empresa.com" 
+                  value={newClient.email}
+                  onChange={(e) => setNewClient({...newClient, email: e.target.value})}
+                  className="border-[#D2D7DB]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Telefone / WhatsApp</Label>
+                <Input 
+                  placeholder="(00) 00000-0000" 
+                  value={newClient.phone}
+                  onChange={(e) => setNewClient({...newClient, phone: e.target.value})}
+                  className="border-[#D2D7DB]"
+                />
+              </div>
+
+              <div className="col-span-2 pt-2 border-t mt-2">
+                <h4 className="text-[9px] font-black text-[#1FA67A] uppercase tracking-widest mb-4">Localização e Sede</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2 space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Endereço</Label>
+                    <Input 
+                      placeholder="Rua, Número, Complemento" 
+                      value={newClient.address}
+                      onChange={(e) => setNewClient({...newClient, address: e.target.value})}
+                      className="border-[#D2D7DB]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Bairro</Label>
+                    <Input value={newClient.neighborhood} onChange={(e) => setNewClient({...newClient, neighborhood: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">CEP</Label>
+                    <Input value={newClient.zipCode} onChange={(e) => setNewClient({...newClient, zipCode: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Cidade</Label>
+                    <Input value={newClient.city} onChange={(e) => setNewClient({...newClient, city: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Estado (UF)</Label>
+                    <Input value={newClient.state} onChange={(e) => setNewClient({...newClient, state: e.target.value.toUpperCase()})} />
+                  </div>
+                </div>
               </div>
             </div>
-
-            <div className="col-span-2 md:col-span-1 space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Regime Tributário</Label>
-              <Select value={newClient.taxRegime} onValueChange={(v) => setNewClient({...newClient, taxRegime: v})}>
-                <SelectTrigger className="border-[#D2D7DB]"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Simples Nacional">Simples Nacional</SelectItem>
-                  <SelectItem value="MEI">MEI</SelectItem>
-                  <SelectItem value="Lucro Presumido">Lucro Presumido</SelectItem>
-                  <SelectItem value="Lucro Real">Lucro Real</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="col-span-2 space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Razão Social</Label>
-              <Input 
-                placeholder="Ex: Padaria Silva Ltda" 
-                value={newClient.corporateName}
-                onChange={(e) => setNewClient({...newClient, corporateName: e.target.value})}
-                className="border-[#D2D7DB] font-bold"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">E-mail Corporativo</Label>
-              <Input 
-                type="email"
-                placeholder="contato@empresa.com" 
-                value={newClient.email}
-                onChange={(e) => setNewClient({...newClient, email: e.target.value})}
-                className="border-[#D2D7DB]"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Telefone / WhatsApp</Label>
-              <Input 
-                placeholder="(00) 00000-0000" 
-                value={newClient.phone}
-                onChange={(e) => setNewClient({...newClient, phone: e.target.value})}
-                className="border-[#D2D7DB]"
-              />
-            </div>
-          </div>
+          </ScrollArea>
 
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t">
             <Button variant="outline" onClick={() => setIsNewClientOpen(false)} className="border-[#D2D7DB] font-bold text-xs">Cancelar</Button>
@@ -349,7 +400,7 @@ export default function ClientesPage() {
               disabled={isLoadingCnpj}
             >
               {isLoadingCnpj ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-              Salvar Cliente na Cloud
+              Finalizar Cadastro
             </Button>
           </DialogFooter>
         </DialogContent>

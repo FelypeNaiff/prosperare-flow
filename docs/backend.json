@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -21,9 +22,24 @@
       "properties": {
         "id": { "type": "string" },
         "corporateName": { "type": "string" },
+        "nomeFantasia": { "type": "string" },
         "cnpj": { "type": "string" },
         "email": { "type": "string" },
-        "taxRegime": { "type": "string" }
+        "phone": { "type": "string" },
+        "taxRegime": { "type": "string" },
+        "openingDate": { "type": "string" },
+        "primaryCnae": { "type": "string" },
+        "address": { "type": "string" },
+        "neighborhood": { "type": "string" },
+        "city": { "type": "string" },
+        "state": { "type": "string" },
+        "zipCode": { "type": "string" },
+        "status": { "type": "string" },
+        "healthScore": { "type": "number" },
+        "accountingContactUserId": { "type": "string" },
+        "honorariumValue": { "type": "number" },
+        "honorariumDueDateDay": { "type": "number" },
+        "obligationGroups": { "type": "array", "items": { "type": "string" } }
       }
     },
     "Process": {
@@ -32,7 +48,13 @@
       "properties": {
         "id": { "type": "string" },
         "nomeProcesso": { "type": "string" },
-        "situacao": { "type": "string" }
+        "situacao": { "type": "string" },
+        "departamento": { "type": "string" },
+        "clienteId": { "type": "string" },
+        "responsavelId": { "type": "string" },
+        "auxiliarId": { "type": "string" },
+        "prazo": { "type": "string", "format": "date-time" },
+        "competencia": { "type": "string" }
       }
     },
     "Task": {
@@ -41,7 +63,9 @@
       "properties": {
         "id": { "type": "string" },
         "title": { "type": "string" },
-        "status": { "type": "string" }
+        "status": { "type": "string" },
+        "clientId": { "type": "string" },
+        "responsibleId": { "type": "string" }
       }
     },
     "ProcessModel": {
@@ -49,7 +73,8 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "nome": { "type": "string" }
+        "nome": { "type": "string" },
+        "departamento": { "type": "string" }
       }
     },
     "Certification": {
@@ -58,7 +83,8 @@
       "properties": {
         "id": { "type": "string" },
         "tipo": { "type": "string" },
-        "clientId": { "type": "string" }
+        "clientId": { "type": "string" },
+        "validade": { "type": "string" }
       }
     },
     "Notification": {
