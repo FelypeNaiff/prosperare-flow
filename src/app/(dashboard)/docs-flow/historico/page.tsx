@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -27,6 +26,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
 
 const MOCK_HISTORY = [
   { id: 'DOC-001', empresa: 'Padaria Central Ltda', doc: 'Termo de Rescisão - Pedro Silva', data: '22/10/2024', tipo: 'Rescisão', status: 'Assinado' },
