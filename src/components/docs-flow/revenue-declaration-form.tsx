@@ -11,7 +11,7 @@ import { Printer, Download, Save, RefreshCw, PenTool, FileSpreadsheet, Keyboard,
 import { toast } from "@/hooks/use-toast"
 import { SignatureDialog } from "./signature-dialog"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { format, addMonths, parse } from "date-fns"
+import { format, addMonths, subMonths, parse, startOfMonth } from "date-fns"
 import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
@@ -39,7 +39,9 @@ export function RevenueDeclarationForm() {
     email: ""
   })
 
-  const [startPeriod, setStartPeriod] = useState(format(new Date(), "yyyy-MM"))
+  // Define o início automático: 12 meses antes do mês atual (ex: se Março, inicia Março/Anterior até Fevereiro/Atual)
+  const [startPeriod, setStartPeriod] = useState(format(subMonths(startOfMonth(new Date()), 12), "yyyy-MM"))
+  
   const [rows, setRows] = useState(
     Array.from({ length: 12 }, (_, i) => ({
       periodo: "",
@@ -82,6 +84,12 @@ export function RevenueDeclarationForm() {
   const handleUpdateValue = (index: number, val: string) => {
     const newRows = [...rows]
     newRows[index].valor = Number(val)
+    setRows(newRows)
+  }
+
+  const handleUpdatePeriod = (index: number, val: string) => {
+    const newRows = [...rows]
+    newRows[index].periodo = val
     setRows(newRows)
   }
 
@@ -254,7 +262,7 @@ export function RevenueDeclarationForm() {
 
           <div className="space-y-4 pt-4 border-t">
             <div className="flex items-center justify-between">
-              <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Tabela de Valores (Período Gerado)</h4>
+              <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Tabela de Valores (Edição Manual de Mês e Valor)</h4>
               {source === "pgdas" && (
                 <Button variant="outline" size="sm" className="h-7 text-[10px] font-black uppercase border-[#1FA67A] text-[#1FA67A] gap-1 shadow-sm" onClick={handleFetchPgdas}>
                   <RefreshCw className="h-3 w-3" /> Puxar Faturamento PGDAS
@@ -273,7 +281,14 @@ export function RevenueDeclarationForm() {
                 <TableBody>
                   {rows.map((row, i) => (
                     <TableRow key={i} className="h-10 hover:bg-slate-50/50 group">
-                      <TableCell className="py-1 text-xs font-bold text-[#39586D]">{row.periodo}</TableCell>
+                      <TableCell className="py-1">
+                        <Input 
+                          className="h-8 text-xs font-bold text-[#39586D] border-none bg-transparent hover:bg-[#F7F7F7] focus:bg-white focus:ring-1 focus:ring-[#1FA67A]" 
+                          placeholder="MM/AAAA"
+                          value={row.periodo}
+                          onChange={(e) => handleUpdatePeriod(i, e.target.value)}
+                        />
+                      </TableCell>
                       <TableCell className="py-1 text-right">
                         <Input 
                           type="number" 
