@@ -7,19 +7,46 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Printer, Download, Save, UserPlus, FileText, PenTool } from "lucide-react"
+import { Printer, Download, Save, UserPlus, FileText, PenTool, Loader2 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { SignatureDialog } from "./signature-dialog"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection } from "firebase/firestore"
 
 export function ProlaboreForm() {
+  const firestore = useFirestore()
   const [isManual, setIsManual] = useState(false)
   const [isSignatureOpen, setIsSignatureOpen] = useState(false)
+  
+  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
+  const { data: clients = [], isLoading } = useCollection(clientsQuery)
+
   const [formData, setFormData] = useState({
+    empresa: "",
+    cnpj: "",
     socio: "",
-    email: ""
+    email: "",
+    competencia: "",
+    valorBruto: "",
+    inss: ""
   })
 
+  const handleSelectClient = (clientId: string) => {
+    const client = clients?.find(c => c.id === clientId)
+    if (client) {
+      setFormData({
+        ...formData,
+        empresa: client.corporateName,
+        cnpj: client.cnpj
+      })
+    }
+  }
+
   const handleGenerate = () => {
+    if (!formData.empresa || !formData.socio) {
+      toast({ variant: "destructive", title: "Erro", description: "Dados da empresa e do sócio são obrigatórios." })
+      return
+    }
     toast({ title: "Declaração de Pró-labore Gerada!" })
   }
 
@@ -33,7 +60,10 @@ export function ProlaboreForm() {
         <CardContent className="p-6 space-y-6">
           <div className="flex items-center justify-between">
             <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Identificação da Empresa</h4>
-            <Button variant="ghost" size="sm" className="text-[10px] font-bold text-[#1FA67A]" onClick={() => setIsManual(!isManual)}>
+            <Button variant="ghost" size="sm" className="text-[10px] font-bold text-[#1FA67A]" onClick={() => {
+              setIsManual(!isManual)
+              setFormData({...formData, empresa: "", cnpj: ""})
+            }}>
               {isManual ? "Selecionar da Base" : "Digitar Manual"}
             </Button>
           </div>
@@ -41,11 +71,18 @@ export function ProlaboreForm() {
           {!isManual ? (
             <div className="space-y-2">
               <Label className="text-xs font-bold text-[#39586D]">Empresa</Label>
-              <Select>
-                <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
+              <Select onValueChange={handleSelectClient}>
+                <SelectTrigger className="border-[#D2D7DB]">
+                  <SelectValue placeholder={isLoading ? "Carregando..." : "Selecione o cliente..."} />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">Padaria Central Ltda</SelectItem>
-                  <SelectItem value="2">Oficina do João ME</SelectItem>
+                  {isLoading ? (
+                    <div className="p-2 flex items-center justify-center"><Loader2 className="h-4 w-4 animate-spin" /></div>
+                  ) : (
+                    (clients || []).map(c => (
+                      <SelectItem key={c.id} value={c.id} className="uppercase text-xs font-bold">{c.corporateName}</SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -53,11 +90,11 @@ export function ProlaboreForm() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Razão Social</Label>
-                <Input placeholder="Nome da empresa" />
+                <Input placeholder="Nome da empresa" value={formData.empresa} onChange={(e) => setFormData({...formData, empresa: e.target.value.toUpperCase()})} />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">CNPJ</Label>
-                <Input placeholder="00.000.000/0000-00" />
+                <Input placeholder="00.000.000/0000-00" value={formData.cnpj} onChange={(e) => setFormData({...formData, cnpj: e.target.value})} />
               </div>
             </div>
           )}
@@ -67,11 +104,11 @@ export function ProlaboreForm() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2 col-span-2">
                 <Label className="text-xs font-bold text-[#39586D]">Nome do Sócio</Label>
-                <Input placeholder="Nome completo" onChange={(e) => setFormData({...formData, socio: e.target.value})} />
+                <Input placeholder="Nome completo" value={formData.socio} onChange={(e) => setFormData({...formData, socio: e.target.value.toUpperCase()})} />
               </div>
               <div className="space-y-2 col-span-2">
                 <Label className="text-xs font-bold text-[#39586D]">E-mail para Assinatura</Label>
-                <Input type="email" placeholder="socio@email.com" onChange={(e) => setFormData({...formData, email: e.target.value})} />
+                <Input type="email" placeholder="socio@email.com" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">CPF</Label>
@@ -79,15 +116,15 @@ export function ProlaboreForm() {
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Competência (Mês/Ano)</Label>
-                <Input type="month" />
+                <Input type="month" value={formData.competencia} onChange={(e) => setFormData({...formData, competencia: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Valor Bruto (R$)</Label>
-                <Input type="number" placeholder="0,00" />
+                <Input type="number" placeholder="0,00" value={formData.valorBruto} onChange={(e) => setFormData({...formData, valorBruto: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Valor do INSS (R$)</Label>
-                <Input type="number" placeholder="0,00" />
+                <Input type="number" placeholder="0,00" value={formData.inss} onChange={(e) => setFormData({...formData, inss: e.target.value})} />
               </div>
             </div>
           </div>
@@ -103,7 +140,7 @@ export function ProlaboreForm() {
             >
               <PenTool className="h-4 w-4" /> Enviar p/ Assinatura
             </Button>
-            <Button variant="outline" className="border-[#D2D7DB] font-bold gap-2">
+            <Button variant="outline" className="border-[#D2D7DB] font-bold gap-2 text-[#39586D]">
               <Save className="h-4 w-4" /> Salvar Histórico
             </Button>
           </div>

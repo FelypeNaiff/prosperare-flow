@@ -7,21 +7,39 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Printer, Download, Save, RefreshCw, PenTool, FileSpreadsheet, Keyboard, Calendar as CalendarIcon, Upload } from "lucide-react"
+import { Printer, Download, Save, RefreshCw, PenTool, FileSpreadsheet, Keyboard, Calendar as CalendarIcon, Upload, Loader2 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { SignatureDialog } from "./signature-dialog"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { format, addMonths, parse } from "date-fns"
 import { cn } from "@/lib/utils"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection } from "firebase/firestore"
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select"
 
 export function RevenueDeclarationForm() {
+  const firestore = useFirestore()
   const [source, setSource] = useState<"manual" | "pgdas">("manual")
   const [isManualClient, setIsManualClient] = useState(false)
   const [isSignatureOpen, setIsSignatureOpen] = useState(false)
-  const [clientName, setClientName] = useState("")
-  const [startPeriod, setStartPeriod] = useState(format(new Date(), "yyyy-MM"))
   const fileInputRef = useRef<HTMLInputElement>(null)
   
+  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
+  const { data: clients = [], isLoading: loadingClients } = useCollection(clientsQuery)
+
+  const [formData, setFormData] = useState({
+    empresa: "",
+    cnpj: "",
+    email: ""
+  })
+
+  const [startPeriod, setStartPeriod] = useState(format(new Date(), "yyyy-MM"))
   const [rows, setRows] = useState(
     Array.from({ length: 12 }, (_, i) => ({
       periodo: "",
@@ -29,9 +47,8 @@ export function RevenueDeclarationForm() {
     }))
   )
 
-  // Efeito para preencher automaticamente os períodos quando o mês inicial mudar
   useEffect(() => {
-    if (source === "manual" && startPeriod) {
+    if (startPeriod) {
       try {
         const baseDate = parse(startPeriod, "yyyy-MM", new Date())
         const newRows = Array.from({ length: 12 }, (_, i) => {
@@ -46,7 +63,18 @@ export function RevenueDeclarationForm() {
         console.error("Erro ao processar data", e)
       }
     }
-  }, [startPeriod, source])
+  }, [startPeriod])
+
+  const handleSelectClient = (clientId: string) => {
+    const client = clients?.find(c => c.id === clientId)
+    if (client) {
+      setFormData({
+        empresa: client.corporateName,
+        cnpj: client.cnpj,
+        email: client.email || "cliente@email.com"
+      })
+    }
+  }
 
   const total = rows.reduce((acc, row) => acc + (Number(row.valor) || 0), 0)
   const average = total / 12
@@ -58,6 +86,10 @@ export function RevenueDeclarationForm() {
   }
 
   const handleGenerate = () => {
+    if (!formData.empresa) {
+      toast({ variant: "destructive", title: "Atenção", description: "Selecione a empresa para gerar o relatório." })
+      return
+    }
     toast({ title: "Relatório de Faturamento Gerado!", description: "Documento pronto para exportação." })
   }
 
@@ -66,7 +98,6 @@ export function RevenueDeclarationForm() {
       title: "Sincronizando PGDAS...", 
       description: "Buscando dados de faturamento no portal e-CAC via Extrato PGDAS-D." 
     })
-    // Simulação de preenchimento via PGDAS
     const simulatedRows = rows.map(r => ({ ...r, valor: Math.floor(Math.random() * 50000) + 10000 }))
     setRows(simulatedRows)
   }
@@ -81,7 +112,6 @@ export function RevenueDeclarationForm() {
       const lines = text.split(/\r?\n/)
       const values: number[] = []
 
-      // Tenta extrair 12 valores numéricos das linhas
       lines.forEach(line => {
         const cleanLine = line.replace(/[^\d.,]/g, '').replace(',', '.')
         const num = parseFloat(cleanLine)
@@ -104,7 +134,6 @@ export function RevenueDeclarationForm() {
       }
     }
     reader.readAsText(file)
-    // Limpa o input para permitir re-upload do mesmo arquivo
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
@@ -174,7 +203,10 @@ export function RevenueDeclarationForm() {
               >
                 <Upload className="h-3 w-3" /> Importar CSV
               </Button>
-              <Button variant="ghost" size="sm" className="text-[10px] font-bold text-[#1FA67A] uppercase" onClick={() => setIsManualClient(!isManualClient)}>
+              <Button variant="ghost" size="sm" className="text-[10px] font-bold text-[#1FA67A] uppercase" onClick={() => {
+                setIsManualClient(!isManualClient)
+                setFormData({ empresa: "", cnpj: "", email: "" })
+              }}>
                 {isManualClient ? "Selecionar da Base" : "Digitar Manual"}
               </Button>
             </div>
@@ -182,12 +214,29 @@ export function RevenueDeclarationForm() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-[#39586D]">Razão Social</Label>
-              <Input placeholder="Nome da empresa" readOnly={!isManualClient} value={!isManualClient ? "Padaria Central Ltda" : undefined} onChange={(e) => setClientName(e.target.value)} />
+              <Label className="text-xs font-bold text-[#39586D]">Empresa</Label>
+              {!isManualClient ? (
+                <Select onValueChange={handleSelectClient}>
+                  <SelectTrigger className="border-[#D2D7DB]">
+                    <SelectValue placeholder={loadingClients ? "Carregando..." : "Escolher cliente..."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {loadingClients ? (
+                      <div className="p-2 flex items-center justify-center"><Loader2 className="h-4 w-4 animate-spin" /></div>
+                    ) : (
+                      (clients || []).map(c => (
+                        <SelectItem key={c.id} value={c.id} className="uppercase text-xs font-bold">{c.corporateName}</SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input placeholder="Nome da empresa" value={formData.empresa} onChange={(e) => setFormData({...formData, empresa: e.target.value.toUpperCase()})} />
+              )}
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold text-[#39586D]">CNPJ</Label>
-              <Input placeholder="00.000.000/0000-00" readOnly={!isManualClient} value={!isManualClient ? "12.345.678/0001-90" : undefined} />
+              <Input placeholder="00.000.000/0000-00" readOnly={!isManualClient} value={formData.cnpj} onChange={(e) => setFormData({...formData, cnpj: e.target.value})} />
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold text-[#39586D]">Mês Inicial do Relatório</Label>
@@ -275,8 +324,8 @@ export function RevenueDeclarationForm() {
         open={isSignatureOpen} 
         onOpenChange={setIsSignatureOpen} 
         documentTitle="Declaração de Faturamento"
-        recipientName={clientName || "Responsável Empresa"}
-        recipientEmail="cliente@email.com"
+        recipientName={formData.empresa || "Responsável Empresa"}
+        recipientEmail={formData.email}
       />
     </div>
   )

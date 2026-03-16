@@ -14,30 +14,52 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Printer, Download, Save, UserPlus, CheckCircle2, FileText, PenTool, Image as ImageIcon } from "lucide-react"
+import { Printer, Download, Save, UserPlus, CheckCircle2, FileText, PenTool, Image as ImageIcon, Loader2 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { SignatureDialog } from "./signature-dialog"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection } from "firebase/firestore"
 
 export function TerminationTermForm() {
+  const firestore = useFirestore()
   const [isManualClient, setIsManualClient] = useState(false)
   const [isPreviewMode, setIsPreviewOpen] = useState(false)
   const [isSignatureOpen, setIsSignatureOpen] = useState(false)
+  
+  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
+  const { data: clients = [], isLoading } = useCollection(clientsQuery)
+
   const [formData, setFormData] = useState({
     empresa: "",
     cnpj: "",
     funcionario: "",
     emailFuncionario: "",
-    valor: ""
+    valor: "",
+    calculo: ""
   })
 
+  const handleSelectClient = (clientId: string) => {
+    const client = clients?.find(c => c.id === clientId)
+    if (client) {
+      setFormData({
+        ...formData,
+        empresa: client.corporateName,
+        cnpj: client.cnpj
+      })
+    }
+  }
+
   const handleGenerate = () => {
+    if (!formData.empresa || !formData.funcionario || !formData.valor) {
+      toast({ variant: "destructive", title: "Campos incompletos", description: "Preencha os dados básicos da rescisão." })
+      return
+    }
     setIsPreviewOpen(true)
     toast({ title: "Documento Gerado!", description: "Pré-visualização pronta para impressão." })
   }
 
-  // Mock de logotipo baseado no nome da empresa para demonstração
   const getClientLogo = (name: string) => {
     if (!name) return null;
     const seed = name.length;
@@ -60,7 +82,10 @@ export function TerminationTermForm() {
                   variant="ghost" 
                   size="sm" 
                   className="text-[10px] font-bold text-[#1FA67A] uppercase gap-1"
-                  onClick={() => setIsManualClient(!isManualClient)}
+                  onClick={() => {
+                    setIsManualClient(!isManualClient)
+                    setFormData({...formData, empresa: "", cnpj: ""})
+                  }}
                 >
                   <UserPlus className="h-3 w-3" /> {isManualClient ? "Selecionar da Base" : "Digitar Manualmente"}
                 </Button>
@@ -69,13 +94,18 @@ export function TerminationTermForm() {
               {!isManualClient ? (
                 <div className="space-y-2">
                   <Label className="text-xs font-bold text-[#39586D]">Empresa Cliente</Label>
-                  <Select onValueChange={(v) => setFormData({...formData, empresa: v === "1" ? "Padaria Central Ltda" : "Oficina do João ME", cnpj: v === "1" ? "12.345.678/0001-90" : "98.765.432/0001-21"})}>
+                  <Select onValueChange={handleSelectClient}>
                     <SelectTrigger className="border-[#D2D7DB]">
-                      <SelectValue placeholder="Selecione o cliente..." />
+                      <SelectValue placeholder={isLoading ? "Carregando..." : "Selecione o cliente..."} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">Padaria Central Ltda</SelectItem>
-                      <SelectItem value="2">Oficina do João ME</SelectItem>
+                      {isLoading ? (
+                        <div className="p-2 flex items-center justify-center"><Loader2 className="h-4 w-4 animate-spin" /></div>
+                      ) : (
+                        (clients || []).map(c => (
+                          <SelectItem key={c.id} value={c.id} className="uppercase text-xs font-bold">{c.corporateName}</SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -83,11 +113,11 @@ export function TerminationTermForm() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-xs font-bold text-[#39586D]">Razão Social</Label>
-                    <Input placeholder="Nome da empresa" onChange={(e) => setFormData({...formData, empresa: e.target.value})} />
+                    <Input placeholder="Nome da empresa" value={formData.empresa} onChange={(e) => setFormData({...formData, empresa: e.target.value.toUpperCase()})} />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs font-bold text-[#39586D]">CNPJ</Label>
-                    <Input placeholder="00.000.000/0000-00" onChange={(e) => setFormData({...formData, cnpj: e.target.value})} />
+                    <Input placeholder="00.000.000/0000-00" value={formData.cnpj} onChange={(e) => setFormData({...formData, cnpj: e.target.value})} />
                   </div>
                 </div>
               )}
@@ -98,11 +128,11 @@ export function TerminationTermForm() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2 col-span-2">
                   <Label className="text-xs font-bold text-[#39586D]">Nome Completo</Label>
-                  <Input placeholder="Nome do colaborador" onChange={(e) => setFormData({...formData, funcionario: e.target.value})} />
+                  <Input placeholder="Nome do colaborador" value={formData.funcionario} onChange={(e) => setFormData({...formData, funcionario: e.target.value.toUpperCase()})} />
                 </div>
                 <div className="space-y-2 col-span-2">
                   <Label className="text-xs font-bold text-[#39586D]">E-mail para Assinatura Digital</Label>
-                  <Input type="email" placeholder="e-mail@exemplo.com" onChange={(e) => setFormData({...formData, emailFuncionario: e.target.value})} />
+                  <Input type="email" placeholder="e-mail@exemplo.com" value={formData.emailFuncionario} onChange={(e) => setFormData({...formData, emailFuncionario: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold text-[#39586D]">CPF</Label>
@@ -128,7 +158,7 @@ export function TerminationTermForm() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs font-bold text-[#39586D]">Valor Total Líquido (R$)</Label>
-                  <Input type="number" placeholder="0,00" className="font-black text-[#1FA67A]" onChange={(e) => setFormData({...formData, valor: e.target.value})} />
+                  <Input type="number" placeholder="0,00" className="font-black text-[#1FA67A]" value={formData.valor} onChange={(e) => setFormData({...formData, valor: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold text-[#39586D]">Motivo do Desligamento</Label>
@@ -143,7 +173,7 @@ export function TerminationTermForm() {
                 </div>
                 <div className="col-span-2 space-y-2">
                   <Label className="text-xs font-bold text-[#39586D]">Espelho de Cálculo (Detalhamento)</Label>
-                  <Textarea placeholder="Descreva as verbas: Saldo salário, 13º proporcional, Férias..." className="h-32 text-xs font-mono" />
+                  <Textarea placeholder="Descreva as verbas: Saldo salário, 13º proporcional, Férias..." className="h-32 text-xs font-mono" value={formData.calculo} onChange={(e) => setFormData({...formData, calculo: e.target.value})} />
                 </div>
               </div>
             </div>
@@ -180,7 +210,6 @@ export function TerminationTermForm() {
             <CardContent className="p-8">
               <div className="bg-white shadow-xl mx-auto w-full min-h-[800px] p-12 text-[#2C4156] text-[11px] leading-relaxed font-serif border">
                 
-                {/* Cabeçalho Dinâmico */}
                 <div className="flex items-start justify-between mb-12 border-b pb-8">
                   <div className="space-y-1">
                     <h2 className="text-lg font-black uppercase text-[#2C4156]">{formData.empresa || "[NOME DA EMPRESA]"}</h2>
@@ -216,7 +245,7 @@ export function TerminationTermForm() {
                   <div className="space-y-2">
                     <h3 className="font-black border-b pb-1 text-[9px] uppercase tracking-widest text-[#1FA67A]">MEMÓRIA DE CÁLCULO / DISCRIMINAÇÃO</h3>
                     <div className="bg-[#F7F7F7] p-4 rounded font-mono whitespace-pre-wrap text-[10px]">
-                      [DETALHAMENTO DO CÁLCULO DIGITADO NO FORMULÁRIO]
+                      {formData.calculo || "[DETALHAMENTO DO CÁLCULO]"}
                     </div>
                   </div>
 
