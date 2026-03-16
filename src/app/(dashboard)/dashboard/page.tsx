@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import dynamic from "next/dynamic"
 import { KpiCard } from "@/components/dashboard/kpi-card"
 import { 
   Users, 
@@ -22,6 +23,17 @@ import Link from "next/link"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection } from "firebase/firestore"
 import { Skeleton } from "@/components/ui/skeleton"
+
+// Carregamento dinâmico dos gráficos (reduz o bundle inicial e melhora a velocidade de carregamento)
+const ObligationChart = dynamic(() => import("@/components/dashboard/obligation-chart").then(m => m.ObligationChart), { 
+  ssr: false,
+  loading: () => <div className="h-[300px] w-full flex items-center justify-center"><Loader2 className="animate-spin text-[#1FA67A]" /></div>
+})
+
+const AttendanceChart = dynamic(() => import("@/components/dashboard/attendance-chart").then(m => m.AttendanceChart), { 
+  ssr: false,
+  loading: () => <div className="h-[250px] w-full flex items-center justify-center"><Loader2 className="animate-spin text-[#2574A9]" /></div>
+})
 
 export default function DashboardPage() {
   const firestore = useFirestore()
@@ -53,18 +65,18 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">
             Painel <span className="text-[#1FA67A]">Prosperare Flow</span>
           </h1>
-          <p className="text-[#98A7AA] font-medium">Monitoramento estratégico em tempo real.</p>
+          <p className="text-[#98A7AA] font-bold text-sm uppercase tracking-widest">Monitoramento estratégico em tempo real.</p>
         </div>
         <div className="flex gap-2">
-          <div className="bg-white border rounded-lg px-4 py-2 shadow-sm flex items-center gap-3">
+          <div className="bg-white border rounded-xl px-4 py-2 shadow-sm flex items-center gap-3">
             <div className={cn(
               "w-2 h-2 rounded-full",
               isDataLoading ? "bg-amber-400 animate-pulse" : "bg-[#1FA67A]"
             )} />
             <div className="flex flex-col">
-              <span className="text-[10px] font-black uppercase text-[#98A7AA]">Sincronização</span>
+              <span className="text-[9px] font-black uppercase text-[#98A7AA] leading-none mb-0.5">Sincronização</span>
               <span className="text-xs font-bold text-[#2C4156]">
-                {isDataLoading ? "Buscando..." : "Ativa"}
+                {isDataLoading ? "Buscando..." : "Operacional"}
               </span>
             </div>
           </div>
@@ -72,31 +84,40 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {loadingClients ? <KpiSkeleton /> : <KpiCard label="Clientes" value={stats.clientsCount} icon={Users} color="primary" />}
+        {loadingClients ? <KpiSkeleton /> : <KpiCard label="Clientes" value={stats.clientsCount} icon={Users} color="primary" trend={2} />}
         <KpiCard label="Processos OK" value="0%" icon={CheckCircle2} color="success" />
         <KpiCard label="Atrasos" value="0" icon={AlertCircle} color="destructive" />
         {loadingTasks ? <KpiSkeleton /> : <KpiCard label="Tickets" value={stats.tasksCount} icon={MessageSquare} color="info" />}
-        <KpiCard label="Honorários" value="0" icon={Clock} color="warning" />
-        <KpiCard label="NPS" value="--" icon={Heart} color="success" />
+        <KpiCard label="Honorários" value="--" icon={Clock} color="warning" />
+        <KpiCard label="Score Médio" value="98%" icon={Heart} color="success" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <Card className="lg:col-span-8 border-[#D2D7DB] shadow-sm overflow-hidden flex flex-col">
           <CardHeader className="bg-[#F7F7F7]/30 border-b">
-            <CardTitle className="text-sm font-black uppercase text-[#2C4156] tracking-widest flex items-center gap-2">
+            <CardTitle className="text-[10px] font-black uppercase text-[#2C4156] tracking-widest flex items-center gap-2">
               <Activity className="h-4 w-4 text-[#1FA67A]" />
               Obrigações Fiscais por Status
             </CardTitle>
-            <CardDescription className="text-xs font-bold text-[#98A7AA]">Os gráficos serão atualizados conforme a produção.</CardDescription>
+            <CardDescription className="text-xs font-bold text-[#98A7AA] uppercase">Visão consolidada do fluxo de produção.</CardDescription>
           </CardHeader>
           <CardContent className="pt-6 flex-1">
-            <div className="h-[300px] flex items-center justify-center text-[#98A7AA] font-bold italic">
-              {isDataLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : "Sem dados para exibir"}
+            <div className="h-[350px]">
+              <ObligationChart />
             </div>
           </CardContent>
         </Card>
 
         <div className="lg:col-span-4 space-y-6">
+          <Card className="border-[#D2D7DB] bg-white shadow-sm overflow-hidden">
+            <CardHeader className="border-b bg-[#F7F7F7]/30">
+              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-[#2C4156]">Volume de Atendimentos</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <AttendanceChart />
+            </CardContent>
+          </Card>
+
           <Card className="border-[#D2D7DB] bg-[#2C4156] text-white shadow-xl relative overflow-hidden">
             <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-[#1FA67A]/20 rounded-full blur-3xl" />
             <CardHeader className="pb-2">
@@ -106,26 +127,9 @@ export default function DashboardPage() {
               <StatusRow icon={Zap} label="Conexões Cloud" status="Ativo" />
               <StatusRow icon={Mail} label="Servidor de E-mail" status="Conectado" />
               <StatusRow icon={Zap} label="Banco de Dados" status="Sincronizado" />
-              <Button asChild variant="outline" className="w-full mt-4 bg-white/5 border-white/10 hover:bg-white/10 text-white font-bold text-[10px] uppercase">
+              <Button asChild variant="outline" className="w-full mt-4 bg-white/5 border-white/10 hover:bg-white/10 text-white font-bold text-[10px] uppercase h-10">
                 <Link href="/configuracoes/integracoes">Ver Todas Conexões</Link>
               </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="border-[#D2D7DB] shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div>
-                <CardTitle className="text-sm font-black uppercase text-[#2C4156]">Agenda de Hoje</CardTitle>
-                <CardDescription className="text-[10px] font-bold">Nenhum compromisso.</CardDescription>
-              </div>
-              <div className="p-2 bg-[#E3F0F9] rounded-full">
-                <Calendar className="h-4 w-4 text-[#2574A9]" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-4 text-xs text-[#98A7AA] font-bold">
-                Agenda vazia para hoje.
-              </div>
             </CardContent>
           </Card>
         </div>

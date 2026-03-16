@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { LucideIcon, TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,7 +29,18 @@ const borderMap = {
   info: "border-l-[#2574A9]",
 };
 
-export function KpiCard({ label, value, icon: Icon, trend, color = "primary", className, onClick }: KpiCardProps) {
+/**
+ * Componente memoizado para evitar re-renderizações desnecessárias em dashboards densos.
+ */
+export const KpiCard = memo(function KpiCard({ 
+  label, 
+  value, 
+  icon: Icon, 
+  trend, 
+  color = "primary", 
+  className, 
+  onClick 
+}: KpiCardProps) {
   return (
     <Card 
       className={cn(
@@ -41,8 +53,8 @@ export function KpiCard({ label, value, icon: Icon, trend, color = "primary", cl
       <CardContent className="p-6">
         <div className="flex justify-between items-start">
           <div className="space-y-1">
-            <p className="text-xs font-bold text-[#98A7AA] uppercase tracking-wider">{label}</p>
-            <h3 className="text-2xl font-extrabold tracking-tight text-[#2C4156]">{value}</h3>
+            <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">{label}</p>
+            <h3 className="text-2xl font-black tracking-tight text-[#2C4156]">{value}</h3>
             {trend !== undefined && (
               <div className="flex items-center gap-1">
                 {trend > 0 ? (
@@ -50,17 +62,17 @@ export function KpiCard({ label, value, icon: Icon, trend, color = "primary", cl
                 ) : (
                   <TrendingDown className="h-3 w-3 text-[#E74C3C]" />
                 )}
-                <span className={cn("text-[10px] font-bold uppercase", trend > 0 ? "text-[#1FA67A]" : "text-[#E74C3C]")}>
+                <span className={cn("text-[9px] font-black uppercase", trend > 0 ? "text-[#1FA67A]" : "text-[#E74C3C]")}>
                   {Math.abs(trend)}% vs mês anterior
                 </span>
               </div>
             )}
           </div>
-          <div className={cn("p-2.5 rounded-lg border", colorMap[color])}>
+          <div className={cn("p-2.5 rounded-xl border", colorMap[color])}>
             <Icon className="h-5 w-5" />
           </div>
         </div>
       </CardContent>
     </Card>
   );
-}
+});

@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from "react"
@@ -6,7 +5,6 @@ import {
   LayoutDashboard, 
   Users, 
   Files, 
-  ShieldCheck, 
   DollarSign, 
   FolderOpen, 
   UserCircle, 
@@ -22,7 +20,6 @@ import {
   CalendarClock,
   MessageSquare,
   Lock,
-  CreditCard,
   History,
   Building2,
   Calendar,
@@ -61,14 +58,13 @@ import {
 } from "@/components/ui/collapsible"
 import { useUser, useAuth } from "@/firebase"
 import { initiateLogout } from "@/firebase/non-blocking-login"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
-const items = [
+const menuItems = [
   {
     title: "Painel Estratégico",
     url: "/dashboard",
@@ -158,22 +154,16 @@ const items = [
 ]
 
 export function AppSidebar() {
-  const { selectedUser, logoutSelectedUser } = useUser()
+  const { selectedUser } = useUser()
   const auth = useAuth()
   const pathname = usePathname()
   const router = useRouter()
   
-  const [openItem, setOpenItem] = React.useState<string | null>(() => {
-    const active = items.find(item => 
-      pathname.startsWith(item.url) || item.subItems?.some(si => pathname === si.url)
-    )
-    return active ? active.title : null
-  })
-
+  // Memoizamos os itens filtrados para evitar cálculos em cada re-renderização
   const filteredItems = React.useMemo(() => {
     if (!selectedUser) return []
-    return items.filter(item => item.profiles.includes(selectedUser.profile))
-  }, [selectedUser])
+    return menuItems.filter(item => item.profiles.includes(selectedUser.profile))
+  }, [selectedUser?.profile])
 
   return (
     <Sidebar className="border-r-0 bg-[#2C4156] text-white">
@@ -198,16 +188,11 @@ export function AppSidebar() {
             <SidebarMenu>
               {filteredItems.map((item) => {
                 const isActive = pathname.startsWith(item.url) || item.subItems?.some(si => pathname === si.url)
-                const isOpen = openItem === item.title
-
+                
                 return (
                   <Collapsible 
                     key={item.title} 
-                    open={isOpen}
-                    onOpenChange={(open) => {
-                      if (open) setOpenItem(item.title)
-                      else if (openItem === item.title) setOpenItem(null)
-                    }}
+                    defaultOpen={isActive}
                     className="group/collapsible"
                   >
                     <SidebarMenuItem>
@@ -219,7 +204,7 @@ export function AppSidebar() {
                           <item.icon className={cn("h-5 w-5", isActive && "text-[#1FA67A]")} />
                           <span className={cn("text-sm font-medium", isActive && "font-bold")}>{item.title}</span>
                           <div className="ml-auto flex items-center gap-2">
-                            <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isOpen && "rotate-180")} />
+                            <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
                           </div>
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
