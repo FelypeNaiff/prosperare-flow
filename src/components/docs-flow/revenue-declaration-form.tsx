@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Printer, Download, Save, RefreshCw, PenTool, FileSpreadsheet, Keyboard, Calendar as CalendarIcon, Upload, Loader2 } from "lucide-react"
+import { Printer, Download, Save, RefreshCw, PenTool, FileSpreadsheet, Keyboard, Calendar as CalendarIcon, Upload, Loader2, X, Eye, TrendingUp } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { SignatureDialog } from "./signature-dialog"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -22,12 +21,14 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
+import Image from "next/image"
 
 export function RevenueDeclarationForm() {
   const firestore = useFirestore()
   const [source, setSource] = useState<"manual" | "pgdas">("manual")
   const [isManualClient, setIsManualClient] = useState(false)
   const [isSignatureOpen, setIsSignatureOpen] = useState(false)
+  const [isPreviewMode, setIsPreviewOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
@@ -39,7 +40,6 @@ export function RevenueDeclarationForm() {
     email: ""
   })
 
-  // Define o início automático: 12 meses antes do mês atual (ex: se Março, inicia Março/Anterior até Fevereiro/Atual)
   const [startPeriod, setStartPeriod] = useState(format(subMonths(startOfMonth(new Date()), 12), "yyyy-MM"))
   
   const [rows, setRows] = useState(
@@ -93,12 +93,13 @@ export function RevenueDeclarationForm() {
     setRows(newRows)
   }
 
-  const handleGenerate = () => {
+  const handlePreview = () => {
     if (!formData.empresa) {
       toast({ variant: "destructive", title: "Atenção", description: "Selecione a empresa para gerar o relatório." })
       return
     }
-    toast({ title: "Relatório de Faturamento Gerado!", description: "Documento pronto para exportação." })
+    setIsPreviewOpen(true)
+    toast({ title: "Visualização Gerada!" })
   }
 
   const handleFetchPgdas = () => {
@@ -145,195 +146,241 @@ export function RevenueDeclarationForm() {
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
-  return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <Card className="border-[#D2D7DB]">
-        <CardHeader className="bg-[#F7F7F7]/50 border-b">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <CardTitle className="text-lg font-black text-[#2C4156] uppercase">Relatório de Faturamento 12 Meses</CardTitle>
-              <CardDescription>Gere a declaração para bancos e licitações com inteligência de períodos.</CardDescription>
-            </div>
-            <div className="bg-white p-1 rounded-lg border shadow-sm">
-              <RadioGroup 
-                value={source} 
-                onValueChange={(v: any) => setSource(v)}
-                className="flex gap-0"
-              >
-                <div className="flex items-center">
-                  <RadioGroupItem value="manual" id="r-manual" className="sr-only" />
-                  <Label
-                    htmlFor="r-manual"
-                    className={cn(
-                      "px-4 py-1.5 text-[10px] font-black uppercase cursor-pointer rounded-md transition-all",
-                      source === "manual" ? "bg-[#2C4156] text-white" : "text-[#98A7AA] hover:bg-[#F7F7F7]"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Keyboard className="h-3 w-3" /> Manual
-                    </div>
-                  </Label>
-                </div>
-                <div className="flex items-center">
-                  <RadioGroupItem value="pgdas" id="r-pgdas" className="sr-only" />
-                  <Label
-                    htmlFor="r-pgdas"
-                    className={cn(
-                      "px-4 py-1.5 text-[10px] font-black uppercase cursor-pointer rounded-md transition-all",
-                      source === "pgdas" ? "bg-[#1FA67A] text-white" : "text-[#98A7AA] hover:bg-[#F7F7F7]"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <FileSpreadsheet className="h-3 w-3" /> Extrato PGDAS
-                    </div>
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Empresa de Referência</h4>
-            <div className="flex gap-2">
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                accept=".csv,.txt" 
-                onChange={handleImportCSV} 
-              />
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="text-[10px] font-bold text-[#2574A9] border-[#2574A9]/20 uppercase gap-1"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="h-3 w-3" /> Importar CSV
-              </Button>
-              <Button variant="ghost" size="sm" className="text-[10px] font-bold text-[#1FA67A] uppercase" onClick={() => {
-                setIsManualClient(!isManualClient)
-                setFormData({ empresa: "", cnpj: "", email: "" })
-              }}>
-                {isManualClient ? "Selecionar da Base" : "Digitar Manual"}
-              </Button>
-            </div>
-          </div>
+  const getClientLogo = (name: string) => {
+    if (!name) return null;
+    const seed = name.length;
+    return `https://picsum.photos/seed/${seed}/200/80`;
+  }
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-[#39586D]">Empresa</Label>
-              {!isManualClient ? (
-                <Select onValueChange={handleSelectClient}>
-                  <SelectTrigger className="border-[#D2D7DB]">
-                    <SelectValue placeholder={loadingClients ? "Carregando..." : "Escolher cliente..."} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {loadingClients ? (
-                      <div className="p-2 flex items-center justify-center"><Loader2 className="h-4 w-4 animate-spin" /></div>
-                    ) : (
-                      (clients || []).map(c => (
-                        <SelectItem key={c.id} value={c.id} className="uppercase text-xs font-bold">{c.corporateName}</SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input placeholder="Nome da empresa" value={formData.empresa} onChange={(e) => setFormData({...formData, empresa: e.target.value.toUpperCase()})} />
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-[#39586D]">CNPJ</Label>
-              <Input placeholder="00.000.000/0000-00" readOnly={!isManualClient} value={formData.cnpj} onChange={(e) => setFormData({...formData, cnpj: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-[#39586D]">Mês Inicial do Relatório</Label>
-              <div className="relative">
-                <CalendarIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
-                <Input 
-                  type="month" 
-                  className="pl-9 border-[#D2D7DB]" 
-                  value={startPeriod}
-                  onChange={(e) => setStartPeriod(e.target.value)}
-                />
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className={cn("space-y-6", isPreviewMode ? "lg:col-span-5" : "lg:col-span-12 max-w-4xl mx-auto")}>
+        <Card className="border-[#D2D7DB] shadow-sm">
+          <CardHeader className="bg-[#F7F7F7]/50 border-b">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <CardTitle className="text-lg font-black text-[#2C4156] uppercase">Relatório de Faturamento 12 Meses</CardTitle>
+                <CardDescription>Gere a declaração para bancos e licitações com períodos automatizados.</CardDescription>
+              </div>
+              <div className="bg-white p-1 rounded-lg border shadow-sm shrink-0">
+                <RadioGroup 
+                  value={source} 
+                  onValueChange={(v: any) => setSource(v)}
+                  className="flex gap-0"
+                >
+                  <div className="flex items-center">
+                    <RadioGroupItem value="manual" id="r-manual" className="sr-only" />
+                    <Label
+                      htmlFor="r-manual"
+                      className={cn(
+                        "px-4 py-1.5 text-[10px] font-black uppercase cursor-pointer rounded-md transition-all",
+                        source === "manual" ? "bg-[#2C4156] text-white" : "text-[#98A7AA] hover:bg-[#F7F7F7]"
+                      )}
+                    >
+                      Manual
+                    </Label>
+                  </div>
+                  <div className="flex items-center">
+                    <RadioGroupItem value="pgdas" id="r-pgdas" className="sr-only" />
+                    <Label
+                      htmlFor="r-pgdas"
+                      className={cn(
+                        "px-4 py-1.5 text-[10px] font-black uppercase cursor-pointer rounded-md transition-all",
+                        source === "pgdas" ? "bg-[#1FA67A] text-white" : "text-[#98A7AA] hover:bg-[#F7F7F7]"
+                      )}
+                    >
+                      PGDAS
+                    </Label>
+                  </div>
+                </RadioGroup>
               </div>
             </div>
-          </div>
-
-          <div className="space-y-4 pt-4 border-t">
+          </CardHeader>
+          <CardContent className="p-6 space-y-6">
             <div className="flex items-center justify-between">
-              <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Tabela de Valores (Edição Manual de Mês e Valor)</h4>
-              {source === "pgdas" && (
-                <Button variant="outline" size="sm" className="h-7 text-[10px] font-black uppercase border-[#1FA67A] text-[#1FA67A] gap-1 shadow-sm" onClick={handleFetchPgdas}>
-                  <RefreshCw className="h-3 w-3" /> Puxar Faturamento PGDAS
+              <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Identificação da Empresa</h4>
+              <div className="flex gap-2">
+                <input type="file" ref={fileInputRef} className="hidden" accept=".csv,.txt" onChange={handleImportCSV} />
+                <Button variant="outline" size="sm" className="text-[10px] font-bold text-[#2574A9] uppercase" onClick={() => fileInputRef.current?.click()}>
+                  Importar CSV
                 </Button>
-              )}
+                <Button variant="ghost" size="sm" className="text-[10px] font-bold text-[#1FA67A] uppercase" onClick={() => setIsManualClient(!isManualClient)}>
+                  {isManualClient ? "Base de Dados" : "Manual"}
+                </Button>
+              </div>
             </div>
 
-            <div className="border rounded-xl overflow-hidden shadow-sm bg-white">
-              <Table>
-                <TableHeader className="bg-[#F7F7F7]">
-                  <TableRow>
-                    <TableHead className="text-[10px] font-black uppercase text-[#2C4156] w-[200px]">Período (Mês/Ano)</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase text-[#2C4156] text-right">Valor Faturado (R$)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row, i) => (
-                    <TableRow key={i} className="h-10 hover:bg-slate-50/50 group">
-                      <TableCell className="py-1">
-                        <Input 
-                          className="h-8 text-xs font-bold text-[#39586D] border-none bg-transparent hover:bg-[#F7F7F7] focus:bg-white focus:ring-1 focus:ring-[#1FA67A]" 
-                          placeholder="MM/AAAA"
-                          value={row.periodo}
-                          onChange={(e) => handleUpdatePeriod(i, e.target.value)}
-                        />
-                      </TableCell>
-                      <TableCell className="py-1 text-right">
-                        <Input 
-                          type="number" 
-                          className="h-8 text-right text-xs border-none bg-transparent hover:bg-[#F7F7F7] focus:bg-white focus:ring-1 focus:ring-[#1FA67A]" 
-                          placeholder="0,00"
-                          value={row.valor || ""}
-                          onChange={(e) => handleUpdateValue(i, e.target.value)}
-                        />
-                      </TableCell>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2 col-span-2">
+                <Label className="text-xs font-bold">Empresa</Label>
+                {!isManualClient ? (
+                  <Select onValueChange={handleSelectClient}>
+                    <SelectTrigger className="border-[#D2D7DB]">
+                      <SelectValue placeholder={loadingClients ? "Carregando..." : "Escolher cliente..."} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(clients || []).map(c => (
+                        <SelectItem key={c.id} value={c.id} className="uppercase text-xs font-bold">{c.corporateName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input placeholder="Razão Social" value={formData.empresa} onChange={(e) => setFormData({...formData, empresa: e.target.value.toUpperCase()})} />
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold">CNPJ</Label>
+                <Input placeholder="00.000.000/0000-00" value={formData.cnpj} onChange={(e) => setFormData({...formData, cnpj: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold">Mês Inicial</Label>
+                <Input type="month" value={startPeriod} onChange={(e) => setStartPeriod(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex items-center justify-between">
+                <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Tabela de Faturamento</h4>
+                {source === "pgdas" && (
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] font-black uppercase border-[#1FA67A] text-[#1FA67A]" onClick={handleFetchPgdas}>
+                    Sincronizar PGDAS
+                  </Button>
+                )}
+              </div>
+
+              <div className="border rounded-xl overflow-hidden bg-white">
+                <Table>
+                  <TableHeader className="bg-[#F7F7F7]">
+                    <TableRow>
+                      <TableHead className="text-[10px] font-black uppercase text-[#2C4156]">Mês/Ano</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase text-[#2C4156] text-right">Valor (R$)</TableHead>
                     </TableRow>
-                  ))}
-                  <TableRow className="bg-[#2C4156] hover:bg-[#2C4156]">
-                    <TableCell className="text-white font-black text-xs uppercase py-3">Total Acumulado (12 meses)</TableCell>
-                    <TableCell className="text-white text-right font-black text-sm py-3">
-                      R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow className="bg-[#F7F7F7] hover:bg-[#F7F7F7] border-t-2 border-[#D2D7DB]">
-                    <TableCell className="text-[#39586D] font-black text-[10px] uppercase py-3">Média Mensal do Período</TableCell>
-                    <TableCell className="text-[#1FA67A] text-right font-black text-sm py-3">
-                      R$ {average.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row, i) => (
+                      <TableRow key={i} className="h-10">
+                        <TableCell className="py-1">
+                          <Input 
+                            className="h-8 text-xs font-bold border-none bg-transparent" 
+                            value={row.periodo}
+                            onChange={(e) => handleUpdatePeriod(i, e.target.value)}
+                          />
+                        </TableCell>
+                        <TableCell className="py-1 text-right">
+                          <Input 
+                            type="number" 
+                            className="h-8 text-right text-xs border-none bg-transparent" 
+                            value={row.valor || ""}
+                            onChange={(e) => handleUpdateValue(i, e.target.value)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
-          </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 pt-6">
-            <Button className="flex-1 bg-[#1FA67A] font-bold gap-2 shadow-lg shadow-emerald-500/20" onClick={handleGenerate}>
-              <Printer className="h-4 w-4" /> Gerar Documento
-            </Button>
-            <Button 
-              variant="outline" 
-              className="flex-1 border-[#2574A9] text-[#2574A9] hover:bg-[#2574A9]/5 font-bold gap-2"
-              onClick={() => setIsSignatureOpen(true)}
-            >
-              <PenTool className="h-4 w-4" /> Assinatura Digital
-            </Button>
-            <Button variant="outline" className="border-[#D2D7DB] font-bold gap-2 text-[#39586D]">
-              <Save className="h-4 w-4" /> Salvar Histórico
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="flex flex-col sm:flex-row gap-3 pt-6">
+              <Button className="flex-1 bg-[#2C4156] font-bold gap-2" onClick={handlePreview}>
+                <Eye className="h-4 w-4" /> Visualizar Documento
+              </Button>
+              <Button variant="outline" className="flex-1 border-[#2574A9] text-[#2574A9] font-bold gap-2" onClick={() => setIsSignatureOpen(true)}>
+                <PenTool className="h-4 w-4" /> Assinatura Digital
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {isPreviewMode && (
+        <div className="lg:col-span-7 animate-in fade-in slide-in-from-right-4 duration-500">
+          <Card className="border-[#D2D7DB] bg-[#F7F7F7] overflow-hidden sticky top-20 print:static print:bg-white print:border-none print:shadow-none">
+            <CardHeader className="bg-white border-b py-3 px-6 flex flex-row items-center justify-between print:hidden">
+              <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Pré-visualização do Relatório</CardTitle>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setIsPreviewOpen(false)}><X className="h-4 w-4 mr-1" /> Fechar</Button>
+                <Button size="sm" className="bg-[#1FA67A] gap-2" onClick={() => window.print()}>
+                  <Printer className="h-3 w-3" /> Imprimir / PDF
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-8 print:p-0">
+              <div className="bg-white shadow-xl mx-auto w-full min-h-[800px] p-12 text-[#2C4156] text-[11px] leading-relaxed border print:shadow-none print:border-none print-container">
+                
+                {/* Cabeçalho */}
+                <div className="flex items-start justify-between mb-12 border-b-2 border-[#2C4156] pb-8">
+                  <div className="space-y-1">
+                    <h2 className="text-lg font-black uppercase">{formData.empresa || "[NOME DA EMPRESA]"}</h2>
+                    <p className="font-bold text-[#98A7AA]">CNPJ: {formData.cnpj || "00.000.000/0000-00"}</p>
+                  </div>
+                  {formData.empresa && (
+                    <div className="relative w-32 h-12 grayscale opacity-80">
+                      <Image src={getClientLogo(formData.empresa)!} alt="Logo" fill className="object-contain" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-center space-y-2 mb-12">
+                  <h2 className="text-lg font-black uppercase underline underline-offset-8">DECLARAÇÃO DE FATURAMENTO DOS ÚLTIMOS 12 MESES</h2>
+                  <p className="font-bold text-[9px] text-[#98A7AA]">Prosperare Flow — Inteligência e Gestão Contábil</p>
+                </div>
+
+                <div className="space-y-8">
+                  <p className="text-justify leading-loose">
+                    Declaramos para os devidos fins de comprovação, que a empresa <strong>{formData.empresa || "[NOME DA EMPRESA]"}</strong>, inscrita no CNPJ sob o nº <strong>{formData.cnpj || "[CNPJ]"}</strong>, apresentou o seguinte faturamento bruto mensal no período de 12 (doze) meses retroativos à presente data:
+                  </p>
+
+                  <div className="border-2 border-[#2C4156] rounded-sm overflow-hidden">
+                    <Table>
+                      <TableHeader className="bg-[#F7F7F7]">
+                        <TableRow className="border-b-2 border-[#2C4156]">
+                          <TableHead className="text-[#2C4156] font-black h-8 text-center uppercase">MÊS DE REFERÊNCIA</TableHead>
+                          <TableHead className="text-[#2C4156] font-black h-8 text-right uppercase">FATURAMENTO BRUTO (R$)</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody className="divide-y divide-slate-200">
+                        {rows.map((row, i) => (
+                          <TableRow key={i} className="h-8">
+                            <TableCell className="text-center font-bold">{row.periodo}</TableCell>
+                            <TableCell className="text-right font-mono">R$ {Number(row.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow className="bg-[#F7F7F7] font-black border-t-2 border-[#2C4156]">
+                          <TableCell className="text-center uppercase">TOTAL ACUMULADO</TableCell>
+                          <TableCell className="text-right text-[#1FA67A]">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                        </TableRow>
+                        <TableRow className="bg-[#F7F7F7] font-black">
+                          <TableCell className="text-center uppercase">MÉDIA MENSAL</TableCell>
+                          <TableCell className="text-right text-[#2574A9]">R$ {average.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <p className="text-justify">
+                    Por ser a expressão da verdade, firmamos a presente declaração.
+                  </p>
+                </div>
+
+                <div className="mt-24 space-y-16">
+                  <p className="text-right">Emitido em {new Date().toLocaleDateString('pt-BR')}</p>
+                  <div className="grid grid-cols-2 gap-12 text-center pt-12">
+                    <div className="border-t border-[#2C4156] pt-2">
+                      <p className="font-bold uppercase text-[9px]">{formData.empresa || "CLIENTE"}</p>
+                      <p className="text-[8px] text-[#98A7AA] uppercase tracking-widest">Representante Legal</p>
+                    </div>
+                    <div className="border-t border-[#2C4156] pt-2">
+                      <p className="font-bold uppercase text-[9px]">PROSPERARE FLOW</p>
+                      <p className="text-[8px] text-[#98A7AA] uppercase tracking-widest">Contador Responsável</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <SignatureDialog 
         open={isSignatureOpen} 

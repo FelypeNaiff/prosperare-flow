@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -190,18 +189,18 @@ export function ProlaboreForm() {
 
       {isPreviewMode && (
         <div className="lg:col-span-7 animate-in fade-in slide-in-from-right-4 duration-500">
-          <Card className="border-[#D2D7DB] bg-[#F7F7F7] overflow-hidden sticky top-20">
-            <CardHeader className="bg-white border-b py-3 px-6 flex flex-row items-center justify-between">
+          <Card className="border-[#D2D7DB] bg-[#F7F7F7] overflow-hidden sticky top-20 print:static print:bg-white print:border-none print:shadow-none">
+            <CardHeader className="bg-white border-b py-3 px-6 flex flex-row items-center justify-between print:hidden">
               <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Pré-visualização do Documento</CardTitle>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setIsPreviewOpen(false)}><X className="h-4 w-4 mr-1" /> Fechar</Button>
                 <Button size="sm" className="bg-[#1FA67A] gap-2" onClick={() => window.print()}>
-                  <Download className="h-3 w-3" /> Gerar PDF
+                  <Printer className="h-3 w-3" /> Imprimir / PDF
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="p-8">
-              <div className="bg-white shadow-xl mx-auto w-full min-h-[800px] p-12 text-[#2C4156] text-[11px] leading-relaxed font-serif border print:border-none print:shadow-none">
+            <CardContent className="p-8 print:p-0">
+              <div className="bg-white shadow-xl mx-auto w-full min-h-[800px] p-12 text-[#2C4156] text-[11px] leading-relaxed font-serif border print:shadow-none print:border-none print-container">
                 
                 {/* Cabeçalho */}
                 <div className="flex items-start justify-between mb-12 border-b pb-8">
