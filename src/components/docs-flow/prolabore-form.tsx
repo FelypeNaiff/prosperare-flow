@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Printer, Download, Save, UserPlus, FileText, PenTool, Loader2, X, Eye, ReceiptText } from "lucide-react"
+import { Printer, Save, FileText, Eye, ReceiptText, Loader2, X } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
-import { SignatureDialog } from "./signature-dialog"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -18,7 +17,6 @@ import Image from "next/image"
 export function ProlaboreForm() {
   const firestore = useFirestore()
   const [isManual, setIsManual] = useState(false)
-  const [isSignatureOpen, setIsSignatureOpen] = useState(false)
   const [isPreviewMode, setIsPreviewOpen] = useState(false)
   const [docType, setDocType] = useState<"prolabore" | "contracheque">("prolabore")
   
@@ -165,7 +163,7 @@ export function ProlaboreForm() {
                   <Input type="number" placeholder="0,00" value={formData.inss} onChange={(e) => setFormData({...formData, inss: e.target.value})} />
                 </div>
                 <div className="space-y-2 col-span-2">
-                  <Label className="text-xs font-bold text-[#39586D]">E-mail para Assinatura</Label>
+                  <Label className="text-xs font-bold text-[#39586D]">E-mail para Contato</Label>
                   <Input type="email" placeholder="socio@email.com" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
                 </div>
               </div>
@@ -175,12 +173,8 @@ export function ProlaboreForm() {
               <Button className="flex-1 bg-[#2C4156] font-bold gap-2" onClick={handlePreview}>
                 <Eye className="h-4 w-4" /> Visualizar Documento
               </Button>
-              <Button 
-                variant="outline" 
-                className="border-[#2574A9] text-[#2574A9] hover:bg-[#2574A9]/5 font-bold gap-2"
-                onClick={() => setIsSignatureOpen(true)}
-              >
-                <PenTool className="h-4 w-4" /> Assinatura Digital
+              <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2">
+                <Save className="h-4 w-4" /> Salvar no Histórico
               </Button>
             </div>
           </CardContent>
@@ -336,14 +330,6 @@ export function ProlaboreForm() {
           </Card>
         </div>
       )}
-
-      <SignatureDialog 
-        open={isSignatureOpen} 
-        onOpenChange={setIsSignatureOpen} 
-        documentTitle={docType === 'prolabore' ? "Declaração de Pró-labore" : "Contra-cheque"}
-        recipientName={formData.socio || "Sócio"}
-        recipientEmail={formData.email || "socio@email.com"}
-      />
     </div>
   )
 }

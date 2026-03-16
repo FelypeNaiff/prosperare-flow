@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Printer, Download, Save, RefreshCw, PenTool, FileSpreadsheet, Keyboard, Calendar as CalendarIcon, Upload, Loader2, X, Eye, TrendingUp } from "lucide-react"
+import { Printer, Save, Eye, Loader2, X } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
-import { SignatureDialog } from "./signature-dialog"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { format, addMonths, subMonths, parse, startOfMonth } from "date-fns"
 import { cn } from "@/lib/utils"
@@ -27,7 +26,6 @@ export function RevenueDeclarationForm() {
   const firestore = useFirestore()
   const [source, setSource] = useState<"manual" | "pgdas">("manual")
   const [isManualClient, setIsManualClient] = useState(false)
-  const [isSignatureOpen, setIsSignatureOpen] = useState(false)
   const [isPreviewMode, setIsPreviewOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
@@ -285,8 +283,8 @@ export function RevenueDeclarationForm() {
               <Button className="flex-1 bg-[#2C4156] font-bold gap-2" onClick={handlePreview}>
                 <Eye className="h-4 w-4" /> Visualizar Documento
               </Button>
-              <Button variant="outline" className="flex-1 border-[#2574A9] text-[#2574A9] font-bold gap-2" onClick={() => setIsSignatureOpen(true)}>
-                <PenTool className="h-4 w-4" /> Assinatura Digital
+              <Button variant="outline" className="flex-1 border-[#D2D7DB] text-[#39586D] font-bold gap-2">
+                <Save className="h-4 w-4" /> Salvar no Histórico
               </Button>
             </div>
           </CardContent>
@@ -381,14 +379,6 @@ export function RevenueDeclarationForm() {
           </Card>
         </div>
       )}
-
-      <SignatureDialog 
-        open={isSignatureOpen} 
-        onOpenChange={setIsSignatureOpen} 
-        documentTitle="Declaração de Faturamento"
-        recipientName={formData.empresa || "Responsável Empresa"}
-        recipientEmail={formData.email}
-      />
     </div>
   )
 }

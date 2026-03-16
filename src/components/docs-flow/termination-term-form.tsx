@@ -13,21 +13,18 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Printer, Download, Save, UserPlus, CheckCircle2, FileText, PenTool, Image as ImageIcon, Loader2, X, Eye } from "lucide-react"
+import { Printer, Save, UserPlus, Eye, Loader2, X } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
-import { SignatureDialog } from "./signature-dialog"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 import { format, parseISO, isValid } from "date-fns"
-import { ptBR } from "date-fns/locale"
 
 export function TerminationTermForm() {
   const firestore = useFirestore()
   const [isManualClient, setIsManualClient] = useState(false)
   const [isPreviewMode, setIsPreviewOpen] = useState(false)
-  const [isSignatureOpen, setIsSignatureOpen] = useState(false)
   
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
   const { data: clients = [], isLoading } = useCollection(clientsQuery)
@@ -149,7 +146,7 @@ export function TerminationTermForm() {
                   <Input placeholder="000.000.000-00" value={formData.cpf} onChange={(e) => setFormData({...formData, cpf: e.target.value})} />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold text-[#39586D]">E-mail para Assinatura</Label>
+                  <Label className="text-xs font-bold text-[#39586D]">E-mail para Contato</Label>
                   <Input type="email" placeholder="e-mail@exemplo.com" value={formData.emailFuncionario} onChange={(e) => setFormData({...formData, emailFuncionario: e.target.value})} />
                 </div>
                 <div className="space-y-2">
@@ -196,13 +193,6 @@ export function TerminationTermForm() {
               <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Visualização de Impressão</CardTitle>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setIsPreviewOpen(false)}><X className="h-4 w-4 mr-1" /> Fechar</Button>
-                <Button 
-                  size="sm" 
-                  className="bg-[#2574A9] hover:bg-[#2574A9]/90 gap-2 font-bold"
-                  onClick={() => setIsSignatureOpen(true)}
-                >
-                  <PenTool className="h-3 w-3" /> Assinatura Digital
-                </Button>
                 <Button size="sm" className="bg-[#1FA67A] gap-2" onClick={() => window.print()}>
                   <Printer className="h-3 w-3" /> Imprimir / PDF
                 </Button>
@@ -276,14 +266,6 @@ export function TerminationTermForm() {
           </Card>
         </div>
       )}
-
-      <SignatureDialog 
-        open={isSignatureOpen} 
-        onOpenChange={setIsSignatureOpen} 
-        documentTitle="Termo de Quitação de Rescisão"
-        recipientName={formData.funcionario || "Colaborador"}
-        recipientEmail={formData.emailFuncionario || "funcionario@email.com"}
-      />
     </div>
   )
 }
