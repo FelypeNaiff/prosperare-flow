@@ -104,7 +104,34 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
       t.id === tarefaId ? { ...t, situacao: t.situacao === 'concluido' ? 'a_fazer' : 'concluido' } : t
     )
     setLocalTarefas(newTarefas)
-    handleUpdate('tarefas', newTarefas)
+    
+    // Lógica de automação de situação do processo
+    let newSituacao = process.situacao
+    const total = newTarefas.length
+    const concluídas = newTarefas.filter(t => t.situacao === 'concluido').length
+    
+    if (total > 0) {
+      if (concluídas === total) {
+        newSituacao = 'concluido'
+        toast({ title: "Processo Finalizado!", description: "Todas as tarefas foram concluídas." })
+      } else if (concluídas > 0) {
+        // Se algumas estão concluídas mas não todas, e o processo está "a_fazer", move para "em_progresso"
+        if (process.situacao === 'a_fazer') {
+          newSituacao = 'em_progresso'
+        }
+      } else if (concluídas === 0) {
+        // Se nenhuma está concluída e o processo estava em andamento, volta para "a_fazer"
+        if (process.situacao === 'em_progresso' || process.situacao === 'concluido') {
+          newSituacao = 'a_fazer'
+        }
+      }
+    }
+
+    const docRef = doc(firestore, "processes", process.id)
+    updateDocumentNonBlocking(docRef, { 
+      tarefas: newTarefas,
+      situacao: newSituacao
+    })
   }
 
   const handleAddComment = () => {
