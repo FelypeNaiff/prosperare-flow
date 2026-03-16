@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { 
   Plus, 
   FlameKindling, 
@@ -14,12 +14,13 @@ import {
   Loader2,
   Trash2,
   AlertTriangle,
-  FileCheck
+  FileCheck,
+  XCircle,
+  PlayCircle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { 
@@ -27,9 +28,11 @@ import {
   useCollection, 
   useMemoFirebase, 
   setDocumentNonBlocking, 
-  deleteDocumentNonBlocking 
+  deleteDocumentNonBlocking,
+  updateDocumentNonBlocking,
+  useDoc
 } from "@/firebase"
-import { collection, query, where, doc } from "firebase/firestore"
+import { collection, query, where, doc, getDocs } from "firebase/firestore"
 import { format, parseISO, differenceInDays, isBefore } from "date-fns"
 import {
   Dialog,
@@ -56,6 +59,10 @@ export function LicensesTab({ clientId }: LicensesTabProps) {
     expiryDate: "",
     issueDate: ""
   })
+
+  // Busca dados do cliente para usar no processo
+  const clientRef = useMemoFirebase(() => doc(firestore, "clients", clientId), [firestore, clientId])
+  const { data: client } = useDoc(clientRef)
 
   const licensesQuery = useMemoFirebase(() => 
     query(collection(firestore, "licenses"), where("clientId", "==", clientId)),
@@ -84,6 +91,47 @@ export function LicensesTab({ clientId }: LicensesTabProps) {
     setIsModalOpen(false)
     setNewLicense({ type: "Prefeitura", description: "", expiryDate: "", issueDate: "" })
     toast({ title: "Licença Cadastrada!", description: "O vencimento agora será monitorado." })
+  }
+
+  const handleCreateRenewalProcess = async (license: any) => {
+    if (!client) return
+
+    // Verifica se já existe um processo de renovação aberto para evitar duplicidade
+    const processesQuery = query(
+      collection(firestore, "processes"),
+      where("clienteId", "==", clientId),
+      where("nomeProcesso", "==", `RENOVAÇÃO DE ALVARÁ: ${license.type.toUpperCase()}`),
+      where("situacao", "!=", "concluido")
+    )
+    
+    const existing = await getDocs(processesQuery)
+    if (!existing.empty) {
+      toast({ title: "Processo já existe", description: "Já existe uma renovação em andamento no fluxo de produção." })
+      return
+    }
+
+    const processId = Math.random().toString(36).substr(2, 9)
+    const processRef = doc(firestore, "processes", processId)
+
+    const processData = {
+      id: processId,
+      clienteId: clientId,
+      nomeProcesso: `RENOVAÇÃO DE ALVARÁ: ${license.type.toUpperCase()}`,
+      situacao: "a_fazer",
+      departamento: "Legal",
+      responsavelId: "Geral",
+      prazo: license.expiryDate,
+      competencia: new Date().toISOString(),
+      criadoEm: new Date().toISOString(),
+      licenseId: license.id,
+      descricao: `Processo aberto automaticamente: Vencimento do Alvará (${license.type}) em ${format(parseISO(license.expiryDate), 'dd/MM/yyyy')}.`
+    }
+
+    setDocumentNonBlocking(processRef, processData, { merge: true })
+    toast({ 
+      title: "Processo Aberto!", 
+      description: "A tarefa de renovação foi enviada para o departamento Legal." 
+    })
   }
 
   const handleDelete = (id: string) => {
@@ -170,8 +218,14 @@ export function LicensesTab({ clientId }: LicensesTabProps) {
                       </span>
                     </div>
                     {status.critical && (
-                      <Button size="icon" variant="ghost" className="h-6 w-6 text-[#F2B705]" title="Abrir Processo de Renovação">
-                        <FileCheck className="h-4 w-4" />
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-8 w-8 text-[#F2B705] hover:bg-[#F2B705]/10 animate-pulse" 
+                        title="Abrir Processo de Renovação"
+                        onClick={() => handleCreateRenewalProcess(license)}
+                      >
+                        <PlayCircle className="h-5 w-5" />
                       </Button>
                     )}
                   </div>
@@ -242,26 +296,5 @@ export function LicensesTab({ clientId }: LicensesTabProps) {
         </DialogContent>
       </Dialog>
     </div>
-  )
-}
-
-function XCircle(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <path d="m15 9-6 6" />
-      <path d="m9 9 6 6" />
-    </svg>
   )
 }
