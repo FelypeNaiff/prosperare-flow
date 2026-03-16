@@ -25,7 +25,8 @@ import {
   Edit2,
   PlayCircle,
   Layers,
-  Copy
+  Copy,
+  FlameKindling
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
@@ -36,6 +37,7 @@ import { ClientCertificatesTable } from "@/components/certificates/client-certif
 import { AccessDataTab } from "@/components/clients/access-data-tab"
 import { ProcurationTab } from "@/components/clients/procuration-tab"
 import { ClientInstallmentsTab } from "@/components/installments/client-installments-tab"
+import { LicensesTab } from "@/components/clients/licenses-tab"
 import { ClientCommunicationTool } from "@/components/clients/client-communication-tool"
 import { Label } from "@/components/ui/label"
 import { useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase"
@@ -239,6 +241,9 @@ export default function DetalhesClientePage() {
             <TabsTrigger value="processos" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4 shrink-0">
               <Activity className="h-3.5 w-3.5" /> Processos Real-Time
             </TabsTrigger>
+            <TabsTrigger value="alvaras" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4 shrink-0">
+              <FlameKindling className="h-3.5 w-3.5" /> Alvarás e Licenças
+            </TabsTrigger>
             <TabsTrigger value="certidoes" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4 shrink-0">
               <ShieldCheck className="h-3.5 w-3.5" /> Certidões (CND)
             </TabsTrigger>
@@ -367,6 +372,10 @@ export default function DetalhesClientePage() {
               <ClientTasksList clientId={clientId} />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="alvaras" className="m-0">
+          <LicensesTab clientId={clientId} />
         </TabsContent>
 
         <TabsContent value="certidoes" className="m-0">

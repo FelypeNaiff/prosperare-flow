@@ -42,6 +42,21 @@
         "obligationGroups": { "type": "array", "items": { "type": "string" } }
       }
     },
+    "License": {
+      "title": "License",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "type": { "type": "string", "enum": ["Prefeitura", "Bombeiro", "Sanitário", "Ambiental", "Outros"] },
+        "description": { "type": "string" },
+        "issueDate": { "type": "string", "format": "date" },
+        "expiryDate": { "type": "string", "format": "date" },
+        "status": { "type": "string" },
+        "fileUrl": { "type": "string" }
+      },
+      "required": ["id", "clientId", "type", "expiryDate"]
+    },
     "Process": {
       "title": "Process",
       "type": "object",
@@ -192,6 +207,10 @@
     "/clients/{id}": {
       "schema": { "$ref": "#/backend/entities/Client" },
       "description": "Client database."
+    },
+    "/licenses/{id}": {
+      "schema": { "$ref": "#/backend/entities/License" },
+      "description": "Municipality and Fire Department licenses."
     },
     "/processes/{id}": {
       "schema": { "$ref": "#/backend/entities/Process" },
