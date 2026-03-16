@@ -92,19 +92,44 @@ export default function ContratosPage() {
     }
 
     const client = (clients || []).find(c => c.id === newContract.clientId)
-    const id = Math.random().toString(36).substr(2, 9)
-    const contractRef = doc(firestore, "contracts", id)
+    const contractId = Math.random().toString(36).substr(2, 9)
+    const contractRef = doc(firestore, "contracts", contractId)
     
     const contractData = {
       ...newContract,
-      id,
+      id: contractId,
       clientName: client?.corporateName || "Empresa não identificada",
       clientCnpj: client?.cnpj || "00.000.000/0000-00",
       clientRegime: client?.taxRegime || "Não informado",
       createdAt: new Date().toISOString()
     }
 
+    // 1. Salva o contrato
     setDocumentNonBlocking(contractRef, contractData, { merge: true })
+
+    // 2. Integração Automática com Contas a Receber
+    const receivableId = Math.random().toString(36).substr(2, 9)
+    const receivableRef = doc(firestore, "receivables", receivableId)
+    
+    // Calcula a data de vencimento baseada no dia escolhido e no mês atual
+    const today = new Date()
+    const vencimentoStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${newContract.dueDay.toString().padStart(2, '0')}`
+
+    const receivableData = {
+      id: receivableId,
+      descricao: `HONORÁRIO - ${newContract.serviceType}`.toUpperCase(),
+      cliente: client?.corporateName || "Cliente Avulso",
+      clientId: newContract.clientId,
+      pagamento: "PIX", // Padrão inicial
+      data: vencimentoStr,
+      valor: Number(newContract.value),
+      situacao: "Pendente",
+      recorrente: true,
+      tipoValor: "Fixo",
+      createdAt: new Date().toISOString()
+    }
+
+    setDocumentNonBlocking(receivableRef, receivableData, { merge: true })
     
     setIsNewModalOpen(false)
     setNewContract({
@@ -116,7 +141,11 @@ export default function ContratosPage() {
       notes: "",
       status: "Ativo"
     })
-    toast({ title: "Contrato Ativado!", description: "O registro foi salvo no banco de dados." })
+    
+    toast({ 
+      title: "Contrato Ativado!", 
+      description: "O contrato foi salvo e o honorário foi lançado no financeiro." 
+    })
   }
 
   const handleDelete = (id: string) => {
