@@ -13,7 +13,7 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Printer, Save, UserPlus, Eye, Loader2, X } from "lucide-react"
+import { Printer, Save, UserPlus, Eye, Loader2, X, Phone, Mail } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
@@ -36,6 +36,7 @@ export function TerminationTermForm() {
     cpf: "",
     emailFuncionario: "",
     valor: "",
+    valorExtenso: "",
     admissao: "",
     demissao: "",
     calculo: ""
@@ -58,13 +59,7 @@ export function TerminationTermForm() {
       return
     }
     setIsPreviewOpen(true)
-    toast({ title: "Documento Gerado!", description: "Pré-visualização pronta para conferência e impressão." })
-  }
-
-  const getClientLogo = (name: string) => {
-    if (!name) return null;
-    const seed = name.length;
-    return `https://picsum.photos/seed/${seed}/200/80`;
+    toast({ title: "Documento Gerado!" })
   }
 
   const formatDate = (dateStr: string) => {
@@ -79,7 +74,7 @@ export function TerminationTermForm() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div className={cn("space-y-6", isPreviewMode ? "lg:col-span-5" : "lg:col-span-12 max-w-4xl mx-auto")}>
+      <div className={cn("space-y-6", isPreviewMode ? "lg:col-span-5 no-print" : "lg:col-span-12 max-w-4xl mx-auto")}>
         <Card className="border-[#D2D7DB] shadow-sm">
           <CardHeader className="bg-[#F7F7F7]/50 border-b">
             <CardTitle className="text-lg font-black text-[#2C4156] uppercase">Termo de Quitação de Rescisão</CardTitle>
@@ -110,13 +105,9 @@ export function TerminationTermForm() {
                       <SelectValue placeholder={isLoading ? "Carregando..." : "Selecione o cliente..."} />
                     </SelectTrigger>
                     <SelectContent>
-                      {isLoading ? (
-                        <div className="p-2 flex items-center justify-center"><Loader2 className="h-4 w-4 animate-spin" /></div>
-                      ) : (
-                        (clients || []).map(c => (
-                          <SelectItem key={c.id} value={c.id} className="uppercase text-xs font-bold">{c.corporateName}</SelectItem>
-                        ))
-                      )}
+                      {(clients || []).map(c => (
+                        <SelectItem key={c.id} value={c.id} className="uppercase text-xs font-bold">{c.corporateName}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -146,10 +137,6 @@ export function TerminationTermForm() {
                   <Input placeholder="000.000.000-00" value={formData.cpf} onChange={(e) => setFormData({...formData, cpf: e.target.value})} />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold text-[#39586D]">E-mail para Contato</Label>
-                  <Input type="email" placeholder="e-mail@exemplo.com" value={formData.emailFuncionario} onChange={(e) => setFormData({...formData, emailFuncionario: e.target.value})} />
-                </div>
-                <div className="space-y-2">
                   <Label className="text-xs font-bold text-[#39586D]">Data de Admissão</Label>
                   <Input type="date" value={formData.admissao} onChange={(e) => setFormData({...formData, admissao: e.target.value})} />
                 </div>
@@ -161,15 +148,19 @@ export function TerminationTermForm() {
             </div>
 
             <div className="space-y-4 pt-4 border-t">
-              <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Valores e Memória de Cálculo</h4>
+              <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Valores</h4>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2 col-span-2">
+                <div className="space-y-2">
                   <Label className="text-xs font-bold text-[#39586D]">Valor Total Líquido (R$)</Label>
-                  <Input type="number" placeholder="0,00" className="font-black text-[#1FA67A]" value={formData.valor} onChange={(e) => setFormData({...formData, valor: e.target.value})} />
+                  <Input type="number" placeholder="0,00" value={formData.valor} onChange={(e) => setFormData({...formData, valor: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-[#39586D]">Valor por Extenso</Label>
+                  <Input placeholder="Ex: Mil reais" value={formData.valorExtenso} onChange={(e) => setFormData({...formData, valorExtenso: e.target.value})} />
                 </div>
                 <div className="col-span-2 space-y-2">
                   <Label className="text-xs font-bold text-[#39586D]">Espelho de Cálculo (Detalhamento)</Label>
-                  <Textarea placeholder="Descreva as verbas: Saldo salário, 13º proporcional, Férias..." className="h-32 text-xs font-mono" value={formData.calculo} onChange={(e) => setFormData({...formData, calculo: e.target.value})} />
+                  <Textarea placeholder="Descreva as verbas..." className="h-24 text-xs font-mono" value={formData.calculo} onChange={(e) => setFormData({...formData, calculo: e.target.value})} />
                 </div>
               </div>
             </div>
@@ -178,73 +169,71 @@ export function TerminationTermForm() {
               <Button className="flex-1 bg-[#2C4156] hover:bg-[#2C4156]/90 font-bold gap-2" onClick={handleGenerate}>
                 <Eye className="h-4 w-4" /> Visualizar Termo
               </Button>
-              <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2">
-                <Save className="h-4 w-4" /> Salvar no Histórico
-              </Button>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {isPreviewMode && (
-        <div className="lg:col-span-7 animate-in fade-in slide-in-from-right-4 duration-500">
+        <div className="lg:col-span-7 animate-in fade-in slide-in-from-right-4 duration-500 print-container">
           <Card className="border-[#D2D7DB] bg-[#F7F7F7] overflow-hidden sticky top-20 print:static print:bg-white print:border-none print:shadow-none">
-            <CardHeader className="bg-white border-b py-3 px-6 flex flex-row items-center justify-between print:hidden">
-              <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Visualização de Impressão</CardTitle>
+            <CardHeader className="bg-white border-b py-3 px-6 flex flex-row items-center justify-between no-print">
+              <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Pré-visualização do Termo</CardTitle>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setIsPreviewOpen(false)}><X className="h-4 w-4 mr-1" /> Fechar</Button>
-                <Button size="sm" className="bg-[#1FA67A] gap-2" onClick={() => window.print()}>
+                <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold" onClick={() => window.print()}>
                   <Printer className="h-3 w-3" /> Imprimir / PDF
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="p-8 print:p-0">
-              <div className="bg-white shadow-xl mx-auto w-full min-h-[800px] p-12 text-[#2C4156] text-[12px] leading-relaxed font-serif border print:shadow-none print:border-none print-container">
+            <CardContent className="p-0 print:p-0">
+              <div className="bg-white mx-auto w-full min-h-[297mm] flex flex-col text-[#2C4156] text-[12px] font-serif relative">
                 
-                <div className="flex items-start justify-between mb-12 border-b pb-8">
-                  <div className="space-y-1">
-                    <h2 className="text-lg font-black uppercase text-[#2C4156]">{formData.empresa || "[NOME DA EMPRESA]"}</h2>
-                    <p className="font-bold text-[#98A7AA]">CNPJ: {formData.cnpj || "00.000.000/0000-00"}</p>
-                  </div>
-                  {formData.empresa && (
-                    <div className="relative w-32 h-12 grayscale opacity-80">
-                      <Image 
-                        src={getClientLogo(formData.empresa)!} 
-                        alt="Logo Cliente" 
-                        fill 
-                        className="object-contain"
-                      />
+                {/* Papel Timbrado - Header */}
+                <div className="p-12 pb-0 flex justify-between items-start">
+                  <div className="flex items-start gap-4">
+                    <div className="border-2 border-[#003366] p-2 w-16 h-16 flex flex-col items-center justify-center leading-none">
+                      <span className="text-3xl font-serif italic text-[#003366]">P</span>
+                      <span className="text-[10px] font-bold text-[#003366] -mt-1">sc</span>
                     </div>
-                  )}
-                </div>
-
-                <div className="text-center space-y-2 mb-12">
-                  <h2 className="text-xl font-black uppercase underline underline-offset-8">TERMO DE QUITAÇÃO DE RESCISÃO CONTRATUAL</h2>
-                </div>
-
-                <div className="space-y-8 text-justify">
-                  <p>
-                    Que entre si fazem na melhor forma de direito, de um lado <strong>{formData.empresa || "[NOME DO CLIENTE]"}</strong>, pessoa jurídica de direito privado, inscrita no CNPJ nº <strong>{formData.cnpj || "[CNPJ]"}</strong>, a seguir chamado apenas de <strong>EMPREGADOR</strong>, e de outro lado <strong>{formData.funcionario || "[NOME DO FUNCIONÁRIO]"}</strong>, pessoa física, portador do CPF <strong>{formData.cpf || "[CPF]"}</strong>, a seguir chamado apenas de <strong>EMPREGADO</strong>.
-                  </p>
-
-                  <p>
-                    O EMPREGADO recebe neste ato do EMPREGADOR a importância de <strong>R$ {Number(formData.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>, em moeda corrente e legal do país, valor esse que se refere a quitação do contrato de trabalho, firmado entre as partes, desde <strong>{formatDate(formData.admissao)}</strong> a <strong>{formatDate(formData.demissao)}</strong>.
-                  </p>
-
-                  <div className="space-y-2">
-                    <h3 className="font-black border-b pb-1 text-[10px] uppercase tracking-widest text-[#1FA67A]">ESPELHO DE CÁLCULO</h3>
-                    <div className="bg-[#F7F7F7] p-4 rounded font-mono whitespace-pre-wrap text-[11px] min-h-[100px]">
-                      {formData.calculo || "[DETALHAMENTO DO CÁLCULO]"}
+                    <div className="flex flex-col">
+                      <span className="text-2xl font-serif italic text-[#003366] tracking-tighter">Prosperare</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#98A7AA]">Serviços Contábeis</span>
                     </div>
                   </div>
+                  <div className="w-12 h-6 bg-[#003366] rounded-sm skew-x-[-20deg]" />
+                </div>
 
-                  <p>
-                    O EMPREGADO, uma vez recebendo a importância em moeda corrente do país nesta data, bem como assinando este termo, dá ao EMPREGADOR, <strong>PLENA E GERAL QUITAÇÃO</strong>, para nada mais reclamar em época alguma, seja a que título for, em relação aos direitos ou obrigações presentes ou futuras, em se tratando não somente do mencionado Contrato de Trabalho, mas também de todo período que ficou para trás da data deste referido TERMO, abrindo mão também de qualquer ação civil, criminal ou trabalhista.
-                  </p>
+                {/* Conteúdo do Documento */}
+                <div className="px-16 py-12 flex-1 space-y-10">
+                  <div className="text-center space-y-2 mb-12">
+                    <h2 className="text-xl font-black uppercase underline underline-offset-8">TERMO DE QUITAÇÃO DE RESCISÃO CONTRATUAL</h2>
+                  </div>
 
-                  <p>
-                    Assim, sendo a expressão da verdade o EMPREGADO firma com o EMPREGADOR, o presente <strong>TERMO DE QUITAÇÃO TOTAL DOS DIREITOS TRABALHISTAS</strong>, para que surta os seus jurídicos e legais efeitos.
-                  </p>
+                  <div className="space-y-8 text-justify leading-relaxed">
+                    <p>
+                      Que entre si fazem na melhor forma de direito, de um lado <strong>{formData.empresa || "[CLIENTE]"}</strong>, pessoa jurídica de direito privado, inscrita no CNPJ nº <strong>{formData.cnpj || "[CNPJ]"}</strong>, a seguir chamado apenas de <strong>EMPREGADOR</strong>, e de outro lado <strong>{formData.funcionario || "[NOME DO FUNCIONÁRIO]"}</strong>, pessoa física, portador do CPF <strong>{formData.cpf || "[CPF]"}</strong>, a seguir chamado apenas de <strong>EMPREGADO</strong>.
+                    </p>
+
+                    <p>
+                      O EMPREGADO recebe neste ato do EMPREGADOR a importância de <strong>R$ {Number(formData.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} ({formData.valorExtenso || "VALOR POR EXTENSO"})</strong>, em moeda corrente e legal do país, valor esse que se refere a quitação do contrato de trabalho, firmado entre as partes, desde <strong>{formatDate(formData.admissao)}</strong> a <strong>{formatDate(formData.demissao)}</strong>.
+                    </p>
+
+                    <div className="space-y-2">
+                      <h3 className="font-black border-b pb-1 text-[10px] uppercase tracking-widest text-[#1FA67A]">ESPELHO DE CÁLCULO</h3>
+                      <div className="bg-slate-50 p-4 rounded font-mono whitespace-pre-wrap text-[11px] min-h-[100px] border border-slate-100">
+                        {formData.calculo || "[DETALHAMENTO DO CÁLCULO]"}
+                      </div>
+                    </div>
+
+                    <p>
+                      O EMPREGADO, uma vez recebendo a importância em moeda corrente do país nesta data, bem como assinando este termo, dá ao EMPREGADOR, <strong>PLENA E GERAL QUITAÇÃO</strong>, para nada mais reclamar em época alguma, seja a que título for, em relação aos direitos ou obrigações presentes ou futuras, em se tratando não somente do mencionado Contrato de Trabalho, mas também de todo período que ficou para trás da data deste referido TERMO, abrindo mão também de qualquer ação civil, criminal ou trabalhista.
+                    </p>
+
+                    <p>
+                      Assim, sendo a expressão da verdade o EMPREGADO firma com o EMPREGADOR, o presente <strong>TERMO DE QUITAÇÃO TOTAL DOS DIREITOS TRABALHISTAS</strong>, para que surta os seus jurídicos e legais efeitos.
+                    </p>
+                  </div>
 
                   <div className="mt-24 space-y-16">
                     <p className="text-right">Macapá - AP, {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
@@ -252,13 +241,32 @@ export function TerminationTermForm() {
                     <div className="grid grid-cols-2 gap-12 text-center pt-12">
                       <div className="border-t border-[#2C4156] pt-2">
                         <p className="font-bold uppercase text-[10px]">{formData.empresa || "EMPREGADOR"}</p>
-                        <p className="text-[9px] text-[#98A7AA] uppercase tracking-widest">Carimbo e Assinatura</p>
+                        <p className="text-[8px] text-[#98A7AA] uppercase tracking-widest">Carimbo e Assinatura</p>
                       </div>
                       <div className="border-t border-[#2C4156] pt-2">
                         <p className="font-bold uppercase text-[10px]">{formData.funcionario || "EMPREGADO"}</p>
-                        <p className="text-[9px] text-[#98A7AA] uppercase tracking-widest">Assinatura do Recebedor</p>
+                        <p className="text-[8px] text-[#98A7AA] uppercase tracking-widest">Assinatura do Recebedor</p>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Papel Timbrado - Footer */}
+                <div className="mt-auto">
+                  <div className="flex justify-end pr-12 mb-4">
+                    <div className="bg-[#98A7AA] p-4 text-white text-[9px] font-bold space-y-1 relative rounded-tl-3xl">
+                      <div className="absolute top-0 right-0 w-4 h-full bg-[#003366]" />
+                      <div className="flex items-center gap-2 pr-6">
+                        <Phone className="h-3 w-3" /> (96) 98129-6544 | (96) 98133-4568
+                      </div>
+                      <div className="flex items-center gap-2 pr-6">
+                        <Mail className="h-3 w-3" /> pscsucesso@gmail.com
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-[#003366] p-4 flex justify-between items-center text-white text-[10px] font-bold">
+                    <span className="pl-8 uppercase">PROSPERARE <span className="font-normal">Serviços Contábeis LTDA</span></span>
+                    <span className="pr-8 font-normal">Av. Acelino de Leão, nº 1046 – Trem, Macapá - Amapá</span>
                   </div>
                 </div>
               </div>

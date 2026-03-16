@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Printer, Save, Eye, Loader2, X } from "lucide-react"
+import { Printer, Save, Eye, Loader2, X, Phone, Mail } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { format, addMonths, subMonths, parse, startOfMonth } from "date-fns"
@@ -100,59 +100,9 @@ export function RevenueDeclarationForm() {
     toast({ title: "Visualização Gerada!" })
   }
 
-  const handleFetchPgdas = () => {
-    toast({ 
-      title: "Sincronizando PGDAS...", 
-      description: "Buscando dados de faturamento no portal e-CAC via Extrato PGDAS-D." 
-    })
-    const simulatedRows = rows.map(r => ({ ...r, valor: Math.floor(Math.random() * 50000) + 10000 }))
-    setRows(simulatedRows)
-  }
-
-  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const text = e.target?.result as string
-      const lines = text.split(/\r?\n/)
-      const values: number[] = []
-
-      lines.forEach(line => {
-        const cleanLine = line.replace(/[^\d.,]/g, '').replace(',', '.')
-        const num = parseFloat(cleanLine)
-        if (!isNaN(num)) values.push(num)
-      })
-
-      if (values.length >= 12) {
-        const newRows = [...rows]
-        for (let i = 0; i < 12; i++) {
-          newRows[i].valor = values[i]
-        }
-        setRows(newRows)
-        toast({ title: "Planilha Importada!", description: "12 meses de faturamento foram preenchidos." })
-      } else {
-        toast({ 
-          variant: "destructive",
-          title: "Erro na importação", 
-          description: "Não encontramos 12 valores numéricos válidos no arquivo." 
-        })
-      }
-    }
-    reader.readAsText(file)
-    if (fileInputRef.current) fileInputRef.current.value = ""
-  }
-
-  const getClientLogo = (name: string) => {
-    if (!name) return null;
-    const seed = name.length;
-    return `https://picsum.photos/seed/${seed}/200/80`;
-  }
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div className={cn("space-y-6", isPreviewMode ? "lg:col-span-5" : "lg:col-span-12 max-w-4xl mx-auto")}>
+      <div className={cn("space-y-6", isPreviewMode ? "lg:col-span-5 no-print" : "lg:col-span-12 max-w-4xl mx-auto")}>
         <Card className="border-[#D2D7DB] shadow-sm">
           <CardHeader className="bg-[#F7F7F7]/50 border-b">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -160,48 +110,12 @@ export function RevenueDeclarationForm() {
                 <CardTitle className="text-lg font-black text-[#2C4156] uppercase">Relatório de Faturamento 12 Meses</CardTitle>
                 <CardDescription>Gere a declaração para bancos e licitações com períodos automatizados.</CardDescription>
               </div>
-              <div className="bg-white p-1 rounded-lg border shadow-sm shrink-0">
-                <RadioGroup 
-                  value={source} 
-                  onValueChange={(v: any) => setSource(v)}
-                  className="flex gap-0"
-                >
-                  <div className="flex items-center">
-                    <RadioGroupItem value="manual" id="r-manual" className="sr-only" />
-                    <Label
-                      htmlFor="r-manual"
-                      className={cn(
-                        "px-4 py-1.5 text-[10px] font-black uppercase cursor-pointer rounded-md transition-all",
-                        source === "manual" ? "bg-[#2C4156] text-white" : "text-[#98A7AA] hover:bg-[#F7F7F7]"
-                      )}
-                    >
-                      Manual
-                    </Label>
-                  </div>
-                  <div className="flex items-center">
-                    <RadioGroupItem value="pgdas" id="r-pgdas" className="sr-only" />
-                    <Label
-                      htmlFor="r-pgdas"
-                      className={cn(
-                        "px-4 py-1.5 text-[10px] font-black uppercase cursor-pointer rounded-md transition-all",
-                        source === "pgdas" ? "bg-[#1FA67A] text-white" : "text-[#98A7AA] hover:bg-[#F7F7F7]"
-                      )}
-                    >
-                      PGDAS
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
             </div>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             <div className="flex items-center justify-between">
               <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Identificação da Empresa</h4>
               <div className="flex gap-2">
-                <input type="file" ref={fileInputRef} className="hidden" accept=".csv,.txt" onChange={handleImportCSV} />
-                <Button variant="outline" size="sm" className="text-[10px] font-bold text-[#2574A9] uppercase" onClick={() => fileInputRef.current?.click()}>
-                  Importar CSV
-                </Button>
                 <Button variant="ghost" size="sm" className="text-[10px] font-bold text-[#1FA67A] uppercase" onClick={() => setIsManualClient(!isManualClient)}>
                   {isManualClient ? "Base de Dados" : "Manual"}
                 </Button>
@@ -237,15 +151,7 @@ export function RevenueDeclarationForm() {
             </div>
 
             <div className="space-y-4 pt-4 border-t">
-              <div className="flex items-center justify-between">
-                <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Tabela de Faturamento</h4>
-                {source === "pgdas" && (
-                  <Button variant="outline" size="sm" className="h-7 text-[10px] font-black uppercase border-[#1FA67A] text-[#1FA67A]" onClick={handleFetchPgdas}>
-                    Sincronizar PGDAS
-                  </Button>
-                )}
-              </div>
-
+              <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Tabela de Faturamento</h4>
               <div className="border rounded-xl overflow-hidden bg-white">
                 <Table>
                   <TableHeader className="bg-[#F7F7F7]">
@@ -281,10 +187,7 @@ export function RevenueDeclarationForm() {
 
             <div className="flex flex-col sm:flex-row gap-3 pt-6">
               <Button className="flex-1 bg-[#2C4156] font-bold gap-2" onClick={handlePreview}>
-                <Eye className="h-4 w-4" /> Visualizar Documento
-              </Button>
-              <Button variant="outline" className="flex-1 border-[#D2D7DB] text-[#39586D] font-bold gap-2">
-                <Save className="h-4 w-4" /> Salvar no Histórico
+                <Eye className="h-4 w-4" /> Visualizar Relatório
               </Button>
             </div>
           </CardContent>
@@ -292,86 +195,120 @@ export function RevenueDeclarationForm() {
       </div>
 
       {isPreviewMode && (
-        <div className="lg:col-span-7 animate-in fade-in slide-in-from-right-4 duration-500">
+        <div className="lg:col-span-7 animate-in fade-in slide-in-from-right-4 duration-500 print-container">
           <Card className="border-[#D2D7DB] bg-[#F7F7F7] overflow-hidden sticky top-20 print:static print:bg-white print:border-none print:shadow-none">
-            <CardHeader className="bg-white border-b py-3 px-6 flex flex-row items-center justify-between print:hidden">
+            <CardHeader className="bg-white border-b py-3 px-6 flex flex-row items-center justify-between no-print">
               <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Pré-visualização do Relatório</CardTitle>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setIsPreviewOpen(false)}><X className="h-4 w-4 mr-1" /> Fechar</Button>
-                <Button size="sm" className="bg-[#1FA67A] gap-2" onClick={() => window.print()}>
+                <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold" onClick={() => window.print()}>
                   <Printer className="h-3 w-3" /> Imprimir / PDF
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="p-8 print:p-0">
-              <div className="bg-white shadow-xl mx-auto w-full min-h-[800px] p-12 text-[#2C4156] text-[11px] leading-relaxed border print:shadow-none print:border-none print-container">
+            <CardContent className="p-0 print:p-0">
+              <div className="bg-white mx-auto w-full min-h-[297mm] flex flex-col text-[#2C4156] text-[11px] leading-relaxed border font-serif relative">
                 
-                {/* Cabeçalho */}
-                <div className="flex items-start justify-between mb-12 border-b-2 border-[#2C4156] pb-8">
-                  <div className="space-y-1">
-                    <h2 className="text-lg font-black uppercase">{formData.empresa || "[NOME DA EMPRESA]"}</h2>
-                    <p className="font-bold text-[#98A7AA]">CNPJ: {formData.cnpj || "00.000.000/0000-00"}</p>
-                  </div>
-                  {formData.empresa && (
-                    <div className="relative w-32 h-12 grayscale opacity-80">
-                      <Image src={getClientLogo(formData.empresa)!} alt="Logo" fill className="object-contain" />
+                {/* Papel Timbrado - Header */}
+                <div className="p-12 pb-0 flex justify-between items-start">
+                  <div className="flex items-start gap-4">
+                    <div className="border-2 border-[#003366] p-2 w-16 h-16 flex flex-col items-center justify-center leading-none">
+                      <span className="text-3xl font-serif italic text-[#003366]">P</span>
+                      <span className="text-[10px] font-bold text-[#003366] -mt-1">sc</span>
                     </div>
-                  )}
+                    <div className="flex flex-col">
+                      <span className="text-2xl font-serif italic text-[#003366] tracking-tighter">Prosperare</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#98A7AA]">Serviços Contábeis</span>
+                    </div>
+                  </div>
+                  <div className="w-12 h-6 bg-[#003366] rounded-sm skew-x-[-20deg]" />
                 </div>
 
-                <div className="text-center space-y-2 mb-12">
-                  <h2 className="text-lg font-black uppercase underline underline-offset-8">DECLARAÇÃO DE FATURAMENTO DOS ÚLTIMOS 12 MESES</h2>
-                  <p className="font-bold text-[9px] text-[#98A7AA]">Prosperare Flow — Inteligência e Gestão Contábil</p>
-                </div>
+                {/* Conteúdo do Documento */}
+                <div className="px-16 py-12 flex-1 space-y-8">
+                  <div className="text-center space-y-2 mb-8">
+                    <h2 className="text-lg font-black uppercase underline underline-offset-8">DECLARAÇÃO DE FATURAMENTO DOS ÚLTIMOS 12 MESES</h2>
+                    <p className="font-bold text-[9px] text-[#98A7AA]">Prosperare Flow — Inteligência e Gestão Contábil</p>
+                  </div>
 
-                <div className="space-y-8">
-                  <p className="text-justify leading-loose">
-                    Declaramos para os devidos fins de comprovação, que a empresa <strong>{formData.empresa || "[NOME DA EMPRESA]"}</strong>, inscrita no CNPJ sob o nº <strong>{formData.cnpj || "[CNPJ]"}</strong>, apresentou o seguinte faturamento bruto mensal no período de 12 (doze) meses retroativos à presente data:
-                  </p>
+                  <div className="space-y-6">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex justify-between">
+                      <div>
+                        <p className="text-[8px] font-black uppercase text-[#98A7AA]">Razão Social</p>
+                        <p className="text-sm font-black uppercase">{formData.empresa || "[NOME DA EMPRESA]"}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[8px] font-black uppercase text-[#98A7AA]">CNPJ</p>
+                        <p className="text-sm font-black">{formData.cnpj || "00.000.000/0000-00"}</p>
+                      </div>
+                    </div>
 
-                  <div className="border-2 border-[#2C4156] rounded-sm overflow-hidden">
-                    <Table>
-                      <TableHeader className="bg-[#F7F7F7]">
-                        <TableRow className="border-b-2 border-[#2C4156]">
-                          <TableHead className="text-[#2C4156] font-black h-8 text-center uppercase">MÊS DE REFERÊNCIA</TableHead>
-                          <TableHead className="text-[#2C4156] font-black h-8 text-right uppercase">FATURAMENTO BRUTO (R$)</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody className="divide-y divide-slate-200">
-                        {rows.map((row, i) => (
-                          <TableRow key={i} className="h-8">
-                            <TableCell className="text-center font-bold">{row.periodo}</TableCell>
-                            <TableCell className="text-right font-mono">R$ {Number(row.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                    <p className="text-justify leading-relaxed text-xs">
+                      Declaramos para os devidos fins de comprovação, que a empresa supra citada apresentou o seguinte faturamento bruto mensal no período de 12 (doze) meses retroativos à presente data:
+                    </p>
+
+                    <div className="border-2 border-[#2C4156] rounded-sm overflow-hidden">
+                      <Table>
+                        <TableHeader className="bg-[#F7F7F7]">
+                          <TableRow className="border-b-2 border-[#2C4156]">
+                            <TableHead className="text-[#2C4156] font-black h-8 text-center uppercase">MÊS DE REFERÊNCIA</TableHead>
+                            <TableHead className="text-[#2C4156] font-black h-8 text-right uppercase">FATURAMENTO BRUTO (R$)</TableHead>
                           </TableRow>
-                        ))}
-                        <TableRow className="bg-[#F7F7F7] font-black border-t-2 border-[#2C4156]">
-                          <TableCell className="text-center uppercase">TOTAL ACUMULADO</TableCell>
-                          <TableCell className="text-right text-[#1FA67A]">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
-                        </TableRow>
-                        <TableRow className="bg-[#F7F7F7] font-black">
-                          <TableCell className="text-center uppercase">MÉDIA MENSAL</TableCell>
-                          <TableCell className="text-right text-[#2574A9]">R$ {average.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody className="divide-y divide-slate-200">
+                          {rows.map((row, i) => (
+                            <TableRow key={i} className="h-8">
+                              <TableCell className="text-center font-bold">{row.periodo}</TableCell>
+                              <TableCell className="text-right font-mono">R$ {Number(row.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="bg-[#F7F7F7] font-black border-t-2 border-[#2C4156]">
+                            <TableCell className="text-center uppercase text-[10px]">TOTAL ACUMULADO</TableCell>
+                            <TableCell className="text-right text-[#1FA67A]">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                          </TableRow>
+                          <TableRow className="bg-[#F7F7F7] font-black">
+                            <TableCell className="text-center uppercase text-[10px]">MÉDIA MENSAL</TableCell>
+                            <TableCell className="text-right text-[#2574A9]">R$ {average.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    <p className="text-justify text-xs italic">
+                      Por ser a expressão da verdade, firmamos a presente declaração.
+                    </p>
                   </div>
 
-                  <p className="text-justify">
-                    Por ser a expressão da verdade, firmamos a presente declaração.
-                  </p>
+                  <div className="mt-16 space-y-12">
+                    <p className="text-right">Macapá - AP, {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                    
+                    <div className="flex flex-col items-center text-center pt-8 space-y-1">
+                      <div className="w-64 border-t border-[#2C4156] pt-2">
+                        <p className="font-black uppercase text-[11px]">FELYPE MACIEL NAIFF</p>
+                        <p className="text-[9px] font-bold text-[#39586D] uppercase">CONTADOR RESPONSAVEL</p>
+                        <p className="text-[8px] text-[#98A7AA]">CRC 002428/O-9</p>
+                        <p className="text-[8px] text-[#98A7AA]">CPF 917.722.812-04</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mt-24 space-y-16">
-                  <p className="text-right">Emitido em {new Date().toLocaleDateString('pt-BR')}</p>
-                  <div className="grid grid-cols-2 gap-12 text-center pt-12">
-                    <div className="border-t border-[#2C4156] pt-2">
-                      <p className="font-bold uppercase text-[9px]">{formData.empresa || "CLIENTE"}</p>
-                      <p className="text-[8px] text-[#98A7AA] uppercase tracking-widest">Representante Legal</p>
+                {/* Papel Timbrado - Footer */}
+                <div className="mt-auto">
+                  <div className="flex justify-end pr-12 mb-4">
+                    <div className="bg-[#98A7AA] p-4 text-white text-[9px] font-bold space-y-1 relative rounded-tl-3xl">
+                      <div className="absolute top-0 right-0 w-4 h-full bg-[#003366]" />
+                      <div className="flex items-center gap-2 pr-6">
+                        <Phone className="h-3 w-3" /> (96) 98129-6544 | (96) 98133-4568
+                      </div>
+                      <div className="flex items-center gap-2 pr-6">
+                        <Mail className="h-3 w-3" /> pscsucesso@gmail.com
+                      </div>
                     </div>
-                    <div className="border-t border-[#2C4156] pt-2">
-                      <p className="font-bold uppercase text-[9px]">PROSPERARE FLOW</p>
-                      <p className="text-[8px] text-[#98A7AA] uppercase tracking-widest">Contador Responsável</p>
-                    </div>
+                  </div>
+                  <div className="bg-[#003366] p-4 flex justify-between items-center text-white text-[10px] font-bold">
+                    <span className="pl-8 uppercase">PROSPERARE <span className="font-normal">Serviços Contábeis LTDA</span></span>
+                    <span className="pr-8 font-normal">Av. Acelino de Leão, nº 1046 – Trem, Macapá - Amapá</span>
                   </div>
                 </div>
               </div>
