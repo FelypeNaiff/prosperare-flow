@@ -63,6 +63,7 @@ import {
 import { collection, doc } from "firebase/firestore"
 import { lookupCnpjAction } from "@/app/actions/cnpj-lookup"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import * as XLSX from 'xlsx'
 
 export default function ClientesPage() {
   const firestore = useFirestore()
@@ -72,6 +73,7 @@ export default function ClientesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [isNewClientOpen, setIsNewClientOpen] = useState(false)
   const [isLoadingCnpj, setIsLoadingCnpj] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
   
   const clientsQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "clients") : null, 
@@ -179,50 +181,59 @@ export default function ClientesPage() {
   }
 
   const handleDownloadModel = () => {
-    const csvContent = "Razão Social,Nome Fantasia,CNPJ,Regime Tributário,Email,Telefone,CEP,Endereço,Bairro,Cidade,Estado\n" +
-                       "EXEMPLO LTDA,NOME FANTASIA EXEMPLO,00.000.000/0001-00,Simples Nacional,contato@exemplo.com,(00) 00000-0000,00000-000,Rua Exemplo 123,Bairro Exemplo,Cidade Exemplo,AP";
+    const data = [
+      ["Razão Social", "Nome Fantasia", "CNPJ", "Regime Tributário", "Email", "Telefone", "CEP", "Endereço", "Bairro", "Cidade", "Estado"],
+      ["PROSPERARE EXEMPLO LTDA", "PROSPERARE DIGITAL", "00.000.000/0001-00", "Simples Nacional", "contato@exemplo.com", "(96) 98129-6544", "68900-000", "Av. Principal, 100", "Centro", "Macapá", "AP"]
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Modelo Clientes");
     
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "modelo_importacao_clientes.csv");
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Ajusta larguras das colunas
+    const wscols = [
+      {wch: 30}, {wch: 25}, {wch: 20}, {wch: 20}, {wch: 25}, {wch: 15}, {wch: 10}, {wch: 30}, {wch: 15}, {wch: 15}, {wch: 5}
+    ];
+    ws['!cols'] = wscols;
+
+    XLSX.writeFile(wb, "modelo_importacao_prosperare.xlsx");
+    toast({ title: "Modelo Excel Gerado", description: "O arquivo .xlsx foi baixado com sucesso." });
   }
 
-  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
+    setIsImporting(true)
     const reader = new FileReader()
+    
     reader.onload = (e) => {
-      const text = e.target?.result as string
-      const lines = text.split(/\r?\n/)
-      let count = 0
-
-      lines.forEach((line, index) => {
-        if (index === 0 || !line.trim()) return
-        const parts = line.split(/[;,]/)
-        if (parts.length >= 3) {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer)
+        const workbook = XLSX.read(data, { type: 'array' })
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
+        
+        let count = 0
+        rows.forEach((row, index) => {
+          if (index === 0 || !row[0]) return // Pula cabeçalho ou linha sem nome
+          
           const id = Math.random().toString(36).substr(2, 9)
           const clientRef = doc(firestore, "clients", id)
           
           const clientData = {
             id,
-            corporateName: parts[0]?.trim().toUpperCase() || "SEM NOME",
-            nomeFantasia: parts[1]?.trim().toUpperCase() || parts[0]?.trim().toUpperCase(),
-            cnpj: parts[2]?.trim() || "00.000.000/0000-00",
-            taxRegime: parts[3]?.trim() || "Simples Nacional",
-            email: parts[4]?.trim() || "",
-            phone: parts[5]?.trim() || "",
-            zipCode: parts[6]?.trim() || "",
-            address: parts[7]?.trim() || "",
-            neighborhood: parts[8]?.trim() || "",
-            city: parts[9]?.trim() || "",
-            state: parts[10]?.trim()?.toUpperCase() || "",
+            corporateName: String(row[0] || "").toUpperCase().trim(),
+            nomeFantasia: String(row[1] || row[0] || "").toUpperCase().trim(),
+            cnpj: String(row[2] || "").trim(),
+            taxRegime: String(row[3] || "Simples Nacional").trim(),
+            email: String(row[4] || "").trim(),
+            phone: String(row[5] || "").trim(),
+            zipCode: String(row[6] || "").trim(),
+            address: String(row[7] || "").trim(),
+            neighborhood: String(row[8] || "").trim(),
+            city: String(row[9] || "").trim(),
+            state: String(row[10] || "").toUpperCase().trim().substring(0, 2),
             status: "ATIVO",
             createdAt: new Date().toISOString(),
             companyContactPerson: "Responsável",
@@ -231,15 +242,22 @@ export default function ClientesPage() {
             healthScore: 100,
             obligationGroups: []
           }
+          
           setDocumentNonBlocking(clientRef, clientData, { merge: true })
           count++
-        }
-      })
+        })
 
-      toast({ title: "Importação Concluída", description: `${count} clientes foram cadastrados.` })
+        toast({ title: "Importação Concluída", description: `${count} clientes foram processados e salvos.` })
+      } catch (err) {
+        console.error(err)
+        toast({ variant: "destructive", title: "Erro na Importação", description: "Não foi possível ler a planilha. Verifique o formato." })
+      } finally {
+        setIsImporting(false)
+        if (fileInputRef.current) fileInputRef.current.value = ""
+      }
     }
-    reader.readAsText(file)
-    if (fileInputRef.current) fileInputRef.current.value = ""
+    
+    reader.readAsArrayBuffer(file)
   }
 
   const filteredClients = (clients || []).filter(c => 
@@ -253,8 +271,8 @@ export default function ClientesPage() {
         type="file" 
         ref={fileInputRef} 
         className="hidden" 
-        accept=".csv,.txt" 
-        onChange={handleImportCSV} 
+        accept=".xlsx,.xls,.csv" 
+        onChange={handleImportFile} 
       />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
@@ -264,10 +282,16 @@ export default function ClientesPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={handleDownloadModel}>
-            <FileSpreadsheet className="h-4 w-4" /> Modelo CSV
+            <FileSpreadsheet className="h-4 w-4 text-[#1FA67A]" /> Modelo Excel
           </Button>
-          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={() => fileInputRef.current?.click()}>
-            <Upload className="h-4 w-4" /> Importar Planilha
+          <Button 
+            variant="outline" 
+            className="border-[#D2D7DB] text-[#39586D] font-bold gap-2" 
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isImporting}
+          >
+            {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            Importar Planilha
           </Button>
           <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={handleExportPDF}>
             <FileDown className="h-4 w-4" /> Exportar PDF
