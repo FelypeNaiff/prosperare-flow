@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { 
   Plus, 
   Search, 
@@ -15,7 +15,9 @@ import {
   ShieldCheck,
   Eye,
   Trash2,
-  FileDown
+  FileDown,
+  Upload,
+  FileSpreadsheet
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -66,6 +68,7 @@ export default function ClientesPage() {
   const firestore = useFirestore()
   const router = useRouter()
   const { userLoaded } = useUser()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [isNewClientOpen, setIsNewClientOpen] = useState(false)
   const [isLoadingCnpj, setIsLoadingCnpj] = useState(false)
@@ -175,6 +178,70 @@ export default function ClientesPage() {
     window.print()
   }
 
+  const handleDownloadModel = () => {
+    const csvContent = "Razão Social,Nome Fantasia,CNPJ,Regime Tributário,Email,Telefone,CEP,Endereço,Bairro,Cidade,Estado\n" +
+                       "EXEMPLO LTDA,NOME FANTASIA EXEMPLO,00.000.000/0001-00,Simples Nacional,contato@exemplo.com,(00) 00000-0000,00000-000,Rua Exemplo 123,Bairro Exemplo,Cidade Exemplo,AP";
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "modelo_importacao_clientes.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const text = e.target?.result as string
+      const lines = text.split(/\r?\n/)
+      let count = 0
+
+      lines.forEach((line, index) => {
+        if (index === 0 || !line.trim()) return
+        const parts = line.split(/[;,]/)
+        if (parts.length >= 3) {
+          const id = Math.random().toString(36).substr(2, 9)
+          const clientRef = doc(firestore, "clients", id)
+          
+          const clientData = {
+            id,
+            corporateName: parts[0]?.trim().toUpperCase() || "SEM NOME",
+            nomeFantasia: parts[1]?.trim().toUpperCase() || parts[0]?.trim().toUpperCase(),
+            cnpj: parts[2]?.trim() || "00.000.000/0000-00",
+            taxRegime: parts[3]?.trim() || "Simples Nacional",
+            email: parts[4]?.trim() || "",
+            phone: parts[5]?.trim() || "",
+            zipCode: parts[6]?.trim() || "",
+            address: parts[7]?.trim() || "",
+            neighborhood: parts[8]?.trim() || "",
+            city: parts[9]?.trim() || "",
+            state: parts[10]?.trim()?.toUpperCase() || "",
+            status: "ATIVO",
+            createdAt: new Date().toISOString(),
+            companyContactPerson: "Responsável",
+            honorariumDueDateDay: 10,
+            honorariumValue: 0,
+            healthScore: 100,
+            obligationGroups: []
+          }
+          setDocumentNonBlocking(clientRef, clientData, { merge: true })
+          count++
+        }
+      })
+
+      toast({ title: "Importação Concluída", description: `${count} clientes foram cadastrados.` })
+    }
+    reader.readAsText(file)
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
   const filteredClients = (clients || []).filter(c => 
     c.corporateName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     c.cnpj?.includes(searchTerm)
@@ -182,14 +249,28 @@ export default function ClientesPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        className="hidden" 
+        accept=".csv,.txt" 
+        onChange={handleImportCSV} 
+      />
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão de Clientes</h1>
           <p className="text-[#98A7AA] font-bold text-sm">Administre sua base de empresas e acompanhe a regularidade.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={handleDownloadModel}>
+            <FileSpreadsheet className="h-4 w-4" /> Modelo CSV
+          </Button>
+          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="h-4 w-4" /> Importar Planilha
+          </Button>
           <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={handleExportPDF}>
-            <FileDown className="h-4 w-4" /> Exportar Relatório PDF
+            <FileDown className="h-4 w-4" /> Exportar PDF
           </Button>
           <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-bold shadow-lg" onClick={() => setIsNewClientOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Novo Cliente
@@ -218,7 +299,6 @@ export default function ClientesPage() {
           </div>
         </CardHeader>
         
-        {/* Cabeçalho Exclusivo para o PDF (Visível apenas na Impressão) */}
         <div className="hidden print:block p-8 border-b-2 border-[#2C4156] mb-6">
           <div className="flex justify-between items-center">
             <div>
@@ -254,8 +334,17 @@ export default function ClientesPage() {
               ) : filteredClients.length > 0 ? (
                 filteredClients.map((client) => (
                   <TableRow key={client.id} className="hover:bg-[#F7F7F7]/50 transition-colors print:border-b print:border-[#D2D7DB]">
-                    <TableCell className="font-bold text-[#2C4156] uppercase text-xs">
-                      {client.corporateName}
+                    <TableCell className="py-4">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-bold text-[#2C4156] uppercase text-xs">
+                          {client.corporateName}
+                        </span>
+                        {client.nomeFantasia && client.nomeFantasia !== client.corporateName && (
+                          <span className="text-[9px] text-[#98A7AA] font-bold uppercase italic tracking-wider">
+                            {client.nomeFantasia}
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-xs font-mono font-bold text-[#39586D]">
                       {client.cnpj}
@@ -303,7 +392,6 @@ export default function ClientesPage() {
           </Table>
         </CardContent>
         
-        {/* Rodapé de Página para o PDF */}
         <div className="hidden print:block p-12 text-center border-t border-[#D2D7DB] mt-8">
           <p className="text-[8px] font-black text-[#98A7AA] uppercase tracking-[0.3em]">
             Prosperare Flow — Inteligência e Gestão Contábil Digital • www.prosperare.flow
