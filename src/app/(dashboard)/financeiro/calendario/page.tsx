@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -39,16 +40,19 @@ import { ptBR } from "date-fns/locale"
 export default function FinanceiroCalendarioPage() {
   const firestore = useFirestore()
   const { userLoaded } = useUser()
-  const [currentDate, setCurrentDate] = useState(new Date())
+  const [currentDate, setCurrentDate] = useState<Date | null>(null)
 
-  // Busca dados de Contas a Pagar
+  // Evita erros de hidratação inicializando a data apenas no cliente
+  useEffect(() => {
+    setCurrentDate(new Date())
+  }, [])
+
   const payablesQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "payables") : null, 
     [firestore, userLoaded]
   )
   const { data: payables = [], isLoading: loadingPayables } = useCollection(payablesQuery)
 
-  // Busca dados de Contas a Receber
   const receivablesQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "receivables") : null, 
     [firestore, userLoaded]
@@ -56,13 +60,14 @@ export default function FinanceiroCalendarioPage() {
   const { data: receivables = [], isLoading: loadingReceivables } = useCollection(receivablesQuery)
 
   const calendarDays = useMemo(() => {
+    if (!currentDate) return []
     const start = startOfWeek(startOfMonth(currentDate))
     const end = endOfWeek(endOfMonth(currentDate))
     return eachDayOfInterval({ start, end })
   }, [currentDate])
 
-  const nextMonth = () => setCurrentDate(addMonths(currentDate, 1))
-  const prevMonth = () => setCurrentDate(subMonths(currentDate, 1))
+  const nextMonth = () => currentDate && setCurrentDate(addMonths(currentDate, 1))
+  const prevMonth = () => currentDate && setCurrentDate(subMonths(currentDate, 1))
 
   const allEvents = useMemo(() => {
     const combined = [
@@ -75,41 +80,47 @@ export default function FinanceiroCalendarioPage() {
   const getEventsForDay = (day: Date) => {
     return allEvents.filter(event => {
       if (!event.data) return false
-      return isSameDay(parseISO(event.data), day)
+      try {
+        return isSameDay(parseISO(event.data), day)
+      } catch {
+        return false
+      }
     })
   }
 
   const getStatusColor = (event: any) => {
     const isPaid = event.situacao === 'Pago' || event.situacao === 'Confirmado'
     const eventDate = event.data ? parseISO(event.data) : new Date()
-    const isOverdue = !isPaid && isBefore(eventDate, startOfMonth(new Date()))
+    const today = new Date()
+    const isOverdue = !isPaid && isBefore(eventDate, today)
 
-    if (isPaid) return "bg-[#7ED6B5] text-[#1FA67A]" // Pago
-    if (isOverdue) return "bg-[#FEE2E2] text-[#E74C3C]" // Vencido
-    return "bg-[#FEF3C7] text-[#F2B705]" // Pendente
+    if (isPaid) return "bg-[#7ED6B5] text-[#1FA67A]"
+    if (isOverdue) return "bg-[#FEE2E2] text-[#E74C3C]"
+    return "bg-[#FEF3C7] text-[#F2B705]"
   }
 
   const getStatusIndicator = (event: any) => {
     const isPaid = event.situacao === 'Pago' || event.situacao === 'Confirmado'
     const eventDate = event.data ? parseISO(event.data) : new Date()
-    const isOverdue = !isPaid && isBefore(eventDate, new Date())
+    const today = new Date()
+    const isOverdue = !isPaid && isBefore(eventDate, today)
 
     if (isPaid) return "bg-[#1FA67A]"
     if (isOverdue) return "bg-[#E74C3C]"
     return "bg-[#F2B705]"
   }
 
-  if (loadingPayables || loadingReceivables) {
+  if (!currentDate || loadingPayables || loadingReceivables) {
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-[#1FA67A]" />
-        <p className="text-xs font-black uppercase text-[#98A7AA] tracking-widest">Carregando Fluxo...</p>
+        <p className="text-xs font-black uppercase text-[#98A7AA] tracking-widest">Sincronizando Agenda Financeira...</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Calendário</h1>
         
