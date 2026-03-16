@@ -17,7 +17,8 @@ import {
   Trash2,
   FileDown,
   Upload,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Copy
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -174,6 +175,11 @@ export default function ClientesPage() {
       deleteDocumentNonBlocking(doc(firestore, "clients", id))
       toast({ title: "Cliente removido", variant: "destructive" })
     }
+  }
+
+  const handleCopyCNPJ = (cnpj: string) => {
+    navigator.clipboard.writeText(cnpj)
+    toast({ title: "CNPJ Copiado!", description: cnpj })
   }
 
   const handleExportPDF = () => {
@@ -371,7 +377,16 @@ export default function ClientesPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-xs font-mono font-bold text-[#39586D]">
-                      {client.cnpj}
+                      <div className="flex items-center gap-2 group/cnpj">
+                        {client.cnpj}
+                        <button 
+                          onClick={() => handleCopyCNPJ(client.cnpj)}
+                          className="p-1 rounded hover:bg-[#EBEDF0] text-[#98A7AA] hover:text-[#1FA67A] opacity-0 group-hover/cnpj:opacity-100 transition-all print:hidden"
+                          title="Copiar CNPJ"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="font-black text-[9px] uppercase border-[#D2D7DB] text-[#39586D] print:border-[#D2D7DB]">

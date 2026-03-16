@@ -24,7 +24,8 @@ import {
   Plus,
   Edit2,
   PlayCircle,
-  Layers
+  Layers,
+  Copy
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
@@ -67,6 +68,11 @@ export default function DetalhesClientePage() {
       : [...currentGroups, groupId]
     
     updateDocumentNonBlocking(clientRef, { obligationGroups: newGroups })
+  }
+
+  const handleCopyCNPJ = (cnpj: string) => {
+    navigator.clipboard.writeText(cnpj)
+    toast({ title: "CNPJ Copiado!", description: cnpj })
   }
 
   const handleGenerateTasks = async () => {
@@ -149,7 +155,16 @@ export default function DetalhesClientePage() {
                 {client.status || 'Ativa'}
               </Badge>
             </div>
-            <p className="text-sm text-[#98A7AA] font-bold uppercase tracking-widest">{client.cnpj} • {client.taxRegime}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-sm text-[#98A7AA] font-bold uppercase tracking-widest">{client.cnpj} • {client.taxRegime}</p>
+              <button 
+                onClick={() => handleCopyCNPJ(client.cnpj)}
+                className="p-1 rounded hover:bg-[#EBEDF0] text-[#98A7AA] hover:text-[#1FA67A] transition-all"
+                title="Copiar CNPJ"
+              >
+                <Copy className="h-3 w-3" />
+              </button>
+            </div>
           </div>
         </div>
         <div className="flex gap-2">
@@ -248,7 +263,18 @@ export default function DetalhesClientePage() {
                 </CardHeader>
                 <CardContent className="p-6 grid grid-cols-2 gap-6">
                   <InfoItem label="Razão Social" value={client.corporateName} />
-                  <InfoItem label="CNPJ" value={client.cnpj} />
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">CNPJ</Label>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-[#2C4156]">{client.cnpj}</p>
+                      <button 
+                        onClick={() => handleCopyCNPJ(client.cnpj)}
+                        className="p-1 rounded hover:bg-[#EBEDF0] text-[#98A7AA] transition-all"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
                   <InfoItem label="Inscrição Estadual" value={client.stateRegistration || "ISENTO"} />
                   <InfoItem label="Inscrição Municipal" value={client.cityRegistration || "--"} />
                   <InfoItem label="Regime" value={client.taxRegime} />
