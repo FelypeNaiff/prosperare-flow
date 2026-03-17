@@ -53,6 +53,7 @@ import {
 import { collection, doc, query, orderBy } from "firebase/firestore"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { ClientSearchSelect } from "@/components/clients/client-search-select"
 
 export default function GruposObrigacoesPage() {
   const firestore = useFirestore()
@@ -64,7 +65,6 @@ export default function GruposObrigacoesPage() {
   const groupsQuery = useMemoFirebase(() => collection(firestore, "obligation_groups"), [firestore])
   const { data: groups = [], isLoading } = useCollection(groupsQuery)
 
-  // Corrigido para buscar da coleção correta de modelos
   const templatesQuery = useMemoFirebase(() => collection(firestore, "processoModelos"), [firestore])
   const { data: templates = [] } = useCollection(templatesQuery)
 
@@ -168,6 +168,7 @@ export default function GruposObrigacoesPage() {
   }
 
   const toggleClientLink = (client: any) => {
+    if (!client) return
     const isLinked = client.obligationGroups?.includes(editingGroup?.id)
     const clientRef = doc(firestore, "clients", client.id)
     
@@ -427,18 +428,12 @@ export default function GruposObrigacoesPage() {
                         </div>
                         <div className="w-full md:w-64 space-y-2">
                           <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Incluir Nova Empresa</Label>
-                          <Select onValueChange={(val) => toggleClientLink(allClients.find(c => c.id === val))}>
-                            <SelectTrigger className="h-10 border-[#1FA67A] text-[#1FA67A] font-bold">
-                              <SelectValue placeholder="Adicionar à lista..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableClientsToAdd.map(client => (
-                                <SelectItem key={client.id} value={client.id}>
-                                  {client.corporateName}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <ClientSearchSelect 
+                            clients={availableClientsToAdd} 
+                            onValueChange={(val: string) => toggleClientLink(allClients.find(c => c.id === val))}
+                            placeholder="Adicionar à lista..."
+                            className="border-[#1FA67A] text-[#1FA67A] h-10"
+                          />
                         </div>
                       </div>
                     </div>
