@@ -15,13 +15,13 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 
 /**
  * Componente de seleção de cliente com busca integrada.
- * Ajustado com onPointerDown e gerenciamento de foco manual para funcionar dentro de Dialogs.
+ * Ajustado para funcionar perfeitamente dentro de Modais (Dialogs).
  */
 export function ClientSearchSelect({ 
   clients, 
   value, 
   onValueChange, 
-  placeholder = "Selecione o cliente...",
+  placeholder = "SELECIONE O CLIENTE...",
   className,
   disabled = false
 }: any) {
@@ -46,10 +46,13 @@ export function ClientSearchSelect({
     return (clients || []).find((c: any) => c.id === value)
   }, [clients, value])
 
-  // Foca no input quando o popover abre
+  // Força o foco no input quando o popover abre, mesmo dentro de modais
   React.useEffect(() => {
     if (open) {
-      setTimeout(() => inputRef.current?.focus(), 100)
+      const timer = setTimeout(() => {
+        inputRef.current?.focus()
+      }, 150)
+      return () => clearTimeout(timer)
     }
   }, [open])
 
@@ -62,7 +65,7 @@ export function ClientSearchSelect({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "w-full justify-between h-11 border-[#D2D7DB] hover:border-[#1FA67A] transition-colors font-bold uppercase text-[11px] px-4",
+            "w-full justify-between h-11 border-[#D2D7DB] hover:border-[#1FA67A] transition-colors font-bold uppercase text-[11px] px-4 bg-white",
             open && "border-[#1FA67A] ring-1 ring-[#1FA67A]/20",
             className
           )}
@@ -74,9 +77,9 @@ export function ClientSearchSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-[450px] max-w-[calc(100vw-40px)] p-0 border-[#D2D7DB] shadow-2xl z-[1000]"
+        className="w-[500px] max-w-[calc(100vw-40px)] p-0 border-[#D2D7DB] shadow-2xl z-[9999]"
         align="start"
-        onOpenAutoFocus={(e) => e.preventDefault()} // Impede o Dialog de roubar o foco inicial
+        onOpenAutoFocus={(e) => e.preventDefault()} // Impede o Dialog de roubar o foco
       >
         <div className="flex flex-col">
           <div className="flex items-center border-b px-3 bg-[#F7F7F7]">
@@ -99,13 +102,15 @@ export function ClientSearchSelect({
                 filteredClients.map((client: any) => (
                   <button
                     key={client.id}
+                    type="button"
                     className={cn(
                       "relative flex w-full cursor-pointer select-none items-center rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none hover:bg-[#1FA67A] hover:text-white transition-all text-left mb-1 last:mb-0",
                       value === client.id ? "bg-[#1FA67A] text-white" : "text-[#2C4156]"
                     )}
-                    // Usamos onPointerDown para garantir que o clique seja registrado antes da perda de foco do modal
+                    // Usamos onPointerDown para interceptar antes da perda de foco do modal
                     onPointerDown={(e) => {
                       e.preventDefault()
+                      e.stopPropagation()
                       onValueChange(client.id)
                       setOpen(false)
                       setSearch("")

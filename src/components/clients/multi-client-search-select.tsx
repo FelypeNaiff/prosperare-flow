@@ -21,7 +21,7 @@ export function MultiClientSearchSelect({
   clients, 
   value = [], 
   onValueChange, 
-  placeholder = "Selecionar empresas..." 
+  placeholder = "SELECIONAR EMPRESAS..." 
 }: any) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState("")
@@ -47,7 +47,10 @@ export function MultiClientSearchSelect({
 
   React.useEffect(() => {
     if (open) {
-      setTimeout(() => inputRef.current?.focus(), 100)
+      const timer = setTimeout(() => {
+        inputRef.current?.focus()
+      }, 150)
+      return () => clearTimeout(timer)
     }
   }, [open])
 
@@ -59,16 +62,16 @@ export function MultiClientSearchSelect({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between h-11 border-[#D2D7DB] hover:border-[#1FA67A] transition-colors font-bold uppercase text-[11px] px-4"
+            className="w-full justify-between h-11 border-[#D2D7DB] hover:border-[#1FA67A] transition-colors font-bold uppercase text-[11px] px-4 bg-white"
           >
             <span className="truncate">
-              {value.length > 0 ? `${value.length} empresas selecionadas` : placeholder}
+              {value.length > 0 ? `${value.length} EMPRESAS SELECIONADAS` : placeholder}
             </span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent 
-          className="w-[450px] p-0 border-[#D2D7DB] shadow-2xl z-[1000]"
+          className="w-[500px] p-0 border-[#D2D7DB] shadow-2xl z-[9999]"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <div className="flex flex-col">
@@ -87,12 +90,14 @@ export function MultiClientSearchSelect({
                 {filteredClients.map((client: any) => (
                   <button
                     key={client.id}
+                    type="button"
                     className={cn(
                       "relative flex w-full cursor-pointer select-none items-center rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none hover:bg-[#F7F7F7] transition-all text-left mb-1",
                       value.includes(client.id) && "bg-[#1FA67A]/5 text-[#1FA67A]"
                     )}
                     onPointerDown={(e) => {
                       e.preventDefault()
+                      e.stopPropagation()
                       toggleClient(client.id)
                     }}
                   >
@@ -121,7 +126,13 @@ export function MultiClientSearchSelect({
             return (
               <Badge key={id} variant="secondary" className="bg-white border-[#D2D7DB] text-[#2C4156] font-bold text-[9px] uppercase px-2 h-6 gap-1">
                 {client?.corporateName?.split(' ')[0]}
-                <X className="h-3 w-3 cursor-pointer hover:text-[#E74C3C]" onClick={() => toggleClient(id)} />
+                <X className="h-3 w-3 cursor-pointer hover:text-[#E74C3C]" 
+                   onPointerDown={(e) => {
+                     e.preventDefault()
+                     e.stopPropagation()
+                     toggleClient(id)
+                   }} 
+                />
               </Badge>
             )
           })}
