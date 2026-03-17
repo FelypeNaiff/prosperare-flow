@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -40,7 +41,8 @@ import {
   CalendarClock,
   CheckCircle2,
   Zap,
-  Repeat
+  Repeat,
+  User
 } from "lucide-react"
 import { useFirestore, setDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase"
 import { doc, collection } from "firebase/firestore"
@@ -56,11 +58,15 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
   const { data: allClients } = useCollection(clientsQuery)
 
+  const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
+  const { data: team = [] } = useCollection(usersQuery)
+
   const [formData, setFormData] = useState({
     nome: "",
     descricao: "",
     tipo: "recorrente",
     departamento: "Fiscal",
+    responsavelPadraoId: "Geral",
     regimes: [] as string[],
     dataGeracaoRecorrencia: 1,
     recorrencia: "mensal",
@@ -88,6 +94,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
         descricao: "",
         tipo: "recorrente",
         departamento: "Fiscal",
+        responsavelPadraoId: "Geral",
         regimes: [],
         dataGeracaoRecorrencia: 1,
         recorrencia: "mensal",
@@ -242,17 +249,33 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                   </div>
 
                   <div className="space-y-6">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Departamento Responsável</Label>
-                      <Select value={formData.departamento} onValueChange={(v) => setFormData({...formData, departamento: v})}>
-                        <SelectTrigger className="border-[#D2D7DB]"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Fiscal">Fiscal</SelectItem>
-                          <SelectItem value="Pessoal">Departamento Pessoal</SelectItem>
-                          <SelectItem value="Contábil">Contábil</SelectItem>
-                          <SelectItem value="Legal">Legalização</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Departamento Responsável</Label>
+                        <Select value={formData.departamento} onValueChange={(v) => setFormData({...formData, departamento: v})}>
+                          <SelectTrigger className="border-[#D2D7DB]"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Fiscal">Fiscal</SelectItem>
+                            <SelectItem value="Pessoal">Departamento Pessoal</SelectItem>
+                            <SelectItem value="Contábil">Contábil</SelectItem>
+                            <SelectItem value="Legal">Legalização</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Responsável Padrão</Label>
+                        <Select value={formData.responsavelPadraoId} onValueChange={(v) => setFormData({...formData, responsavelPadraoId: v})}>
+                          <SelectTrigger className="border-[#D2D7DB] font-bold">
+                            <SelectValue placeholder="Escolher..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Geral" className="font-bold">GERAL / CLIENTE</SelectItem>
+                            {team?.map(u => (
+                              <SelectItem key={u.id} value={u.fullName} className="font-medium uppercase">{u.fullName}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Descrição do Escopo</Label>

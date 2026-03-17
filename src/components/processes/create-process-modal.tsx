@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -22,7 +23,7 @@ import {
 import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
-import { Layers, Building2, Calendar, Save, Loader2 } from "lucide-react"
+import { Layers, Building2, Calendar, Save, Loader2, User } from "lucide-react"
 import { format, parse, addMonths, lastDayOfMonth, setDate } from "date-fns"
 import { MultiClientSearchSelect } from "@/components/clients/multi-client-search-select"
 
@@ -36,10 +37,14 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
   const { data: clients = [] } = useCollection(clientsQuery)
 
+  const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
+  const { data: team = [] } = useCollection(usersQuery)
+
   const [formData, setFormData] = useState({
     modeloId: "",
     clientIds: [] as string[],
     competencia: format(new Date(), "yyyy-MM"),
+    responsavelId: "Padrao" // "Padrao" usará o do cliente ou do modelo
   })
 
   const handleCreate = async () => {
@@ -74,6 +79,15 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
         const id = Math.random().toString(36).substr(2, 9)
         const processRef = doc(firestore, "processes", id)
 
+        // Lógica de Responsável: 
+        // 1. Se foi selecionado um específico no modal, usa ele.
+        // 2. Senão, se o modelo tem um padrão, usa o do modelo.
+        // 3. Senão, usa o responsável cadastrado no cliente.
+        // 4. Por fim, "Geral".
+        let finalResponsible = formData.responsavelId === "Padrao" 
+          ? (model.responsavelPadraoId !== "Geral" ? model.responsavelPadraoId : (client.accountingContactUserId || "Geral"))
+          : formData.responsavelId
+
         const newProcess = {
           id,
           modeloId: model.id,
@@ -81,7 +95,7 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
           nomeProcesso: model.nome,
           situacao: "a_fazer",
           departamento: model.departamento || "Geral",
-          responsavelId: client.accountingContactUserId || "Geral",
+          responsavelId: finalResponsible,
           prazo: dueDate.toISOString(),
           prazoMeta: dueDate.toISOString(),
           competencia: competenceDate.toISOString(),
@@ -102,7 +116,7 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
         description: `${formData.clientIds.length} processos foram criados com sucesso.` 
       })
       onOpenChange(false)
-      setFormData({ modeloId: "", clientIds: [], competencia: format(new Date(), "yyyy-MM") })
+      setFormData({ modeloId: "", clientIds: [], competencia: format(new Date(), "yyyy-MM"), responsavelId: "Padrao" })
     } catch (e) {
       toast({ title: "Erro ao criar", description: "Houve uma falha na geração dos processos.", variant: "destructive" })
     } finally {
@@ -112,11 +126,11 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none shadow-2xl">
+      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden border-none shadow-2xl">
         <DialogHeader className="p-6 bg-[#2C4156] text-white">
           <DialogTitle className="text-2xl font-black uppercase tracking-tight">Geração em Massa</DialogTitle>
           <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
-            Selecione várias empresas para instanciar processos simultaneamente.
+            Instancie processos simultaneamente para múltiplos clientes.
           </DialogDescription>
         </DialogHeader>
 
@@ -139,7 +153,7 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
 
           <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
-              <Building2 className="h-3 w-3" /> Empresas / Clientes (Seleção Múltipla)
+              <Building2 className="h-3 w-3" /> Empresas / Clientes
             </Label>
             <MultiClientSearchSelect 
               clients={clients} 
@@ -148,16 +162,34 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
             />
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
-              <Calendar className="h-3 w-3" /> Competência de Referência
-            </Label>
-            <Input 
-              type="month" 
-              value={formData.competencia} 
-              onChange={(e) => setFormData({...formData, competencia: e.target.value})}
-              className="border-[#D2D7DB] h-11 font-bold"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
+                <Calendar className="h-3 w-3" /> Competência
+              </Label>
+              <Input 
+                type="month" 
+                value={formData.competencia} 
+                onChange={(e) => setFormData({...formData, competencia: e.target.value})}
+                className="border-[#D2D7DB] h-11 font-bold"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
+                <User className="h-3 w-3" /> Atribuir Responsável
+              </Label>
+              <Select value={formData.responsavelId} onValueChange={(v) => setFormData({...formData, responsavelId: v})}>
+                <SelectTrigger className="border-[#D2D7DB] h-11">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Padrao" className="font-bold">USAR PADRÃO DO MODELO/CLIENTE</SelectItem>
+                  {team?.map(u => (
+                    <SelectItem key={u.id} value={u.fullName} className="text-xs font-bold uppercase">{u.fullName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
