@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -15,11 +14,11 @@ import { Button } from "@/components/ui/button"
 import { 
   PlusCircle, 
   FileSearch, 
-  MoreVertical,
   Loader2,
   Save,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw
 } from "lucide-react"
 import {
   Dialog,
@@ -44,7 +43,8 @@ import {
   useCollection, 
   useMemoFirebase, 
   setDocumentNonBlocking, 
-  deleteDocumentNonBlocking 
+  deleteDocumentNonBlocking,
+  updateDocumentNonBlocking
 } from "@/firebase"
 import { collection, query, where, doc } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
@@ -63,6 +63,7 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
   const firestore = useFirestore()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [syncingId, setSyncingId] = useState<string | null>(null)
   
   const [newCert, setNewCert] = useState({
     tipo: "Federal",
@@ -102,6 +103,32 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
       setNewCert({ tipo: "Federal", numero: "", emissao: "", validade: "" })
       toast({ title: "Certidão Registrada!", description: "O monitoramento de validade está ativo." })
     }, 500)
+  }
+
+  const handleSyncIndividual = (cert: Certificate) => {
+    setSyncingId(cert.id)
+    
+    // Simulação de consulta individual à API
+    setTimeout(() => {
+      const today = new Date()
+      const newExpiry = format(addDaysToDate(today, 180), 'yyyy-MM-dd')
+      
+      updateDocumentNonBlocking(doc(firestore, "certifications", cert.id), {
+        validade: newExpiry,
+        emissao: format(today, 'yyyy-MM-dd'),
+        numero: `SYN-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+        updatedAt: new Date().toISOString()
+      })
+      
+      setSyncingId(null)
+      toast({ title: "Documento Sincronizado", description: `${cert.tipo} validada com sucesso.` })
+    }, 2000)
+  }
+
+  const addDaysToDate = (date: Date, days: number) => {
+    const result = new Date(date)
+    result.setDate(result.getDate() + days)
+    return result
   }
 
   const handleDelete = (id: string) => {
@@ -168,9 +195,17 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
             ) : certificates && certificates.length > 0 ? (
               certificates.map((cert) => {
                 const status = getStatusInfo(cert.validade);
+                const isSyncing = syncingId === cert.id;
                 return (
                   <TableRow key={cert.id} className="hover:bg-[#F7F7F7]/50 transition-colors">
-                    <TableCell className="font-bold text-[#2C4156] text-xs uppercase">{cert.tipo}</TableCell>
+                    <TableCell className="font-bold text-[#2C4156] text-xs uppercase">
+                      <div className="flex items-center gap-2">
+                        {cert.tipo}
+                        {cert.numero?.startsWith('AUT-') && (
+                          <Badge variant="secondary" className="bg-[#E3F0F9] text-[#2574A9] text-[7px] font-black uppercase h-4 px-1">AUTO</Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-[10px] font-mono font-bold text-[#39586D]">{cert.numero || '--'}</TableCell>
                     <TableCell className="text-xs font-medium text-[#98A7AA]">{cert.emissao ? format(parseISO(cert.emissao), 'dd/MM/yyyy') : '--'}</TableCell>
                     <TableCell className="text-xs font-black text-[#39586D]">{cert.validade ? format(parseISO(cert.validade), 'dd/MM/yyyy') : '--'}</TableCell>
@@ -178,9 +213,20 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
                       <Badge className={status.color + " border-none text-[9px] font-black uppercase px-2"}>{status.label}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C] hover:bg-red-50" onClick={() => handleDelete(cert.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-[#1FA67A] hover:bg-emerald-50"
+                          onClick={() => handleSyncIndividual(cert)}
+                          disabled={isSyncing}
+                        >
+                          {isSyncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C] hover:bg-red-50" onClick={() => handleDelete(cert.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )

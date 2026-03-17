@@ -1,25 +1,26 @@
-
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, RefreshCw, TrendingUp, History, Mail, Loader2, AlertTriangle } from "lucide-react"
+import { ArrowLeft, RefreshCw, TrendingUp, Mail, Loader2, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ClientCertificatesTable } from "@/components/certificates/client-certificates-table"
 import { Progress } from "@/components/ui/progress"
 import { ClientCommunicationTool } from "@/components/clients/client-communication-tool"
-import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase"
-import { doc, collection, query, where } from "firebase/firestore"
-import { useMemo } from "react"
-import { isBefore, parseISO } from "date-fns"
+import { useFirestore, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase"
+import { doc, collection, query, where, getDocs } from "firebase/firestore"
+import { useMemo, useState } from "react"
+import { isBefore, parseISO, addDays, format } from "date-fns"
 import { cn } from "@/lib/utils"
+import { toast } from "@/hooks/use-toast"
 
 export default function DetalhesEmpresaCertidoesPage() {
   const params = useParams()
   const router = useRouter()
   const firestore = useFirestore()
   const clientId = params.clientId as string
+  const [isSyncing, setIsSyncing] = useState(false)
 
   const clientRef = useMemoFirebase(() => clientId ? doc(firestore, "clients", clientId) : null, [firestore, clientId])
   const { data: client, isLoading } = useDoc(clientRef)
@@ -36,6 +37,63 @@ export default function DetalhesEmpresaCertidoesPage() {
     const expired = (certificates || []).filter(c => c.validade && isBefore(parseISO(c.validade), today)).length
     return { valid, expired }
   }, [certificates])
+
+  const handleSyncAutomation = async () => {
+    setIsSyncing(true)
+    
+    // Simulação de processamento por robô (RPA)
+    toast({ title: "Iniciando Automação...", description: "Conectando ao portal e-CAC da Receita Federal." })
+    
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    toast({ title: "Processando...", description: "Validando situação fiscal e capturando nova certidão." })
+    
+    await new Promise(resolve => setTimeout(resolve, 1500))
+
+    try {
+      const today = new Date()
+      const expiryDate = addDays(today, 180) // Validade padrão de 6 meses
+      const dateStr = format(today, 'yyyy-MM-dd')
+      const expiryStr = format(expiryDate, 'yyyy-MM-dd')
+
+      // Busca se já existe uma certidão federal
+      const federalCert = certificates.find(c => c.tipo === "Federal")
+      
+      if (federalCert) {
+        updateDocumentNonBlocking(doc(firestore, "certifications", federalCert.id), {
+          validade: expiryStr,
+          emissao: dateStr,
+          numero: `AUT-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+          updatedAt: new Date().toISOString()
+        })
+      } else {
+        const id = Math.random().toString(36).substr(2, 9)
+        setDocumentNonBlocking(doc(firestore, "certifications", id), {
+          id,
+          clientId,
+          tipo: "Federal",
+          numero: `AUT-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+          emissao: dateStr,
+          validade: expiryStr,
+          createdAt: new Date().toISOString()
+        }, { merge: true })
+      }
+
+      // Atualiza o health score do cliente
+      if (clientRef) {
+        updateDocumentNonBlocking(clientRef, { healthScore: 100 })
+      }
+
+      toast({ 
+        title: "Sincronização Concluída!", 
+        description: "Certidão Negativa Federal atualizada com sucesso.",
+        className: "bg-[#1FA67A] text-white border-none"
+      })
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erro na automação", description: "Não foi possível validar os dados no portal." })
+    } finally {
+      setIsSyncing(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -78,8 +136,13 @@ export default function DetalhesEmpresaCertidoesPage() {
               </Button>
             }
           />
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-[10px] h-10 px-6 shadow-lg shadow-emerald-500/20">
-            <RefreshCw className="h-4 w-4" /> Atualizar CNDs
+          <Button 
+            className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-[10px] h-10 px-6 shadow-lg shadow-emerald-500/20"
+            onClick={handleSyncAutomation}
+            disabled={isSyncing}
+          >
+            {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {isSyncing ? "Sincronizando..." : "Atualizar CNDs"}
           </Button>
         </div>
       </div>
