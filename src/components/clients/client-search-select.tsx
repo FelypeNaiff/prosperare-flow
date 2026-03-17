@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 
 /**
  * Componente de seleção de cliente com busca integrada.
- * Ajustado para garantir visibilidade do campo de pesquisa e largura adequada.
+ * Ajustado com onPointerDown e gerenciamento de foco manual para funcionar dentro de Dialogs.
  */
 export function ClientSearchSelect({ 
   clients, 
@@ -27,6 +27,7 @@ export function ClientSearchSelect({
 }: any) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState("")
+  const inputRef = React.useRef<HTMLInputElement>(null)
 
   const filteredClients = React.useMemo(() => {
     const searchLower = search.toLowerCase()
@@ -44,6 +45,13 @@ export function ClientSearchSelect({
   const selectedClient = React.useMemo(() => {
     return (clients || []).find((c: any) => c.id === value)
   }, [clients, value])
+
+  // Foca no input quando o popover abre
+  React.useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 100)
+    }
+  }, [open])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -66,18 +74,19 @@ export function ClientSearchSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-[400px] max-w-[calc(100vw-40px)] p-0 border-[#D2D7DB] shadow-2xl z-[1000]"
+        className="w-[450px] max-w-[calc(100vw-40px)] p-0 border-[#D2D7DB] shadow-2xl z-[1000]"
         align="start"
+        onOpenAutoFocus={(e) => e.preventDefault()} // Impede o Dialog de roubar o foco inicial
       >
         <div className="flex flex-col">
           <div className="flex items-center border-b px-3 bg-[#F7F7F7]">
             <Search className="mr-2 h-4 w-4 shrink-0 text-[#98A7AA]" />
             <Input
-              placeholder="Pesquisar por nome ou CNPJ..."
+              ref={inputRef}
+              placeholder="PESQUISAR POR NOME OU CNPJ..."
               className="flex h-12 w-full rounded-md bg-transparent py-3 text-[11px] outline-none border-none focus-visible:ring-0 shadow-none font-bold uppercase"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              autoFocus
             />
           </div>
           <ScrollArea className="h-72">
@@ -94,7 +103,9 @@ export function ClientSearchSelect({
                       "relative flex w-full cursor-pointer select-none items-center rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none hover:bg-[#1FA67A] hover:text-white transition-all text-left mb-1 last:mb-0",
                       value === client.id ? "bg-[#1FA67A] text-white" : "text-[#2C4156]"
                     )}
-                    onClick={() => {
+                    // Usamos onPointerDown para garantir que o clique seja registrado antes da perda de foco do modal
+                    onPointerDown={(e) => {
+                      e.preventDefault()
                       onValueChange(client.id)
                       setOpen(false)
                       setSearch("")

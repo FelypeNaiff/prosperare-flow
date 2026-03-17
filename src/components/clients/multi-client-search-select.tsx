@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -13,6 +14,9 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 
+/**
+ * Componente de seleção múltipla resiliente a modais.
+ */
 export function MultiClientSearchSelect({ 
   clients, 
   value = [], 
@@ -21,13 +25,16 @@ export function MultiClientSearchSelect({
 }: any) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState("")
+  const inputRef = React.useRef<HTMLInputElement>(null)
 
   const filteredClients = React.useMemo(() => {
     const searchLower = search.toLowerCase()
+    const searchDigits = search.replace(/\D/g, '')
+    
     return (clients || []).filter((c: any) => 
       c.corporateName?.toLowerCase().includes(searchLower) ||
       c.nomeFantasia?.toLowerCase().includes(searchLower) ||
-      c.cnpj?.replace(/\D/g, '').includes(search.replace(/\D/g, ''))
+      (searchDigits !== '' && c.cnpj?.replace(/\D/g, '').includes(searchDigits))
     )
   }, [clients, search])
 
@@ -37,6 +44,12 @@ export function MultiClientSearchSelect({
       : [...value, id]
     onValueChange(newValue)
   }
+
+  React.useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 100)
+    }
+  }, [open])
 
   return (
     <div className="space-y-2">
@@ -54,12 +67,16 @@ export function MultiClientSearchSelect({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[400px] p-0 border-[#D2D7DB] shadow-2xl z-[100]">
+        <PopoverContent 
+          className="w-[450px] p-0 border-[#D2D7DB] shadow-2xl z-[1000]"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <div className="flex flex-col">
             <div className="flex items-center border-b px-3 bg-[#F7F7F7]">
               <Search className="mr-2 h-4 w-4 shrink-0 text-[#98A7AA]" />
               <Input
-                placeholder="Pesquisar por nome ou CNPJ..."
+                ref={inputRef}
+                placeholder="PESQUISAR POR NOME OU CNPJ..."
                 className="flex h-11 w-full rounded-md bg-transparent py-3 text-xs outline-none border-none focus-visible:ring-0 shadow-none font-bold uppercase"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -74,7 +91,10 @@ export function MultiClientSearchSelect({
                       "relative flex w-full cursor-pointer select-none items-center rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none hover:bg-[#F7F7F7] transition-all text-left mb-1",
                       value.includes(client.id) && "bg-[#1FA67A]/5 text-[#1FA67A]"
                     )}
-                    onClick={() => toggleClient(client.id)}
+                    onPointerDown={(e) => {
+                      e.preventDefault()
+                      toggleClient(client.id)
+                    }}
                   >
                     <div className="flex flex-col flex-1 overflow-hidden">
                       <span className="truncate">{client.corporateName}</span>
