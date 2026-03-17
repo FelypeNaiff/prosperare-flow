@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -8,8 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Printer, Save, FileText, Eye, ReceiptText, Loader2, X } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection } from "firebase/firestore"
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
+import { collection, doc } from "firebase/firestore"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
@@ -18,12 +19,14 @@ export function ProlaboreForm() {
   const firestore = useFirestore()
   const [isManual, setIsManual] = useState(false)
   const [isPreviewMode, setIsPreviewOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [docType, setDocType] = useState<"prolabore" | "contracheque">("prolabore")
   
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
   const { data: clients = [], isLoading } = useCollection(clientsQuery)
 
   const [formData, setFormData] = useState({
+    clientId: "",
     empresa: "",
     cnpj: "",
     socio: "",
@@ -40,6 +43,7 @@ export function ProlaboreForm() {
     if (client) {
       setFormData({
         ...formData,
+        clientId: client.id,
         empresa: client.corporateName,
         cnpj: client.cnpj
       })
@@ -52,7 +56,29 @@ export function ProlaboreForm() {
       return
     }
     setIsPreviewOpen(true)
-    toast({ title: "Visualização Gerada!" })
+  }
+
+  const handleSaveToHistory = () => {
+    if (!formData.empresa) return
+    setIsSaving(true)
+    
+    const id = Math.random().toString(36).substr(2, 9)
+    const docData = {
+      id,
+      clientId: formData.clientId || "manual",
+      clientName: formData.empresa,
+      type: docType === 'prolabore' ? "PRO-LABORE (DECLARAÇÃO)" : "PRO-LABORE (RECIBO)",
+      title: `${docType.toUpperCase()}: ${formData.socio}`,
+      data: formData,
+      createdAt: new Date().toISOString()
+    }
+
+    setDocumentNonBlocking(doc(firestore, "generated_documents", id), docData, { merge: true })
+    
+    setTimeout(() => {
+      setIsSaving(false)
+      toast({ title: "Documento Salvo!", description: "O registro foi adicionado ao histórico geral." })
+    }, 500)
   }
 
   const valorLiquido = Number(formData.valorBruto) - Number(formData.inss) - Number(formData.irrf)
@@ -106,7 +132,7 @@ export function ProlaboreForm() {
               <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Identificação da Empresa</h4>
               <Button variant="ghost" size="sm" className="text-[10px] font-bold text-[#1FA67A]" onClick={() => {
                 setIsManual(!isManual)
-                setFormData({...formData, empresa: "", cnpj: ""})
+                setFormData({...formData, empresa: "", cnpj: "", clientId: ""})
               }}>
                 {isManual ? "Selecionar da Base" : "Digitar Manual"}
               </Button>
@@ -173,8 +199,9 @@ export function ProlaboreForm() {
               <Button className="flex-1 bg-[#2C4156] font-bold gap-2" onClick={handlePreview}>
                 <Eye className="h-4 w-4" /> Visualizar Documento
               </Button>
-              <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2">
-                <Save className="h-4 w-4" /> Salvar no Histórico
+              <Button variant="outline" className="flex-1 border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={handleSaveToHistory} disabled={isSaving}>
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Salvar no Histórico
               </Button>
             </div>
           </CardContent>

@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useMemo } from "react"
 import { 
   Plus, 
   Search, 
@@ -18,7 +18,10 @@ import {
   FileDown,
   Upload,
   FileSpreadsheet,
-  Copy
+  Copy,
+  ArrowUpDown,
+  SortAsc,
+  SortDesc
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -75,6 +78,7 @@ export default function ClientesPage() {
   const [isNewClientOpen, setIsNewClientOpen] = useState(false)
   const [isLoadingCnpj, setIsLoadingCnpj] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('asc')
   
   const clientsQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "clients") : null, 
@@ -195,7 +199,6 @@ export default function ClientesPage() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Modelo Clientes");
     
-    // Ajusta larguras das colunas
     const wscols = [
       {wch: 30}, {wch: 25}, {wch: 20}, {wch: 20}, {wch: 25}, {wch: 15}, {wch: 10}, {wch: 30}, {wch: 15}, {wch: 15}, {wch: 5}
     ];
@@ -222,7 +225,7 @@ export default function ClientesPage() {
         
         let count = 0
         rows.forEach((row, index) => {
-          if (index === 0 || !row[0]) return // Pula cabeçalho ou linha sem nome
+          if (index === 0 || !row[0]) return
           
           const id = Math.random().toString(36).substr(2, 9)
           const clientRef = doc(firestore, "clients", id)
@@ -266,10 +269,27 @@ export default function ClientesPage() {
     reader.readAsArrayBuffer(file)
   }
 
-  const filteredClients = (clients || []).filter(c => 
-    c.corporateName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.cnpj?.includes(searchTerm)
-  )
+  const filteredClients = useMemo(() => {
+    let list = (clients || []).filter(c => 
+      c.corporateName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      c.cnpj?.includes(searchTerm)
+    )
+
+    if (sortOrder) {
+      list = [...list].sort((a, b) => {
+        const nameA = a.corporateName?.toLowerCase() || ""
+        const nameB = b.corporateName?.toLowerCase() || ""
+        if (sortOrder === 'asc') return nameA.localeCompare(nameB)
+        return nameB.localeCompare(nameA)
+      })
+    }
+
+    return list
+  }, [clients, searchTerm, sortOrder])
+
+  const toggleSort = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -346,7 +366,12 @@ export default function ClientesPage() {
           <Table className="print:w-full">
             <TableHeader className="bg-[#2C4156] print:bg-[#2C4156]">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px] print:text-white">Empresa / Razão Social</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] print:text-white cursor-pointer group" onClick={toggleSort}>
+                  <div className="flex items-center gap-2">
+                    Empresa / Razão Social
+                    {sortOrder === 'asc' ? <SortAsc className="h-3 w-3 text-[#1FA67A]" /> : <SortDesc className="h-3 w-3 text-[#1FA67A]" />}
+                  </div>
+                </TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px] print:text-white">CNPJ</TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px] print:text-white">Regime Tributário</TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px] print:text-white">Responsável</TableHead>

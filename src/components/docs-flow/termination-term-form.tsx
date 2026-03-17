@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -17,19 +18,21 @@ import { Printer, Save, UserPlus, Eye, Loader2, X, Phone, Mail } from "lucide-re
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection } from "firebase/firestore"
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
+import { collection, doc } from "firebase/firestore"
 import { format, parseISO, isValid } from "date-fns"
 
 export function TerminationTermForm() {
   const firestore = useFirestore()
   const [isManualClient, setIsManualClient] = useState(false)
   const [isPreviewMode, setIsPreviewOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
   const { data: clients = [], isLoading } = useCollection(clientsQuery)
 
   const [formData, setFormData] = useState({
+    clientId: "",
     empresa: "",
     cnpj: "",
     funcionario: "",
@@ -47,6 +50,7 @@ export function TerminationTermForm() {
     if (client) {
       setFormData({
         ...formData,
+        clientId: client.id,
         empresa: client.corporateName,
         cnpj: client.cnpj
       })
@@ -59,7 +63,29 @@ export function TerminationTermForm() {
       return
     }
     setIsPreviewOpen(true)
-    toast({ title: "Documento Gerado!" })
+  }
+
+  const handleSaveToHistory = () => {
+    if (!formData.empresa) return
+    setIsSaving(true)
+    
+    const id = Math.random().toString(36).substr(2, 9)
+    const docData = {
+      id,
+      clientId: formData.clientId || "manual",
+      clientName: formData.empresa,
+      type: "TERMO DE RESCISÃO",
+      title: `RESCISÃO: ${formData.funcionario}`,
+      data: formData,
+      createdAt: new Date().toISOString()
+    }
+
+    setDocumentNonBlocking(doc(firestore, "generated_documents", id), docData, { merge: true })
+    
+    setTimeout(() => {
+      setIsSaving(false)
+      toast({ title: "Documento Salvo!", description: "O registro foi adicionado ao histórico geral." })
+    }, 500)
   }
 
   const formatDate = (dateStr: string) => {
@@ -90,7 +116,7 @@ export function TerminationTermForm() {
                   className="text-[10px] font-bold text-[#1FA67A] uppercase gap-1"
                   onClick={() => {
                     setIsManualClient(!isManualClient)
-                    setFormData({...formData, empresa: "", cnpj: ""})
+                    setFormData({...formData, empresa: "", cnpj: "", clientId: ""})
                   }}
                 >
                   <UserPlus className="h-3 w-3" /> {isManualClient ? "Selecionar da Base" : "Digitar Manualmente"}
@@ -168,6 +194,10 @@ export function TerminationTermForm() {
             <div className="flex gap-3 pt-6">
               <Button className="flex-1 bg-[#2C4156] hover:bg-[#2C4156]/90 font-bold gap-2" onClick={handleGenerate}>
                 <Eye className="h-4 w-4" /> Visualizar Termo
+              </Button>
+              <Button variant="outline" className="flex-1 border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={handleSaveToHistory} disabled={isSaving}>
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Salvar no Histórico
               </Button>
             </div>
           </CardContent>

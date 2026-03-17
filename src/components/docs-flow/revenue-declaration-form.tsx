@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -8,11 +9,10 @@ import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Printer, Save, Eye, Loader2, X, Phone, Mail } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { format, addMonths, subMonths, parse, startOfMonth } from "date-fns"
 import { cn } from "@/lib/utils"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection } from "firebase/firestore"
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
+import { collection, query, where, orderBy, limit, getDocs, doc } from "firebase/firestore"
 import { 
   Select, 
   SelectContent, 
@@ -24,15 +24,15 @@ import Image from "next/image"
 
 export function RevenueDeclarationForm() {
   const firestore = useFirestore()
-  const [source, setSource] = useState<"manual" | "pgdas">("manual")
   const [isManualClient, setIsManualClient] = useState(false)
   const [isPreviewMode, setIsPreviewOpen] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isSaving, setIsSaving] = useState(false)
   
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
   const { data: clients = [], isLoading: loadingClients } = useCollection(clientsQuery)
 
   const [formData, setFormData] = useState({
+    clientId: "",
     empresa: "",
     cnpj: "",
     email: ""
@@ -65,14 +65,36 @@ export function RevenueDeclarationForm() {
     }
   }, [startPeriod])
 
-  const handleSelectClient = (clientId: string) => {
+  const handleSelectClient = async (clientId: string) => {
     const client = clients?.find(c => c.id === clientId)
     if (client) {
       setFormData({
+        clientId: client.id,
         empresa: client.corporateName,
         cnpj: client.cnpj,
         email: client.email || "cliente@email.com"
       })
+
+      // Puxar histórico do último faturamento emitido
+      try {
+        const q = query(
+          collection(firestore, "generated_documents"),
+          where("clientId", "==", clientId),
+          where("type", "==", "FATURAMENTO 12 MESES"),
+          orderBy("createdAt", "desc"),
+          limit(1)
+        )
+        const snapshot = await getDocs(q)
+        if (!snapshot.empty) {
+          const lastDoc = snapshot.docs[0].data()
+          if (lastDoc.rows) {
+            setRows(lastDoc.rows)
+            toast({ title: "Histórico Recuperado", description: "Carregamos os valores do último faturamento emitido." })
+          }
+        }
+      } catch (err) {
+        console.warn("Sem histórico prévio para esta empresa.")
+      }
     }
   }
 
@@ -97,7 +119,31 @@ export function RevenueDeclarationForm() {
       return
     }
     setIsPreviewOpen(true)
-    toast({ title: "Visualização Gerada!" })
+  }
+
+  const handleSaveToHistory = () => {
+    if (!formData.empresa) return
+    setIsSaving(true)
+    
+    const id = Math.random().toString(36).substr(2, 9)
+    const docData = {
+      id,
+      clientId: formData.clientId || "manual",
+      clientName: formData.empresa,
+      type: "FATURAMENTO 12 MESES",
+      title: `RELATÓRIO 12 MESES - ${rows[0].periodo} A ${rows[11].periodo}`,
+      rows: rows,
+      total,
+      average,
+      createdAt: new Date().toISOString()
+    }
+
+    setDocumentNonBlocking(doc(firestore, "generated_documents", id), docData, { merge: true })
+    
+    setTimeout(() => {
+      setIsSaving(false)
+      toast({ title: "Documento Salvo!", description: "O registro foi adicionado ao histórico geral." })
+    }, 500)
   }
 
   return (
@@ -188,6 +234,10 @@ export function RevenueDeclarationForm() {
             <div className="flex flex-col sm:flex-row gap-3 pt-6">
               <Button className="flex-1 bg-[#2C4156] font-bold gap-2" onClick={handlePreview}>
                 <Eye className="h-4 w-4" /> Visualizar Relatório
+              </Button>
+              <Button variant="outline" className="flex-1 border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={handleSaveToHistory} disabled={isSaving}>
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Salvar no Histórico
               </Button>
             </div>
           </CardContent>

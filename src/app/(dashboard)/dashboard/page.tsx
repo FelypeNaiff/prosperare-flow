@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo } from "react"
@@ -24,7 +25,6 @@ import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebas
 import { collection } from "firebase/firestore"
 import { Skeleton } from "@/components/ui/skeleton"
 
-// Carregamento dinâmico dos gráficos (reduz o bundle inicial e melhora a velocidade de carregamento)
 const ObligationChart = dynamic(() => import("@/components/dashboard/obligation-chart").then(m => m.ObligationChart), { 
   ssr: false,
   loading: () => <div className="h-[300px] w-full flex items-center justify-center"><Loader2 className="animate-spin text-[#1FA67A]" /></div>
@@ -51,10 +51,35 @@ export default function DashboardPage() {
   )
   const { data: tasks, isLoading: loadingTasks } = useCollection(tasksQuery)
 
-  const stats = useMemo(() => ({
-    clientsCount: clients?.length || 0,
-    tasksCount: tasks?.length || 0,
-  }), [clients, tasks])
+  const processesQuery = useMemoFirebase(() => 
+    userLoaded ? collection(firestore, "processes") : null, 
+    [firestore, userLoaded]
+  )
+  const { data: processes } = useCollection(processesQuery)
+
+  const receivablesQuery = useMemoFirebase(() => 
+    userLoaded ? collection(firestore, "receivables") : null, 
+    [firestore, userLoaded]
+  )
+  const { data: receivables } = useCollection(receivablesQuery)
+
+  const stats = useMemo(() => {
+    const totalProcesses = processes?.length || 0
+    const completedProcesses = processes?.filter(p => p.situacao === 'concluido').length || 0
+    const percentOk = totalProcesses > 0 ? Math.round((completedProcesses / totalProcesses) * 100) : 0
+    
+    const monthlyHonoraries = (receivables || [])
+      .filter(r => r.situacao === 'Confirmado' || r.situacao === 'Pendente')
+      .reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0)
+
+    return {
+      clientsCount: clients?.length || 0,
+      tasksCount: tasks?.length || 0,
+      percentOk: `${percentOk}%`,
+      atrasos: processes?.filter(p => p.situacao === 'em_multa').length || 0,
+      honorarios: monthlyHonoraries.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    }
+  }, [clients, tasks, processes, receivables])
 
   const isDataLoading = loadingClients || loadingTasks
 
@@ -84,11 +109,11 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {loadingClients ? <KpiSkeleton /> : <KpiCard label="Clientes" value={stats.clientsCount} icon={Users} color="primary" trend={2} />}
-        <KpiCard label="Processos OK" value="0%" icon={CheckCircle2} color="success" />
-        <KpiCard label="Atrasos" value="0" icon={AlertCircle} color="destructive" />
+        {loadingClients ? <KpiSkeleton /> : <KpiCard label="Clientes" value={stats.clientsCount} icon={Users} color="primary" />}
+        <KpiCard label="Processos OK" value={stats.percentOk} icon={CheckCircle2} color="success" />
+        <KpiCard label="Atrasos" value={stats.atrasos} icon={AlertCircle} color="destructive" />
         {loadingTasks ? <KpiSkeleton /> : <KpiCard label="Tickets" value={stats.tasksCount} icon={MessageSquare} color="info" />}
-        <KpiCard label="Honorários" value="--" icon={Clock} color="warning" />
+        <KpiCard label="Honorários" value={stats.honorarios} icon={Clock} color="warning" />
         <KpiCard label="Score Médio" value="98%" icon={Heart} color="success" />
       </div>
 
