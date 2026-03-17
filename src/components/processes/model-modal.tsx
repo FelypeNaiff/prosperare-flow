@@ -42,7 +42,8 @@ import {
   CheckCircle2,
   Zap,
   Repeat,
-  User
+  User,
+  Layers
 } from "lucide-react"
 import { useFirestore, setDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase"
 import { doc, collection } from "firebase/firestore"
@@ -61,13 +62,16 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
   const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
   const { data: team = [] } = useCollection(usersQuery)
 
+  const groupsQuery = useMemoFirebase(() => collection(firestore, "obligation_groups"), [firestore])
+  const { data: dbGroups = [] } = useCollection(groupsQuery)
+
   const [formData, setFormData] = useState({
     nome: "",
     descricao: "",
     tipo: "recorrente",
     departamento: "Fiscal",
     responsavelPadraoId: "Geral",
-    regimes: [] as string[],
+    groupIds: [] as string[],
     dataGeracaoRecorrencia: 1,
     recorrencia: "mensal",
     prazoFixo: 20,
@@ -84,7 +88,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
         ...formData,
         ...model,
         tarefas: model.tarefas || [],
-        regimes: model.regimes || [],
+        groupIds: model.groupIds || [],
         clientesVinculados: model.clientesVinculados || [],
         clientesExcluidos: model.clientesExcluidos || []
       })
@@ -95,7 +99,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
         tipo: "recorrente",
         departamento: "Fiscal",
         responsavelPadraoId: "Geral",
-        regimes: [],
+        groupIds: [],
         dataGeracaoRecorrencia: 1,
         recorrencia: "mensal",
         prazoFixo: 20,
@@ -120,12 +124,25 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
     toast({ title: model ? "Modelo Atualizado" : "Modelo Criado!" })
   }
 
-  const toggleRegime = (regime: string) => {
+  const toggleGroup = (groupId: string) => {
+    const isSelected = formData.groupIds.includes(groupId)
+    const newGroupIds = isSelected 
+      ? formData.groupIds.filter(id => id !== groupId) 
+      : [...formData.groupIds, groupId]
+    
+    // Automatização: Quando um grupo é selecionado, puxamos todos os clientes dele para a lista de vinculados
+    let newLinkedClients = [...formData.clientesVinculados]
+    if (!isSelected) {
+      const groupClients = (allClients || []).filter(c => c.obligationGroups?.includes(groupId))
+      groupClients.forEach(c => {
+        if (!newLinkedClients.includes(c.id)) newLinkedClients.push(c.id)
+      })
+    }
+
     setFormData(prev => ({
       ...prev,
-      regimes: prev.regimes.includes(regime) 
-        ? prev.regimes.filter(r => r !== regime) 
-        : [...prev.regimes, regime]
+      groupIds: newGroupIds,
+      clientesVinculados: newLinkedClients
     }))
   }
 
@@ -161,14 +178,11 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
   }
 
   const filteredClients = (allClients || []).filter(c => {
-    const regimes = formData.regimes || []
-    const snMatch = regimes.includes('sn') && c.taxRegime === 'Simples Nacional'
-    const meiMatch = regimes.includes('mei') && c.taxRegime === 'MEI'
-    const lpMatch = regimes.includes('lp') && c.taxRegime === 'Lucro Presumido'
-    const lrMatch = regimes.includes('lr') && c.taxRegime === 'Lucro Real'
-    const allMatch = regimes.length === 0 || regimes.includes('todos')
+    const selectedGroupIds = formData.groupIds || []
+    // Filtra clientes que pertencem aos grupos selecionados OU se nenhum grupo estiver selecionado, mostra todos
+    const matchGroup = selectedGroupIds.length === 0 || selectedGroupIds.some(gid => c.obligationGroups?.includes(gid))
     
-    return (snMatch || meiMatch || lpMatch || lrMatch || allMatch) && 
+    return matchGroup && 
            (c.corporateName?.toLowerCase().includes(searchTerm.toLowerCase()) || c.cnpj?.includes(searchTerm))
   })
 
@@ -188,7 +202,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
           <div className="px-6 bg-[#F7F7F7] border-b">
             <TabsList className="bg-transparent h-14 p-0 gap-6 overflow-x-auto w-full justify-start scrollbar-hide">
               <TabTrigger value="geral" label="1. Geral" />
-              <TabTrigger value="regimes" label="2. Regimes" />
+              <TabTrigger value="regimes" label="2. Grupo de Obrigações" />
               <TabTrigger value="clientes" label="3. Clientes" />
               <TabTrigger value="prazo" label="4. Prazo" />
               <TabTrigger value="tarefas" label="5. Tarefas" />
@@ -286,13 +300,33 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
               </TabsContent>
 
               <TabsContent value="regimes" className="m-0 space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <RegimeCheck id="sn" label="Simples Nacional" checked={(formData.regimes || []).includes('sn')} onToggle={() => toggleRegime('sn')} />
-                  <RegimeCheck id="mei" label="MEI" checked={(formData.regimes || []).includes('mei')} onToggle={() => toggleRegime('mei')} />
-                  <RegimeCheck id="lp" label="Lucro Presumido" checked={(formData.regimes || []).includes('lp')} onToggle={() => toggleRegime('lp')} />
-                  <RegimeCheck id="lr" label="Lucro Real" checked={(formData.regimes || []).includes('lr')} onToggle={() => toggleRegime('lr')} />
-                  <RegimeCheck id="imune" label="Imune/Isenta" checked={(formData.regimes || []).includes('imune')} onToggle={() => toggleRegime('imune')} />
-                  <RegimeCheck id="todos" label="Todos os Regimes" checked={(formData.regimes || []).includes('todos')} onToggle={() => toggleRegime('todos')} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {dbGroups && dbGroups.length > 0 ? dbGroups.map((group: any) => (
+                    <div 
+                      key={group.id} 
+                      className={cn(
+                        "flex items-center gap-3 p-4 rounded-2xl border-2 transition-all cursor-pointer",
+                        formData.groupIds.includes(group.id) ? "border-[#1FA67A] bg-[#1FA67A]/5" : "border-[#D2D7DB] bg-white hover:bg-[#F7F7F7]"
+                      )}
+                      onClick={() => toggleGroup(group.id)}
+                    >
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm",
+                        formData.groupIds.includes(group.id) ? "bg-[#1FA67A]" : "bg-[#98A7AA]/20 text-[#98A7AA]"
+                      )}>
+                        <Layers className="h-5 w-5" />
+                      </div>
+                      <div className="flex flex-col flex-1">
+                        <Label className="text-xs font-black uppercase cursor-pointer text-[#2C4156]">{group.name}</Label>
+                        <span className="text-[8px] font-bold text-[#98A7AA] uppercase">Puxar clientes vinculados</span>
+                      </div>
+                      <Checkbox checked={formData.groupIds.includes(group.id)} onCheckedChange={() => toggleGroup(group.id)} className="h-5 w-5 rounded-lg border-[#D2D7DB]" />
+                    </div>
+                  )) : (
+                    <div className="col-span-full py-12 text-center border-2 border-dashed rounded-3xl bg-white/50">
+                      <p className="text-[10px] font-black text-[#98A7AA] uppercase">Nenhum grupo de obrigações cadastrado</p>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
@@ -300,7 +334,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                 <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-4">
                   <div className="relative flex-1 w-full">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
-                    <Input placeholder="Buscar clientes sugeridos pelo regime..." className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    <Input placeholder="Filtrar por nome ou CNPJ..." className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                   </div>
                   <Badge className="bg-[#1FA67A] font-black text-[10px] px-4 py-1.5 uppercase shrink-0 border-none">
                     {(formData.clientesVinculados || []).length} Selecionados
@@ -507,20 +541,5 @@ function TabTrigger({ value, label }: { value: string, label: string }) {
     >
       {label}
     </TabsTrigger>
-  )
-}
-
-function RegimeCheck({ id, label, checked, onToggle }: any) {
-  return (
-    <div 
-      className={cn(
-        "flex items-center gap-3 p-4 rounded-2xl border transition-all cursor-pointer",
-        checked ? "border-[#1FA67A] bg-[#1FA67A]/5" : "border-[#D2D7DB] bg-white hover:bg-[#F7F7F7]"
-      )}
-      onClick={onToggle}
-    >
-      <Checkbox checked={checked} onCheckedChange={onToggle} id={id} className="h-5 w-5 rounded-lg border-[#D2D7DB]" />
-      <Label htmlFor={id} className="text-[10px] font-black uppercase cursor-pointer text-[#2C4156]">{label}</Label>
-    </div>
   )
 }

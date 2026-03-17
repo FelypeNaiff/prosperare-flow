@@ -89,7 +89,8 @@
       "properties": {
         "id": { "type": "string" },
         "nome": { "type": "string" },
-        "departamento": { "type": "string" }
+        "departamento": { "type": "string" },
+        "groupIds": { "type": "array", "items": { "type": "string" } }
       }
     },
     "Certification": {
