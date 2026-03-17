@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
@@ -239,7 +238,7 @@ export default function DetalhesClientePage() {
               <Building2 className="h-3.5 w-3.5" /> Ficha Cadastral
             </TabsTrigger>
             <TabsTrigger value="processos" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4 shrink-0">
-              <Activity className="h-3.5 w-3.5" /> Processos Real-Time
+              <Layers className="h-3.5 w-3.5" /> Grupo de Obrigações
             </TabsTrigger>
             <TabsTrigger value="alvaras" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 text-xs uppercase px-4 shrink-0">
               <FlameKindling className="h-3.5 w-3.5" /> Alvarás e Licenças

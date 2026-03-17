@@ -24,7 +24,7 @@ import { collection, doc } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
 import { Layers, Building2, Calendar, Save, Loader2 } from "lucide-react"
 import { format, parse, addMonths, lastDayOfMonth, setDate } from "date-fns"
-import { ClientSearchSelect } from "@/components/clients/client-search-select"
+import { MultiClientSearchSelect } from "@/components/clients/multi-client-search-select"
 
 export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOpenChange: (v: boolean) => void }) {
   const firestore = useFirestore()
@@ -38,28 +38,22 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
 
   const [formData, setFormData] = useState({
     modeloId: "",
-    clienteId: "",
+    clientIds: [] as string[],
     competencia: format(new Date(), "yyyy-MM"),
   })
 
   const handleCreate = async () => {
-    if (!formData.modeloId || !formData.clienteId) {
-      toast({ title: "Atenção", description: "Selecione o modelo e o cliente para continuar.", variant: "destructive" })
+    if (!formData.modeloId || formData.clientIds.length === 0) {
+      toast({ title: "Atenção", description: "Selecione o modelo e pelo menos uma empresa.", variant: "destructive" })
       return
     }
 
     setIsSaving(true)
     try {
       const model = (models || []).find(m => m.id === formData.modeloId)
-      const client = (clients || []).find(c => c.id === formData.clienteId)
-      
-      if (!model || !client) throw new Error("Dados não localizados")
+      if (!model) throw new Error("Modelo não localizado")
 
       const competenceDate = parse(formData.competencia, "yyyy-MM", new Date())
-      
-      const id = Math.random().toString(36).substr(2, 9)
-      const processRef = doc(firestore, "processes", id)
-
       const day = model.prazoFixo || 20
       let dueDate = setDate(competenceDate, day)
       
@@ -72,41 +66,45 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
       const lastDay = lastDayOfMonth(dueDate)
       if (dueDate > lastDay) dueDate = lastDay
 
-      const newProcess = {
-        id,
-        modeloId: model.id,
-        clienteId: client.id,
-        nomeProcesso: model.nome,
-        situacao: "a_fazer",
-        departamento: model.departamento || "Geral",
-        responsavelId: "Geral",
-        prazo: dueDate.toISOString(),
-        prazoMeta: dueDate.toISOString(),
-        competencia: competenceDate.toISOString(),
-        atrasoGeraMulta: false,
-        criadoEm: new Date().toISOString(),
-        tarefas: (model.tarefas || []).map((t: any) => ({
-          id: Math.random().toString(36).substr(2, 5),
-          modeloTarefaId: t.id,
-          ordem: t.ordem || 0,
-          titulo: t.titulo,
-          descricao: t.descricao || "",
-          situacao: "a_fazer",
-          prioridade: t.prioridade || "normal",
-          prazo: dueDate.toISOString()
-        }))
-      }
+      // Loop para criar processos para cada empresa selecionada
+      formData.clientIds.forEach(clientId => {
+        const client = (clients || []).find(c => c.id === clientId)
+        if (!client) return
 
-      setDocumentNonBlocking(processRef, newProcess, { merge: true })
+        const id = Math.random().toString(36).substr(2, 9)
+        const processRef = doc(firestore, "processes", id)
+
+        const newProcess = {
+          id,
+          modeloId: model.id,
+          clienteId: client.id,
+          nomeProcesso: model.nome,
+          situacao: "a_fazer",
+          departamento: model.departamento || "Geral",
+          responsavelId: client.accountingContactUserId || "Geral",
+          prazo: dueDate.toISOString(),
+          prazoMeta: dueDate.toISOString(),
+          competencia: competenceDate.toISOString(),
+          criadoEm: new Date().toISOString(),
+          tarefas: (model.tarefas || []).map((t: any) => ({
+            id: Math.random().toString(36).substr(2, 5),
+            modeloTarefaId: t.id,
+            titulo: t.titulo,
+            situacao: "a_fazer"
+          }))
+        }
+
+        setDocumentNonBlocking(processRef, newProcess, { merge: true })
+      })
       
       toast({ 
-        title: "Processo Instanciado!", 
-        description: `O fluxo "${model.nome}" foi criado para ${client.corporateName}.` 
+        title: "Geração em Lote Concluída!", 
+        description: `${formData.clientIds.length} processos foram criados com sucesso.` 
       })
       onOpenChange(false)
-      setFormData({ modeloId: "", clienteId: "", competencia: format(new Date(), "yyyy-MM") })
+      setFormData({ modeloId: "", clientIds: [], competencia: format(new Date(), "yyyy-MM") })
     } catch (e) {
-      toast({ title: "Erro ao criar", description: "Verifique os dados e tente novamente.", variant: "destructive" })
+      toast({ title: "Erro ao criar", description: "Houve uma falha na geração dos processos.", variant: "destructive" })
     } finally {
       setIsSaving(false)
     }
@@ -114,11 +112,11 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden border-none shadow-2xl">
+      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none shadow-2xl">
         <DialogHeader className="p-6 bg-[#2C4156] text-white">
-          <DialogTitle className="text-2xl font-black uppercase tracking-tight">Novo Processo Manual</DialogTitle>
+          <DialogTitle className="text-2xl font-black uppercase tracking-tight">Geração em Massa</DialogTitle>
           <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
-            Instancie um modelo de inteligência para execução imediata.
+            Selecione várias empresas para instanciar processos simultaneamente.
           </DialogDescription>
         </DialogHeader>
 
@@ -141,12 +139,12 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
 
           <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
-              <Building2 className="h-3 w-3" /> Empresa / Cliente
+              <Building2 className="h-3 w-3" /> Empresas / Clientes (Seleção Múltipla)
             </Label>
-            <ClientSearchSelect 
+            <MultiClientSearchSelect 
               clients={clients} 
-              value={formData.clienteId} 
-              onValueChange={(v: string) => setFormData({...formData, clienteId: v})} 
+              value={formData.clientIds} 
+              onValueChange={(v: string[]) => setFormData({...formData, clientIds: v})} 
             />
           </div>
 
@@ -171,7 +169,7 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
             disabled={isSaving}
           >
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-            Criar Processo Agora
+            Criar Processos Agora
           </Button>
         </DialogFooter>
       </DialogContent>
