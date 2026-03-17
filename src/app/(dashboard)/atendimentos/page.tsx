@@ -49,6 +49,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
+import { ClientSearchSelect } from "@/components/clients/client-search-select"
 
 const COLUMNS = [
   { id: 'novo', title: 'Novos', color: 'border-t-[#2C4156]', bg: 'bg-[#2C4156]/5' },
@@ -252,16 +253,11 @@ export default function AtendimentosPage() {
           <div className="p-4 space-y-4">
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Empresa</Label>
-              <Select value={newTicket.clientId} onValueChange={(v) => setNewTicket({...newTicket, clientId: v})}>
-                <SelectTrigger className="border-[#D2D7DB] h-11">
-                  <SelectValue placeholder="Selecione o cliente..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {(clients || []).map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.corporateName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ClientSearchSelect 
+                clients={clients} 
+                value={newTicket.clientId} 
+                onValueChange={(v: string) => setNewTicket({...newTicket, clientId: v})} 
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

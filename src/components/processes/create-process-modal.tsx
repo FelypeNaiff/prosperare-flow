@@ -24,6 +24,7 @@ import { collection, doc } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
 import { Layers, Building2, Calendar, Save, Loader2 } from "lucide-react"
 import { format, parse, addMonths, lastDayOfMonth, setDate } from "date-fns"
+import { ClientSearchSelect } from "@/components/clients/client-search-select"
 
 export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOpenChange: (v: boolean) => void }) {
   const firestore = useFirestore()
@@ -142,16 +143,11 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
             <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
               <Building2 className="h-3 w-3" /> Empresa / Cliente
             </Label>
-            <Select value={formData.clienteId} onValueChange={(v) => setFormData({...formData, clienteId: v})}>
-              <SelectTrigger className="border-[#D2D7DB] h-11">
-                <SelectValue placeholder="Selecione o cliente da base..." />
-              </SelectTrigger>
-              <SelectContent>
-                {(clients || []).map(c => (
-                  <SelectItem key={c.id} value={c.id} className="font-bold uppercase text-xs">{c.corporateName}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ClientSearchSelect 
+              clients={clients} 
+              value={formData.clienteId} 
+              onValueChange={(v: string) => setFormData({...formData, clienteId: v})} 
+            />
           </div>
 
           <div className="space-y-2">

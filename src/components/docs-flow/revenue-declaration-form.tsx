@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -21,6 +20,7 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import Image from "next/image"
+import { ClientSearchSelect } from "@/components/clients/client-search-select"
 
 export function RevenueDeclarationForm() {
   const firestore = useFirestore()
@@ -172,16 +172,11 @@ export function RevenueDeclarationForm() {
               <div className="space-y-2 col-span-2">
                 <Label className="text-xs font-bold">Empresa</Label>
                 {!isManualClient ? (
-                  <Select onValueChange={handleSelectClient}>
-                    <SelectTrigger className="border-[#D2D7DB]">
-                      <SelectValue placeholder={loadingClients ? "Carregando..." : "Escolher cliente..."} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(clients || []).map(c => (
-                        <SelectItem key={c.id} value={c.id} className="uppercase text-xs font-bold">{c.corporateName}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ClientSearchSelect 
+                    clients={clients} 
+                    value={formData.clientId} 
+                    onValueChange={handleSelectClient} 
+                  />
                 ) : (
                   <Input placeholder="Razão Social" value={formData.empresa} onChange={(e) => setFormData({...formData, empresa: e.target.value.toUpperCase()})} />
                 )}

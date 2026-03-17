@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useRef } from "react"
@@ -60,6 +59,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser, setDocumentNonBl
 import { collection, doc } from "firebase/firestore"
 import { format, addMonths, subMonths, startOfMonth } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { ClientSearchSelect } from "@/components/clients/client-search-select"
 
 export default function ContasAReceberPage() {
   const firestore = useFirestore()
@@ -433,16 +433,11 @@ export default function ContasAReceberPage() {
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Empresa / Cliente</Label>
-              <Select value={newAccount.clientId} onValueChange={(v) => setNewAccount({...newAccount, clientId: v})}>
-                <SelectTrigger className="border-[#D2D7DB] font-bold h-11">
-                  <SelectValue placeholder="Selecione o cliente da base..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {(clients || []).map(client => (
-                    <SelectItem key={client.id} value={client.id} className="uppercase font-bold text-xs">{client.corporateName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ClientSearchSelect 
+                clients={clients} 
+                value={newAccount.clientId} 
+                onValueChange={(v: string) => setNewAccount({...newAccount, clientId: v})} 
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

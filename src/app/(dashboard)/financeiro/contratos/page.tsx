@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo } from "react"
@@ -54,6 +53,7 @@ import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
+import { ClientSearchSelect } from "@/components/clients/client-search-select"
 
 const SERVICE_OPTIONS = [
   { id: "pessoal", label: "Departamento Pessoal" },
@@ -62,7 +62,7 @@ const SERVICE_OPTIONS = [
   { id: "legalizacao", label: "Abertura e Legalização" },
 ]
 
-export default function ContratosPage() {
+export default function ContatosPage() {
   const firestore = useFirestore()
   const [searchTerm, setSearchTerm] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -311,18 +311,12 @@ export default function ContratosPage() {
           <div className="grid grid-cols-2 gap-6 py-4">
             <div className="col-span-2 space-y-2">
               <Label className="text-xs font-black text-[#98A7AA] uppercase">Empresa (Cliente)</Label>
-              <Select 
+              <ClientSearchSelect 
+                clients={clients} 
                 value={formData.clientId} 
-                onValueChange={(v) => setFormData({...formData, clientId: v})}
+                onValueChange={(v: string) => setFormData({...formData, clientId: v})} 
                 disabled={!!editingId}
-              >
-                <SelectTrigger className="border-[#D2D7DB]"><SelectValue placeholder="Selecione o cliente cadastrado" /></SelectTrigger>
-                <SelectContent>
-                  {(clients || []).map(client => (
-                    <SelectItem key={client.id} value={client.id}>{client.corporateName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
             </div>
 
             <div className="col-span-2 space-y-3">

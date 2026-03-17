@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -14,6 +13,7 @@ import { collection, doc } from "firebase/firestore"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { ClientSearchSelect } from "@/components/clients/client-search-select"
 
 export function ProlaboreForm() {
   const firestore = useFirestore()
@@ -141,16 +141,11 @@ export function ProlaboreForm() {
             {!isManual ? (
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-[#39586D]">Empresa</Label>
-                <Select onValueChange={handleSelectClient}>
-                  <SelectTrigger className="border-[#D2D7DB]">
-                    <SelectValue placeholder={isLoading ? "Carregando..." : "Selecione o cliente..."} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(clients || []).map(c => (
-                      <SelectItem key={c.id} value={c.id} className="uppercase text-xs font-bold">{c.corporateName}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ClientSearchSelect 
+                  clients={clients} 
+                  value={formData.clientId} 
+                  onValueChange={handleSelectClient} 
+                />
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4">
