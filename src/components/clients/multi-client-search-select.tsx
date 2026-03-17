@@ -23,8 +23,10 @@ export function MultiClientSearchSelect({
   const [search, setSearch] = React.useState("")
 
   const filteredClients = React.useMemo(() => {
+    const searchLower = search.toLowerCase()
     return (clients || []).filter((c: any) => 
-      c.corporateName?.toLowerCase().includes(search.toLowerCase()) ||
+      c.corporateName?.toLowerCase().includes(searchLower) ||
+      c.nomeFantasia?.toLowerCase().includes(searchLower) ||
       c.cnpj?.replace(/\D/g, '').includes(search.replace(/\D/g, ''))
     )
   }, [clients, search])
@@ -76,6 +78,9 @@ export function MultiClientSearchSelect({
                   >
                     <div className="flex flex-col flex-1 overflow-hidden">
                       <span className="truncate">{client.corporateName}</span>
+                      {client.nomeFantasia && client.nomeFantasia !== client.corporateName && (
+                        <span className="text-[8px] font-bold italic opacity-60">{client.nomeFantasia}</span>
+                      )}
                       <span className="text-[8px] font-mono opacity-60">{client.cnpj}</span>
                     </div>
                     {value.includes(client.id) && (

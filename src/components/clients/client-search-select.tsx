@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 /**
  * Componente de seleção de cliente com busca integrada.
  * Resolve o problema de localizar empresas em listas extensas.
+ * Agora busca por Razão Social, Nome Fantasia ou CNPJ.
  */
 export function ClientSearchSelect({ 
   clients, 
@@ -28,8 +29,10 @@ export function ClientSearchSelect({
   const [search, setSearch] = React.useState("")
 
   const filteredClients = React.useMemo(() => {
+    const searchLower = search.toLowerCase()
     return (clients || []).filter((c: any) => 
-      c.corporateName?.toLowerCase().includes(search.toLowerCase()) ||
+      c.corporateName?.toLowerCase().includes(searchLower) ||
+      c.nomeFantasia?.toLowerCase().includes(searchLower) ||
       c.cnpj?.replace(/\D/g, '').includes(search.replace(/\D/g, ''))
     )
   }, [clients, search])
@@ -92,6 +95,12 @@ export function ClientSearchSelect({
                   >
                     <div className="flex flex-col flex-1 overflow-hidden">
                       <span className="truncate">{client.corporateName}</span>
+                      {client.nomeFantasia && client.nomeFantasia !== client.corporateName && (
+                        <span className={cn(
+                          "text-[8px] font-bold italic opacity-60",
+                          value === client.id ? "text-white" : "text-[#98A7AA]"
+                        )}>{client.nomeFantasia}</span>
+                      )}
                       <span className={cn(
                         "text-[8px] font-mono opacity-60",
                         value === client.id ? "text-white" : "text-[#98A7AA]"

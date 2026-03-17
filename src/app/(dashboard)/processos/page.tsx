@@ -4,22 +4,19 @@ import React, { useState, useMemo } from "react"
 import { 
   Plus, 
   Search, 
-  Calendar as CalendarIcon, 
-  Filter, 
-  AlertCircle,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  Layers,
-  ChevronDown,
-  ChevronRight,
+  ChevronRight, 
+  ChevronLeft,
   MoreVertical,
   Loader2,
   CalendarDays,
   Trash2,
   UserPlus,
   X,
-  ChevronLeft
+  Layers,
+  AlertCircle,
+  Clock,
+  CheckCircle2,
+  XCircle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -46,7 +43,7 @@ import { collection, query, orderBy, doc } from "firebase/firestore"
 import { cn } from "@/lib/utils"
 import { ProcessDetailsDrawer } from "@/components/processes/process-details-drawer"
 import { CreateProcessModal } from "@/components/processes/create-process-modal"
-import { format, parseISO, isValid, addMonths, subMonths, startOfMonth } from "date-fns"
+import { format, parseISO, addMonths, subMonths, startOfMonth } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { toast } from "@/hooks/use-toast"
 import {
@@ -66,7 +63,6 @@ export default function ProcessosPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
 
-  // Query segura: só dispara se userLoaded for true
   const processesQuery = useMemoFirebase(() => 
     userLoaded ? query(collection(firestore, "processes"), orderBy("prazo", "asc")) : null, 
     [firestore, userLoaded]
@@ -77,7 +73,7 @@ export default function ProcessosPage() {
     userLoaded ? collection(firestore, "clients") : null, 
     [firestore, userLoaded]
   )
-  const { data: clients } = useCollection(clientsQuery)
+  const { data: clients = [] } = useCollection(clientsQuery)
 
   const usersQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "users") : null, 
@@ -108,8 +104,20 @@ export default function ProcessosPage() {
 
   const hierarchicalData = useMemo(() => {
     const departments: Record<string, any> = {}
+    const searchLower = searchTerm.toLowerCase()
 
-    filteredProcesses.forEach(p => {
+    const searchFiltered = filteredProcesses.filter(p => {
+      if (!searchTerm) return true
+      const client = (clients || []).find(c => c.id === p.clienteId)
+      return (
+        client?.corporateName?.toLowerCase().includes(searchLower) ||
+        client?.nomeFantasia?.toLowerCase().includes(searchLower) ||
+        client?.cnpj?.includes(searchTerm) ||
+        p.nomeProcesso?.toLowerCase().includes(searchLower)
+      )
+    })
+
+    searchFiltered.forEach(p => {
       const dept = p.departamento || "Geral"
       const obName = p.nomeProcesso || "Processo Avulso"
 
@@ -126,7 +134,7 @@ export default function ProcessosPage() {
         items: items as any[]
       }))
     }))
-  }, [filteredProcesses])
+  }, [filteredProcesses, searchTerm, clients])
 
   const stats = useMemo(() => {
     const list = filteredProcesses || []
@@ -275,69 +283,61 @@ export default function ProcessosPage() {
 
                       <Table>
                         <TableBody>
-                          {ob.items
-                            .filter(p => {
-                              const client = (clients || []).find(c => c.id === p.clienteId)
-                              const searchLower = searchTerm.toLowerCase()
-                              return !searchTerm || 
-                                client?.corporateName?.toLowerCase().includes(searchLower) ||
-                                client?.cnpj?.includes(searchTerm)
-                            })
-                            .map(p => {
-                              const client = (clients || []).find(c => c.id === p.clienteId)
-                              const isSelected = selectedIds.includes(p.id)
-                              return (
-                                <TableRow key={p.id} className={cn(
-                                  "hover:bg-[#F7F7F7] transition-colors group",
-                                  isSelected && "bg-[#1FA67A]/5"
-                                )}>
-                                  <TableCell className="w-12 text-center pl-8">
-                                    <Checkbox 
-                                      checked={isSelected} 
-                                      onCheckedChange={() => toggleSelect(p.id)}
-                                      className="h-5 w-5 data-[state=checked]:bg-[#1FA67A]"
-                                    />
-                                  </TableCell>
-                                  <TableCell className="py-4" onClick={() => handleOpenProcess(p)}>
-                                    <div className="flex flex-col">
-                                      <span className="text-xs font-black text-[#2C4156] uppercase leading-tight">{client?.corporateName || 'Cliente não identificado'}</span>
-                                      <span className="text-[9px] font-mono text-[#98A7AA]">{client?.cnpj}</span>
+                          {ob.items.map(p => {
+                            const client = (clients || []).find(c => c.id === p.clienteId)
+                            const isSelected = selectedIds.includes(p.id)
+                            return (
+                              <TableRow key={p.id} className={cn(
+                                "hover:bg-[#F7F7F7] transition-colors group",
+                                isSelected && "bg-[#1FA67A]/5"
+                              )}>
+                                <TableCell className="w-12 text-center pl-8">
+                                  <Checkbox 
+                                    checked={isSelected} 
+                                    onCheckedChange={() => toggleSelect(p.id)}
+                                    className="h-5 w-5 data-[state=checked]:bg-[#1FA67A]"
+                                  />
+                                </TableCell>
+                                <TableCell className="py-4" onClick={() => handleOpenProcess(p)}>
+                                  <div className="flex flex-col">
+                                    <span className="text-xs font-black text-[#2C4156] uppercase leading-tight">{client?.corporateName || 'Cliente não identificado'}</span>
+                                    <span className="text-[9px] font-mono text-[#98A7AA]">{client?.cnpj}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center w-40">
+                                  <Badge className={cn(
+                                    "text-[9px] font-black uppercase border-none px-3",
+                                    p.situacao === 'concluido' ? "bg-[#7ED6B5] text-[#1FA67A]" :
+                                    p.situacao === 'em_multa' ? "bg-[#FEE2E2] text-[#E74C3C]" :
+                                    p.situacao === 'em_progresso' ? "bg-[#E3F0F9] text-[#2574A9]" : "bg-[#F3F4F6] text-[#98A7AA]"
+                                  )}>
+                                    {p.situacao?.replace('_', ' ') || 'A Fazer'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-center w-32">
+                                  <div className="flex flex-col items-center">
+                                    <span className="text-[10px] font-black text-[#39586D]">
+                                      {p.prazo ? format(typeof p.prazo === 'string' ? parseISO(p.prazo) : new Date(p.prazo), 'dd/MM') : '--'}
+                                    </span>
+                                    <span className="text-[8px] font-bold text-[#98A7AA] uppercase tracking-tighter">Vencimento</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="w-40">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-full bg-[#2C4156] flex items-center justify-center text-white text-[8px] font-black uppercase">
+                                      {p.responsavelId?.charAt(0) || 'G'}
                                     </div>
-                                  </TableCell>
-                                  <TableCell className="text-center w-40">
-                                    <Badge className={cn(
-                                      "text-[9px] font-black uppercase border-none px-3",
-                                      p.situacao === 'concluido' ? "bg-[#7ED6B5] text-[#1FA67A]" :
-                                      p.situacao === 'em_multa' ? "bg-[#FEE2E2] text-[#E74C3C]" :
-                                      p.situacao === 'em_progresso' ? "bg-[#E3F0F9] text-[#2574A9]" : "bg-[#F3F4F6] text-[#98A7AA]"
-                                    )}>
-                                      {p.situacao?.replace('_', ' ') || 'A Fazer'}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="text-center w-32">
-                                    <div className="flex flex-col items-center">
-                                      <span className="text-[10px] font-black text-[#39586D]">
-                                        {p.prazo ? format(typeof p.prazo === 'string' ? parseISO(p.prazo) : new Date(p.prazo), 'dd/MM') : '--'}
-                                      </span>
-                                      <span className="text-[8px] font-bold text-[#98A7AA] uppercase tracking-tighter">Vencimento</span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="w-40">
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-6 h-6 rounded-full bg-[#2C4156] flex items-center justify-center text-white text-[8px] font-black uppercase">
-                                        {p.responsavelId?.charAt(0) || 'G'}
-                                      </div>
-                                      <span className="text-[10px] font-bold text-[#39586D] truncate max-w-[100px] uppercase">{p.responsavelId || 'Geral'}</span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="text-right pr-8 w-12">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]" onClick={() => handleOpenProcess(p)}>
-                                      <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              )
-                            })}
+                                    <span className="text-[10px] font-bold text-[#39586D] truncate max-w-[100px] uppercase">{p.responsavelId || 'Geral'}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right pr-8 w-12">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]" onClick={() => handleOpenProcess(p)}>
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })}
                         </TableBody>
                       </Table>
                     </div>
@@ -348,9 +348,9 @@ export default function ProcessosPage() {
           ) : (
             <div className="h-64 flex flex-col items-center justify-center text-center p-12 bg-white">
               <CalendarDays className="h-12 w-12 text-[#D2D7DB] mb-4" />
-              <h3 className="text-lg font-black text-[#2C4156] uppercase">Sem processos para {format(selectedCompetence, "MMMM", { locale: ptBR })}</h3>
-              <p className="text-sm text-[#98A7AA] font-bold max-w-sm">Nenhum fluxo de trabalho foi localizado nesta competência.</p>
-              <Button className="mt-6 bg-[#1FA67A] font-black uppercase text-xs" onClick={() => setIsCreateModalOpen(true)}>Instanciar Novo Processo</Button>
+              <h3 className="text-lg font-black text-[#2C4156] uppercase">Nenhum processo localizado</h3>
+              <p className="text-sm text-[#98A7AA] font-bold max-w-sm">Tente ajustar os filtros de busca ou mude a competência mensal.</p>
+              <Button className="mt-6 bg-[#1FA67A] font-black uppercase text-xs" onClick={() => setIsCreateModalOpen(true)}>Criar Novo Processo</Button>
             </div>
           )}
         </CardContent>

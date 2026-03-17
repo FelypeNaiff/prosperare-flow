@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useMemo } from "react"
@@ -19,7 +18,6 @@ import {
   Upload,
   FileSpreadsheet,
   Copy,
-  ArrowUpDown,
   SortAsc,
   SortDesc
 } from "lucide-react"
@@ -270,8 +268,10 @@ export default function ClientesPage() {
   }
 
   const filteredClients = useMemo(() => {
+    const searchLower = searchTerm.toLowerCase()
     let list = (clients || []).filter(c => 
-      c.corporateName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      c.corporateName?.toLowerCase().includes(searchLower) || 
+      c.nomeFantasia?.toLowerCase().includes(searchLower) ||
       c.cnpj?.includes(searchTerm)
     )
 
