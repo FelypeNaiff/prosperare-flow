@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -13,12 +14,11 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Printer, Save, UserPlus, Eye, Loader2, X, Phone, Mail } from "lucide-react"
+import { Printer, Eye, Loader2, X, FileDown } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import Image from "next/image"
-import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
-import { collection, doc } from "firebase/firestore"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection } from "firebase/firestore"
 import { format, parseISO, isValid } from "date-fns"
 import { ClientSearchSelect } from "@/components/clients/client-search-select"
 
@@ -26,10 +26,9 @@ export function TerminationTermForm() {
   const firestore = useFirestore()
   const [isManualClient, setIsManualClient] = useState(false)
   const [isPreviewMode, setIsPreviewOpen] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
   
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: clients = [], isLoading } = useCollection(clientsQuery)
+  const { data: clients = [] } = useCollection(clientsQuery)
 
   const [formData, setFormData] = useState({
     clientId: "",
@@ -65,29 +64,6 @@ export function TerminationTermForm() {
     setIsPreviewOpen(true)
   }
 
-  const handleSaveToHistory = () => {
-    if (!formData.empresa) return
-    setIsSaving(true)
-    
-    const id = Math.random().toString(36).substr(2, 9)
-    const docData = {
-      id,
-      clientId: formData.clientId || "manual",
-      clientName: formData.empresa,
-      type: "TERMO DE RESCISÃO",
-      title: `RESCISÃO: ${formData.funcionario}`,
-      data: formData,
-      createdAt: new Date().toISOString()
-    }
-
-    setDocumentNonBlocking(doc(firestore, "generated_documents", id), docData, { merge: true })
-    
-    setTimeout(() => {
-      setIsSaving(false)
-      toast({ title: "Documento Salvo!", description: "O registro foi adicionado ao histórico geral." })
-    }, 500)
-  }
-
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "__/__/____"
     try {
@@ -119,7 +95,7 @@ export function TerminationTermForm() {
                     setFormData({...formData, empresa: "", cnpj: "", clientId: ""})
                   }}
                 >
-                  <UserPlus className="h-3 w-3" /> {isManualClient ? "Selecionar da Base" : "Digitar Manualmente"}
+                  {isManualClient ? "Selecionar da Base" : "Digitar Manualmente"}
                 </Button>
               </div>
               
@@ -187,12 +163,8 @@ export function TerminationTermForm() {
             </div>
 
             <div className="flex gap-3 pt-6">
-              <Button className="flex-1 bg-[#2C4156] hover:bg-[#2C4156]/90 font-bold gap-2" onClick={handleGenerate}>
-                <Eye className="h-4 w-4" /> Visualizar Termo
-              </Button>
-              <Button variant="outline" className="flex-1 border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={handleSaveToHistory} disabled={isSaving}>
-                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Salvar no Histórico
+              <Button className="w-full bg-[#2C4156] hover:bg-black font-black uppercase text-xs h-12 gap-2 shadow-lg" onClick={handleGenerate}>
+                <FileDown className="h-4 w-4" /> GERAR EM PDF
               </Button>
             </div>
           </CardContent>
@@ -207,12 +179,12 @@ export function TerminationTermForm() {
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setIsPreviewOpen(false)}><X className="h-4 w-4 mr-1" /> Fechar</Button>
                 <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold" onClick={() => window.print()}>
-                  <Printer className="h-3 w-3" /> Imprimir / PDF
+                  <Printer className="h-3 w-3" /> Imprimir Agora
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="p-0 print:p-0">
-              <div className="bg-white mx-auto w-full min-h-[297mm] flex flex-col text-[#2C4156] text-[12px] font-serif relative">
+              <div className="bg-white mx-auto w-full min-h-[297mm] flex flex-col text-black text-[12px] font-serif relative">
                 
                 {/* Papel Timbrado - Header */}
                 <div className="p-12 pb-0 flex justify-between items-start">
@@ -245,7 +217,7 @@ export function TerminationTermForm() {
                     </p>
 
                     <div className="space-y-2">
-                      <h3 className="font-black border-b pb-1 text-[10px] uppercase tracking-widest text-[#1FA67A]">ESPELHO DE CÁLCULO</h3>
+                      <h3 className="font-black border-b pb-1 text-[10px] uppercase tracking-widest">ESPELHO DE CÁLCULO</h3>
                       <div className="bg-slate-50 p-4 rounded font-mono whitespace-pre-wrap text-[11px] min-h-[100px] border border-slate-100">
                         {formData.calculo || "[DETALHAMENTO DO CÁLCULO]"}
                       </div>
@@ -264,31 +236,20 @@ export function TerminationTermForm() {
                     <p className="text-right">Macapá - AP, {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
                     
                     <div className="grid grid-cols-2 gap-12 text-center pt-12">
-                      <div className="border-t border-[#2C4156] pt-2">
+                      <div className="border-t border-black pt-2">
                         <p className="font-bold uppercase text-[10px]">{formData.empresa || "EMPREGADOR"}</p>
-                        <p className="text-[8px] text-[#98A7AA] uppercase tracking-widest">Carimbo e Assinatura</p>
+                        <p className="text-[8px] text-slate-500 uppercase tracking-widest">Carimbo e Assinatura</p>
                       </div>
-                      <div className="border-t border-[#2C4156] pt-2">
+                      <div className="border-t border-black pt-2">
                         <p className="font-bold uppercase text-[10px]">{formData.funcionario || "EMPREGADO"}</p>
-                        <p className="text-[8px] text-[#98A7AA] uppercase tracking-widest">Assinatura do Recebedor</p>
+                        <p className="text-[8px] text-slate-500 uppercase tracking-widest">Assinatura do Recebedor</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Papel Timbrado - Footer */}
+                {/* Papel Timbrado - Footer Ajustado */}
                 <div className="mt-auto">
-                  <div className="flex justify-end pr-12 mb-4">
-                    <div className="bg-[#98A7AA] p-4 text-white text-[9px] font-bold space-y-1 relative rounded-tl-3xl">
-                      <div className="absolute top-0 right-0 w-4 h-full bg-[#003366]" />
-                      <div className="flex items-center gap-2 pr-6">
-                        <Phone className="h-3 w-3" /> (96) 98129-6544 | (96) 98133-4568
-                      </div>
-                      <div className="flex items-center gap-2 pr-6">
-                        <Mail className="h-3 w-3" /> pscsucesso@gmail.com
-                      </div>
-                    </div>
-                  </div>
                   <div className="bg-[#003366] p-4 flex justify-between items-center text-white text-[10px] font-bold">
                     <span className="pl-8 uppercase">PROSPERARE <span className="font-normal">Serviços Contábeis LTDA</span></span>
                     <span className="pr-8 font-normal">Av. Acelino de Leão, nº 1046 – Trem, Macapá - Amapá</span>
