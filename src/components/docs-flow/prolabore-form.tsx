@@ -270,7 +270,7 @@ export function ProlaboreForm() {
                       </div>
 
                       <p className="text-justify mt-8">
-                        Sendo a expressão da verdade, firmamos a presente em Macapá - AP, {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}.
+                        Sendo a expressão da verdade, firmamos a presente em Macapá - AP.
                       </p>
                     </div>
 
