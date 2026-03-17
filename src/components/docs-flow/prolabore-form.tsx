@@ -12,7 +12,6 @@ import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } 
 import { collection, doc } from "firebase/firestore"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { cn } from "@/lib/utils"
-import Image from "next/image"
 import { ClientSearchSelect } from "@/components/clients/client-search-select"
 
 export function ProlaboreForm() {
@@ -20,7 +19,7 @@ export function ProlaboreForm() {
   const [isManual, setIsManual] = useState(false)
   const [isPreviewMode, setIsPreviewOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [docType, setDocType] = useState<"prolabore" | "contracheque">("prolabore")
+  const [docType, setDocType] = useState<"prolabore" | "contracheque">("contracheque")
   
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
   const { data: clients = [], isLoading } = useCollection(clientsQuery)
@@ -35,7 +34,8 @@ export function ProlaboreForm() {
     competencia: "",
     valorBruto: "0",
     inss: "0",
-    irrf: "0"
+    irrf: "0",
+    cadastro: "2"
   })
 
   const handleSelectClient = (clientId: string) => {
@@ -81,11 +81,25 @@ export function ProlaboreForm() {
     }, 500)
   }
 
-  const valorLiquido = Number(formData.valorBruto) - Number(formData.inss) - Number(formData.irrf)
+  const valorBrutoNum = Number(formData.valorBruto) || 0
+  const inssNum = Number(formData.inss) || 0
+  const irrfNum = Number(formData.irrf) || 0
+  const valorLiquido = valorBrutoNum - inssNum - irrfNum
+  const baseIRPF = valorBrutoNum - inssNum
+
+  const formatCurrency = (val: number) => {
+    return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  }
+
+  const formatCompetencia = (val: string) => {
+    if (!val) return "--/----"
+    const [year, month] = val.split('-')
+    return `${month}/${year}`
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div className={cn("space-y-6", isPreviewMode ? "lg:col-span-5" : "lg:col-span-12 max-w-4xl mx-auto")}>
+      <div className={cn("space-y-6", isPreviewMode ? "lg:col-span-5 no-print" : "lg:col-span-12 max-w-4xl mx-auto")}>
         <Card className="border-[#D2D7DB] shadow-sm">
           <CardHeader className="bg-[#F7F7F7]/50 border-b">
             <CardTitle className="text-lg font-black text-[#2C4156] uppercase">Emissão de Proventos de Sócios</CardTitle>
@@ -115,7 +129,7 @@ export function ProlaboreForm() {
                 )} onClick={() => setDocType('contracheque')}>
                   <ReceiptText className={cn("h-5 w-5", docType === 'contracheque' ? "text-[#2574A9]" : "text-[#98A7AA]")} />
                   <div className="flex flex-col">
-                    <span className="text-xs font-black text-[#2C4156] uppercase">Contra-cheque</span>
+                    <span className="text-xs font-black text-[#2C4156] uppercase">Recibo (Contracheque)</span>
                     <RadioGroupItem value="contracheque" id="t-con" className="sr-only" />
                   </div>
                 </div>
@@ -181,9 +195,9 @@ export function ProlaboreForm() {
                   <Label className="text-xs font-bold text-[#39586D]">Desconto IRRF (R$)</Label>
                   <Input type="number" placeholder="0,00" value={formData.irrf} onChange={(e) => setFormData({...formData, irrf: e.target.value})} />
                 </div>
-                <div className="space-y-2 col-span-2">
-                  <Label className="text-xs font-bold text-[#39586D]">E-mail para Contato</Label>
-                  <Input type="email" placeholder="socio@email.com" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-[#39586D]">Nº Cadastro</Label>
+                  <Input placeholder="Ex: 2" value={formData.cadastro} onChange={(e) => setFormData({...formData, cadastro: e.target.value})} />
                 </div>
               </div>
             </div>
@@ -204,7 +218,7 @@ export function ProlaboreForm() {
       {isPreviewMode && (
         <div className="lg:col-span-7 animate-in fade-in slide-in-from-right-4 duration-500">
           <Card className="border-[#D2D7DB] bg-[#F7F7F7] overflow-hidden sticky top-20 print:static print:bg-white print:border-none print:shadow-none">
-            <CardHeader className="bg-white border-b py-3 px-6 flex flex-row items-center justify-between print:hidden">
+            <CardHeader className="bg-white border-b py-3 px-6 flex flex-row items-center justify-between no-print">
               <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Pré-visualização do Documento</CardTitle>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setIsPreviewOpen(false)}><X className="h-4 w-4 mr-1" /> Fechar</Button>
@@ -214,19 +228,17 @@ export function ProlaboreForm() {
               </div>
             </CardHeader>
             <CardContent className="p-8 print:p-0">
-              <div className="bg-white mx-auto w-full min-h-[800px] p-12 text-black text-[11px] leading-relaxed font-serif border print:shadow-none print:border-none print-container">
+              <div className="bg-white mx-auto w-full min-h-[800px] p-8 text-black leading-tight font-serif print:shadow-none print:border-none print-container">
                 
-                {/* Cabeçalho */}
-                <div className="flex items-start justify-between mb-12 border-b pb-8">
-                  <div className="space-y-1">
-                    <h2 className="text-lg font-black uppercase text-black">{formData.empresa || "[NOME DA EMPRESA]"}</h2>
-                    <p className="font-bold text-slate-500">CNPJ: {formData.cnpj || "00.000.000/0000-00"}</p>
-                  </div>
-                </div>
-
                 {docType === 'prolabore' ? (
-                  /* Layout Declaração */
                   <div className="space-y-12">
+                    <div className="flex items-start justify-between mb-12 border-b pb-8">
+                      <div className="space-y-1">
+                        <h2 className="text-lg font-black uppercase text-black">{formData.empresa || "[NOME DA EMPRESA]"}</h2>
+                        <p className="font-bold text-slate-500">CNPJ: {formData.cnpj || "00.000.000/0000-00"}</p>
+                      </div>
+                    </div>
+                    
                     <div className="text-center space-y-2">
                       <h2 className="text-lg font-black uppercase underline underline-offset-8">DECLARAÇÃO DE RENDIMENTOS (PRÓ-LABORE)</h2>
                       <p className="font-bold text-[9px] text-slate-400">Prosperare Flow — Inteligência Documental</p>
@@ -234,118 +246,183 @@ export function ProlaboreForm() {
 
                     <div className="space-y-8">
                       <p className="text-justify leading-loose">
-                        A empresa <strong>{formData.empresa || "[NOME DA EMPRESA]"}</strong>, inscrita no CNPJ sob o nº <strong>{formData.cnpj || "[CNPJ]"}</strong>, declara para os devidos fins de comprovação de renda que o Sr(a). <strong>{formData.socio || "[NOME DO SÓCIO]"}</strong>, portador do CPF nº <strong>{formData.cpf || "[CPF]"}</strong>, na qualidade de sócio-administrador, percebeu a título de Pró-labore no mês de <strong>{formData.competencia || "[MÊS/ANO]"}</strong> a importância bruta de <strong>R$ {Number(formData.valorBruto).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>.
+                        A empresa <strong>{formData.empresa || "[NOME DA EMPRESA]"}</strong>, inscrita no CNPJ sob o nº <strong>{formData.cnpj || "[CNPJ]"}</strong>, declara para os devidos fins de comprovação de renda que o Sr(a). <strong>{formData.socio || "[NOME DO SÓCIO]"}</strong>, portador do CPF nº <strong>{formData.cpf || "[CPF]"}</strong>, na qualidade de sócio-administrador, percebeu a título de Pró-labore no mês de <strong>{formatCompetencia(formData.competencia)}</strong> a importância bruta de <strong>R$ {formatCurrency(valorBrutoNum)}</strong>.
                       </p>
 
-                      <div className="bg-[#F7F7F7] p-6 rounded-xl border space-y-3">
+                      <div className="bg-[#F7F7F7] p-6 rounded-xl border-2 border-black space-y-3">
                         <h3 className="font-black text-[9px] uppercase tracking-widest text-[#1FA67A]">Resumo de Valores</h3>
-                        <div className="flex justify-between border-b pb-2">
+                        <div className="flex justify-between border-b border-black pb-2">
                           <span>Rendimento Bruto:</span>
-                          <span className="font-bold">R$ {Number(formData.valorBruto).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                          <span className="font-bold">R$ {formatCurrency(valorBrutoNum)}</span>
                         </div>
-                        <div className="flex justify-between border-b pb-2 text-[#E74C3C]">
-                          <span>Dedução INSS:</span>
-                          <span className="font-bold">(-) R$ {Number(formData.inss).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <div className="flex justify-between border-b border-black pb-2 text-[#E74C3C]">
+                          <span>Dedução INSS (11%):</span>
+                          <span className="font-bold">(-) R$ {formatCurrency(inssNum)}</span>
                         </div>
-                        <div className="flex justify-between border-b pb-2 text-[#E74C3C]">
+                        <div className="flex justify-between border-b border-black pb-2 text-[#E74C3C]">
                           <span>Dedução IRRF:</span>
-                          <span className="font-bold">(-) R$ {Number(formData.irrf).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                          <span className="font-bold">(-) R$ {formatCurrency(irrfNum)}</span>
                         </div>
                         <div className="flex justify-between pt-2 text-lg">
                           <span className="font-black">VALOR LÍQUIDO:</span>
-                          <span className="font-black text-[#1FA67A]">R$ {valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                          <span className="font-black text-[#1FA67A]">R$ {formatCurrency(valorLiquido)}</span>
                         </div>
                       </div>
 
-                      <p className="text-justify">
-                        Sendo a expressão da verdade, firmamos a presente.
+                      <p className="text-justify mt-8">
+                        Sendo a expressão da verdade, firmamos a presente em Macapá - AP, {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}.
                       </p>
+                    </div>
+
+                    <div className="mt-32 grid grid-cols-2 gap-12 text-center pt-12">
+                      <div className="border-t border-black pt-2">
+                        <p className="font-bold uppercase text-[9px]">{formData.empresa || "EMPREGADOR"}</p>
+                        <p className="text-[8px] text-slate-500 uppercase tracking-widest">Carimbo e Assinatura</p>
+                      </div>
+                      <div className="border-t border-black pt-2">
+                        <p className="font-bold uppercase text-[9px]">{formData.socio || "SÓCIO"}</p>
+                        <p className="text-[8px] text-slate-500 uppercase tracking-widest">Assinatura do Recebedor</p>
+                      </div>
                     </div>
                   </div>
                 ) : (
-                  /* Layout Contra-cheque */
-                  <div className="space-y-8">
-                    <div className="text-center border-2 border-black py-2 mb-4">
-                      <h2 className="text-sm font-black uppercase">RECIBO DE PAGAMENTO DE PRÓ-LABORE</h2>
+                  /* RECIBO DE PROLABORE - LAYOUT FIEL À IMAGEM */
+                  <div className="border-2 border-black text-[10px] uppercase font-sans">
+                    {/* Header Topo */}
+                    <div className="flex border-b-2 border-black">
+                      <div className="w-[60%] bg-[#E5E7EB] border-r-2 border-black p-1 font-bold">CLIENTE</div>
+                      <div className="w-[40%] p-1 text-center font-bold text-xs">Recibo de Pró-labore</div>
+                    </div>
+                    
+                    {/* Linha Cliente Nome */}
+                    <div className="flex border-b-2 border-black h-8 items-center">
+                      <div className="w-[60%] border-r-2 border-black p-1 font-bold">{formData.empresa || "NOME DO CLIENTE"}</div>
+                      <div className="w-[15%] border-r-2 border-black"></div>
+                      <div className="w-[25%] p-1 text-center font-bold">Mensal</div>
                     </div>
 
-                    <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black">
-                      <div className="col-span-3 p-2">
-                        <p className="text-[8px] font-black uppercase text-slate-500">Nome do Sócio/Contribuinte</p>
-                        <p className="text-xs font-black uppercase">{formData.socio}</p>
+                    {/* Linha CNPJ e Data */}
+                    <div className="flex border-b-2 border-black h-8 items-center">
+                      <div className="w-[60%] border-r-2 border-black p-1 font-bold">CNPJ: {formData.cnpj || "00.000.000/0000-00"}</div>
+                      <div className="w-[15%] border-r-2 border-black"></div>
+                      <div className="w-[25%] p-1 text-center font-bold">{formatCompetencia(formData.competencia)}</div>
+                    </div>
+
+                    {/* Sub-Header Cadastro / Nome */}
+                    <div className="flex bg-[#E5E7EB] border-b border-black">
+                      <div className="w-[20%] border-r border-black p-0.5 text-center font-bold">Cadastro</div>
+                      <div className="w-[80%] p-0.5 pl-2 font-bold">Nome</div>
+                    </div>
+
+                    {/* Linha Dados do Sócio */}
+                    <div className="flex border-b-2 border-black">
+                      <div className="w-[20%] border-r-2 border-black p-2 text-center text-sm font-bold flex items-center justify-center">{formData.cadastro}</div>
+                      <div className="w-[80%]">
+                        <div className="p-1 pl-2 font-black text-sm">{formData.socio}</div>
+                        <div className="p-1 pl-2 border-t border-black font-bold text-[#4B5563]">SOCIO - ADMINISTRADOR</div>
                       </div>
-                      <div className="p-2">
-                        <p className="text-[8px] font-black uppercase text-slate-500">Competência</p>
-                        <p className="text-xs font-black">{formData.competencia}</p>
+                    </div>
+
+                    {/* Cabeçalho da Tabela de Itens */}
+                    <div className="flex bg-[#E5E7EB] border-b border-black font-bold text-center">
+                      <div className="w-[10%] border-r border-black p-0.5">Cod</div>
+                      <div className="w-[35%] border-r border-black p-0.5">Descrição</div>
+                      <div className="w-[15%] border-r border-black p-0.5">Referência</div>
+                      <div className="w-[20%] border-r border-black p-0.5">Proventos</div>
+                      <div className="w-[20%] p-0.5">Descontos</div>
+                    </div>
+
+                    {/* Corpo da Tabela de Itens */}
+                    <div className="min-h-[250px] relative">
+                      {/* Item 1 - Pro-labore */}
+                      <div className="flex border-b border-gray-200">
+                        <div className="w-[10%] border-r border-black p-1 text-center">1</div>
+                        <div className="w-[35%] border-r border-black p-1 pl-2">HORAS NORMAIS EMPREGADOR</div>
+                        <div className="w-[15%] border-r border-black p-1 text-center">220:00</div>
+                        <div className="w-[20%] border-r border-black p-1 text-right pr-4">R$ {formatCurrency(valorBrutoNum)}</div>
+                        <div className="w-[20%] p-1 text-right pr-4"></div>
                       </div>
-                    </div>
 
-                    <div className="border-2 border-black mt-[-2px] min-h-[300px]">
-                      <table className="w-full text-left">
-                        <thead>
-                          <tr className="border-b-2 border-black bg-[#F7F7F7]">
-                            <th className="p-2 text-[8px] font-black">DESCRIÇÃO</th>
-                            <th className="p-2 text-[8px] font-black text-right">REFERÊNCIA</th>
-                            <th className="p-2 text-[8px] font-black text-right">PROVENTOS</th>
-                            <th className="p-2 text-[8px] font-black text-right">DESCONTOS</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          <tr className="h-8">
-                            <td className="p-2 text-[10px] font-bold">001 - PRÓ-LABORE MENSAL</td>
-                            <td className="p-2 text-[10px] text-right">30 Dias</td>
-                            <td className="p-2 text-[10px] text-right">R$ {Number(formData.valorBruto).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                            <td className="p-2 text-[10px] text-right"></td>
-                          </tr>
-                          <tr className="h-8">
-                            <td className="p-2 text-[10px] font-bold text-[#E74C3C]">501 - INSS S/ PRÓ-LABORE</td>
-                            <td className="p-2 text-[10px] text-right">11.00%</td>
-                            <td className="p-2 text-[10px] text-right"></td>
-                            <td className="p-2 text-[10px] text-right text-[#E74C3C]">R$ {Number(formData.inss).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                          </tr>
-                          {Number(formData.irrf) > 0 && (
-                            <tr className="h-8">
-                              <td className="p-2 text-[10px] font-bold text-[#E74C3C]">502 - IRRF S/ PRÓ-LABORE</td>
-                              <td className="p-2 text-[10px] text-right">Var.</td>
-                              <td className="p-2 text-[10px] text-right"></td>
-                              <td className="p-2 text-[10px] text-right text-[#E74C3C]">R$ {Number(formData.irrf).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                      {/* Item 2 - INSS */}
+                      <div className="flex border-b border-gray-200">
+                        <div className="w-[10%] border-r border-black p-1 text-center">150</div>
+                        <div className="w-[35%] border-r border-black p-1 pl-2">INSS EMPREGADOR</div>
+                        <div className="w-[15%] border-r border-black p-1 text-center">11%</div>
+                        <div className="w-[20%] border-r border-black p-1 text-right pr-4"></div>
+                        <div className="w-[20%] p-1 text-right pr-4">R$ {formatCurrency(inssNum)}</div>
+                      </div>
 
-                    <div className="grid grid-cols-2 border-2 border-black mt-[-2px] divide-x-2 divide-black">
-                      <div className="p-4 space-y-2">
-                        <div className="flex justify-between text-[10px]">
-                          <span>Total de Proventos:</span>
-                          <span className="font-bold">R$ {Number(formData.valorBruto).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      {/* Item 3 - IRRF */}
+                      {irrfNum > 0 && (
+                        <div className="flex border-b border-gray-200">
+                          <div className="w-[10%] border-r border-black p-1 text-center">230</div>
+                          <div className="w-[35%] border-r border-black p-1 pl-2">IRRF EMPREGADOR</div>
+                          <div className="w-[15%] border-r border-black p-1 text-center">VAR.</div>
+                          <div className="w-[20%] border-r border-black p-1 text-right pr-4"></div>
+                          <div className="w-[20%] p-1 text-right pr-4">R$ {formatCurrency(irrfNum)}</div>
                         </div>
-                        <div className="flex justify-between text-[10px] text-[#E74C3C]">
-                          <span>Total de Descontos:</span>
-                          <span className="font-bold">R$ {(Number(formData.inss) + Number(formData.irrf)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        </div>
+                      )}
+
+                      {/* Divisórias Verticais Vazias para Preencher o Espaço */}
+                      <div className="absolute top-0 bottom-0 w-[10%] border-r border-black pointer-events-none" />
+                      <div className="absolute top-0 bottom-0 w-[45%] border-r border-black pointer-events-none" />
+                      <div className="absolute top-0 bottom-0 w-[60%] border-r border-black pointer-events-none" />
+                      <div className="absolute top-0 bottom-0 w-[80%] border-r border-black pointer-events-none" />
+                    </div>
+
+                    {/* Totais */}
+                    <div className="flex border-t-2 border-black">
+                      <div className="w-[45%]"></div>
+                      <div className="w-[15%] border-x-2 border-black p-1 font-bold text-center bg-[#E5E7EB]">TOTAL</div>
+                      <div className="w-[20%] border-r-2 border-black p-1 text-right pr-4 font-bold">R$ {formatCurrency(valorBrutoNum)}</div>
+                      <div className="w-[20%] p-1 text-right pr-4 font-bold">R$ {formatCurrency(inssNum + irrfNum)}</div>
+                    </div>
+
+                    {/* Líquido */}
+                    <div className="flex border-t-2 border-black">
+                      <div className="w-[60%]"></div>
+                      <div className="w-[20%] border-x-2 border-black p-1 font-bold text-center bg-[#E5E7EB]">Total Líquido</div>
+                      <div className="w-[20%] p-1 text-right pr-4 font-black text-sm">R$ {formatCurrency(valorLiquido)}</div>
+                    </div>
+
+                    {/* Bases de Cálculo */}
+                    <div className="flex border-t-2 border-black bg-[#E5E7EB] font-bold text-[8px] text-center">
+                      <div className="w-[20%] border-r border-black p-0.5">Salario Base</div>
+                      <div className="w-[20%] border-r border-black p-0.5">Sal. Cont INSS</div>
+                      <div className="w-[20%] border-r border-black p-0.5">Bas Cál FGTS</div>
+                      <div className="w-[20%] border-r border-black p-0.5">FGTS Mês</div>
+                      <div className="w-[20%] p-0.5">Bas Cál IRPF</div>
+                    </div>
+                    <div className="flex border-t border-black font-bold h-8 items-center text-center">
+                      <div className="w-[20%] border-r-2 border-black p-1">R$ {formatCurrency(valorBrutoNum)}</div>
+                      <div className="w-[20%] border-r-2 border-black p-1">R$ {formatCurrency(valorBrutoNum)}</div>
+                      <div className="w-[20%] border-r-2 border-black p-1">R$ -</div>
+                      <div className="w-[20%] border-r-2 border-black p-1">R$ -</div>
+                      <div className="w-[20%] p-1">R$ {formatCurrency(baseIRPF)}</div>
+                    </div>
+
+                    {/* Assinatura e Data */}
+                    <div className="flex border-t-2 border-black p-4 h-16 items-end justify-between">
+                      <div className="w-[60%] flex items-baseline gap-2">
+                        <span className="font-bold">Assinatura:</span>
+                        <div className="flex-1 border-b border-black"></div>
                       </div>
-                      <div className="p-4 bg-[#F7F7F7] flex flex-col justify-center items-end">
-                        <p className="text-[8px] font-black uppercase text-slate-500">Valor Líquido a Receber</p>
-                        <p className="text-xl font-black text-[#1FA67A]">R$ {valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      <div className="w-[30%] flex items-baseline gap-2">
+                        <span className="font-bold">Data:</span>
+                        <div className="flex-1 flex gap-1 justify-center">
+                          <span className="border-b border-black w-8"></span>
+                          <span>/</span>
+                          <span className="border-b border-black w-8"></span>
+                          <span>/</span>
+                          <span className="border-b border-black w-12"></span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 )}
 
-                <div className="mt-24 space-y-16">
-                  <p className="text-right">Emitido em {new Date().toLocaleDateString('pt-BR')}</p>
-                  <div className="grid grid-cols-2 gap-12 text-center pt-12">
-                    <div className="border-t border-black pt-2">
-                      <p className="font-bold uppercase text-[9px]">{formData.empresa || "EMPREGADOR"}</p>
-                      <p className="text-[8px] text-slate-500 uppercase tracking-widest">Carimbo e Assinatura</p>
-                    </div>
-                    <div className="border-t border-black pt-2">
-                      <p className="font-bold uppercase text-[9px]">{formData.socio || "SÓCIO"}</p>
-                      <p className="text-[8px] text-slate-500 uppercase tracking-widest">Declaro que recebi a importância</p>
-                    </div>
-                  </div>
+                <div className="mt-8 text-right text-[8px] font-bold text-gray-400 no-print">
+                  Prosperare Flow — Gerador de Documentos Profissionais
                 </div>
               </div>
             </CardContent>
