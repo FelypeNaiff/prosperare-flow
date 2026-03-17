@@ -16,7 +16,8 @@ import {
   AlertTriangle,
   Loader2,
   Save,
-  Trash2
+  Trash2,
+  Edit2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -48,29 +49,36 @@ import {
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
+
+const SERVICE_OPTIONS = [
+  { id: "pessoal", label: "Departamento Pessoal" },
+  { id: "tributario", label: "Departamento Tributário" },
+  { id: "contabil", label: "Departamento Contábil" },
+  { id: "legalizacao", label: "Abertura e Legalização" },
+]
 
 export default function ContratosPage() {
   const firestore = useFirestore()
   const [searchTerm, setSearchTerm] = useState("")
-  const [isNewModalOpen, setIsNewModalOpen] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [selectedContract, setSelectedContract] = useState<any>(null)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
 
-  // Query de contratos reais
   const contractsQuery = useMemoFirebase(() => collection(firestore, "contracts"), [firestore])
   const { data: contracts = [], isLoading } = useCollection(contractsQuery)
 
-  // Query de clientes para o seletor
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
   const { data: clients = [] } = useCollection(clientsQuery)
 
-  const [newContract, setNewContract] = useState({
+  const [formData, setFormData] = useState({
     clientId: "",
-    serviceType: "Contabilidade Geral",
+    services: [] as string[],
     value: 0,
     startDate: new Date().toISOString().split('T')[0],
     dueDay: 10,
@@ -85,72 +93,100 @@ export default function ContratosPage() {
     return { active, revenue }
   }, [contracts])
 
-  const handleCreateContract = () => {
-    if (!newContract.clientId || !newContract.value) {
-      toast({ title: "Erro", description: "Preencha os campos obrigatórios.", variant: "destructive" })
-      return
-    }
-
-    const client = (clients || []).find(c => c.id === newContract.clientId)
-    const contractId = Math.random().toString(36).substr(2, 9)
-    const contractRef = doc(firestore, "contracts", contractId)
-    
-    const contractData = {
-      ...newContract,
-      id: contractId,
-      clientName: client?.corporateName || "Empresa não identificada",
-      clientCnpj: client?.cnpj || "00.000.000/0000-00",
-      clientRegime: client?.taxRegime || "Não informado",
-      createdAt: new Date().toISOString()
-    }
-
-    // 1. Salva o contrato
-    setDocumentNonBlocking(contractRef, contractData, { merge: true })
-
-    // 2. Integração Automática com Contas a Receber
-    const receivableId = Math.random().toString(36).substr(2, 9)
-    const receivableRef = doc(firestore, "receivables", receivableId)
-    
-    // Calcula a data de vencimento baseada no dia escolhido e no mês atual
-    const today = new Date()
-    const vencimentoStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${newContract.dueDay.toString().padStart(2, '0')}`
-
-    const receivableData = {
-      id: receivableId,
-      descricao: `HONORÁRIO - ${newContract.serviceType}`.toUpperCase(),
-      cliente: client?.corporateName || "Cliente Avulso",
-      clientId: newContract.clientId,
-      pagamento: "PIX", // Padrão inicial
-      data: vencimentoStr,
-      valor: Number(newContract.value),
-      situacao: "Pendente",
-      recorrente: true,
-      tipoValor: "Fixo",
-      createdAt: new Date().toISOString()
-    }
-
-    setDocumentNonBlocking(receivableRef, receivableData, { merge: true })
-    
-    setIsNewModalOpen(false)
-    setNewContract({
+  const handleOpenNew = () => {
+    setEditingId(null)
+    setFormData({
       clientId: "",
-      serviceType: "Contabilidade Geral",
+      services: [],
       value: 0,
       startDate: new Date().toISOString().split('T')[0],
       dueDay: 10,
       notes: "",
       status: "Ativo"
     })
+    setIsModalOpen(true)
+  }
+
+  const handleEdit = (contract: any) => {
+    setEditingId(contract.id)
+    setFormData({
+      clientId: contract.clientId,
+      services: contract.services || [],
+      value: contract.value,
+      startDate: contract.startDate,
+      dueDay: contract.dueDay,
+      notes: contract.notes || "",
+      status: contract.status
+    })
+    setIsModalOpen(true)
+  }
+
+  const toggleService = (serviceLabel: string) => {
+    setFormData(prev => ({
+      ...prev,
+      services: prev.services.includes(serviceLabel)
+        ? prev.services.filter(s => s !== serviceLabel)
+        : [...prev.services, serviceLabel]
+    }))
+  }
+
+  const handleSaveContract = () => {
+    if (!formData.clientId || !formData.value || formData.services.length === 0) {
+      toast({ title: "Erro", description: "Preencha cliente, valor e ao menos um serviço.", variant: "destructive" })
+      return
+    }
+
+    const client = (clients || []).find(c => c.id === formData.clientId)
+    const id = editingId || Math.random().toString(36).substr(2, 9)
+    const contractRef = doc(firestore, "contracts", id)
     
+    const contractData = {
+      ...formData,
+      id,
+      clientName: client?.corporateName || "Empresa não identificada",
+      clientCnpj: client?.cnpj || "00.000.000/0000-00",
+      clientRegime: client?.taxRegime || "Não informado",
+      updatedAt: new Date().toISOString(),
+      createdAt: editingId ? (contracts.find(c => c.id === editingId)?.createdAt || new Date().toISOString()) : new Date().toISOString()
+    }
+
+    setDocumentNonBlocking(contractRef, contractData, { merge: true })
+
+    // Se for novo contrato, gera o primeiro contas a receber
+    if (!editingId) {
+      const receivableId = Math.random().toString(36).substr(2, 9)
+      const receivableRef = doc(firestore, "receivables", receivableId)
+      const today = new Date()
+      const vencimentoStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${formData.dueDay.toString().padStart(2, '0')}`
+
+      const receivableData = {
+        id: receivableId,
+        descricao: `HONORÁRIO - ${formData.services.join(", ")}`.toUpperCase(),
+        cliente: client?.corporateName || "Cliente Avulso",
+        clientId: formData.clientId,
+        pagamento: "PIX",
+        data: vencimentoStr,
+        valor: Number(formData.value),
+        situacao: "Pendente",
+        recorrente: true,
+        tipoValue: "Fixo",
+        createdAt: new Date().toISOString()
+      }
+      setDocumentNonBlocking(receivableRef, receivableData, { merge: true })
+    }
+    
+    setIsModalOpen(false)
     toast({ 
-      title: "Contrato Ativado!", 
-      description: "O contrato foi salvo e o honorário foi lançado no financeiro." 
+      title: editingId ? "Contrato Atualizado!" : "Contrato Ativado!", 
+      description: editingId ? "As alterações foram salvas." : "O contrato foi salvo e o honorário lançado." 
     })
   }
 
   const handleDelete = (id: string) => {
-    deleteDocumentNonBlocking(doc(firestore, "contracts", id))
-    toast({ title: "Contrato removido", variant: "destructive" })
+    if (confirm("Excluir permanentemente este contrato?")) {
+      deleteDocumentNonBlocking(doc(firestore, "contracts", id))
+      toast({ title: "Contrato removido", variant: "destructive" })
+    }
   }
 
   const handleGeneratePDF = (contract: any) => {
@@ -170,7 +206,7 @@ export default function ContratosPage() {
           <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão de Contratos</h1>
           <p className="text-[#98A7AA] font-bold text-sm">Controle jurídico e faturamento recorrente.</p>
         </div>
-        <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-bold shadow-lg shadow-emerald-500/20" onClick={() => setIsNewModalOpen(true)}>
+        <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-bold shadow-lg shadow-emerald-500/20" onClick={handleOpenNew}>
           <Plus className="h-4 w-4" /> Novo Contrato
         </Button>
       </div>
@@ -203,7 +239,7 @@ export default function ContratosPage() {
             <TableHeader className="bg-[#2C4156]">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="text-white font-black uppercase text-[10px]">Empresa / CNPJ</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Serviço / Regime</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px]">Serviços Contratados</TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px]">Início</TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px] text-right">Honorário</TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px] text-center">Status</TableHead>
@@ -227,9 +263,12 @@ export default function ContratosPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs font-bold text-[#39586D]">{item.serviceType}</span>
-                        <Badge variant="outline" className="w-fit text-[8px] font-black uppercase border-[#D2D7DB]">{item.clientRegime}</Badge>
+                      <div className="flex flex-wrap gap-1 max-w-[300px]">
+                        {(item.services || []).map((s: string) => (
+                          <Badge key={s} variant="secondary" className="text-[8px] font-black uppercase bg-white border">
+                            {s}
+                          </Badge>
+                        ))}
                       </div>
                     </TableCell>
                     <TableCell className="text-xs font-bold text-[#39586D]">{item.startDate}</TableCell>
@@ -242,6 +281,7 @@ export default function ContratosPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-[#2574A9]" onClick={() => handleEdit(item)}><Edit2 className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-[#2C4156]" onClick={() => handleGeneratePDF(item)}><Printer className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C]" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4" /></Button>
                       </div>
@@ -260,17 +300,22 @@ export default function ContratosPage() {
         </CardContent>
       </Card>
 
-      {/* Modal de Novo Contrato */}
-      <Dialog open={isNewModalOpen} onOpenChange={setIsNewModalOpen}>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-black text-[#2C4156]">Novo Contrato Contábil</DialogTitle>
-            <DialogDescription className="font-medium">Vincule um cliente da base para gerar a recorrência.</DialogDescription>
+            <DialogTitle className="text-2xl font-black text-[#2C4156] uppercase">
+              {editingId ? "Editar Contrato" : "Novo Contrato Contábil"}
+            </DialogTitle>
+            <DialogDescription className="font-medium">Defina o escopo de serviços e os parâmetros de faturamento.</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-6 py-4">
             <div className="col-span-2 space-y-2">
               <Label className="text-xs font-black text-[#98A7AA] uppercase">Empresa (Cliente)</Label>
-              <Select value={newContract.clientId} onValueChange={(v) => setNewContract({...newContract, clientId: v})}>
+              <Select 
+                value={formData.clientId} 
+                onValueChange={(v) => setFormData({...formData, clientId: v})}
+                disabled={!!editingId}
+              >
                 <SelectTrigger className="border-[#D2D7DB]"><SelectValue placeholder="Selecione o cliente cadastrado" /></SelectTrigger>
                 <SelectContent>
                   {(clients || []).map(client => (
@@ -279,35 +324,42 @@ export default function ContratosPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-black text-[#98A7AA] uppercase">Tipo de Serviço</Label>
-              <Select value={newContract.serviceType} onValueChange={(v) => setNewContract({...newContract, serviceType: v})}>
-                <SelectTrigger className="border-[#D2D7DB]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Contabilidade Geral">Contabilidade Geral</SelectItem>
-                  <SelectItem value="Abertura de Empresa">Abertura de Empresa</SelectItem>
-                  <SelectItem value="Consultoria Tributária">Consultoria Tributária</SelectItem>
-                  <SelectItem value="Departamento Pessoal">Departamento Pessoal</SelectItem>
-                </SelectContent>
-              </Select>
+
+            <div className="col-span-2 space-y-3">
+              <Label className="text-xs font-black text-[#98A7AA] uppercase">Serviços Contratados (Múltipla Escolha)</Label>
+              <div className="grid grid-cols-2 gap-3 p-4 bg-[#F7F7F7] rounded-xl border">
+                {SERVICE_OPTIONS.map((service) => (
+                  <div key={service.id} className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={service.id} 
+                      checked={formData.services.includes(service.label)}
+                      onCheckedChange={() => toggleService(service.label)}
+                    />
+                    <label htmlFor={service.id} className="text-xs font-bold uppercase text-[#39586D] cursor-pointer">
+                      {service.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
+
             <div className="space-y-2">
               <Label className="text-xs font-black text-[#98A7AA] uppercase">Valor Mensal (R$)</Label>
               <Input 
                 type="number" 
                 placeholder="0,00" 
                 className="border-[#D2D7DB]" 
-                value={newContract.value}
-                onChange={(e) => setNewContract({...newContract, value: Number(e.target.value)})}
+                value={formData.value}
+                onChange={(e) => setFormData({...formData, value: Number(e.target.value)})}
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-black text-[#98A7AA] uppercase">Data de Início</Label>
+              <Label className="text-xs font-black text-[#98A7AA] uppercase">Início da Vigência</Label>
               <Input 
                 type="date" 
                 className="border-[#D2D7DB]" 
-                value={newContract.startDate}
-                onChange={(e) => setNewContract({...newContract, startDate: e.target.value})}
+                value={formData.startDate}
+                onChange={(e) => setFormData({...formData, startDate: e.target.value})}
               />
             </div>
             <div className="space-y-2">
@@ -317,97 +369,127 @@ export default function ContratosPage() {
                 min="1" 
                 max="28" 
                 className="border-[#D2D7DB]" 
-                value={newContract.dueDay}
-                onChange={(e) => setNewContract({...newContract, dueDay: Number(e.target.value)})}
+                value={formData.dueDay}
+                onChange={(e) => setFormData({...formData, dueDay: Number(e.target.value)})}
               />
             </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-black text-[#98A7AA] uppercase">Status do Contrato</Label>
+              <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
+                <SelectTrigger className="border-[#D2D7DB]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Ativo">ATIVO</SelectItem>
+                  <SelectItem value="Suspenso">SUSPENSO</SelectItem>
+                  <SelectItem value="Cancelado">CANCELADO</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="col-span-2 space-y-2">
-              <Label className="text-xs font-black text-[#98A7AA] uppercase">Observações / Escopo</Label>
+              <Label className="text-xs font-black text-[#98A7AA] uppercase">Observações Internas</Label>
               <Textarea 
-                placeholder="Descreva clausulas específicas..." 
+                placeholder="Detalhes sobre fidelidade, bonificações, etc..." 
                 className="border-[#D2D7DB]" 
-                value={newContract.notes}
-                onChange={(e) => setNewContract({...newContract, notes: e.target.value})}
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
               />
             </div>
           </div>
           <DialogFooter className="bg-[#F7F7F7] -mx-6 -mb-6 p-6 border-t mt-4">
-            <Button variant="outline" onClick={() => setIsNewModalOpen(false)}>Cancelar</Button>
-            <Button className="bg-[#1FA67A] font-bold px-8" onClick={handleCreateContract}>
-              <Save className="h-4 w-4 mr-2" /> Salvar e Gerar
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+            <Button className="bg-[#1FA67A] font-bold px-8" onClick={handleSaveContract}>
+              <Save className="h-4 w-4 mr-2" /> {editingId ? "Salvar Alterações" : "Ativar Contrato"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Preview do Contrato */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#F7F7F7] p-0">
-          <DialogHeader className="p-6 bg-white border-b sticky top-0 z-10">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#F7F7F7] p-0 border-none">
+          <DialogHeader className="p-6 bg-white border-b sticky top-0 z-10 no-print">
             <div className="flex justify-between items-center">
               <div>
                 <DialogTitle className="text-xl font-black text-[#2C4156]">Visualização do Contrato</DialogTitle>
-                <DialogDescription className="text-xs font-bold text-[#98A7AA]">Documento gerado em {new Date().toLocaleDateString('pt-BR')}</DialogDescription>
+                <DialogDescription className="text-xs font-bold text-[#98A7AA]">Ref: {selectedContract?.id?.toUpperCase()}</DialogDescription>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setIsPreviewOpen(false)}>Fechar</Button>
-                <Button className="bg-[#1FA67A] gap-2 font-bold"><Download className="h-4 w-4" /> Baixar PDF</Button>
+                <Button className="bg-[#1FA67A] gap-2 font-bold" onClick={() => window.print()}>
+                  <Printer className="h-4 w-4" /> Imprimir / PDF
+                </Button>
               </div>
             </div>
           </DialogHeader>
           
-          <div className="p-12 bg-white shadow-lg mx-auto my-8 w-[210mm] min-h-[297mm] text-[#2C4156] text-sm leading-relaxed font-body">
-            <div className="flex justify-center mb-12 border-b pb-8">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-10 h-10 text-[#1FA67A]" />
-                <div className="flex flex-col">
-                  <span className="text-2xl font-black tracking-tighter">PROSPERARE <span className="text-[#1FA67A]">FLOW</span></span>
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#98A7AA]">Soluções Contábeis</span>
+          <div className="p-16 bg-white shadow-xl mx-auto my-8 w-full min-h-[297mm] text-[#2C4156] text-[12px] leading-relaxed font-serif border print-container">
+            {/* Header Timbrado */}
+            <div className="flex justify-between items-start mb-12 border-b-2 border-[#003366] pb-8">
+              <div className="flex items-start gap-4">
+                <div className="border-2 border-[#003366] p-2 w-16 h-16 flex flex-col items-center justify-center leading-none">
+                  <span className="text-3xl font-serif italic text-[#003366]">P</span>
+                  <span className="text-[10px] font-bold text-[#003366] -mt-1">sc</span>
                 </div>
+                <div className="flex flex-col">
+                  <span className="text-2xl font-serif italic text-[#003366] tracking-tighter">Prosperare</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#98A7AA]">Serviços Contábeis</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-black uppercase text-[#98A7AA]">Contrato de Prestação de Serviços</p>
+                <p className="text-[9px] font-bold">Nº {selectedContract?.id?.substr(0,8).toUpperCase()}</p>
               </div>
             </div>
 
             <div className="text-center space-y-4 mb-12">
-              <h2 className="text-2xl font-black uppercase underline decoration-[#1FA67A] decoration-4 underline-offset-8">CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h2>
-              <p className="text-[10px] font-black text-[#98A7AA]">REF: PROCESSO JURÍDICO Nº 2024/{selectedContract?.id?.substr(0,4).toUpperCase()}</p>
+              <h2 className="text-xl font-black uppercase underline underline-offset-8">INSTRUMENTO PARTICULAR DE CONTRATO DE PRESTAÇÃO DE SERVIÇOS CONTÁBEIS</h2>
             </div>
             
-            <div className="space-y-6">
-              <section className="space-y-2">
-                <h3 className="font-black text-xs uppercase text-[#1FA67A]">1. DAS PARTES</h3>
-                <p><strong>CONTRATADA:</strong> PROSPERARE FLOW SOLUÇÕES CONTÁBEIS LTDA, inscrita no CNPJ sob o nº 12.345.678/0001-90, com sede administrativa em Macapá - AP.</p>
-                <p><strong>CONTRATANTE:</strong> {selectedContract?.clientName?.toUpperCase()}, inscrita no CNPJ sob o nº {selectedContract?.clientCnpj}, sediada em Macapá - AP.</p>
+            <div className="space-y-8 text-justify">
+              <section className="space-y-3">
+                <h3 className="font-black text-[11px] uppercase text-[#003366] border-b">1. DAS PARTES</h3>
+                <p><strong>CONTRATADA:</strong> PROSPERARE FLOW SERVIÇOS CONTÁBEIS LTDA, inscrita no CNPJ sob o nº 12.345.678/0001-90, com sede administrativa em Macapá - AP.</p>
+                <p><strong>CONTRATANTE:</strong> {selectedContract?.clientName?.toUpperCase()}, inscrita no CNPJ sob o nº {selectedContract?.clientCnpj}, com sede no endereço cadastrado em nossa base de dados.</p>
               </section>
 
-              <section className="space-y-2">
-                <h3 className="font-black text-xs uppercase text-[#1FA67A]">2. DO OBJETO</h3>
-                <p>O presente instrumento tem por objeto a prestação de serviços especializados de <strong>{selectedContract?.serviceType}</strong>, abrangendo a escrituração fiscal, contábil e todas as obrigações acessórias inerentes ao regime tributário do <strong>{selectedContract?.clientRegime}</strong>.</p>
+              <section className="space-y-3">
+                <h3 className="font-black text-[11px] uppercase text-[#003366] border-b">2. DO OBJETO</h3>
+                <p>O presente instrumento tem por objeto a prestação de serviços especializados abrangendo as seguintes áreas:</p>
+                <ul className="list-disc pl-8 space-y-1 font-bold">
+                  {(selectedContract?.services || []).map((s: string) => (
+                    <li key={s}>{s.toUpperCase()}</li>
+                  ))}
+                </ul>
+                <p>Os serviços serão executados em conformidade com o regime tributário <strong>{selectedContract?.clientRegime}</strong> da CONTRATANTE.</p>
               </section>
 
-              <section className="space-y-2">
-                <h3 className="font-black text-xs uppercase text-[#1FA67A]">3. DOS HONORÁRIOS</h3>
-                <p>Pelos serviços ora contratados, a CONTRATANTE pagará à CONTRATADA o valor mensal de <strong>R$ {Number(selectedContract?.value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>, com vencimento impreterível todo dia {selectedContract?.dueDay} de cada mês subsequente ao serviço prestado.</p>
+              <section className="space-y-3">
+                <h3 className="font-black text-[11px] uppercase text-[#003366] border-b">3. DOS HONORÁRIOS</h3>
+                <p>Pelos serviços ora contratados, a CONTRATANTE pagará à CONTRATADA o valor mensal de <strong>R$ {Number(selectedContract?.value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>.</p>
+                <p>O vencimento ocorrerá impreterivelmente todo <strong>dia {selectedContract?.dueDay}</strong> de cada mês subsequente ao serviço prestado, através de boleto bancário ou PIX.</p>
               </section>
 
-              <section className="space-y-2">
-                <h3 className="font-black text-xs uppercase text-[#1FA67A]">4. DA VIGÊNCIA</h3>
-                <p>Este contrato inicia seus efeitos em <strong>{selectedContract?.startDate}</strong>, com prazo de validade indeterminado, podendo ser rescindido por qualquer das partes mediante aviso prévio de 30 (trinta) dias.</p>
+              <section className="space-y-3">
+                <h3 className="font-black text-[11px] uppercase text-[#003366] border-b">4. DA VIGÊNCIA</h3>
+                <p>Este contrato inicia seus efeitos em <strong>{selectedContract?.startDate ? new Date(selectedContract.startDate).toLocaleDateString('pt-BR') : '--'}</strong>, com prazo de validade indeterminado, podendo ser rescindido por qualquer das partes mediante aviso prévio de 30 (trinta) dias.</p>
               </section>
             </div>
 
             <div className="mt-32 flex justify-between gap-16 px-12">
               <div className="flex-1 text-center space-y-2">
-                <div className="border-t-2 border-[#2C4156] pt-2 font-black text-xs">PROSPERARE FLOW</div>
-                <p className="text-[9px] font-bold text-[#98A7AA] uppercase">CONTRATADA</p>
+                <div className="border-t-2 border-[#2C4156] pt-2 font-black text-[10px]">PROSPERARE FLOW</div>
+                <p className="text-[8px] font-bold text-[#98A7AA] uppercase">CONTRATADA</p>
               </div>
               <div className="flex-1 text-center space-y-2">
-                <div className="border-t-2 border-[#2C4156] pt-2 font-black text-xs">{selectedContract?.clientName}</div>
-                <p className="text-[9px] font-bold text-[#98A7AA] uppercase">CONTRATANTE</p>
+                <div className="border-t-2 border-[#2C4156] pt-2 font-black text-[10px]">{selectedContract?.clientName}</div>
+                <p className="text-[8px] font-bold text-[#98A7AA] uppercase">CONTRATANTE</p>
               </div>
             </div>
 
-            <div className="text-center mt-20">
-              <p className="text-xs font-bold text-[#98A7AA]">Macapá - AP, {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+            {/* Footer Timbrado */}
+            <div className="mt-auto pt-12">
+              <div className="bg-[#003366] p-4 flex justify-between items-center text-white text-[9px] font-bold rounded-sm">
+                <span className="uppercase">PROSPERARE SERVIÇOS CONTÁBEIS LTDA</span>
+                <span className="font-normal italic">Emitido via Prosperare Flow em {new Date().toLocaleDateString('pt-BR')}</span>
+              </div>
             </div>
           </div>
         </DialogContent>
