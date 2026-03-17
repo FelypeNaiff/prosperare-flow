@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { 
   Layers, 
   Plus, 
@@ -168,7 +168,7 @@ export default function GruposObrigacoesPage() {
   }
 
   const toggleClientLink = (client: any) => {
-    if (!client) return
+    if (!client || !editingGroup) return
     const isLinked = client.obligationGroups?.includes(editingGroup?.id)
     const clientRef = doc(firestore, "clients", client.id)
     
@@ -184,13 +184,28 @@ export default function GruposObrigacoesPage() {
     updateDocumentNonBlocking(clientRef, { obligationGroups: newGroups })
   }
 
-  const linkedClients = (allClients || []).filter(c => c.obligationGroups?.includes(editingGroup?.id))
-  const filteredLinkedClients = linkedClients.filter(c => 
-    c.corporateName?.toLowerCase().includes(clientSearch.toLowerCase()) || 
-    c.cnpj?.includes(clientSearch)
-  )
+  const linkedClients = useMemo(() => {
+    if (!editingGroup) return []
+    return (allClients || []).filter(c => c.obligationGroups?.includes(editingGroup.id))
+  }, [allClients, editingGroup])
 
-  const availableClientsToAdd = (allClients || []).filter(c => !c.obligationGroups?.includes(editingGroup?.id))
+  const filteredLinkedClients = useMemo(() => {
+    const searchLower = clientSearch.toLowerCase()
+    const searchDigits = clientSearch.replace(/\D/g, '')
+
+    return linkedClients.filter(c => {
+      const nameMatch = c.corporateName?.toLowerCase().includes(searchLower) || 
+                       c.nomeFantasia?.toLowerCase().includes(searchLower)
+      const cnpjMatch = searchDigits !== '' && c.cnpj?.replace(/\D/g, '').includes(searchDigits)
+      
+      return nameMatch || cnpjMatch
+    })
+  }, [linkedClients, clientSearch])
+
+  const availableClientsToAdd = useMemo(() => {
+    if (!editingGroup) return []
+    return (allClients || []).filter(c => !c.obligationGroups?.includes(editingGroup.id))
+  }, [allClients, editingGroup])
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -415,7 +430,7 @@ export default function GruposObrigacoesPage() {
                     <div className="space-y-4">
                       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                         <div className="flex-1 space-y-2">
-                          <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Pesquisar Clientes</Label>
+                          <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Pesquisar Clientes Vinculados</Label>
                           <div className="relative">
                             <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
                             <Input 
@@ -444,7 +459,7 @@ export default function GruposObrigacoesPage() {
                           Empresas Vinculadas ao Fluxo
                         </h4>
                         <Badge variant="outline" className="text-[10px] font-black text-[#1FA67A] border-[#1FA67A]/20">
-                          {linkedClients.length} Ativas
+                          {filteredLinkedClients.length} Filtradas
                         </Badge>
                       </div>
 

@@ -30,11 +30,15 @@ export function ClientSearchSelect({
 
   const filteredClients = React.useMemo(() => {
     const searchLower = search.toLowerCase()
-    return (clients || []).filter((c: any) => 
-      c.corporateName?.toLowerCase().includes(searchLower) ||
-      c.nomeFantasia?.toLowerCase().includes(searchLower) ||
-      c.cnpj?.replace(/\D/g, '').includes(search.replace(/\D/g, ''))
-    )
+    const searchDigits = search.replace(/\D/g, '')
+
+    return (clients || []).filter((c: any) => {
+      const nameMatch = c.corporateName?.toLowerCase().includes(searchLower) ||
+                       c.nomeFantasia?.toLowerCase().includes(searchLower)
+      const cnpjMatch = searchDigits !== '' && c.cnpj?.replace(/\D/g, '').includes(searchDigits)
+      
+      return nameMatch || cnpjMatch
+    })
   }, [clients, search])
 
   const selectedClient = React.useMemo(() => {
@@ -61,7 +65,10 @@ export function ClientSearchSelect({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 border-[#D2D7DB] shadow-2xl z-[100]">
+      <PopoverContent 
+        className="w-[var(--radix-popover-trigger-width)] p-0 border-[#D2D7DB] shadow-2xl z-[1000]"
+        align="start"
+      >
         <div className="flex flex-col">
           <div className="flex items-center border-b px-3 bg-[#F7F7F7]">
             <Search className="mr-2 h-4 w-4 shrink-0 text-[#98A7AA]" />

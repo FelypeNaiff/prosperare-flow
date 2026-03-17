@@ -54,40 +54,50 @@
 }
 
 @media print {
-  body {
+  /* Reseta estilos do body para impressão */
+  body, html {
     background: white !important;
     padding: 0 !important;
     margin: 0 !important;
-  }
-  
-  /* Esconde TUDO que não for o container de impressão */
-  body > *:not(.print-container),
-  header, footer, nav, aside, button, .no-print,
-  [role="dialog"], .sidebar-provider, .sheet-content {
-    display: none !important;
-  }
-
-  /* Garante que o container de impressão ocupe a tela toda e seja visível */
-  .print-container {
-    display: block !important;
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
     width: 100% !important;
-    height: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: white !important;
-    z-index: 9999 !important;
+    height: auto !important;
+    overflow: visible !important;
   }
 
+  /* Oculta toda a interface do sistema via visibilidade */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Torna apenas o container de impressão visível e remove display:none dos pais */
+  .print-container, 
   .print-container * {
     visibility: visible !important;
   }
 
+  /* Posiciona o container de impressão no topo e força fundo branco */
+  .print-container {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    z-index: 9999 !important;
+    display: block !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Remove margens e elementos de UI do Radix/ShadCN que persistem */
+  .no-print, [role="dialog"], button, .sidebar-provider {
+    display: none !important;
+  }
+
   @page {
     size: A4;
-    margin: 0;
+    margin: 1cm;
   }
 }
 
