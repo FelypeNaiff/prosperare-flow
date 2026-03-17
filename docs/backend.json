@@ -100,7 +100,9 @@
         "id": { "type": "string" },
         "tipo": { "type": "string" },
         "clientId": { "type": "string" },
-        "validade": { "type": "string" }
+        "validade": { "type": "string" },
+        "numero": { "type": "string" },
+        "fileUrl": { "type": "string" }
       }
     },
     "Notification": {

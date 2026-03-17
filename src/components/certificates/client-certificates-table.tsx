@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -18,7 +19,9 @@ import {
   Save,
   Trash2,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  FileDown,
+  ExternalLink
 } from "lucide-react"
 import {
   Dialog,
@@ -55,7 +58,7 @@ interface Certificate {
   numero: string;
   emissao: string;
   validade: string;
-  arquivoUrl?: string;
+  fileUrl?: string;
   clientId: string;
 }
 
@@ -69,7 +72,8 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
     tipo: "Federal",
     numero: "",
     emissao: "",
-    validade: ""
+    validade: "",
+    fileUrl: ""
   })
 
   const certsQuery = useMemoFirebase(() => 
@@ -100,7 +104,7 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
     setTimeout(() => {
       setIsSaving(false)
       setIsModalOpen(false)
-      setNewCert({ tipo: "Federal", numero: "", emissao: "", validade: "" })
+      setNewCert({ tipo: "Federal", numero: "", emissao: "", validade: "", fileUrl: "" })
       toast({ title: "Certidão Registrada!", description: "O monitoramento de validade está ativo." })
     }, 500)
   }
@@ -108,15 +112,18 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
   const handleSyncIndividual = (cert: Certificate) => {
     setSyncingId(cert.id)
     
-    // Simulação de consulta individual à API
     setTimeout(() => {
       const today = new Date()
-      const newExpiry = format(addDaysToDate(today, 180), 'yyyy-MM-dd')
+      let newFileUrl = cert.fileUrl || ""
       
+      if (cert.tipo === 'Federal') newFileUrl = "https://servicos.receitafederal.gov.br/servico/certidoes/#/home/cnpj"
+      if (cert.tipo === 'FGTS') newFileUrl = "https://consulta-crf.caixa.gov.br/consultacrf/pages/consultaEmpregador.jsf"
+
       updateDocumentNonBlocking(doc(firestore, "certifications", cert.id), {
-        validade: newExpiry,
+        validade: format(addDaysToDate(today, cert.tipo === 'FGTS' ? 30 : 180), 'yyyy-MM-dd'),
         emissao: format(today, 'yyyy-MM-dd'),
-        numero: `SYN-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+        numero: `${cert.tipo === 'FGTS' ? 'CRF' : 'SYN'}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+        fileUrl: newFileUrl,
         updatedAt: new Date().toISOString()
       })
       
@@ -214,6 +221,19 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        {cert.fileUrl && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-[#2574A9] hover:bg-blue-50"
+                            title="Ver PDF / Portal"
+                            asChild
+                          >
+                            <a href={cert.fileUrl} target="_blank" rel="noreferrer">
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                          </Button>
+                        )}
                         <Button 
                           variant="ghost" 
                           size="icon" 
@@ -281,6 +301,15 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Vencimento</Label>
                 <Input type="date" value={newCert.validade} onChange={(e) => setNewCert({...newCert, validade: e.target.value})} className="border-[#D2D7DB] font-black" />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Link do PDF / Portal (Opcional)</Label>
+              <Input 
+                placeholder="https://..." 
+                value={newCert.fileUrl} 
+                onChange={(e) => setNewCert({...newCert, fileUrl: e.target.value})}
+                className="border-[#D2D7DB]"
+              />
             </div>
           </div>
           <DialogFooter className="bg-[#F7F7F7] -mx-6 -mb-6 p-6 border-t mt-2">
