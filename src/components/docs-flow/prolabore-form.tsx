@@ -270,7 +270,7 @@ export function ProlaboreForm() {
                       </div>
 
                       <p className="text-justify mt-8">
-                        Sendo a expressão da verdade, firmamos a presente em Macapá - AP.
+                        Sendo a expressão da verdade, firmamos a presente em Macapá - AP, ____ de ________________ de 20____.
                       </p>
                     </div>
 

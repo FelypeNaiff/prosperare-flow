@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -307,7 +306,7 @@ export function RevenueDeclarationForm() {
                   </div>
 
                   <div className="mt-16 space-y-12 text-black">
-                    <p className="text-right">Macapá - AP, {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                    <p className="text-right font-bold">Macapá - AP, ____ de ________________ de 20____</p>
                     
                     <div className="flex flex-col items-center text-center pt-8 space-y-1">
                       <div className="w-64 border-t border-black pt-2">

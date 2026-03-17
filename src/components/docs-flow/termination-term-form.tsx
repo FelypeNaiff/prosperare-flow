@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -216,7 +215,7 @@ export function TerminationTermForm() {
                     </div>
 
                     <p>
-                      O EMPREGADO, uma vez recebendo a importância em moeda corrente do país nesta data, bem como assinando este termo, dá ao EMPREGADOR, <strong>PLENA E GERAL QUITAÇÃO</strong>, para nada mais reclamar em época alguma, seja a que título for, em relação aos direitos ou obrigações presentes ou futuras, em se tratando não somente do mencionado Contrato de Trabalho, mas também de todo período que ficou para trás da data deste referido TERMO, abrindo mão também de qualquer ação civil, criminal ou trabalhista.
+                      O EMPREGADO, uma vez recebendo a importância em moeda corrente do país nesta data, bem como assinando este termo, dá ao EMPREGADOR, <strong>PLENA E GERAL QUITAÇÃO</strong>, para nada mais reclamar em época alguma, seja a que título for, em relação deiros ou obrigações presentes ou futuras, em se tratando não somente do mencionado Contrato de Trabalho, mas também de todo período que ficou para trás da data deste referido TERMO, abrindo mão também de qualquer ação civil, criminal ou trabalhista.
                     </p>
 
                     <p>
@@ -225,7 +224,7 @@ export function TerminationTermForm() {
                   </div>
 
                   <div className="mt-24 space-y-16">
-                    <p className="text-right text-black">Macapá - AP, {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                    <p className="text-right text-black font-bold">Macapá - AP, ____ de ________________ de 20____</p>
                     
                     <div className="grid grid-cols-2 gap-12 text-center pt-12">
                       <div className="border-t border-black pt-2">
