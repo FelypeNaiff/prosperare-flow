@@ -151,10 +151,6 @@ export function TerminationTermForm() {
                   <Label className="text-xs font-bold text-[#39586D]">Valor Total Líquido (R$)</Label>
                   <Input type="number" placeholder="0,00" value={formData.valor} onChange={(e) => setFormData({...formData, valor: e.target.value})} />
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold text-[#39586D]">Valor por Extenso</Label>
-                  <Input placeholder="Ex: Mil reais" value={formData.valorExtenso} onChange={(e) => setFormData({...formData, valorExtenso: e.target.value})} />
-                </div>
                 <div className="col-span-2 space-y-2">
                   <Label className="text-xs font-bold text-[#39586D]">Espelho de Cálculo (Detalhamento)</Label>
                   <Textarea placeholder="Descreva as verbas..." className="h-24 text-xs font-mono" value={formData.calculo} onChange={(e) => setFormData({...formData, calculo: e.target.value})} />
@@ -178,23 +174,19 @@ export function TerminationTermForm() {
               <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Pré-visualização do Termo</CardTitle>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setIsPreviewOpen(false)}><X className="h-4 w-4 mr-1" /> Fechar</Button>
-                <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold" onClick={() => window.print()}>
-                  <Printer className="h-3 w-3" /> Imprimir Agora
+                <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold uppercase text-[10px]" onClick={() => window.print()}>
+                  <Printer className="h-3 w-3" /> Gerar PDF
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="p-0 print:p-0">
               <div className="bg-white mx-auto w-full min-h-[297mm] flex flex-col text-black text-[12px] font-serif relative">
                 
-                {/* Papel Timbrado - Header */}
+                {/* Papel Timbrado - Header Ajustado Conforme Imagem */}
                 <div className="p-12 pb-0 flex justify-between items-start">
                   <div className="flex items-start gap-4">
-                    <div className="border-2 border-[#003366] p-2 w-16 h-16 flex flex-col items-center justify-center leading-none">
-                      <span className="text-3xl font-serif italic text-[#003366]">P</span>
-                      <span className="text-[10px] font-bold text-[#003366] -mt-1">sc</span>
-                    </div>
                     <div className="flex flex-col">
-                      <span className="text-2xl font-serif italic text-[#003366] tracking-tighter">Prosperare</span>
+                      <span className="text-3xl font-serif italic text-[#003366] tracking-tighter">Prosperare</span>
                       <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#98A7AA]">Serviços Contábeis</span>
                     </div>
                   </div>
@@ -207,18 +199,18 @@ export function TerminationTermForm() {
                     <h2 className="text-xl font-black uppercase underline underline-offset-8">TERMO DE QUITAÇÃO DE RESCISÃO CONTRATUAL</h2>
                   </div>
 
-                  <div className="space-y-8 text-justify leading-relaxed">
+                  <div className="space-y-8 text-justify leading-relaxed text-black">
                     <p>
                       Que entre si fazem na melhor forma de direito, de um lado <strong>{formData.empresa || "[CLIENTE]"}</strong>, pessoa jurídica de direito privado, inscrita no CNPJ nº <strong>{formData.cnpj || "[CNPJ]"}</strong>, a seguir chamado apenas de <strong>EMPREGADOR</strong>, e de outro lado <strong>{formData.funcionario || "[NOME DO FUNCIONÁRIO]"}</strong>, pessoa física, portador do CPF <strong>{formData.cpf || "[CPF]"}</strong>, a seguir chamado apenas de <strong>EMPREGADO</strong>.
                     </p>
 
                     <p>
-                      O EMPREGADO recebe neste ato do EMPREGADOR a importância de <strong>R$ {Number(formData.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} ({formData.valorExtenso || "VALOR POR EXTENSO"})</strong>, em moeda corrente e legal do país, valor esse que se refere a quitação do contrato de trabalho, firmado entre as partes, desde <strong>{formatDate(formData.admissao)}</strong> a <strong>{formatDate(formData.demissao)}</strong>.
+                      O EMPREGADO recebe neste ato do EMPREGADOR a importância de <strong>R$ {Number(formData.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>, em moeda corrente e legal do país, valor esse que se refere a quitação do contrato de trabalho, firmado entre as partes, desde <strong>{formatDate(formData.admissao)}</strong> a <strong>{formatDate(formData.demissao)}</strong>.
                     </p>
 
                     <div className="space-y-2">
-                      <h3 className="font-black border-b pb-1 text-[10px] uppercase tracking-widest">ESPELHO DE CÁLCULO</h3>
-                      <div className="bg-slate-50 p-4 rounded font-mono whitespace-pre-wrap text-[11px] min-h-[100px] border border-slate-100">
+                      <h3 className="font-black border-b pb-1 text-[10px] uppercase tracking-widest text-black">ESPELHO DE CÁLCULO</h3>
+                      <div className="bg-slate-50 p-4 rounded font-mono whitespace-pre-wrap text-[11px] min-h-[100px] border border-slate-100 text-black">
                         {formData.calculo || "[DETALHAMENTO DO CÁLCULO]"}
                       </div>
                     </div>
@@ -233,16 +225,16 @@ export function TerminationTermForm() {
                   </div>
 
                   <div className="mt-24 space-y-16">
-                    <p className="text-right">Macapá - AP, {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                    <p className="text-right text-black">Macapá - AP, {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
                     
                     <div className="grid grid-cols-2 gap-12 text-center pt-12">
                       <div className="border-t border-black pt-2">
-                        <p className="font-bold uppercase text-[10px]">{formData.empresa || "EMPREGADOR"}</p>
-                        <p className="text-[8px] text-slate-500 uppercase tracking-widest">Carimbo e Assinatura</p>
+                        <p className="font-bold uppercase text-[10px] text-black">{formData.empresa || "EMPREGADOR"}</p>
+                        <p className="text-[8px] text-black/60 uppercase tracking-widest">Carimbo e Assinatura</p>
                       </div>
                       <div className="border-t border-black pt-2">
-                        <p className="font-bold uppercase text-[10px]">{formData.funcionario || "EMPREGADO"}</p>
-                        <p className="text-[8px] text-slate-500 uppercase tracking-widest">Assinatura do Recebedor</p>
+                        <p className="font-bold uppercase text-[10px] text-black">{formData.funcionario || "EMPREGADO"}</p>
+                        <p className="text-[8px] text-black/60 uppercase tracking-widest">Assinatura do Recebedor</p>
                       </div>
                     </div>
                   </div>

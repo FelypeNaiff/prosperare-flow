@@ -232,23 +232,19 @@ export function RevenueDeclarationForm() {
               <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Pré-visualização do Relatório</CardTitle>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setIsPreviewOpen(false)}><X className="h-4 w-4 mr-1" /> Fechar</Button>
-                <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold" onClick={() => window.print()}>
-                  <Printer className="h-3 w-3" /> Imprimir Agora
+                <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold uppercase text-[10px]" onClick={() => window.print()}>
+                  <Printer className="h-3 w-3" /> Gerar PDF
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="p-0 print:p-0">
               <div className="bg-white mx-auto w-full min-h-[297mm] flex flex-col text-black text-[11px] leading-relaxed border font-serif relative">
                 
-                {/* Papel Timbrado - Header */}
+                {/* Papel Timbrado - Header Ajustado Conforme Imagem */}
                 <div className="p-12 pb-0 flex justify-between items-start">
                   <div className="flex items-start gap-4">
-                    <div className="border-2 border-[#003366] p-2 w-16 h-16 flex flex-col items-center justify-center leading-none">
-                      <span className="text-3xl font-serif italic text-[#003366]">P</span>
-                      <span className="text-[10px] font-bold text-[#003366] -mt-1">sc</span>
-                    </div>
                     <div className="flex flex-col">
-                      <span className="text-2xl font-serif italic text-[#003366] tracking-tighter">Prosperare</span>
+                      <span className="text-3xl font-serif italic text-[#003366] tracking-tighter">Prosperare</span>
                       <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#98A7AA]">Serviços Contábeis</span>
                     </div>
                   </div>
@@ -258,12 +254,12 @@ export function RevenueDeclarationForm() {
                 {/* Conteúdo do Documento */}
                 <div className="px-16 py-12 flex-1 space-y-8">
                   <div className="text-center space-y-2 mb-8">
-                    <h2 className="text-lg font-black uppercase underline underline-offset-8">DECLARAÇÃO DE FATURAMENTO DOS ÚLTIMOS 12 MESES</h2>
+                    <h2 className="text-lg font-black uppercase underline underline-offset-8 text-black">DECLARAÇÃO DE FATURAMENTO DOS ÚLTIMOS 12 MESES</h2>
                     <p className="font-bold text-[9px] text-slate-500">Prosperare Flow — Inteligência e Gestão Contábil</p>
                   </div>
 
                   <div className="space-y-6">
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex justify-between">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex justify-between text-black">
                       <div>
                         <p className="text-[8px] font-black uppercase text-slate-500">Razão Social</p>
                         <p className="text-sm font-black uppercase">{formData.empresa || "[NOME DA EMPRESA]"}</p>
@@ -274,11 +270,11 @@ export function RevenueDeclarationForm() {
                       </div>
                     </div>
 
-                    <p className="text-justify leading-relaxed text-xs">
+                    <p className="text-justify leading-relaxed text-xs text-black">
                       Declaramos para os devidos fins de comprovação, que a empresa supra citada apresentou o seguinte faturamento bruto mensal no período de 12 (doze) meses retroativos à presente data:
                     </p>
 
-                    <div className="border-2 border-black rounded-sm overflow-hidden">
+                    <div className="border-2 border-black rounded-sm overflow-hidden text-black">
                       <Table>
                         <TableHeader className="bg-slate-50">
                           <TableRow className="border-b-2 border-black">
@@ -305,12 +301,12 @@ export function RevenueDeclarationForm() {
                       </Table>
                     </div>
 
-                    <p className="text-justify text-xs italic">
+                    <p className="text-justify text-xs italic text-black">
                       Por ser a expressão da verdade, firmamos a presente declaração.
                     </p>
                   </div>
 
-                  <div className="mt-16 space-y-12">
+                  <div className="mt-16 space-y-12 text-black">
                     <p className="text-right">Macapá - AP, {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
                     
                     <div className="flex flex-col items-center text-center pt-8 space-y-1">
