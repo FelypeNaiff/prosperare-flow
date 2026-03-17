@@ -9,13 +9,12 @@ import {
   CheckCircle2, 
   AlertCircle, 
   Calendar, 
-  MessageSquare,
   Clock,
-  Mail,
-  Heart,
-  Activity,
   Zap,
-  Loader2
+  Loader2,
+  ShieldAlert,
+  FlameKindling,
+  DollarSign
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -24,6 +23,7 @@ import Link from "next/link"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection } from "firebase/firestore"
 import { Skeleton } from "@/components/ui/skeleton"
+import { parseISO, isBefore, differenceInDays } from "date-fns"
 
 const ObligationChart = dynamic(() => import("@/components/dashboard/obligation-chart").then(m => m.ObligationChart), { 
   ssr: false,
@@ -49,7 +49,7 @@ export default function DashboardPage() {
     userLoaded ? collection(firestore, "tasks") : null, 
     [firestore, userLoaded]
   )
-  const { data: tasks, isLoading: loadingTasks } = useCollection(tasksQuery)
+  const { data: tasks } = useCollection(tasksQuery)
 
   const processesQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "processes") : null, 
@@ -63,34 +63,70 @@ export default function DashboardPage() {
   )
   const { data: receivables } = useCollection(receivablesQuery)
 
+  const licensesQuery = useMemoFirebase(() => 
+    userLoaded ? collection(firestore, "licenses") : null, 
+    [firestore, userLoaded]
+  )
+  const { data: licenses } = useCollection(licensesQuery)
+
+  const certificationsQuery = useMemoFirebase(() => 
+    userLoaded ? collection(firestore, "certifications") : null, 
+    [firestore, userLoaded]
+  )
+  const { data: certifications } = useCollection(certificationsQuery)
+
   const stats = useMemo(() => {
+    const today = new Date()
+    
+    // Processos
     const totalProcesses = processes?.length || 0
     const completedProcesses = processes?.filter(p => p.situacao === 'concluido').length || 0
     const percentOk = totalProcesses > 0 ? Math.round((completedProcesses / totalProcesses) * 100) : 0
-    
+    const atrasosProd = processes?.filter(p => p.situacao === 'em_multa').length || 0
+
+    // Honorários
     const monthlyHonoraries = (receivables || [])
       .filter(r => r.situacao === 'Confirmado' || r.situacao === 'Pendente')
       .reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0)
 
+    // Alvarás Críticos (Vencidos ou em 30 dias)
+    const criticalLicenses = (licenses || []).filter(l => {
+      if (!l.expiryDate) return false
+      try {
+        const exp = parseISO(l.expiryDate)
+        return isBefore(exp, today) || differenceInDays(exp, today) <= 30
+      } catch { return false }
+    }).length
+
+    // Certidões Críticas (Vencidas ou em 30 dias)
+    const criticalCerts = (certifications || []).filter(c => {
+      if (!c.validade) return false
+      try {
+        const val = parseISO(c.validade)
+        return isBefore(val, today) || differenceInDays(val, today) <= 30
+      } catch { return false }
+    }).length
+
     return {
       clientsCount: clients?.length || 0,
-      tasksCount: tasks?.length || 0,
       percentOk: `${percentOk}%`,
-      atrasos: processes?.filter(p => p.situacao === 'em_multa').length || 0,
-      honorarios: monthlyHonoraries.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      atrasos: atrasosProd,
+      honorarios: monthlyHonoraries.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+      criticalLicenses,
+      criticalCerts
     }
-  }, [clients, tasks, processes, receivables])
+  }, [clients, processes, receivables, licenses, certifications])
 
-  const isDataLoading = loadingClients || loadingTasks
+  const isDataLoading = loadingClients
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">
-            Painel <span className="text-[#1FA67A]">Prosperare Flow</span>
+          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">
+            Painel <span className="text-[#1FA67A]">Estratégico</span>
           </h1>
-          <p className="text-[#98A7AA] font-bold text-sm uppercase tracking-widest">Monitoramento estratégico em tempo real.</p>
+          <p className="text-[#98A7AA] font-bold text-sm uppercase tracking-widest">Monitoramento de produção e conformidade fiscal.</p>
         </div>
         <div className="flex gap-2">
           <div className="bg-white border rounded-xl px-4 py-2 shadow-sm flex items-center gap-3">
@@ -112,19 +148,32 @@ export default function DashboardPage() {
         {loadingClients ? <KpiSkeleton /> : <KpiCard label="Clientes" value={stats.clientsCount} icon={Users} color="primary" />}
         <KpiCard label="Processos OK" value={stats.percentOk} icon={CheckCircle2} color="success" />
         <KpiCard label="Atrasos" value={stats.atrasos} icon={AlertCircle} color="destructive" />
-        {loadingTasks ? <KpiSkeleton /> : <KpiCard label="Tickets" value={stats.tasksCount} icon={MessageSquare} color="info" />}
-        <KpiCard label="Honorários" value={stats.honorarios} icon={Clock} color="warning" />
-        <KpiCard label="Score Médio" value="98%" icon={Heart} color="success" />
+        
+        <KpiCard 
+          label="Alvarás Alerta" 
+          value={stats.criticalLicenses} 
+          icon={FlameKindling} 
+          color={stats.criticalLicenses > 0 ? "warning" : "success"} 
+        />
+        
+        <KpiCard 
+          label="Certidões Alerta" 
+          value={stats.criticalCerts} 
+          icon={ShieldAlert} 
+          color={stats.criticalCerts > 0 ? "destructive" : "success"} 
+        />
+
+        <KpiCard label="Honorários" value={stats.honorarios} icon={DollarSign} color="info" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <Card className="lg:col-span-8 border-[#D2D7DB] shadow-sm overflow-hidden flex flex-col">
           <CardHeader className="bg-[#F7F7F7]/30 border-b">
             <CardTitle className="text-[10px] font-black uppercase text-[#2C4156] tracking-widest flex items-center gap-2">
-              <Activity className="h-4 w-4 text-[#1FA67A]" />
+              <Calendar className="h-4 w-4 text-[#1FA67A]" />
               Obrigações Fiscais por Status
             </CardTitle>
-            <CardDescription className="text-xs font-bold text-[#98A7AA] uppercase">Visão consolidada do fluxo de produção.</CardDescription>
+            <CardDescription className="text-xs font-bold text-[#98A7AA] uppercase">Visão consolidada do fluxo de produção mensal.</CardDescription>
           </CardHeader>
           <CardContent className="pt-6 flex-1">
             <div className="h-[350px]">
@@ -136,7 +185,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-4 space-y-6">
           <Card className="border-[#D2D7DB] bg-white shadow-sm overflow-hidden">
             <CardHeader className="border-b bg-[#F7F7F7]/30">
-              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-[#2C4156]">Volume de Atendimentos</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-[#2C4156]">Volume por Departamento</CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
               <AttendanceChart />
@@ -150,10 +199,10 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <StatusRow icon={Zap} label="Conexões Cloud" status="Ativo" />
-              <StatusRow icon={Mail} label="Servidor de E-mail" status="Conectado" />
+              <StatusRow icon={Zap} label="Servidor de E-mail" status="Conectado" />
               <StatusRow icon={Zap} label="Banco de Dados" status="Sincronizado" />
               <Button asChild variant="outline" className="w-full mt-4 bg-white/5 border-white/10 hover:bg-white/10 text-white font-bold text-[10px] uppercase h-10">
-                <Link href="/configuracoes/integracoes">Ver Todas Conexões</Link>
+                <Link href="/configuracoes/integracoes">Ver Conexões</Link>
               </Button>
             </CardContent>
           </Card>

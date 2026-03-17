@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -14,14 +15,13 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 
 /**
  * Componente de seleção de cliente com busca integrada.
- * Resolve o problema de localizar empresas em listas extensas.
- * Agora busca por Razão Social, Nome Fantasia ou CNPJ.
+ * Ajustado para garantir visibilidade do campo de pesquisa e largura adequada.
  */
 export function ClientSearchSelect({ 
   clients, 
   value, 
   onValueChange, 
-  placeholder = "Selecione o cliente da base...",
+  placeholder = "Selecione o cliente...",
   className,
   disabled = false
 }: any) {
@@ -66,7 +66,7 @@ export function ClientSearchSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-[var(--radix-popover-trigger-width)] p-0 border-[#D2D7DB] shadow-2xl z-[1000]"
+        className="w-[400px] max-w-[calc(100vw-40px)] p-0 border-[#D2D7DB] shadow-2xl z-[1000]"
         align="start"
       >
         <div className="flex flex-col">
@@ -74,7 +74,7 @@ export function ClientSearchSelect({
             <Search className="mr-2 h-4 w-4 shrink-0 text-[#98A7AA]" />
             <Input
               placeholder="Pesquisar por nome ou CNPJ..."
-              className="flex h-11 w-full rounded-md bg-transparent py-3 text-xs outline-none border-none focus-visible:ring-0 shadow-none font-bold uppercase"
+              className="flex h-12 w-full rounded-md bg-transparent py-3 text-[11px] outline-none border-none focus-visible:ring-0 shadow-none font-bold uppercase"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               autoFocus
