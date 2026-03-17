@@ -83,12 +83,6 @@ export function ProlaboreForm() {
 
   const valorLiquido = Number(formData.valorBruto) - Number(formData.inss) - Number(formData.irrf)
 
-  const getClientLogo = (name: string) => {
-    if (!name) return null;
-    const seed = name.length;
-    return `https://picsum.photos/seed/${seed}/200/80`;
-  }
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       <div className={cn("space-y-6", isPreviewMode ? "lg:col-span-5" : "lg:col-span-12 max-w-4xl mx-auto")}>
@@ -183,6 +177,10 @@ export function ProlaboreForm() {
                   <Label className="text-xs font-bold text-[#39586D]">Desconto INSS (R$)</Label>
                   <Input type="number" placeholder="0,00" value={formData.inss} onChange={(e) => setFormData({...formData, inss: e.target.value})} />
                 </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-[#39586D]">Desconto IRRF (R$)</Label>
+                  <Input type="number" placeholder="0,00" value={formData.irrf} onChange={(e) => setFormData({...formData, irrf: e.target.value})} />
+                </div>
                 <div className="space-y-2 col-span-2">
                   <Label className="text-xs font-bold text-[#39586D]">E-mail para Contato</Label>
                   <Input type="email" placeholder="socio@email.com" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
@@ -210,30 +208,20 @@ export function ProlaboreForm() {
               <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Pré-visualização do Documento</CardTitle>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setIsPreviewOpen(false)}><X className="h-4 w-4 mr-1" /> Fechar</Button>
-                <Button size="sm" className="bg-[#1FA67A] gap-2" onClick={() => window.print()}>
-                  <Printer className="h-3 w-3" /> Imprimir / PDF
+                <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold" onClick={() => window.print()}>
+                  <Printer className="h-3 w-3" /> GERAR PDF
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="p-8 print:p-0">
-              <div className="bg-white shadow-xl mx-auto w-full min-h-[800px] p-12 text-[#2C4156] text-[11px] leading-relaxed font-serif border print:shadow-none print:border-none print-container">
+              <div className="bg-white mx-auto w-full min-h-[800px] p-12 text-black text-[11px] leading-relaxed font-serif border print:shadow-none print:border-none print-container">
                 
                 {/* Cabeçalho */}
                 <div className="flex items-start justify-between mb-12 border-b pb-8">
                   <div className="space-y-1">
-                    <h2 className="text-lg font-black uppercase text-[#2C4156]">{formData.empresa || "[NOME DA EMPRESA]"}</h2>
-                    <p className="font-bold text-[#98A7AA]">CNPJ: {formData.cnpj || "00.000.000/0000-00"}</p>
+                    <h2 className="text-lg font-black uppercase text-black">{formData.empresa || "[NOME DA EMPRESA]"}</h2>
+                    <p className="font-bold text-slate-500">CNPJ: {formData.cnpj || "00.000.000/0000-00"}</p>
                   </div>
-                  {formData.empresa && (
-                    <div className="relative w-32 h-12 grayscale opacity-80">
-                      <Image 
-                        src={getClientLogo(formData.empresa)!} 
-                        alt="Logo Cliente" 
-                        fill 
-                        className="object-contain"
-                      />
-                    </div>
-                  )}
                 </div>
 
                 {docType === 'prolabore' ? (
@@ -241,7 +229,7 @@ export function ProlaboreForm() {
                   <div className="space-y-12">
                     <div className="text-center space-y-2">
                       <h2 className="text-lg font-black uppercase underline underline-offset-8">DECLARAÇÃO DE RENDIMENTOS (PRÓ-LABORE)</h2>
-                      <p className="font-bold text-[9px] text-[#98A7AA]">Prosperare Flow — Inteligência Documental</p>
+                      <p className="font-bold text-[9px] text-slate-400">Prosperare Flow — Inteligência Documental</p>
                     </div>
 
                     <div className="space-y-8">
@@ -259,6 +247,10 @@ export function ProlaboreForm() {
                           <span>Dedução INSS:</span>
                           <span className="font-bold">(-) R$ {Number(formData.inss).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                         </div>
+                        <div className="flex justify-between border-b pb-2 text-[#E74C3C]">
+                          <span>Dedução IRRF:</span>
+                          <span className="font-bold">(-) R$ {Number(formData.irrf).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        </div>
                         <div className="flex justify-between pt-2 text-lg">
                           <span className="font-black">VALOR LÍQUIDO:</span>
                           <span className="font-black text-[#1FA67A]">R$ {valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
@@ -273,25 +265,25 @@ export function ProlaboreForm() {
                 ) : (
                   /* Layout Contra-cheque */
                   <div className="space-y-8">
-                    <div className="text-center border-2 border-[#2C4156] py-2 mb-4">
+                    <div className="text-center border-2 border-black py-2 mb-4">
                       <h2 className="text-sm font-black uppercase">RECIBO DE PAGAMENTO DE PRÓ-LABORE</h2>
                     </div>
 
-                    <div className="grid grid-cols-4 border-2 border-[#2C4156] divide-x-2 divide-[#2C4156]">
+                    <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black">
                       <div className="col-span-3 p-2">
-                        <p className="text-[8px] font-black uppercase text-[#98A7AA]">Nome do Sócio/Contribuinte</p>
+                        <p className="text-[8px] font-black uppercase text-slate-500">Nome do Sócio/Contribuinte</p>
                         <p className="text-xs font-black uppercase">{formData.socio}</p>
                       </div>
                       <div className="p-2">
-                        <p className="text-[8px] font-black uppercase text-[#98A7AA]">Competência</p>
+                        <p className="text-[8px] font-black uppercase text-slate-500">Competência</p>
                         <p className="text-xs font-black">{formData.competencia}</p>
                       </div>
                     </div>
 
-                    <div className="border-2 border-[#2C4156] mt-[-2px] min-h-[300px]">
+                    <div className="border-2 border-black mt-[-2px] min-h-[300px]">
                       <table className="w-full text-left">
                         <thead>
-                          <tr className="border-b-2 border-[#2C4156] bg-[#F7F7F7]">
+                          <tr className="border-b-2 border-black bg-[#F7F7F7]">
                             <th className="p-2 text-[8px] font-black">DESCRIÇÃO</th>
                             <th className="p-2 text-[8px] font-black text-right">REFERÊNCIA</th>
                             <th className="p-2 text-[8px] font-black text-right">PROVENTOS</th>
@@ -311,11 +303,19 @@ export function ProlaboreForm() {
                             <td className="p-2 text-[10px] text-right"></td>
                             <td className="p-2 text-[10px] text-right text-[#E74C3C]">R$ {Number(formData.inss).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                           </tr>
+                          {Number(formData.irrf) > 0 && (
+                            <tr className="h-8">
+                              <td className="p-2 text-[10px] font-bold text-[#E74C3C]">502 - IRRF S/ PRÓ-LABORE</td>
+                              <td className="p-2 text-[10px] text-right">Var.</td>
+                              <td className="p-2 text-[10px] text-right"></td>
+                              <td className="p-2 text-[10px] text-right text-[#E74C3C]">R$ {Number(formData.irrf).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
 
-                    <div className="grid grid-cols-2 border-2 border-[#2C4156] mt-[-2px] divide-x-2 divide-[#2C4156]">
+                    <div className="grid grid-cols-2 border-2 border-black mt-[-2px] divide-x-2 divide-black">
                       <div className="p-4 space-y-2">
                         <div className="flex justify-between text-[10px]">
                           <span>Total de Proventos:</span>
@@ -323,11 +323,11 @@ export function ProlaboreForm() {
                         </div>
                         <div className="flex justify-between text-[10px] text-[#E74C3C]">
                           <span>Total de Descontos:</span>
-                          <span className="font-bold">R$ {Number(formData.inss).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                          <span className="font-bold">R$ {(Number(formData.inss) + Number(formData.irrf)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                         </div>
                       </div>
                       <div className="p-4 bg-[#F7F7F7] flex flex-col justify-center items-end">
-                        <p className="text-[8px] font-black uppercase text-[#98A7AA]">Valor Líquido a Receber</p>
+                        <p className="text-[8px] font-black uppercase text-slate-500">Valor Líquido a Receber</p>
                         <p className="text-xl font-black text-[#1FA67A]">R$ {valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                       </div>
                     </div>
@@ -337,13 +337,13 @@ export function ProlaboreForm() {
                 <div className="mt-24 space-y-16">
                   <p className="text-right">Emitido em {new Date().toLocaleDateString('pt-BR')}</p>
                   <div className="grid grid-cols-2 gap-12 text-center pt-12">
-                    <div className="border-t border-[#2C4156] pt-2">
+                    <div className="border-t border-black pt-2">
                       <p className="font-bold uppercase text-[9px]">{formData.empresa || "EMPREGADOR"}</p>
-                      <p className="text-[8px] text-[#98A7AA] uppercase tracking-widest">Carimbo e Assinatura</p>
+                      <p className="text-[8px] text-slate-500 uppercase tracking-widest">Carimbo e Assinatura</p>
                     </div>
-                    <div className="border-t border-[#2C4156] pt-2">
+                    <div className="border-t border-black pt-2">
                       <p className="font-bold uppercase text-[9px]">{formData.socio || "SÓCIO"}</p>
-                      <p className="text-[8px] text-[#98A7AA] uppercase tracking-widest">Declaro que recebi a importância</p>
+                      <p className="text-[8px] text-slate-500 uppercase tracking-widest">Declaro que recebi a importância</p>
                     </div>
                   </div>
                 </div>
