@@ -2,55 +2,35 @@
 "use client"
 
 import { useMemo } from "react"
-import dynamic from "next/dynamic"
 import { KpiCard } from "@/components/dashboard/kpi-card"
 import { 
   Users, 
   CheckCircle2, 
   AlertCircle, 
-  Calendar, 
   Clock,
-  Zap,
   Loader2,
   ShieldAlert,
   FlameKindling,
   DollarSign
 } from "lucide-react"
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import Link from "next/link"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection } from "firebase/firestore"
 import { Skeleton } from "@/components/ui/skeleton"
-import { parseISO, isBefore, differenceInDays } from "date-fns"
-
-const ObligationChart = dynamic(() => import("@/components/dashboard/obligation-chart").then(m => m.ObligationChart), { 
-  ssr: false,
-  loading: () => <div className="h-[300px] w-full flex items-center justify-center"><Loader2 className="animate-spin text-[#1FA67A]" /></div>
-})
-
-const AttendanceChart = dynamic(() => import("@/components/dashboard/attendance-chart").then(m => m.AttendanceChart), { 
-  ssr: false,
-  loading: () => <div className="h-[250px] w-full flex items-center justify-center"><Loader2 className="animate-spin text-[#2574A9]" /></div>
-})
+import { parseISO, isBefore, differenceInDays, startOfMonth, endOfMonth, isWithinInterval } from "date-fns"
 
 export default function DashboardPage() {
   const firestore = useFirestore()
   const { userLoaded } = useUser()
   
+  // Conexão com Coleções Reais
   const clientsQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "clients") : null, 
     [firestore, userLoaded]
   )
   const { data: clients, isLoading: loadingClients } = useCollection(clientsQuery)
   
-  const tasksQuery = useMemoFirebase(() => 
-    userLoaded ? collection(firestore, "tasks") : null, 
-    [firestore, userLoaded]
-  )
-  const { data: tasks } = useCollection(tasksQuery)
-
   const processesQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "processes") : null, 
     [firestore, userLoaded]
@@ -75,21 +55,34 @@ export default function DashboardPage() {
   )
   const { data: certifications } = useCollection(certificationsQuery)
 
+  // Lógica de Cálculo de Indicadores
   const stats = useMemo(() => {
     const today = new Date()
+    const monthStart = startOfMonth(today)
+    const monthEnd = endOfMonth(today)
     
-    // Processos
-    const totalProcesses = processes?.length || 0
-    const completedProcesses = processes?.filter(p => p.situacao === 'concluido').length || 0
-    const percentOk = totalProcesses > 0 ? Math.round((completedProcesses / totalProcesses) * 100) : 0
-    const atrasosProd = processes?.filter(p => p.situacao === 'em_multa').length || 0
+    // 1. Processos (Filtrados pela competência do mês atual)
+    const currentMonthProcesses = (processes || []).filter(p => {
+      if (!p.competencia) return false
+      const comp = typeof p.competencia === 'string' ? parseISO(p.competencia) : new Date(p.competencia)
+      return isWithinInterval(comp, { start: monthStart, end: monthEnd })
+    })
 
-    // Honorários
+    const totalProcesses = currentMonthProcesses.length
+    const completedProcesses = currentMonthProcesses.filter(p => p.situacao === 'concluido').length
+    const percentOk = totalProcesses > 0 ? Math.round((completedProcesses / totalProcesses) * 100) : 100
+    const atrasosProd = currentMonthProcesses.filter(p => p.situacao === 'em_multa').length
+
+    // 2. Honorários (Soma do faturamento do mês atual)
     const monthlyHonoraries = (receivables || [])
-      .filter(r => r.situacao === 'Confirmado' || r.situacao === 'Pendente')
+      .filter(r => {
+        if (!r.data) return false
+        const rDate = parseISO(r.data)
+        return isWithinInterval(rDate, { start: monthStart, end: monthEnd })
+      })
       .reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0)
 
-    // Alvarás Críticos (Vencidos ou em 30 dias)
+    // 3. Alvarás Críticos (Vencidos ou em Alerta de 30 dias)
     const criticalLicenses = (licenses || []).filter(l => {
       if (!l.expiryDate) return false
       try {
@@ -98,7 +91,7 @@ export default function DashboardPage() {
       } catch { return false }
     }).length
 
-    // Certidões Críticas (Vencidas ou em 30 dias)
+    // 4. Certidões Críticas (Vencidas ou em Alerta de 30 dias)
     const criticalCerts = (certifications || []).filter(c => {
       if (!c.validade) return false
       try {
@@ -145,9 +138,20 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {loadingClients ? <KpiSkeleton /> : <KpiCard label="Clientes" value={stats.clientsCount} icon={Users} color="primary" />}
+        {loadingClients ? (
+          <KpiSkeleton />
+        ) : (
+          <KpiCard label="Clientes" value={stats.clientsCount} icon={Users} color="primary" />
+        )}
+        
         <KpiCard label="Processos OK" value={stats.percentOk} icon={CheckCircle2} color="success" />
-        <KpiCard label="Atrasos" value={stats.atrasos} icon={AlertCircle} color="destructive" />
+        
+        <KpiCard 
+          label="Atrasos" 
+          value={stats.atrasos} 
+          icon={AlertCircle} 
+          color={stats.atrasos > 0 ? "destructive" : "primary"} 
+        />
         
         <KpiCard 
           label="Alvarás Alerta" 
@@ -166,60 +170,18 @@ export default function DashboardPage() {
         <KpiCard label="Honorários" value={stats.honorarios} icon={DollarSign} color="info" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <Card className="lg:col-span-8 border-[#D2D7DB] shadow-sm overflow-hidden flex flex-col">
-          <CardHeader className="bg-[#F7F7F7]/30 border-b">
-            <CardTitle className="text-[10px] font-black uppercase text-[#2C4156] tracking-widest flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-[#1FA67A]" />
-              Obrigações Fiscais por Status
-            </CardTitle>
-            <CardDescription className="text-xs font-bold text-[#98A7AA] uppercase">Visão consolidada do fluxo de produção mensal.</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6 flex-1">
-            <div className="h-[350px]">
-              <ObligationChart />
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="lg:col-span-4 space-y-6">
-          <Card className="border-[#D2D7DB] bg-white shadow-sm overflow-hidden">
-            <CardHeader className="border-b bg-[#F7F7F7]/30">
-              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-[#2C4156]">Volume por Departamento</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <AttendanceChart />
-            </CardContent>
-          </Card>
-
-          <Card className="border-[#D2D7DB] bg-[#2C4156] text-white shadow-xl relative overflow-hidden">
-            <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-[#1FA67A]/20 rounded-full blur-3xl" />
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-white/60">Status da Operação</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <StatusRow icon={Zap} label="Conexões Cloud" status="Ativo" />
-              <StatusRow icon={Zap} label="Servidor de E-mail" status="Conectado" />
-              <StatusRow icon={Zap} label="Banco de Dados" status="Sincronizado" />
-              <Button asChild variant="outline" className="w-full mt-4 bg-white/5 border-white/10 hover:bg-white/10 text-white font-bold text-[10px] uppercase h-10">
-                <Link href="/configuracoes/integracoes">Ver Conexões</Link>
-              </Button>
-            </CardContent>
-          </Card>
+      {/* 
+          Os gráficos e o status da operação foram removidos conforme solicitação (X na imagem).
+          O Dashboard agora foca na clareza dos indicadores superiores.
+      */}
+      
+      <div className="h-64 flex flex-col items-center justify-center text-center opacity-20 grayscale pointer-events-none">
+        <div className="flex items-center justify-center gap-2">
+          <span className="text-xs font-black tracking-tighter">PROSPERARE</span>
+          <span className="text-xs font-black tracking-tighter text-[#1FA67A]">FLOW</span>
         </div>
+        <p className="text-[10px] font-bold uppercase tracking-widest mt-2">Inteligência e Gestão Contábil</p>
       </div>
-    </div>
-  )
-}
-
-function StatusRow({ icon: Icon, label, status, warning }: any) {
-  return (
-    <div className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-      <div className="flex items-center gap-2">
-        <Icon className={cn("h-3.5 w-3.5", warning ? "text-[#F2B705]" : "text-[#1FA67A]")} />
-        <span className="text-[11px] font-bold text-white/80">{label}</span>
-      </div>
-      <span className={cn("text-[9px] font-black uppercase", warning ? "text-[#F2B705]" : "text-[#1FA67A]")}>{status}</span>
     </div>
   )
 }
