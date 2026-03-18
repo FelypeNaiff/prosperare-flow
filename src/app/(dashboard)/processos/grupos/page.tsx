@@ -15,8 +15,7 @@ import {
   X, 
   Check, 
   Building2, 
-  UserPlus,
-  Trash
+  UserPlus
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -132,8 +131,10 @@ export default function GruposObrigacoesPage() {
   }
 
   const handleDeleteGroup = (id: string) => {
-    deleteDocumentNonBlocking(doc(firestore, "obligation_groups", id))
-    toast({ title: "Grupo removido", variant: "destructive" })
+    if (confirm("Excluir permanentemente este grupo?")) {
+      deleteDocumentNonBlocking(doc(firestore, "obligation_groups", id))
+      toast({ title: "Grupo removido", variant: "destructive" })
+    }
   }
 
   const addProcess = () => {

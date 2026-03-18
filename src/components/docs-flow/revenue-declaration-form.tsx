@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Printer, Save, Eye, Loader2, X, FileDown } from "lucide-react"
+import { Printer, Save, Eye, Loader2, X, FileDown, RefreshCcw } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { format, addMonths, subMonths, parse, startOfMonth } from "date-fns"
 import { cn } from "@/lib/utils"
@@ -148,8 +148,8 @@ export function RevenueDeclarationForm() {
           <CardContent className="p-6 space-y-6">
             <div className="flex items-center justify-between">
               <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Identificação da Empresa</h4>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-[#1FA67A]" onClick={() => setIsManualClient(!isManualClient)}>
-                <RefreshCcw className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="text-[10px] font-bold text-[#1FA67A] uppercase gap-1" onClick={() => setIsManualClient(!isManualClient)}>
+                <RefreshCcw className="h-4 w-4" /> {isManualClient ? "Base de Dados" : "Digitar Manual"}
               </Button>
             </div>
 
@@ -213,7 +213,7 @@ export function RevenueDeclarationForm() {
 
             <div className="flex gap-3 pt-6">
               <Button className="flex-1 bg-[#2C4156] font-black uppercase text-xs h-12 gap-2 shadow-lg" onClick={handlePreview}>
-                <FileDown className="h-4 w-4" /> GERAR EM PDF
+                <Eye className="h-4 w-4" /> VISUALIZAR DOCUMENTO
               </Button>
               <Button variant="outline" className="flex-1 border-[#D2D7DB] text-[#39586D] font-bold h-12 gap-2" onClick={handleSaveToHistory} disabled={isSaving}>
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -225,7 +225,7 @@ export function RevenueDeclarationForm() {
       </div>
 
       {isPreviewMode && (
-        <div className="lg:col-span-7 animate-in fade-in slide-in-from-right-4 duration-500 print-container">
+        <div className="lg:col-span-7 animate-in fade-in slide-in-from-right-4 duration-500">
           <Card className="border-[#D2D7DB] bg-[#F7F7F7] overflow-hidden sticky top-20 print:static print:bg-white print:border-none print:shadow-none">
             <CardHeader className="bg-white border-b py-3 px-6 flex flex-row items-center justify-between no-print">
               <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Pré-visualização do Relatório</CardTitle>
@@ -237,10 +237,10 @@ export function RevenueDeclarationForm() {
               </div>
             </CardHeader>
             <CardContent className="p-0 print:p-0">
-              <div className="bg-white mx-auto w-full min-h-[297mm] flex flex-col text-black text-[11px] leading-tight border font-serif relative">
+              <div className="bg-white mx-auto w-full min-h-[297mm] flex flex-col text-black text-[11px] leading-tight border font-serif p-16 print-container relative">
                 
-                {/* Papel Timbrado - Header Compacto */}
-                <div className="p-8 pb-0 flex justify-between items-start">
+                {/* Papel Timbrado - Header */}
+                <div className="flex justify-between items-start mb-12 border-b-2 border-[#003366] pb-8">
                   <div className="flex items-start gap-4">
                     <div className="flex flex-col">
                       <span className="text-2xl font-serif italic text-[#003366] tracking-tighter">Prosperare</span>
@@ -250,8 +250,8 @@ export function RevenueDeclarationForm() {
                   <div className="w-10 h-5 bg-[#003366] rounded-sm skew-x-[-20deg]" />
                 </div>
 
-                {/* Conteúdo do Documento - Otimizado para uma folha */}
-                <div className="px-12 py-6 flex-1 flex flex-col space-y-4">
+                {/* Conteúdo do Documento */}
+                <div className="flex-1 flex flex-col space-y-4">
                   <div className="text-center space-y-1 mb-2">
                     <h2 className="text-base font-black uppercase underline underline-offset-4 text-black">DECLARAÇÃO DE FATURAMENTO DOS ÚLTIMOS 12 MESES</h2>
                     <p className="font-bold text-[8px] text-slate-500 uppercase tracking-widest">Prosperare Flow — Inteligência e Gestão Contábil</p>
@@ -301,14 +301,12 @@ export function RevenueDeclarationForm() {
                     </div>
 
                     <p className="text-justify text-[10px] italic text-black">
-                      Por ser a expressão da verdade, firmamos a presente declaração.
+                      Por ser a expressão da verdade, firmamos a presente declaração em Macapá - AP, ____ de ________________ de 20____.
                     </p>
                   </div>
 
-                  <div className="mt-4 space-y-6 text-black">
-                    <p className="text-right font-bold text-[10px]">Macapá - AP, ____ de ________________ de 20____</p>
-                    
-                    <div className="flex flex-col items-center text-center pt-4 space-y-1">
+                  <div className="mt-auto space-y-6 text-black pt-8">
+                    <div className="flex flex-col items-center text-center space-y-1">
                       <div className="w-56 border-t border-black pt-1">
                         <p className="font-black uppercase text-[10px]">FELYPE MACIEL NAIFF</p>
                         <p className="text-[8px] font-bold text-slate-700 uppercase">CONTADOR RESPONSÁVEL</p>
@@ -318,11 +316,11 @@ export function RevenueDeclarationForm() {
                   </div>
                 </div>
 
-                {/* Papel Timbrado - Footer Ajustado */}
-                <div className="mt-auto">
-                  <div className="bg-[#003366] p-3 flex justify-between items-center text-white text-[9px] font-bold">
-                    <span className="pl-4 uppercase">PROSPERARE <span className="font-normal">Serviços Contábeis LTDA</span></span>
-                    <span className="pr-4 font-normal">Av. Acelino de Leão, nº 1046 – Trem, Macapá - AP</span>
+                {/* Papel Timbrado - Footer */}
+                <div className="mt-8 border-t-2 border-[#003366] pt-4">
+                  <div className="bg-[#003366] p-3 flex justify-between items-center text-white text-[9px] font-bold rounded-sm">
+                    <span className="uppercase">PROSPERARE <span className="font-normal">Serviços Contábeis LTDA</span></span>
+                    <span className="font-normal">Av. Acelino de Leão, nº 1046 – Trem, Macapá - AP</span>
                   </div>
                 </div>
               </div>
@@ -331,27 +329,5 @@ export function RevenueDeclarationForm() {
         </div>
       )}
     </div>
-  )
-}
-
-function RefreshCcw(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-      <path d="M3 3v5h5" />
-      <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-      <path d="M16 16h5v5" />
-    </svg>
   )
 }

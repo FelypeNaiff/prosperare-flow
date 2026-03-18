@@ -167,7 +167,7 @@ export function TerminationTermForm() {
       </div>
 
       {isPreviewMode && (
-        <div className="lg:col-span-7 animate-in fade-in slide-in-from-right-4 duration-500 print-container">
+        <div className="lg:col-span-7 animate-in fade-in slide-in-from-right-4 duration-500">
           <Card className="border-[#D2D7DB] bg-[#F7F7F7] overflow-hidden sticky top-20 print:static print:bg-white print:border-none print:shadow-none">
             <CardHeader className="bg-white border-b py-3 px-6 flex flex-row items-center justify-between no-print">
               <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Pré-visualização do Termo</CardTitle>
@@ -179,10 +179,10 @@ export function TerminationTermForm() {
               </div>
             </CardHeader>
             <CardContent className="p-0 print:p-0">
-              <div className="bg-white mx-auto w-full min-h-[297mm] flex flex-col text-black text-[12px] font-serif relative">
+              <div className="bg-white mx-auto w-full min-h-[297mm] flex flex-col text-black text-[12px] font-serif p-16 print-container relative">
                 
-                {/* Papel Timbrado - Header Ajustado Conforme Imagem */}
-                <div className="p-12 pb-0 flex justify-between items-start">
+                {/* Papel Timbrado - Header */}
+                <div className="flex justify-between items-start mb-12 border-b-2 border-[#003366] pb-8">
                   <div className="flex items-start gap-4">
                     <div className="flex flex-col">
                       <span className="text-3xl font-serif italic text-[#003366] tracking-tighter">Prosperare</span>
@@ -193,7 +193,7 @@ export function TerminationTermForm() {
                 </div>
 
                 {/* Conteúdo do Documento */}
-                <div className="px-16 py-12 flex-1 space-y-10">
+                <div className="flex-1 space-y-10">
                   <div className="text-center space-y-2 mb-12">
                     <h2 className="text-xl font-black uppercase underline underline-offset-8">TERMO DE QUITAÇÃO DE RESCISÃO CONTRATUAL</h2>
                   </div>
@@ -239,11 +239,11 @@ export function TerminationTermForm() {
                   </div>
                 </div>
 
-                {/* Papel Timbrado - Footer Ajustado */}
-                <div className="mt-auto">
-                  <div className="bg-[#003366] p-4 flex justify-between items-center text-white text-[10px] font-bold">
-                    <span className="pl-8 uppercase">PROSPERARE <span className="font-normal">Serviços Contábeis LTDA</span></span>
-                    <span className="pr-8 font-normal">Av. Acelino de Leão, nº 1046 – Trem, Macapá - Amapá</span>
+                {/* Papel Timbrado - Footer */}
+                <div className="mt-auto border-t-2 border-[#003366] pt-4">
+                  <div className="bg-[#003366] p-4 flex justify-between items-center text-white text-[10px] font-bold rounded-sm">
+                    <span className="uppercase">PROSPERARE <span className="font-normal">Serviços Contábeis LTDA</span></span>
+                    <span className="font-normal">Av. Acelino de Leão, nº 1046 – Trem, Macapá - Amapá</span>
                   </div>
                 </div>
               </div>

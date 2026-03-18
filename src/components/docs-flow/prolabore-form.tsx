@@ -228,10 +228,10 @@ export function ProlaboreForm() {
               </div>
             </CardHeader>
             <CardContent className="p-8 print:p-0">
-              <div className="bg-white mx-auto w-full min-h-[800px] p-8 text-black leading-tight font-serif print:shadow-none print:border-none print-container">
+              <div className="bg-white mx-auto w-full min-h-[297mm] p-8 text-black leading-tight font-serif print:shadow-none print:border-none print-container">
                 
                 {docType === 'prolabore' ? (
-                  <div className="space-y-12">
+                  <div className="space-y-12 h-full flex flex-col">
                     <div className="flex items-start justify-between mb-12 border-b pb-8">
                       <div className="space-y-1">
                         <h2 className="text-lg font-black uppercase text-black">{formData.empresa || "[NOME DA EMPRESA]"}</h2>
@@ -274,7 +274,7 @@ export function ProlaboreForm() {
                       </p>
                     </div>
 
-                    <div className="mt-32 grid grid-cols-2 gap-12 text-center pt-12">
+                    <div className="mt-auto grid grid-cols-2 gap-12 text-center pt-12">
                       <div className="border-t border-black pt-2">
                         <p className="font-bold uppercase text-[9px]">{formData.empresa || "EMPREGADOR"}</p>
                         <p className="text-[8px] text-slate-500 uppercase tracking-widest">Carimbo e Assinatura</p>
@@ -286,84 +286,84 @@ export function ProlaboreForm() {
                     </div>
                   </div>
                 ) : (
-                  /* RECIBO DE PROLABORE - LAYOUT FIEL À IMAGEM */
-                  <div className="border-2 border-black text-[10px] uppercase font-sans">
+                  /* RECIBO DE PROLABORE - LAYOUT TÉCNICO */
+                  <div className="border-2 border-black text-[10px] uppercase font-sans h-fit">
                     {/* Header Topo */}
                     <div className="flex border-b-2 border-black">
-                      <div className="w-[60%] bg-[#E5E7EB] border-r-2 border-black p-1 font-bold">CLIENTE</div>
-                      <div className="w-[40%] p-1 text-center font-bold text-xs">Recibo de Pró-labore</div>
+                      <div className="w-[60%] bg-[#E5E7EB] border-r-2 border-black p-1 font-black">EMPREGADOR</div>
+                      <div className="w-[40%] p-1 text-center font-black text-xs">Recibo de Pró-labore</div>
                     </div>
                     
                     {/* Linha Cliente Nome */}
                     <div className="flex border-b-2 border-black h-8 items-center">
                       <div className="w-[60%] border-r-2 border-black p-1 font-bold">{formData.empresa || "NOME DO CLIENTE"}</div>
-                      <div className="w-[15%] border-r-2 border-black"></div>
+                      <div className="w-[15%] border-r-2 border-black bg-[#F3F4F6] text-center font-bold">TIPO</div>
                       <div className="w-[25%] p-1 text-center font-bold">Mensal</div>
                     </div>
 
                     {/* Linha CNPJ e Data */}
                     <div className="flex border-b-2 border-black h-8 items-center">
                       <div className="w-[60%] border-r-2 border-black p-1 font-bold">CNPJ: {formData.cnpj || "00.000.000/0000-00"}</div>
-                      <div className="w-[15%] border-r-2 border-black"></div>
+                      <div className="w-[15%] border-r-2 border-black bg-[#F3F4F6] text-center font-bold">REF</div>
                       <div className="w-[25%] p-1 text-center font-bold">{formatCompetencia(formData.competencia)}</div>
                     </div>
 
                     {/* Sub-Header Cadastro / Nome */}
                     <div className="flex bg-[#E5E7EB] border-b border-black">
-                      <div className="w-[20%] border-r border-black p-0.5 text-center font-bold">Cadastro</div>
-                      <div className="w-[80%] p-0.5 pl-2 font-bold">Nome</div>
+                      <div className="w-[20%] border-r border-black p-0.5 text-center font-black">Cadastro</div>
+                      <div className="w-[80%] p-0.5 pl-2 font-black">Nome do Sócio / Beneficiário</div>
                     </div>
 
                     {/* Linha Dados do Sócio */}
-                    <div className="flex border-b-2 border-black">
-                      <div className="w-[20%] border-r-2 border-black p-2 text-center text-sm font-bold flex items-center justify-center">{formData.cadastro}</div>
-                      <div className="w-[80%]">
+                    <div className="flex border-b-2 border-black h-12">
+                      <div className="w-[20%] border-r-2 border-black p-2 text-center text-sm font-black flex items-center justify-center">{formData.cadastro}</div>
+                      <div className="w-[80%] flex flex-col justify-center">
                         <div className="p-1 pl-2 font-black text-sm">{formData.socio}</div>
-                        <div className="p-1 pl-2 border-t border-black font-bold text-[#4B5563]">SOCIO - ADMINISTRADOR</div>
+                        <div className="p-1 pl-2 border-t border-black text-[8px] font-bold text-[#4B5563]">SÓCIO - ADMINISTRADOR</div>
                       </div>
                     </div>
 
                     {/* Cabeçalho da Tabela de Itens */}
-                    <div className="flex bg-[#E5E7EB] border-b border-black font-bold text-center">
+                    <div className="flex bg-[#E5E7EB] border-b-2 border-black font-black text-center">
                       <div className="w-[10%] border-r border-black p-0.5">Cod</div>
-                      <div className="w-[35%] border-r border-black p-0.5">Descrição</div>
+                      <div className="w-[35%] border-r border-black p-0.5 text-left pl-2">Descrição</div>
                       <div className="w-[15%] border-r border-black p-0.5">Referência</div>
-                      <div className="w-[20%] border-r border-black p-0.5">Proventos</div>
-                      <div className="w-[20%] p-0.5">Descontos</div>
+                      <div className="w-[20%] border-r border-black p-0.5 text-right pr-2">Proventos</div>
+                      <div className="w-[20%] p-0.5 text-right pr-2">Descontos</div>
                     </div>
 
                     {/* Corpo da Tabela de Itens */}
                     <div className="min-h-[250px] relative">
                       {/* Item 1 - Pro-labore */}
-                      <div className="flex border-b border-gray-200">
-                        <div className="w-[10%] border-r border-black p-1 text-center">1</div>
-                        <div className="w-[35%] border-r border-black p-1 pl-2">HORAS NORMAIS EMPREGADOR</div>
-                        <div className="w-[15%] border-r border-black p-1 text-center">220:00</div>
-                        <div className="w-[20%] border-r border-black p-1 text-right pr-4">R$ {formatCurrency(valorBrutoNum)}</div>
-                        <div className="w-[20%] p-1 text-right pr-4"></div>
+                      <div className="flex border-b border-gray-300 h-8 items-center">
+                        <div className="w-[10%] border-r border-black p-1 text-center font-bold">1</div>
+                        <div className="w-[35%] border-r border-black p-1 pl-2 font-bold">PRÓ-LABORE MENSAL</div>
+                        <div className="w-[15%] border-r border-black p-1 text-center font-bold">30 DIAS</div>
+                        <div className="w-[20%] border-r border-black p-1 text-right pr-2 font-bold">R$ {formatCurrency(valorBrutoNum)}</div>
+                        <div className="w-[20%] p-1 text-right pr-2"></div>
                       </div>
 
                       {/* Item 2 - INSS */}
-                      <div className="flex border-b border-gray-200">
-                        <div className="w-[10%] border-r border-black p-1 text-center">150</div>
-                        <div className="w-[35%] border-r border-black p-1 pl-2">INSS EMPREGADOR</div>
-                        <div className="w-[15%] border-r border-black p-1 text-center">11%</div>
-                        <div className="w-[20%] border-r border-black p-1 text-right pr-4"></div>
-                        <div className="w-[20%] p-1 text-right pr-4">R$ {formatCurrency(inssNum)}</div>
+                      <div className="flex border-b border-gray-300 h-8 items-center">
+                        <div className="w-[10%] border-r border-black p-1 text-center font-bold">150</div>
+                        <div className="w-[35%] border-r border-black p-1 pl-2 font-bold">INSS SÓCIO</div>
+                        <div className="w-[15%] border-r border-black p-1 text-center font-bold">11%</div>
+                        <div className="w-[20%] border-r border-black p-1 text-right pr-2"></div>
+                        <div className="w-[20%] p-1 text-right pr-2 font-bold">R$ {formatCurrency(inssNum)}</div>
                       </div>
 
                       {/* Item 3 - IRRF */}
                       {irrfNum > 0 && (
-                        <div className="flex border-b border-gray-200">
-                          <div className="w-[10%] border-r border-black p-1 text-center">230</div>
-                          <div className="w-[35%] border-r border-black p-1 pl-2">IRRF EMPREGADOR</div>
-                          <div className="w-[15%] border-r border-black p-1 text-center">VAR.</div>
-                          <div className="w-[20%] border-r border-black p-1 text-right pr-4"></div>
-                          <div className="w-[20%] p-1 text-right pr-4">R$ {formatCurrency(irrfNum)}</div>
+                        <div className="flex border-b border-gray-300 h-8 items-center">
+                          <div className="w-[10%] border-r border-black p-1 text-center font-bold">230</div>
+                          <div className="w-[35%] border-r border-black p-1 pl-2 font-bold">IRRF SÓCIO</div>
+                          <div className="w-[15%] border-r border-black p-1 text-center font-bold">VAR.</div>
+                          <div className="w-[20%] border-r border-black p-1 text-right pr-2"></div>
+                          <div className="w-[20%] p-1 text-right pr-2 font-bold">R$ {formatCurrency(irrfNum)}</div>
                         </div>
                       )}
 
-                      {/* Divisórias Verticais Vazias para Preencher o Espaço */}
+                      {/* Colunas verticais vazias */}
                       <div className="absolute top-0 bottom-0 w-[10%] border-r border-black pointer-events-none" />
                       <div className="absolute top-0 bottom-0 w-[45%] border-r border-black pointer-events-none" />
                       <div className="absolute top-0 bottom-0 w-[60%] border-r border-black pointer-events-none" />
@@ -371,50 +371,50 @@ export function ProlaboreForm() {
                     </div>
 
                     {/* Totais */}
-                    <div className="flex border-t-2 border-black">
+                    <div className="flex border-t-2 border-black h-10 items-center">
                       <div className="w-[45%]"></div>
-                      <div className="w-[15%] border-x-2 border-black p-1 font-bold text-center bg-[#E5E7EB]">TOTAL</div>
-                      <div className="w-[20%] border-r-2 border-black p-1 text-right pr-4 font-bold">R$ {formatCurrency(valorBrutoNum)}</div>
-                      <div className="w-[20%] p-1 text-right pr-4 font-bold">R$ {formatCurrency(inssNum + irrfNum)}</div>
+                      <div className="w-[15%] border-x-2 border-black p-1 font-black text-center bg-[#E5E7EB] h-full flex items-center justify-center">TOTAIS</div>
+                      <div className="w-[20%] border-r-2 border-black p-1 text-right pr-2 font-black text-sm">R$ {formatCurrency(valorBrutoNum)}</div>
+                      <div className="w-[20%] p-1 text-right pr-2 font-black text-sm">R$ {formatCurrency(inssNum + irrfNum)}</div>
                     </div>
 
                     {/* Líquido */}
-                    <div className="flex border-t-2 border-black">
+                    <div className="flex border-t-2 border-black h-12 items-center bg-[#F9FAFB]">
                       <div className="w-[60%]"></div>
-                      <div className="w-[20%] border-x-2 border-black p-1 font-bold text-center bg-[#E5E7EB]">Total Líquido</div>
-                      <div className="w-[20%] p-1 text-right pr-4 font-black text-sm">R$ {formatCurrency(valorLiquido)}</div>
+                      <div className="w-[20%] border-x-2 border-black p-1 font-black text-center bg-[#E5E7EB] h-full flex items-center justify-center">LÍQUIDO</div>
+                      <div className="w-[20%] p-1 text-right pr-2 font-black text-lg">R$ {formatCurrency(valorLiquido)}</div>
                     </div>
 
                     {/* Bases de Cálculo */}
-                    <div className="flex border-t-2 border-black bg-[#E5E7EB] font-bold text-[8px] text-center">
-                      <div className="w-[20%] border-r border-black p-0.5">Salario Base</div>
-                      <div className="w-[20%] border-r border-black p-0.5">Sal. Cont INSS</div>
-                      <div className="w-[20%] border-r border-black p-0.5">Bas Cál FGTS</div>
+                    <div className="flex border-t-2 border-black bg-[#E5E7EB] font-black text-[8px] text-center">
+                      <div className="w-[20%] border-r border-black p-0.5">Base INSS</div>
+                      <div className="w-[20%] border-r border-black p-0.5">Base FGTS</div>
                       <div className="w-[20%] border-r border-black p-0.5">FGTS Mês</div>
-                      <div className="w-[20%] p-0.5">Bas Cál IRPF</div>
+                      <div className="w-[20%] border-r border-black p-0.5">Base IRPF</div>
+                      <div className="w-[20%] p-0.5">Total Desc.</div>
                     </div>
-                    <div className="flex border-t border-black font-bold h-8 items-center text-center">
-                      <div className="w-[20%] border-r-2 border-black p-1">R$ {formatCurrency(valorBrutoNum)}</div>
-                      <div className="w-[20%] border-r-2 border-black p-1">R$ {formatCurrency(valorBrutoNum)}</div>
-                      <div className="w-[20%] border-r-2 border-black p-1">R$ -</div>
-                      <div className="w-[20%] border-r-2 border-black p-1">R$ -</div>
-                      <div className="w-[20%] p-1">R$ {formatCurrency(baseIRPF)}</div>
+                    <div className="flex border-t border-black font-black h-8 items-center text-center">
+                      <div className="w-[20%] border-r border-black p-1">R$ {formatCurrency(valorBrutoNum)}</div>
+                      <div className="w-[20%] border-r border-black p-1">R$ 0,00</div>
+                      <div className="w-[20%] border-r border-black p-1">R$ 0,00</div>
+                      <div className="w-[20%] border-r border-black p-1">R$ {formatCurrency(baseIRPF)}</div>
+                      <div className="w-[20%] p-1">R$ {formatCurrency(inssNum + irrfNum)}</div>
                     </div>
 
                     {/* Assinatura e Data */}
-                    <div className="flex border-t-2 border-black p-4 h-16 items-end justify-between">
-                      <div className="w-[60%] flex items-baseline gap-2">
-                        <span className="font-bold">Assinatura:</span>
-                        <div className="flex-1 border-b border-black"></div>
+                    <div className="flex border-t-2 border-black p-4 h-24 items-end justify-between">
+                      <div className="w-[60%] flex flex-col gap-2">
+                        <div className="border-b border-black w-full"></div>
+                        <span className="font-black text-[8px] uppercase">Assinatura do Recebedor: {formData.socio}</span>
                       </div>
                       <div className="w-[30%] flex items-baseline gap-2">
                         <span className="font-bold">Data:</span>
                         <div className="flex-1 flex gap-1 justify-center">
-                          <span className="border-b border-black w-8"></span>
+                          <span className="border-b border-black w-10"></span>
                           <span>/</span>
-                          <span className="border-b border-black w-8"></span>
+                          <span className="border-b border-black w-10"></span>
                           <span>/</span>
-                          <span className="border-b border-black w-12"></span>
+                          <span className="border-b border-black w-14"></span>
                         </div>
                       </div>
                     </div>
