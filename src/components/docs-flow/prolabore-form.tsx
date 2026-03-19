@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -37,6 +37,22 @@ export function ProlaboreForm() {
     irrf: "0",
     cadastro: "2"
   })
+
+  // Carrega dados de reuso se existirem
+  useEffect(() => {
+    const saved = sessionStorage.getItem("reuse_doc_data")
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      if (parsed.type?.includes("PRO-LABORE")) {
+        setFormData(parsed.data)
+        if (parsed.type?.includes("DECLARAÇÃO")) setDocType("prolabore")
+        else setDocType("contracheque")
+        setIsPreviewOpen(true)
+        sessionStorage.removeItem("reuse_doc_data")
+        toast({ title: "Dados carregados com sucesso" })
+      }
+    }
+  }, [])
 
   const handleSelectClient = (clientId: string) => {
     const client = clients?.find(c => c.id === clientId)
@@ -93,8 +109,9 @@ export function ProlaboreForm() {
 
   const formatCompetencia = (val: string) => {
     if (!val) return "--/----"
-    const [year, month] = val.split('-')
-    return `${month}/${year}`
+    const parts = val.split('-')
+    if (parts.length < 2) return val
+    return `${parts[1]}/${parts[0]}`
   }
 
   return (
@@ -219,20 +236,20 @@ export function ProlaboreForm() {
         <div className="lg:col-span-7 animate-in fade-in slide-in-from-right-4 duration-500">
           <Card className="border-[#D2D7DB] bg-[#F7F7F7] overflow-hidden sticky top-20 print:static print:bg-white print:border-none print:shadow-none">
             <CardHeader className="bg-white border-b py-3 px-6 flex flex-row items-center justify-between no-print">
-              <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Pré-visualização do Documento</CardTitle>
+              <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Pré-visualização</CardTitle>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setIsPreviewOpen(false)}><X className="h-4 w-4 mr-1" /> Fechar</Button>
-                <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold" onClick={() => window.print()}>
+                <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold uppercase text-[10px]" onClick={() => window.print()}>
                   <Printer className="h-3 w-3" /> GERAR PDF
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="p-8 print:p-0">
-              <div className="bg-white mx-auto w-full min-h-[297mm] p-8 text-black leading-tight font-serif print:shadow-none print:border-none print-container">
+              <div className="bg-white mx-auto w-full min-h-[297mm] p-8 text-black leading-tight font-serif print-container">
                 
                 {docType === 'prolabore' ? (
                   <div className="space-y-12 h-full flex flex-col">
-                    <div className="flex items-start justify-between mb-12 border-b pb-8">
+                    <div className="flex items-start justify-between mb-8 border-b pb-6">
                       <div className="space-y-1">
                         <h2 className="text-lg font-black uppercase text-black">{formData.empresa || "[NOME DA EMPRESA]"}</h2>
                         <p className="font-bold text-slate-500">CNPJ: {formData.cnpj || "00.000.000/0000-00"}</p>
@@ -241,7 +258,6 @@ export function ProlaboreForm() {
                     
                     <div className="text-center space-y-2">
                       <h2 className="text-lg font-black uppercase underline underline-offset-8">DECLARAÇÃO DE RENDIMENTOS (PRÓ-LABORE)</h2>
-                      <p className="font-bold text-[9px] text-slate-400">Prosperare Flow — Inteligência Documental</p>
                     </div>
 
                     <div className="space-y-8">
@@ -274,7 +290,7 @@ export function ProlaboreForm() {
                       </p>
                     </div>
 
-                    <div className="mt-auto grid grid-cols-2 gap-12 text-center pt-12">
+                    <div className="mt-auto grid grid-cols-2 gap-12 text-center pt-8">
                       <div className="border-t border-black pt-2">
                         <p className="font-bold uppercase text-[9px]">{formData.empresa || "EMPREGADOR"}</p>
                         <p className="text-[8px] text-slate-500 uppercase tracking-widest">Carimbo e Assinatura</p>
@@ -286,35 +302,25 @@ export function ProlaboreForm() {
                     </div>
                   </div>
                 ) : (
-                  /* RECIBO DE PROLABORE - LAYOUT TÉCNICO */
                   <div className="border-2 border-black text-[10px] uppercase font-sans h-fit">
-                    {/* Header Topo */}
                     <div className="flex border-b-2 border-black">
                       <div className="w-[60%] bg-[#E5E7EB] border-r-2 border-black p-1 font-black">EMPREGADOR</div>
                       <div className="w-[40%] p-1 text-center font-black text-xs">Recibo de Pró-labore</div>
                     </div>
-                    
-                    {/* Linha Cliente Nome */}
                     <div className="flex border-b-2 border-black h-8 items-center">
                       <div className="w-[60%] border-r-2 border-black p-1 font-bold">{formData.empresa || "NOME DO CLIENTE"}</div>
                       <div className="w-[15%] border-r-2 border-black bg-[#F3F4F6] text-center font-bold">TIPO</div>
                       <div className="w-[25%] p-1 text-center font-bold">Mensal</div>
                     </div>
-
-                    {/* Linha CNPJ e Data */}
                     <div className="flex border-b-2 border-black h-8 items-center">
                       <div className="w-[60%] border-r-2 border-black p-1 font-bold">CNPJ: {formData.cnpj || "00.000.000/0000-00"}</div>
                       <div className="w-[15%] border-r-2 border-black bg-[#F3F4F6] text-center font-bold">REF</div>
                       <div className="w-[25%] p-1 text-center font-bold">{formatCompetencia(formData.competencia)}</div>
                     </div>
-
-                    {/* Sub-Header Cadastro / Nome */}
                     <div className="flex bg-[#E5E7EB] border-b border-black">
                       <div className="w-[20%] border-r border-black p-0.5 text-center font-black">Cadastro</div>
                       <div className="w-[80%] p-0.5 pl-2 font-black">Nome do Sócio / Beneficiário</div>
                     </div>
-
-                    {/* Linha Dados do Sócio */}
                     <div className="flex border-b-2 border-black h-12">
                       <div className="w-[20%] border-r-2 border-black p-2 text-center text-sm font-black flex items-center justify-center">{formData.cadastro}</div>
                       <div className="w-[80%] flex flex-col justify-center">
@@ -322,8 +328,6 @@ export function ProlaboreForm() {
                         <div className="p-1 pl-2 border-t border-black text-[8px] font-bold text-[#4B5563]">SÓCIO - ADMINISTRADOR</div>
                       </div>
                     </div>
-
-                    {/* Cabeçalho da Tabela de Itens */}
                     <div className="flex bg-[#E5E7EB] border-b-2 border-black font-black text-center">
                       <div className="w-[10%] border-r border-black p-0.5">Cod</div>
                       <div className="w-[35%] border-r border-black p-0.5 text-left pl-2">Descrição</div>
@@ -331,10 +335,7 @@ export function ProlaboreForm() {
                       <div className="w-[20%] border-r border-black p-0.5 text-right pr-2">Proventos</div>
                       <div className="w-[20%] p-0.5 text-right pr-2">Descontos</div>
                     </div>
-
-                    {/* Corpo da Tabela de Itens */}
                     <div className="min-h-[250px] relative">
-                      {/* Item 1 - Pro-labore */}
                       <div className="flex border-b border-gray-300 h-8 items-center">
                         <div className="w-[10%] border-r border-black p-1 text-center font-bold">1</div>
                         <div className="w-[35%] border-r border-black p-1 pl-2 font-bold">PRÓ-LABORE MENSAL</div>
@@ -342,8 +343,6 @@ export function ProlaboreForm() {
                         <div className="w-[20%] border-r border-black p-1 text-right pr-2 font-bold">R$ {formatCurrency(valorBrutoNum)}</div>
                         <div className="w-[20%] p-1 text-right pr-2"></div>
                       </div>
-
-                      {/* Item 2 - INSS */}
                       <div className="flex border-b border-gray-300 h-8 items-center">
                         <div className="w-[10%] border-r border-black p-1 text-center font-bold">150</div>
                         <div className="w-[35%] border-r border-black p-1 pl-2 font-bold">INSS SÓCIO</div>
@@ -351,8 +350,6 @@ export function ProlaboreForm() {
                         <div className="w-[20%] border-r border-black p-1 text-right pr-2"></div>
                         <div className="w-[20%] p-1 text-right pr-2 font-bold">R$ {formatCurrency(inssNum)}</div>
                       </div>
-
-                      {/* Item 3 - IRRF */}
                       {irrfNum > 0 && (
                         <div className="flex border-b border-gray-300 h-8 items-center">
                           <div className="w-[10%] border-r border-black p-1 text-center font-bold">230</div>
@@ -362,30 +359,22 @@ export function ProlaboreForm() {
                           <div className="w-[20%] p-1 text-right pr-2 font-bold">R$ {formatCurrency(irrfNum)}</div>
                         </div>
                       )}
-
-                      {/* Colunas verticais vazias */}
                       <div className="absolute top-0 bottom-0 w-[10%] border-r border-black pointer-events-none" />
                       <div className="absolute top-0 bottom-0 w-[45%] border-r border-black pointer-events-none" />
                       <div className="absolute top-0 bottom-0 w-[60%] border-r border-black pointer-events-none" />
                       <div className="absolute top-0 bottom-0 w-[80%] border-r border-black pointer-events-none" />
                     </div>
-
-                    {/* Totais */}
                     <div className="flex border-t-2 border-black h-10 items-center">
                       <div className="w-[45%]"></div>
                       <div className="w-[15%] border-x-2 border-black p-1 font-black text-center bg-[#E5E7EB] h-full flex items-center justify-center">TOTAIS</div>
                       <div className="w-[20%] border-r-2 border-black p-1 text-right pr-2 font-black text-sm">R$ {formatCurrency(valorBrutoNum)}</div>
                       <div className="w-[20%] p-1 text-right pr-2 font-black text-sm">R$ {formatCurrency(inssNum + irrfNum)}</div>
                     </div>
-
-                    {/* Líquido */}
                     <div className="flex border-t-2 border-black h-12 items-center bg-[#F9FAFB]">
                       <div className="w-[60%]"></div>
                       <div className="w-[20%] border-x-2 border-black p-1 font-black text-center bg-[#E5E7EB] h-full flex items-center justify-center">LÍQUIDO</div>
                       <div className="w-[20%] p-1 text-right pr-2 font-black text-lg">R$ {formatCurrency(valorLiquido)}</div>
                     </div>
-
-                    {/* Bases de Cálculo */}
                     <div className="flex border-t-2 border-black bg-[#E5E7EB] font-black text-[8px] text-center">
                       <div className="w-[20%] border-r border-black p-0.5">Base INSS</div>
                       <div className="w-[20%] border-r border-black p-0.5">Base FGTS</div>
@@ -400,8 +389,6 @@ export function ProlaboreForm() {
                       <div className="w-[20%] border-r border-black p-1">R$ {formatCurrency(baseIRPF)}</div>
                       <div className="w-[20%] p-1">R$ {formatCurrency(inssNum + irrfNum)}</div>
                     </div>
-
-                    {/* Assinatura e Data */}
                     <div className="flex border-t-2 border-black p-4 h-24 items-end justify-between">
                       <div className="w-[60%] flex flex-col gap-2">
                         <div className="border-b border-black w-full"></div>
@@ -420,10 +407,6 @@ export function ProlaboreForm() {
                     </div>
                   </div>
                 )}
-
-                <div className="mt-8 text-right text-[8px] font-bold text-gray-400 no-print">
-                  Prosperare Flow — Gerador de Documentos Profissionais
-                </div>
               </div>
             </CardContent>
           </Card>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -13,7 +12,8 @@ import {
   ArrowLeft,
   Building2,
   Calendar,
-  Loader2
+  Loader2,
+  RefreshCcw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase, useUser, deleteDocumentNonBlocking } from "@/firebase"
 import { collection, doc, query, orderBy } from "firebase/firestore"
 import { format } from "date-fns"
+import { toast } from "@/hooks/use-toast"
 
 export default function DocsFlowHistoricoPage() {
   const router = useRouter()
@@ -53,13 +54,27 @@ export default function DocsFlowHistoricoPage() {
   const handleDelete = (id: string) => {
     if (confirm("Deseja excluir este registro do histórico?")) {
       deleteDocumentNonBlocking(doc(firestore, "generated_documents", id))
+      toast({ title: "Removido com sucesso" })
     }
+  }
+
+  const handleReuse = (docData: any) => {
+    // Salva os dados no sessionStorage para que a página DocsFlow possa recuperar
+    sessionStorage.setItem("reuse_doc_data", JSON.stringify(docData))
+    
+    // Determina a aba correta com base no tipo
+    let tab = "rescisao"
+    if (docData.type?.includes("PRO-LABORE")) tab = "prolabore"
+    if (docData.type?.includes("FATURAMENTO")) tab = "faturamento"
+    
+    toast({ title: "Carregando Dados...", description: "Você será levado ao formulário preenchido." })
+    router.push(`/docs-flow?tab=${tab}`)
   }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-[#39586D]">
+        <Button variant="ghost" size="icon" onClick={() => router.push("/docs-flow")} className="text-[#39586D]">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
@@ -158,6 +173,15 @@ export default function DocsFlowHistoricoPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-[#1FA67A]" 
+                          title="Reutilizar Dados"
+                          onClick={() => handleReuse(item)}
+                        >
+                          <RefreshCcw className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C]" onClick={() => handleDelete(item.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>

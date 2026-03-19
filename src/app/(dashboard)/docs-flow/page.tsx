@@ -1,28 +1,32 @@
-
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { 
-  FileSignature, 
   FileStack, 
   UserMinus, 
   TrendingUp, 
   History,
-  Printer,
   FileText,
-  Search,
-  Plus
+  Search
 } from "lucide-react"
 import { TerminationTermForm } from "@/components/docs-flow/termination-term-form"
 import { ProlaboreForm } from "@/components/docs-flow/prolabore-form"
 import { RevenueDeclarationForm } from "@/components/docs-flow/revenue-declaration-form"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { useSearchParams, useRouter } from "next/navigation"
 
 export default function DocsFlowPage() {
-  const [activeTab, setActiveTab] = useState("rescisao")
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "rescisao")
+
+  // Atualiza a aba se o parâmetro da URL mudar
+  useEffect(() => {
+    const tab = searchParams.get("tab")
+    if (tab) setActiveTab(tab)
+  }, [searchParams])
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
@@ -35,22 +39,26 @@ export default function DocsFlowPage() {
           <p className="text-[#98A7AA] font-bold text-sm">Central de geração de documentos avulsos e inteligentes.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2">
+          <Button 
+            variant="outline" 
+            className="border-[#D2D7DB] text-[#39586D] font-bold gap-2"
+            onClick={() => router.push("/docs-flow/historico")}
+          >
             <History className="h-4 w-4" /> Histórico Geral
           </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="rescisao" className="space-y-6" onValueChange={setActiveTab}>
+      <Tabs defaultValue="rescisao" value={activeTab} className="space-y-6" onValueChange={setActiveTab}>
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-2 rounded-xl border shadow-sm">
           <TabsList className="bg-[#F7F7F7] border-none justify-start h-12">
-            <TabsTrigger value="rescisao" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 h-10 px-6">
+            <TabsTrigger value="rescisao" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 h-10 px-6 text-[10px] uppercase">
               <UserMinus className="h-4 w-4" /> Termo de Rescisão
             </TabsTrigger>
-            <TabsTrigger value="prolabore" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 h-10 px-6">
+            <TabsTrigger value="prolabore" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 h-10 px-6 text-[10px] uppercase">
               <FileText className="h-4 w-4" /> Pró-labore Avulso
             </TabsTrigger>
-            <TabsTrigger value="faturamento" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 h-10 px-6">
+            <TabsTrigger value="faturamento" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 h-10 px-6 text-[10px] uppercase">
               <TrendingUp className="h-4 w-4" /> Faturamento 12 Meses
             </TabsTrigger>
           </TabsList>
