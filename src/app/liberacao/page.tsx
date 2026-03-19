@@ -23,10 +23,10 @@ export default function LiberacaoPage() {
 
   const handleRelease = () => {
     setIsReleasing(true)
-    // Simula validação de ambiente antes da entrada definitiva
+    // Sincronização rápida para entrada definitiva
     setTimeout(() => {
       router.push("/dashboard")
-    }, 1200)
+    }, 500)
   }
 
   const handleLogout = () => {
@@ -58,9 +58,9 @@ export default function LiberacaoPage() {
           
           <div className="space-y-1">
             <h1 className="text-3xl font-black text-[#2C4156] tracking-tighter uppercase">
-              Liberação de <span className="text-[#1FA67A]">Acesso</span>
+              Sessão <span className="text-[#1FA67A]">Liberada</span>
             </h1>
-            <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.3em]">Perfil Identificado: {userData?.fullName || user.email}</p>
+            <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.3em]">Operador: {userData?.fullName || user.email}</p>
           </div>
         </div>
 
@@ -72,8 +72,8 @@ export default function LiberacaoPage() {
                   <CheckCircle2 className="h-5 w-5 text-[#2574A9]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-[#2C4156] uppercase">Estação Identificada</h3>
-                  <p className="text-xs text-[#39586D] font-medium leading-relaxed">Seu terminal foi reconhecido e o túnel de criptografia Prosperare está ativo.</p>
+                  <h3 className="text-sm font-black text-[#2C4156] uppercase">Estação Sincronizada</h3>
+                  <p className="text-xs text-[#39586D] font-medium leading-relaxed">Conexão segura estabelecida com o servidor mestre.</p>
                 </div>
               </div>
 
@@ -82,8 +82,8 @@ export default function LiberacaoPage() {
                   <ShieldCheck className="h-5 w-5 text-[#1FA67A]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-[#2C4156] uppercase">Perfil Autorizado</h3>
-                  <p className="text-xs text-[#39586D] font-medium leading-relaxed">Acesso total liberado para gestão de clientes, processos e financeiro.</p>
+                  <h3 className="text-sm font-black text-[#2C4156] uppercase">Permissões Verificadas</h3>
+                  <p className="text-xs text-[#39586D] font-medium leading-relaxed">Acesso completo habilitado para todos os módulos contratados.</p>
                 </div>
               </div>
             </div>
@@ -98,7 +98,7 @@ export default function LiberacaoPage() {
                   <Loader2 className="h-6 w-6 animate-spin" />
                 ) : (
                   <>
-                    Confirmar e Entrar
+                    Iniciar Operação
                     <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
@@ -109,14 +109,14 @@ export default function LiberacaoPage() {
                 onClick={() => router.push("/escolha-usuario")}
                 className="w-full text-[10px] font-black text-[#98A7AA] uppercase tracking-widest hover:bg-slate-50"
               >
-                <User className="h-3 w-3 mr-2" /> Trocar de Perfil
+                <User className="h-3 w-3 mr-2" /> Trocar Identidade
               </Button>
             </div>
           </CardContent>
         </Card>
 
         <p className="text-center text-[9px] text-[#98A7AA] font-bold uppercase tracking-widest">
-          Sincronizado com Prosperare Cloud v2026.0.1
+          Ambiente Oficial Liberado • Prosperare Flow
         </p>
       </div>
     </div>

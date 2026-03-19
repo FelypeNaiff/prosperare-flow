@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from "react"
@@ -56,13 +57,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { useUser, useAuth } from "@/firebase"
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from "@/firebase"
 import { initiateLogout } from "@/firebase/non-blocking-login"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { doc } from "firebase/firestore"
 
 const menuItems = [
   {
@@ -156,14 +158,20 @@ const menuItems = [
 export function AppSidebar() {
   const { selectedUser } = useUser()
   const auth = useAuth()
+  const firestore = useFirestore()
   const pathname = usePathname()
   const router = useRouter()
+
+  // Busca o nome do escritório das configurações reais
+  const officeRef = useMemoFirebase(() => doc(firestore, "officeSettings", "main"), [firestore])
+  const { data: officeData } = useDoc(officeRef)
   
-  // Memoizamos os itens filtrados para evitar cálculos em cada re-renderização
   const filteredItems = React.useMemo(() => {
     if (!selectedUser) return []
     return menuItems.filter(item => item.profiles.includes(selectedUser.profile))
   }, [selectedUser?.profile])
+
+  const officeName = officeData?.nomeFantasia || officeData?.razaoSocial || "PROSPERARE"
 
   return (
     <Sidebar className="border-r-0 bg-[#2C4156] text-white">
@@ -174,8 +182,8 @@ export function AppSidebar() {
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-              <span className="text-white font-bold text-xl leading-none tracking-tight">PROSPERARE</span>
-              <span className="text-[#1FA67A] font-bold text-xl leading-none tracking-tight">FLOW</span>
+              <span className="text-white font-bold text-lg leading-none tracking-tight uppercase">{officeName.split(' ')[0]}</span>
+              <span className="text-[#1FA67A] font-bold text-lg leading-none tracking-tight">FLOW</span>
             </div>
             <span className="text-[#98A7AA] text-[10px] uppercase font-bold tracking-[0.2em] mt-1">Gestão Team</span>
           </div>
