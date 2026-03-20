@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from "react"
@@ -6,7 +5,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { ChevronRight, Home, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -38,11 +37,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (mounted && userLoaded) {
       if (!user) {
         router.push("/login")
-      } else if (!selectedUser) {
+      } else if (!selectedUser && pathname !== "/escolha-usuario") {
         router.push("/escolha-usuario")
       }
     }
-  }, [mounted, user, selectedUser, userLoaded, router])
+  }, [mounted, user, selectedUser, userLoaded, router, pathname])
 
   if (!mounted || !userLoaded || isUserLoading || isAuthChecking) {
     return (
@@ -55,7 +54,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     )
   }
 
-  if (!user || !selectedUser) return null
+  if (!user || (!selectedUser && pathname !== "/escolha-usuario")) return null
 
   const pathSegments = pathname.split('/').filter(Boolean)
 
@@ -91,15 +90,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Button variant="ghost" size="icon" className="rounded-full border-2 border-[#D2D7DB] overflow-hidden p-0 h-10 w-10">
                   <Avatar className="h-full w-full rounded-none">
                     <AvatarFallback className="bg-[#2C4156] text-white text-xs font-black">
-                      {selectedUser.fullName?.charAt(0)}
+                      {selectedUser?.fullName?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 shadow-xl border-[#D2D7DB]">
                 <DropdownMenuLabel className="text-[#2C4156]">
-                  <p className="font-bold truncate">{selectedUser.fullName}</p>
-                  <p className="text-[10px] text-[#98A7AA] uppercase font-black">{selectedUser.profile}</p>
+                  <p className="font-bold truncate">{selectedUser?.fullName || 'Usuário'}</p>
+                  <p className="text-[10px] text-[#98A7AA] uppercase font-black">{selectedUser?.profile || 'OPERADOR'}</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => router.push("/escolha-usuario")} className="font-bold text-[#2574A9] cursor-pointer">
@@ -121,7 +120,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <footer className="h-12 border-t bg-white flex items-center justify-between px-8 text-[11px] text-[#98A7AA] font-medium print:hidden">
           <span>Prosperare Flow © 2026 — Gestão Digital Integrada</span>
           <div className="flex gap-4">
-            <span className="text-[9px] font-black uppercase text-[#1FA67A]">Operador: {selectedUser.fullName}</span>
+            <span className="text-[9px] font-black uppercase text-[#1FA67A]">Operador: {selectedUser?.fullName}</span>
           </div>
         </footer>
         <div className="print:hidden">

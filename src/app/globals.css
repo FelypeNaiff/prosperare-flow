@@ -54,52 +54,37 @@
 }
 
 @media print {
-  /* Esconde apenas elementos de UI, permitindo que a árvore de componentes do documento permaneça visível */
-  header, 
-  aside, 
-  footer, 
-  button, 
-  .no-print,
-  [data-sidebar="sidebar"],
-  .sidebar-trigger,
-  .tabs-list,
-  .breadcrumb,
-  .quick-access {
-    display: none !important;
+  /* Estratégia de Visibilidade Seletiva para evitar páginas em branco */
+  body * {
+    visibility: hidden !important;
   }
 
-  body {
-    background: white !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
-  main {
-    padding: 0 !important;
-    margin: 0 !important;
-    overflow: visible !important;
+  .print-container, .print-container * {
+    visibility: visible !important;
   }
 
   .print-container {
-    display: block !important;
-    position: relative !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
     width: 210mm !important;
     height: 297mm !important;
-    min-height: 297mm !important;
     padding: 15mm !important;
     margin: 0 !important;
     border: none !important;
-    box-shadow: none !important;
     background: white !important;
     color: black !important;
     z-index: 9999 !important;
-    overflow: hidden !important;
   }
 
-  /* Remove margens extras do navegador */
+  /* Força a impressão em apenas uma folha */
   @page {
     size: A4;
     margin: 0;
+  }
+
+  .no-print {
+    display: none !important;
   }
 }
 

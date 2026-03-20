@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Printer, Eye, Loader2, X, FileDown, Save } from "lucide-react"
+import { Printer, Eye, Loader2, X, Save } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
@@ -37,16 +37,20 @@ export function TerminationTermForm() {
     calculo: ""
   })
 
-  // Carrega dados de reuso se existirem
+  // Carrega dados de reuso se existirem no sessionStorage
   useEffect(() => {
     const saved = sessionStorage.getItem("reuse_doc_data")
     if (saved) {
-      const parsed = JSON.parse(saved)
-      if (parsed.type?.includes("RESCISÃO")) {
-        setFormData(parsed.data)
-        setIsPreviewOpen(true)
-        sessionStorage.removeItem("reuse_doc_data")
-        toast({ title: "Dados carregados do histórico" })
+      try {
+        const parsed = JSON.parse(saved)
+        if (parsed.type?.includes("RESCISÃO")) {
+          setFormData(parsed.data)
+          setIsPreviewOpen(true)
+          sessionStorage.removeItem("reuse_doc_data")
+          toast({ title: "Dados carregados do histórico" })
+        }
+      } catch (e) {
+        console.error("Erro ao carregar reuso:", e)
       }
     }
   }, [])
@@ -216,7 +220,6 @@ export function TerminationTermForm() {
             <CardContent className="p-8 print:p-0">
               <div className="bg-white mx-auto w-full min-h-[297mm] flex flex-col text-black text-[12px] font-serif p-16 print-container relative">
                 
-                {/* Papel Timbrado - Header */}
                 <div className="flex justify-between items-start mb-8 border-b-2 border-[#003366] pb-6">
                   <div className="flex items-start gap-4">
                     <div className="flex flex-col">
@@ -227,7 +230,6 @@ export function TerminationTermForm() {
                   <div className="w-12 h-6 bg-[#003366] rounded-sm skew-x-[-20deg]" />
                 </div>
 
-                {/* Conteúdo do Documento */}
                 <div className="flex-1 space-y-8">
                   <div className="text-center space-y-2 mb-8">
                     <h2 className="text-xl font-black uppercase underline underline-offset-8">TERMO DE QUITAÇÃO DE RESCISÃO CONTRATUAL</h2>
@@ -250,12 +252,12 @@ export function TerminationTermForm() {
                     </div>
 
                     <p>
-                      O EMPREGADO, uma vez recebendo a importância em moeda corrente do país nesta data, bem como assinando este termo, dá ao EMPREGADOR, <strong>PLENA E GERAL QUITAÇÃO</strong>, para nada mais reclamar em época alguma, seja a que título for, em relação deiros ou obrigações presentes ou futuras, em se tratando não somente do mencionado Contrato de Trabalho, mas também de todo período que ficou para trás da data deste referido TERMO, abrindo mão também de qualquer ação civil, criminal ou trabalhista.
+                      O EMPREGADO, uma vez recebendo a importância em moeda corrente do país nesta data, bem como assinando este termo, dá ao EMPREGADOR, <strong>PLENA E GERAL QUITAÇÃO</strong>, para nada mais reclamar em época alguma, seja a que título for, em relação a obrigações presentes ou futuras, em se tratando não somente do mencionado Contrato de Trabalho, mas também de todo período que ficou para trás da data deste referido TERMO, abrindo mão também de qualquer ação civil, criminal ou trabalhista.
                     </p>
                   </div>
 
                   <div className="mt-12 space-y-12">
-                    <p className="text-right text-black font-bold">Macapá - AP, ____ de ________________ de 20____</p>
+                    <p className="text-right text-black font-bold">Macapá - AP, {new Date().toLocaleDateString('pt-BR')}</p>
                     
                     <div className="grid grid-cols-2 gap-12 text-center pt-8">
                       <div className="border-t border-black pt-2">
@@ -270,7 +272,6 @@ export function TerminationTermForm() {
                   </div>
                 </div>
 
-                {/* Papel Timbrado - Footer */}
                 <div className="mt-auto border-t-2 border-[#003366] pt-4">
                   <div className="bg-[#003366] p-4 flex justify-between items-center text-white text-[10px] font-bold rounded-sm">
                     <span className="uppercase">PROSPERARE <span className="font-normal">Serviços Contábeis LTDA</span></span>
