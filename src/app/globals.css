@@ -54,12 +54,12 @@
 }
 
 @media print {
-  /* Oculta tudo que não é o documento */
   html, body {
     height: auto !important;
     background: white !important;
     margin: 0 !important;
     padding: 0 !important;
+    overflow: visible !important;
   }
 
   body * {
@@ -75,8 +75,8 @@
     left: 0 !important;
     top: 0 !important;
     width: 210mm !important;
-    height: 297mm !important;
-    padding: 15mm 20mm !important;
+    min-height: 297mm !important;
+    padding: 10mm 15mm !important;
     margin: 0 !important;
     border: none !important;
     box-shadow: none !important;

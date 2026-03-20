@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Printer, Save, Eye, Loader2, X, RefreshCcw } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { format, addMonths, subMonths, parse, startOfMonth } from "date-fns"
+import { ptBR } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
 import { collection, query, where, orderBy, limit, getDocs, doc } from "firebase/firestore"
@@ -299,7 +300,7 @@ export function RevenueDeclarationForm() {
                   </div>
 
                   <p className="text-justify text-[10px] italic text-black mt-4">
-                    Por ser a expressão da verdade, firmamos a presente declaração em Macapá - AP, {new Date().getDate()} de {format(new Date(), 'MMMM', { locale: require('date-fns/locale/pt-BR') })} de {new Date().getFullYear()}.
+                    Por ser a expressão da verdade, firmamos a presente declaração em Macapá - AP, {new Date().getDate()} de {format(new Date(), 'MMMM', { locale: ptBR })} de {new Date().getFullYear()}.
                   </p>
 
                   {/* Bloco de Assinatura */}

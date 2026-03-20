@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 import { format, parseISO, isValid } from "date-fns"
+import { ptBR } from "date-fns/locale"
 import { ClientSearchSelect } from "@/components/clients/client-search-select"
 
 export function TerminationTermForm() {
