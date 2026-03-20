@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Printer, Save, Eye, Loader2, X, FileDown, RefreshCcw } from "lucide-react"
+import { Printer, Save, Eye, Loader2, X, RefreshCcw } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { format, addMonths, subMonths, parse, startOfMonth } from "date-fns"
 import { cn } from "@/lib/utils"
@@ -126,7 +126,8 @@ export function RevenueDeclarationForm() {
       rows: rows,
       total,
       average,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      data: { ...formData, rows, total, average }
     }
 
     setDocumentNonBlocking(doc(firestore, "generated_documents", id), docData, { merge: true })
@@ -239,88 +240,77 @@ export function RevenueDeclarationForm() {
             <CardContent className="p-0 print:p-0">
               <div className="bg-white mx-auto w-full min-h-[297mm] flex flex-col text-black text-[11px] leading-tight border font-serif p-16 print-container relative">
                 
-                {/* Papel Timbrado - Header */}
-                <div className="flex justify-between items-start mb-12 border-b-2 border-[#003366] pb-8">
-                  <div className="flex items-start gap-4">
-                    <div className="flex flex-col">
-                      <span className="text-2xl font-serif italic text-[#003366] tracking-tighter">Prosperare</span>
-                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500">Serviços Contábeis</span>
-                    </div>
-                  </div>
-                  <div className="w-10 h-5 bg-[#003366] rounded-sm skew-x-[-20deg]" />
+                {/* Header Timbrado - Prosperare */}
+                <div className="flex flex-col items-start mb-8 border-b pb-4">
+                  <span className="text-3xl font-serif italic text-[#003366] tracking-tighter leading-none">Prosperare</span>
+                  <span className="text-[10px] font-medium uppercase tracking-[0.4em] text-slate-500 mt-1">Serviços Contábeis</span>
                 </div>
 
-                {/* Conteúdo do Documento */}
-                <div className="flex-1 flex flex-col space-y-4">
+                <div className="flex-1 flex flex-col space-y-6">
+                  {/* Título Principal */}
                   <div className="text-center space-y-1 mb-2">
-                    <h2 className="text-base font-black uppercase underline underline-offset-4 text-black">DECLARAÇÃO DE FATURAMENTO DOS ÚLTIMOS 12 MESES</h2>
-                    <p className="font-bold text-[8px] text-slate-500 uppercase tracking-widest">Prosperare Flow — Inteligência e Gestão Contábil</p>
+                    <h2 className="text-lg font-black uppercase underline underline-offset-4 text-black">DECLARAÇÃO DE FATURAMENTO DOS ÚLTIMOS 12 MESES</h2>
+                    <p className="font-bold text-[8px] text-slate-500 uppercase tracking-widest mt-1">PROSPERARE FLOW — INTELIGÊNCIA E GESTÃO CONTÁBIL</p>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex justify-between text-black">
-                      <div>
-                        <p className="text-[7px] font-black uppercase text-slate-500">Razão Social</p>
-                        <p className="text-xs font-black uppercase">{formData.empresa || "[NOME DA EMPRESA]"}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[7px] font-black uppercase text-slate-500">CNPJ</p>
-                        <p className="text-xs font-black">{formData.cnpj || "00.000.000/0000-00"}</p>
-                      </div>
+                  {/* Box Identificação Empresa */}
+                  <div className="border border-black p-4 flex justify-between items-center text-black">
+                    <div className="space-y-1">
+                      <p className="text-[7px] font-bold uppercase text-black">RAZÃO SOCIAL</p>
+                      <p className="text-xs font-black uppercase">{formData.empresa || "[NOME DA EMPRESA]"}</p>
                     </div>
-
-                    <p className="text-justify leading-relaxed text-[10px] text-black">
-                      Declaramos para os devidos fins de comprovação, que a empresa supra citada apresentou o seguinte faturamento bruto mensal no período de 12 (doze) meses retroativos à presente data:
-                    </p>
-
-                    <div className="border border-black rounded-sm overflow-hidden text-black">
-                      <Table>
-                        <TableHeader className="bg-slate-50">
-                          <TableRow className="border-b border-black">
-                            <TableHead className="text-black font-black h-7 text-center uppercase text-[9px] py-0">MÊS DE REFERÊNCIA</TableHead>
-                            <TableHead className="text-black font-black h-7 text-right uppercase text-[9px] py-0">FATURAMENTO BRUTO (R$)</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody className="divide-y divide-slate-200">
-                          {rows.map((row, i) => (
-                            <TableRow key={i} className="h-6">
-                              <TableCell className="text-center font-bold py-0.5">{row.periodo}</TableCell>
-                              <TableCell className="text-right font-mono py-0.5">R$ {Number(row.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
-                            </TableRow>
-                          ))}
-                          <TableRow className="bg-slate-50 font-black border-t border-black">
-                            <TableCell className="text-center uppercase text-[9px] py-1">TOTAL ACUMULADO</TableCell>
-                            <TableCell className="text-right py-1 text-[10px]">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
-                          </TableRow>
-                          <TableRow className="bg-slate-50 font-black">
-                            <TableCell className="text-center uppercase text-[9px] py-1">MÉDIA MENSAL</TableCell>
-                            <TableCell className="text-right py-1 text-[10px]">R$ {average.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
+                    <div className="text-right space-y-1">
+                      <p className="text-[7px] font-bold uppercase text-black">CNPJ</p>
+                      <p className="text-xs font-black">{formData.cnpj || "00.000.000/0000-00"}</p>
                     </div>
-
-                    <p className="text-justify text-[10px] italic text-black">
-                      Por ser a expressão da verdade, firmamos a presente declaração em Macapá - AP, ____ de ________________ de 20____.
-                    </p>
                   </div>
 
-                  <div className="mt-auto space-y-6 text-black pt-8">
+                  {/* Texto Statement */}
+                  <p className="text-justify leading-relaxed text-[10px] text-black">
+                    Declaramos para os devidos fins de comprovação, que a empresa supra citada apresentou o seguinte faturamento bruto mensal no período de 12 (doze) meses retroativos à presente data:
+                  </p>
+
+                  {/* Tabela de Valores */}
+                  <div className="border border-black rounded-sm overflow-hidden text-black">
+                    <Table>
+                      <TableHeader className="bg-slate-100">
+                        <TableRow className="border-b border-black">
+                          <TableHead className="text-black font-black h-8 text-center uppercase text-[9px] py-0 border-r border-black">MÊS DE REFERÊNCIA</TableHead>
+                          <TableHead className="text-black font-black h-8 text-right uppercase text-[9px] py-0 pr-4">FATURAMENTO BRUTO (R$)</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody className="divide-y divide-black">
+                        {rows.map((row, i) => (
+                          <TableRow key={i} className="h-7">
+                            <TableCell className="text-center font-bold py-0.5 border-r border-black">{row.periodo}</TableCell>
+                            <TableCell className="text-right font-mono py-0.5 pr-4">R$ {Number(row.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow className="bg-slate-50 font-black border-t border-black">
+                          <TableCell className="text-center uppercase text-[9px] py-1.5 border-r border-black">TOTAL ACUMULADO</TableCell>
+                          <TableCell className="text-right py-1.5 text-[10px] pr-4">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                        </TableRow>
+                        <TableRow className="bg-slate-50 font-black">
+                          <TableCell className="text-center uppercase text-[9px] py-1.5 border-r border-black">MÉDIA MENSAL</TableCell>
+                          <TableCell className="text-right py-1.5 text-[10px] pr-4">R$ {average.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <p className="text-justify text-[10px] italic text-black mt-4">
+                    Por ser a expressão da verdade, firmamos a presente declaração em Macapá - AP, {new Date().getDate()} de {format(new Date(), 'MMMM', { locale: require('date-fns/locale/pt-BR') })} de {new Date().getFullYear()}.
+                  </p>
+
+                  {/* Bloco de Assinatura */}
+                  <div className="mt-auto space-y-12 text-black pt-12 flex flex-col items-center">
                     <div className="flex flex-col items-center text-center space-y-1">
-                      <div className="w-56 border-t border-black pt-1">
+                      <div className="w-64 border-t-2 border-black pt-2">
                         <p className="font-black uppercase text-[10px]">FELYPE MACIEL NAIFF</p>
                         <p className="text-[8px] font-bold text-slate-700 uppercase">CONTADOR RESPONSÁVEL</p>
                         <p className="text-[7px] text-slate-500">CRC 002428/O-9 | CPF 917.722.812-04</p>
                       </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* Papel Timbrado - Footer */}
-                <div className="mt-8 border-t-2 border-[#003366] pt-4">
-                  <div className="bg-[#003366] p-3 flex justify-between items-center text-white text-[9px] font-bold rounded-sm">
-                    <span className="uppercase">PROSPERARE <span className="font-normal">Serviços Contábeis LTDA</span></span>
-                    <span className="font-normal">Av. Acelino de Leão, nº 1046 – Trem, Macapá - AP</span>
                   </div>
                 </div>
               </div>

@@ -54,7 +54,14 @@
 }
 
 @media print {
-  /* Estratégia de Visibilidade Seletiva para evitar páginas em branco */
+  /* Oculta tudo que não é o documento */
+  html, body {
+    height: auto !important;
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
   body * {
     visibility: hidden !important;
   }
@@ -69,22 +76,24 @@
     top: 0 !important;
     width: 210mm !important;
     height: 297mm !important;
-    padding: 15mm !important;
+    padding: 15mm 20mm !important;
     margin: 0 !important;
     border: none !important;
+    box-shadow: none !important;
     background: white !important;
     color: black !important;
     z-index: 9999 !important;
-  }
-
-  /* Força a impressão em apenas uma folha */
-  @page {
-    size: A4;
-    margin: 0;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
   .no-print {
     display: none !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 0;
   }
 }
 
