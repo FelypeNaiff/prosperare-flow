@@ -290,7 +290,7 @@ export default function GruposObrigacoesPage() {
       )}
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0 border-none shadow-2xl flex flex-col">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0 border-none shadow-2xl flex flex-col">
           <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
             <div className="flex items-center justify-between">
               <div>
@@ -426,74 +426,89 @@ export default function GruposObrigacoesPage() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="clientes" className="m-0 space-y-6">
-                  <div className="flex flex-col gap-6">
-                    <div className="space-y-4">
-                      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                        <div className="flex-1 space-y-2">
-                          <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Pesquisar Clientes Vinculados</Label>
-                          <div className="relative">
-                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
-                            <Input 
-                              placeholder="Filtrar por nome ou CNPJ..." 
-                              className="pl-10 h-10 bg-[#F7F7F7]"
-                              value={clientSearch}
-                              onChange={(e) => setClientSearch(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                        <div className="w-full md:w-64 space-y-2">
-                          <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Incluir Nova Empresa</Label>
-                          <ClientSearchSelect 
-                            clients={availableClientsToAdd} 
-                            onValueChange={(val: string) => toggleClientLink(allClients.find(c => c.id === val))}
-                            placeholder="Adicionar à lista..."
-                            className="border-[#1FA67A] text-[#1FA67A] h-10"
+                <TabsContent value="clientes" className="m-0">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div className="lg:col-span-7 space-y-6">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Pesquisar Clientes Vinculados</Label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
+                          <Input 
+                            placeholder="Filtrar por nome ou CNPJ..." 
+                            className="pl-10 h-10 bg-[#F7F7F7] border-[#D2D7DB]"
+                            value={clientSearch}
+                            onChange={(e) => setClientSearch(e.target.value)}
                           />
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-[#D2D7DB]/50 pb-1">
+                          <h4 className="text-[10px] font-black text-[#2C4156] uppercase tracking-[0.2em]">Empresas Vinculadas ao Fluxo</h4>
+                          <Badge variant="outline" className="text-[8px] font-black text-[#1FA67A] border-[#1FA67A]/20">
+                            {filteredLinkedClients.length} ATIVAS
+                          </Badge>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-2">
+                          {filteredLinkedClients.map(client => (
+                            <div key={client.id} className="flex items-center justify-between p-3 bg-white border border-[#D2D7DB] rounded-xl group hover:border-[#1FA67A] transition-all">
+                              <div className="flex items-center gap-4">
+                                <Avatar className="h-10 w-10 border-none shadow-sm rounded-lg overflow-hidden">
+                                  <AvatarFallback className="bg-[#2C4156] text-white font-black text-xs rounded-lg">
+                                    {client.corporateName?.substr(0, 2).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-black text-[#2C4156] uppercase leading-none">{client.corporateName}</span>
+                                  <span className="text-[10px] font-mono text-[#98A7AA]">{client.cnpj}</span>
+                                </div>
+                              </div>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-[#E74C3C] hover:bg-[#FEE2E2]"
+                                onClick={() => toggleClientLink(client)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          {filteredLinkedClients.length === 0 && (
+                            <div className="text-center py-12 border-2 border-dashed rounded-2xl bg-slate-50/50">
+                              <Users className="h-8 w-8 mx-auto text-[#D2D7DB] mb-2" />
+                              <p className="text-[10px] font-black text-[#98A7AA] uppercase">Nenhuma empresa vinculada com este filtro</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between border-b pb-2">
-                        <h4 className="text-xs font-black text-[#2C4156] uppercase tracking-widest flex items-center gap-2">
-                          Empresas Vinculadas ao Fluxo
-                        </h4>
-                        <Badge variant="outline" className="text-[10px] font-black text-[#1FA67A] border-[#1FA67A]/20">
-                          {filteredLinkedClients.length} Filtradas
-                        </Badge>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-2">
-                        {filteredLinkedClients.map(client => (
-                          <div key={client.id} className="flex items-center justify-between p-3 bg-white border border-[#D2D7DB] rounded-xl group hover:border-[#1FA67A] transition-all">
-                            <div className="flex items-center gap-4">
-                              <Avatar className="h-10 w-10 border-none shadow-sm rounded-lg overflow-hidden">
-                                <AvatarFallback className="bg-[#2C4156] text-white font-black text-xs rounded-lg">
-                                  {client.corporateName?.substr(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex flex-col">
-                                <span className="text-sm font-black text-[#2C4156] uppercase">{client.corporateName}</span>
-                                <span className="text-[10px] font-mono text-[#98A7AA]">{client.cnpj}</span>
-                              </div>
-                            </div>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-[#E74C3C] hover:bg-[#E74C3C]/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => toggleClientLink(client)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                    <div className="lg:col-span-5 space-y-4">
+                      <div className="bg-[#F7F7F7] p-6 rounded-2xl border border-[#D2D7DB] space-y-4 shadow-inner">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="p-1.5 bg-[#1FA67A] rounded-lg text-white">
+                            <UserPlus className="h-4 w-4" />
                           </div>
-                        ))}
-                        {filteredLinkedClients.length === 0 && (
-                          <div className="text-center py-12 border-2 border-dashed rounded-2xl bg-slate-50/50">
-                            <Users className="h-8 w-8 mx-auto text-[#D2D7DB] mb-2" />
-                            <p className="text-[10px] font-black text-[#98A7AA] uppercase">Nenhuma empresa localizada com este filtro</p>
+                          <h4 className="text-[10px] font-black text-[#1FA67A] uppercase tracking-[0.2em]">Incluir Nova Empresa</h4>
+                        </div>
+                        
+                        <ClientSearchSelect 
+                          clients={availableClientsToAdd} 
+                          onValueChange={(val: string) => toggleClientLink(allClients.find(c => c.id === val))}
+                          placeholder="ADICIONAR À LISTA..."
+                          className="border-[#1FA67A] text-[#1FA67A] h-11"
+                        />
+                        
+                        <div className="space-y-2 pt-2">
+                          <p className="text-[9px] text-[#39586D] font-bold uppercase leading-relaxed">
+                            Selecione uma empresa da base para vinculá-la automaticamente a este grupo de obrigações.
+                          </p>
+                          <div className="flex items-center gap-2 p-3 bg-white rounded-xl border border-dashed border-[#D2D7DB]">
+                            <CheckCircle2 className="h-3 w-3 text-[#1FA67A]" />
+                            <span className="text-[8px] font-black text-[#98A7AA] uppercase">Vínculo em Tempo Real</span>
                           </div>
-                        )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -502,7 +517,7 @@ export default function GruposObrigacoesPage() {
             </ScrollArea>
 
             <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
-              <Button variant="outline" onClick={() => setIsModalOpen(false)} className="font-bold text-xs uppercase border-[#D2D7DB]">Fechar</Button>
+              <Button variant="outline" onClick={() => setIsModalOpen(false)} className="font-bold text-xs uppercase border-[#D2D7DB]">Fechar Janela</Button>
               <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-8 shadow-lg shadow-emerald-500/20" onClick={handleSaveGroup}>
                 <Save className="h-4 w-4 mr-2" /> Salvar Alterações do Grupo
               </Button>
