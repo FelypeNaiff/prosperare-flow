@@ -28,6 +28,7 @@ export function RevenueDeclarationForm() {
     clientId: "",
     empresa: "",
     cnpj: "",
+    responsavel: "",
     email: ""
   })
 
@@ -65,6 +66,7 @@ export function RevenueDeclarationForm() {
         clientId: client.id,
         empresa: client.corporateName,
         cnpj: client.cnpj,
+        responsavel: client.companyContactPerson || "",
         email: client.email || "cliente@email.com"
       })
 
@@ -171,6 +173,10 @@ export function RevenueDeclarationForm() {
               <div className="space-y-2">
                 <Label className="text-xs font-bold">CNPJ</Label>
                 <Input placeholder="00.000.000/0000-00" value={formData.cnpj} onChange={(e) => setFormData({...formData, cnpj: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold">Nome do Responsável / Sócio</Label>
+                <Input placeholder="Quem assinará pela empresa" value={formData.responsavel} onChange={(e) => setFormData({...formData, responsavel: e.target.value.toUpperCase()})} />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold">Mês Inicial</Label>
@@ -303,8 +309,14 @@ export function RevenueDeclarationForm() {
                     Por ser a expressão da verdade, firmamos a presente declaração em Macapá - AP, {new Date().getDate()} de {format(new Date(), 'MMMM', { locale: ptBR })} de {new Date().getFullYear()}.
                   </p>
 
-                  {/* Bloco de Assinatura */}
-                  <div className="mt-auto space-y-12 text-black pt-12 flex flex-col items-center">
+                  {/* Bloco de Assinatura Dupla */}
+                  <div className="mt-auto grid grid-cols-2 gap-12 text-black pt-12">
+                    <div className="flex flex-col items-center text-center space-y-1">
+                      <div className="w-64 border-t-2 border-black pt-2">
+                        <p className="font-black uppercase text-[10px]">{formData.responsavel || "[NOME DO RESPONSÁVEL]"}</p>
+                        <p className="text-[8px] font-bold text-slate-700 uppercase">EMPRESÁRIO / RESPONSÁVEL</p>
+                      </div>
+                    </div>
                     <div className="flex flex-col items-center text-center space-y-1">
                       <div className="w-64 border-t-2 border-black pt-2">
                         <p className="font-black uppercase text-[10px]">FELYPE MACIEL NAIFF</p>
