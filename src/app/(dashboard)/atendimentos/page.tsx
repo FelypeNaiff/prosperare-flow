@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -245,60 +246,62 @@ export default function AtendimentosPage() {
       </div>
 
       <Dialog open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
+        <DialogContent className="max-w-xl p-0 overflow-hidden border-none shadow-2xl flex flex-col max-h-[90vh]">
+          <DialogHeader className="p-6 bg-[#2C4156] text-white">
             <DialogTitle>Nova Demanda Interna</DialogTitle>
-            <DialogDescription>Inicie um fluxo de atendimento para a equipe.</DialogDescription>
+            <DialogDescription className="text-white/60">Inicie um fluxo de atendimento para a equipe.</DialogDescription>
           </DialogHeader>
-          <div className="p-4 space-y-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Empresa</Label>
-              <ClientSearchSelect 
-                clients={clients} 
-                value={newTicket.clientId} 
-                onValueChange={(v: string) => setNewTicket({...newTicket, clientId: v})} 
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+          <ScrollArea className="flex-1">
+            <div className="p-6 space-y-4">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Modelo</Label>
-                <Select value={newTicket.templateId} onValueChange={(v) => setNewTicket({...newTicket, templateId: v})}>
-                  <SelectTrigger className="border-[#D2D7DB] h-11">
-                    <SelectValue placeholder="Opcional..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(templates || []).map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Empresa</Label>
+                <ClientSearchSelect 
+                  clients={clients} 
+                  value={newTicket.clientId} 
+                  onValueChange={(v: string) => setNewTicket({...newTicket, clientId: v})} 
+                />
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Modelo</Label>
+                  <Select value={newTicket.templateId} onValueChange={(v) => setNewTicket({...newTicket, templateId: v})}>
+                    <SelectTrigger className="border-[#D2D7DB] h-11">
+                      <SelectValue placeholder="Opcional..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(templates || []).map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Responsável</Label>
+                  <Select value={newTicket.responsibleId} onValueChange={(v) => setNewTicket({...newTicket, responsibleId: v})}>
+                    <SelectTrigger className="border-[#D2D7DB] h-11">
+                      <SelectValue placeholder="Selecionar..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(team || []).map(u => (
+                        <SelectItem key={u.id} value={u.id}>{u.fullName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {!newTicket.templateId && (
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Título Manual</Label>
+                  <Input value={newTicket.title} onChange={(e) => setNewTicket({...newTicket, title: e.target.value.toUpperCase()})} />
+                </div>
+              )}
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Responsável</Label>
-                <Select value={newTicket.responsibleId} onValueChange={(v) => setNewTicket({...newTicket, responsibleId: v})}>
-                  <SelectTrigger className="border-[#D2D7DB] h-11">
-                    <SelectValue placeholder="Selecionar..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(team || []).map(u => (
-                      <SelectItem key={u.id} value={u.id}>{u.fullName}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Notas</Label>
+                <Textarea value={newTicket.notes} onChange={(e) => setNewTicket({...newTicket, notes: e.target.value})} className="h-24" />
               </div>
             </div>
-            {!newTicket.templateId && (
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Título Manual</Label>
-                <Input value={newTicket.title} onChange={(e) => setNewTicket({...newTicket, title: e.target.value.toUpperCase()})} />
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Notas</Label>
-              <Textarea value={newTicket.notes} onChange={(e) => setNewTicket({...newTicket, notes: e.target.value})} className="h-24" />
-            </div>
-          </div>
-          <DialogFooter>
+          </ScrollArea>
+          <DialogFooter className="p-6 bg-[#F7F7F7] border-t">
             <Button variant="outline" onClick={() => setIsNewTicketOpen(false)}>Cancelar</Button>
             <Button className="bg-[#1FA67A]" onClick={handleCreateTicket}>Enviar Demanda</Button>
           </DialogFooter>

@@ -26,6 +26,7 @@ import { toast } from "@/hooks/use-toast"
 import { Layers, Building2, Calendar, Save, Loader2, User } from "lucide-react"
 import { format, parse, addMonths, lastDayOfMonth, setDate } from "date-fns"
 import { MultiClientSearchSelect } from "@/components/clients/multi-client-search-select"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOpenChange: (v: boolean) => void }) {
   const firestore = useFirestore()
@@ -44,7 +45,7 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
     modeloId: "",
     clientIds: [] as string[],
     competencia: format(new Date(), "yyyy-MM"),
-    responsavelId: "Padrao" // "Padrao" usará o do cliente ou do modelo
+    responsavelId: "Padrao" 
   })
 
   const handleCreate = async () => {
@@ -71,7 +72,6 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
       const lastDay = lastDayOfMonth(dueDate)
       if (dueDate > lastDay) dueDate = lastDay
 
-      // Loop para criar processos para cada empresa selecionada
       formData.clientIds.forEach(clientId => {
         const client = (clients || []).find(c => c.id === clientId)
         if (!client) return
@@ -79,11 +79,6 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
         const id = Math.random().toString(36).substr(2, 9)
         const processRef = doc(firestore, "processes", id)
 
-        // Lógica de Responsável: 
-        // 1. Se foi selecionado um específico no modal, usa ele.
-        // 2. Senão, se o modelo tem um padrão, usa o do modelo.
-        // 3. Senão, usa o responsável cadastrado no cliente.
-        // 4. Por fim, "Geral".
         let finalResponsible = formData.responsavelId === "Padrao" 
           ? (model.responsavelPadraoId !== "Geral" ? model.responsavelPadraoId : (client.accountingContactUserId || "Geral"))
           : formData.responsavelId
@@ -126,74 +121,76 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden border-none shadow-2xl">
-        <DialogHeader className="p-6 bg-[#2C4156] text-white">
+      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden border-none shadow-2xl flex flex-col max-h-[90vh]">
+        <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
           <DialogTitle className="text-2xl font-black uppercase tracking-tight">Geração em Massa</DialogTitle>
           <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
             Instancie processos simultaneamente para múltiplos clientes.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="p-6 space-y-5 bg-white">
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
-              <Layers className="h-3 w-3" /> Modelo de Checklist
-            </Label>
-            <Select value={formData.modeloId} onValueChange={(v) => setFormData({...formData, modeloId: v})}>
-              <SelectTrigger className="border-[#D2D7DB] h-11">
-                <SelectValue placeholder="Selecione a inteligência..." />
-              </SelectTrigger>
-              <SelectContent>
-                {(models || []).map(m => (
-                  <SelectItem key={m.id} value={m.id} className="font-bold uppercase text-xs">{m.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
-              <Building2 className="h-3 w-3" /> Empresas / Clientes
-            </Label>
-            <MultiClientSearchSelect 
-              clients={clients} 
-              value={formData.clientIds} 
-              onValueChange={(v: string[]) => setFormData({...formData, clientIds: v})} 
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+        <ScrollArea className="flex-1">
+          <div className="p-6 space-y-5 bg-white">
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
-                <Calendar className="h-3 w-3" /> Competência
+                <Layers className="h-3 w-3" /> Modelo de Checklist
               </Label>
-              <Input 
-                type="month" 
-                value={formData.competencia} 
-                onChange={(e) => setFormData({...formData, competencia: e.target.value})}
-                className="border-[#D2D7DB] h-11 font-bold"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
-                <User className="h-3 w-3" /> Atribuir Responsável
-              </Label>
-              <Select value={formData.responsavelId} onValueChange={(v) => setFormData({...formData, responsavelId: v})}>
+              <Select value={formData.modeloId} onValueChange={(v) => setFormData({...formData, modeloId: v})}>
                 <SelectTrigger className="border-[#D2D7DB] h-11">
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione a inteligência..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Padrao" className="font-bold">USAR PADRÃO DO MODELO/CLIENTE</SelectItem>
-                  {team?.map(u => (
-                    <SelectItem key={u.id} value={u.fullName} className="text-xs font-bold uppercase">{u.fullName}</SelectItem>
+                  {(models || []).map(m => (
+                    <SelectItem key={m.id} value={m.id} className="font-bold uppercase text-xs">{m.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          </div>
-        </div>
 
-        <DialogFooter className="bg-[#F7F7F7] p-6 border-t">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
+                <Building2 className="h-3 w-3" /> Empresas / Clientes
+              </Label>
+              <MultiClientSearchSelect 
+                clients={clients} 
+                value={formData.clientIds} 
+                onValueChange={(v: string[]) => setFormData({...formData, clientIds: v})} 
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
+                  <Calendar className="h-3 w-3" /> Competência
+                </Label>
+                <Input 
+                  type="month" 
+                  value={formData.competencia} 
+                  onChange={(e) => setFormData({...formData, competencia: e.target.value})}
+                  className="border-[#D2D7DB] h-11 font-bold"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
+                  <User className="h-3 w-3" /> Atribuir Responsável
+                </Label>
+                <Select value={formData.responsavelId} onValueChange={(v) => setFormData({...formData, responsavelId: v})}>
+                  <SelectTrigger className="border-[#D2D7DB] h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Padrao" className="font-bold">USAR PADRÃO DO MODELO/CLIENTE</SelectItem>
+                    {team?.map(u => (
+                      <SelectItem key={u.id} value={u.fullName} className="text-xs font-bold uppercase">{u.fullName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </ScrollArea>
+
+        <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="font-bold uppercase text-xs border-[#D2D7DB]">Cancelar</Button>
           <Button 
             className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-8 shadow-lg shadow-emerald-500/20" 

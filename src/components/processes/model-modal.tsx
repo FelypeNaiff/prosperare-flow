@@ -30,7 +30,6 @@ import {
   Save, 
   Plus, 
   Trash2, 
-  GripVertical, 
   Users, 
   Clock, 
   ClipboardList, 
@@ -42,7 +41,6 @@ import {
   CheckCircle2,
   Zap,
   Repeat,
-  User,
   Layers
 } from "lucide-react"
 import { useFirestore, setDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase"
@@ -130,7 +128,6 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
       ? formData.groupIds.filter(id => id !== groupId) 
       : [...formData.groupIds, groupId]
     
-    // Automatização: Quando um grupo é selecionado, puxamos todos os clientes dele para a lista de vinculados
     let newLinkedClients = [...formData.clientesVinculados]
     if (!isSelected) {
       const groupClients = (allClients || []).filter(c => c.obligationGroups?.includes(groupId))
@@ -179,9 +176,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
 
   const filteredClients = (allClients || []).filter(c => {
     const selectedGroupIds = formData.groupIds || []
-    // Filtra clientes que pertencem aos grupos selecionados OU se nenhum grupo estiver selecionado, mostra todos
     const matchGroup = selectedGroupIds.length === 0 || selectedGroupIds.some(gid => c.obligationGroups?.includes(gid))
-    
     return matchGroup && 
            (c.corporateName?.toLowerCase().includes(searchTerm.toLowerCase()) || c.cnpj?.includes(searchTerm))
   })
@@ -198,8 +193,8 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <div className="px-6 bg-[#F7F7F7] border-b">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="px-6 bg-[#F7F7F7] border-b shrink-0">
             <TabsList className="bg-transparent h-14 p-0 gap-6 overflow-x-auto w-full justify-start scrollbar-hide">
               <TabTrigger value="geral" label="1. Geral" />
               <TabTrigger value="regimes" label="2. Grupo de Obrigações" />
@@ -210,7 +205,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
             </TabsList>
           </div>
 
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 bg-white">
             <div className="p-8">
               <TabsContent value="geral" className="m-0 space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

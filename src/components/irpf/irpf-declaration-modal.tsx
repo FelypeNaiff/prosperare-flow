@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/hooks/use-toast"
 import { useFirestore, useUser, setDocumentNonBlocking } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 export function IrpfDeclarationModal({ open, onOpenChange }: any) {
   const { selectedUser } = useUser()
@@ -56,13 +57,11 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
     const id = Math.random().toString(36).substr(2, 9)
     const docRef = doc(firestore, "irpf_declarations", id)
     
-    // Configuração da Nova Declaração
-    // Status fixo 'not_started' para garantir que entre na coluna "NÃO INICIADA"
     const declarationData = {
       ...formData,
       id,
-      responsibleId: selectedUser.id, // Individualização: Vincula ao colaborador atual
-      status: "not_started", // Estágio inicial obrigatório
+      responsibleId: selectedUser.id,
+      status: "not_started",
       progress: 0,
       isPaid: false,
       tags: [],
@@ -86,130 +85,132 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto border-none shadow-2xl">
-        <DialogHeader className="pb-4 border-b">
-          <DialogTitle className="text-2xl font-black text-[#2C4156] uppercase tracking-tight">Nova Declaração IRPF</DialogTitle>
-          <DialogDescription className="font-bold text-[#98A7AA] uppercase text-[10px] tracking-widest">
+      <DialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden border-none shadow-2xl flex flex-col">
+        <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
+          <DialogTitle className="text-2xl font-black uppercase tracking-tight">Nova Declaração IRPF</DialogTitle>
+          <DialogDescription className="font-bold text-white/60 uppercase text-[10px] tracking-widest">
             Cadastre o contribuinte. O registro será vinculado exclusivamente ao seu perfil.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-6 py-6">
-          <div className="col-span-2 space-y-4">
-            <h4 className="text-[10px] font-black text-[#1FA67A] uppercase tracking-[0.2em] border-b border-[#1FA67A]/20 pb-1">Dados do Contribuinte</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Nome Completo</Label>
-                <Input 
-                  placeholder="Ex: JOÃO DA SILVA" 
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value.toUpperCase()})}
-                  className="border-[#D2D7DB] font-bold"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">CPF</Label>
-                <Input 
-                  placeholder="000.000.000-00" 
-                  value={formData.cpf}
-                  onChange={(e) => setFormData({...formData, cpf: e.target.value})}
-                  className="border-[#D2D7DB] font-mono"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Data de Nascimento</Label>
-                <Input 
-                  type="date" 
-                  value={formData.birthDate}
-                  onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
-                  className="border-[#D2D7DB]"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Senha GOV.BR</Label>
-                <Input 
-                  type="password" 
-                  placeholder="Senha do acesso gov.br" 
-                  value={formData.govPass}
-                  onChange={(e) => setFormData({...formData, govPass: e.target.value})}
-                  className="border-[#D2D7DB]"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Celular / WhatsApp</Label>
-                <Input 
-                  placeholder="(00) 00000-0000" 
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  className="border-[#D2D7DB]"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">E-mail</Label>
-                <Input 
-                  type="email" 
-                  placeholder="cliente@email.com" 
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="border-[#D2D7DB]"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="col-span-2 space-y-4 pt-4">
-            <h4 className="text-[10px] font-black text-[#2574A9] uppercase tracking-[0.2em] border-b border-[#2574A9]/20 pb-1">Parâmetros da Declaração</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Ano de Exercício</Label>
-                <Select defaultValue="2026" onValueChange={(v) => setFormData({...formData, year: v})}>
-                  <SelectTrigger className="border-[#D2D7DB] font-bold"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="2026" className="font-bold">2026 (Ano-base 2025)</SelectItem>
-                    <SelectItem value="2025" className="font-bold">2025 (Ano-base 2024)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Tipo de Declaração</Label>
-                <Select defaultValue="simplificada" onValueChange={(v) => setFormData({...formData, type: v})}>
-                  <SelectTrigger className="border-[#D2D7DB] font-bold"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="simplificada" className="font-bold">SIMPLIFICADA</SelectItem>
-                    <SelectItem value="completa" className="font-bold">COMPLETA</SelectItem>
-                    <SelectItem value="retificadora" className="font-bold">RETIFICADORA</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Honorários Sugeridos (R$)</Label>
-                <Input 
-                  type="number" 
-                  placeholder="0,00" 
-                  value={formData.value}
-                  onChange={(e) => setFormData({...formData, value: Number(e.target.value)})}
-                  className="border-[#D2D7DB] font-black text-[#1FA67A]"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Prazo Limite Padrão</Label>
-                <Input type="date" defaultValue="2026-04-30" className="border-[#D2D7DB] bg-[#F7F7F7]" readOnly />
+        <ScrollArea className="flex-1">
+          <div className="grid grid-cols-2 gap-6 p-6">
+            <div className="col-span-2 space-y-4">
+              <h4 className="text-[10px] font-black text-[#1FA67A] uppercase tracking-[0.2em] border-b border-[#1FA67A]/20 pb-1">Dados do Contribuinte</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Nome Completo</Label>
+                  <Input 
+                    placeholder="Ex: JOÃO DA SILVA" 
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value.toUpperCase()})}
+                    className="border-[#D2D7DB] font-bold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">CPF</Label>
+                  <Input 
+                    placeholder="000.000.000-00" 
+                    value={formData.cpf}
+                    onChange={(e) => setFormData({...formData, cpf: e.target.value})}
+                    className="border-[#D2D7DB] font-mono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Data de Nascimento</Label>
+                  <Input 
+                    type="date" 
+                    value={formData.birthDate}
+                    onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
+                    className="border-[#D2D7DB]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Senha GOV.BR</Label>
+                  <Input 
+                    type="password" 
+                    placeholder="Senha do acesso gov.br" 
+                    value={formData.govPass}
+                    onChange={(e) => setFormData({...formData, govPass: e.target.value})}
+                    className="border-[#D2D7DB]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Celular / WhatsApp</Label>
+                  <Input 
+                    placeholder="(00) 00000-0000" 
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    className="border-[#D2D7DB]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">E-mail</Label>
+                  <Input 
+                    type="email" 
+                    placeholder="cliente@email.com" 
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    className="border-[#D2D7DB]"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="col-span-2 space-y-2">
-            <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Observações do Operador</Label>
-            <Textarea 
-              placeholder="Notas internas sobre pendências ou documentos..." 
-              value={formData.notes}
-              onChange={(e) => setFormData({...formData, notes: e.target.value})}
-              className="border-[#D2D7DB] min-h-[100px]"
-            />
-          </div>
-        </div>
+            <div className="col-span-2 space-y-4 pt-4">
+              <h4 className="text-[10px] font-black text-[#2574A9] uppercase tracking-[0.2em] border-b border-[#2574A9]/20 pb-1">Parâmetros da Declaração</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Ano de Exercício</Label>
+                  <Select defaultValue="2026" onValueChange={(v) => setFormData({...formData, year: v})}>
+                    <SelectTrigger className="border-[#D2D7DB] font-bold"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2026" className="font-bold">2026 (Ano-base 2025)</SelectItem>
+                      <SelectItem value="2025" className="font-bold">2025 (Ano-base 2024)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Tipo de Declaração</Label>
+                  <Select defaultValue="simplificada" onValueChange={(v) => setFormData({...formData, type: v})}>
+                    <SelectTrigger className="border-[#D2D7DB] font-bold"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="simplificada" className="font-bold">SIMPLIFICADA</SelectItem>
+                      <SelectItem value="completa" className="font-bold">COMPLETA</SelectItem>
+                      <SelectItem value="retificadora" className="font-bold">RETIFICADORA</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Honorários Sugeridos (R$)</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="0,00" 
+                    value={formData.value}
+                    onChange={(e) => setFormData({...formData, value: Number(e.target.value)})}
+                    className="border-[#D2D7DB] font-black text-[#1FA67A]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Prazo Limite Padrão</Label>
+                  <Input type="date" defaultValue="2026-04-30" className="border-[#D2D7DB] bg-[#F7F7F7]" readOnly />
+                </div>
+              </div>
+            </div>
 
-        <DialogFooter className="bg-[#F7F7F7] -mx-6 -mb-6 p-6 border-t mt-4">
+            <div className="col-span-2 space-y-2">
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Observações do Operador</Label>
+              <Textarea 
+                placeholder="Notas internas sobre pendências ou documentos..." 
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                className="border-[#D2D7DB] min-h-[100px]"
+              />
+            </div>
+          </div>
+        </ScrollArea>
+
+        <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="font-bold uppercase text-xs">Cancelar</Button>
           <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-10 shadow-lg shadow-emerald-500/20" onClick={handleSave}>
             Confirmar e Iniciar Fluxo

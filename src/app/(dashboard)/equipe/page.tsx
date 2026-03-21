@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from "react"
@@ -56,6 +57,7 @@ import {
 import { collection, doc } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 const DEPARTMENTS_LIST = [
   "Fiscal", "Pessoal", "Contábil", "Financeiro", "Comercial", "Administrativo"
@@ -294,71 +296,73 @@ export default function EquipePage() {
       </Card>
 
       <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl">
-          <DialogHeader className="p-6 bg-[#2C4156] text-white">
+        <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl flex flex-col max-h-[90vh]">
+          <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
             <DialogTitle className="text-2xl font-black uppercase tracking-tight">Nova Identidade</DialogTitle>
             <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
               Defina o nome e o código de acesso (PIN) do novo colaborador.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="p-6 space-y-5 bg-white">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Nome Completo</Label>
-              <Input 
-                placeholder="Ex: FELYPE NAIFF" 
-                value={newMember.fullName} 
-                onChange={(e) => setNewMember({...newMember, fullName: e.target.value.toUpperCase()})}
-                className="border-[#D2D7DB] font-bold uppercase h-11"
-              />
-            </div>
+          <ScrollArea className="flex-1">
+            <div className="p-6 space-y-5 bg-white">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Nome Completo</Label>
+                <Input 
+                  placeholder="Ex: FELYPE NAIFF" 
+                  value={newMember.fullName} 
+                  onChange={(e) => setNewMember({...newMember, fullName: e.target.value.toUpperCase()})}
+                  className="border-[#D2D7DB] font-bold uppercase h-11"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Senha de Acesso (PIN 4 Dígitos)</Label>
-              <Input 
-                placeholder="Ex: 1234" 
-                maxLength={4}
-                value={newMember.pin} 
-                onChange={(e) => setNewMember({...newMember, pin: e.target.value.replace(/\D/g, '')})}
-                className="border-[#D2D7DB] font-mono font-bold h-11 text-center text-lg tracking-widest"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Perfil de Privilégios</Label>
-              <Select value={newMember.profile} onValueChange={(v) => setNewMember({...newMember, profile: v})}>
-                <SelectTrigger className="border-[#D2D7DB] h-11">
-                  <SelectValue placeholder="Nível de acesso" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="SÓCIO" className="text-xs font-bold">SÓCIO / PROPRIETÁRIO</SelectItem>
-                  <SelectItem value="ADMINISTRADOR" className="text-xs font-bold">ADMINISTRADOR</SelectItem>
-                  <SelectItem value="CONTADOR/GESTOR" className="text-xs font-bold">CONTADOR / GESTOR</SelectItem>
-                  <SelectItem value="ASSISTENTE" className="text-xs font-bold">ASSISTENTE / ANALISTA</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Senha de Acesso (PIN 4 Dígitos)</Label>
+                <Input 
+                  placeholder="Ex: 1234" 
+                  maxLength={4}
+                  value={newMember.pin} 
+                  onChange={(e) => setNewMember({...newMember, pin: e.target.value.replace(/\D/g, '')})}
+                  className="border-[#D2D7DB] font-mono font-bold h-11 text-center text-lg tracking-widest"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Perfil de Privilégios</Label>
+                <Select value={newMember.profile} onValueChange={(v) => setNewMember({...newMember, profile: v})}>
+                  <SelectTrigger className="border-[#D2D7DB] h-11">
+                    <SelectValue placeholder="Nível de acesso" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SÓCIO" className="text-xs font-bold">SÓCIO / PROPRIETÁRIO</SelectItem>
+                    <SelectItem value="ADMINISTRADOR" className="text-xs font-bold">ADMINISTRADOR</SelectItem>
+                    <SelectItem value="CONTADOR/GESTOR" className="text-xs font-bold">CONTADOR / GESTOR</SelectItem>
+                    <SelectItem value="ASSISTENTE" className="text-xs font-bold">ASSISTENTE / ANALISTA</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-3">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Departamentos Atuantes</Label>
-              <div className="grid grid-cols-2 gap-2 p-4 bg-[#F7F7F7] rounded-xl border border-[#D2D7DB]">
-                {DEPARTMENTS_LIST.map((dept) => (
-                  <div key={dept} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`dept-${dept}`} 
-                      checked={newMember.departmentIds.includes(dept)}
-                      onCheckedChange={() => toggleDept(dept, false)}
-                    />
-                    <label htmlFor={`dept-${dept}`} className="text-[10px] font-black uppercase cursor-pointer text-[#39586D]">
-                      {dept}
-                    </label>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Departamentos Atuantes</Label>
+                <div className="grid grid-cols-2 gap-2 p-4 bg-[#F7F7F7] rounded-xl border border-[#D2D7DB]">
+                  {DEPARTMENTS_LIST.map((dept) => (
+                    <div key={dept} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`dept-${dept}`} 
+                        checked={newMember.departmentIds.includes(dept)}
+                        onCheckedChange={() => toggleDept(dept, false)}
+                      />
+                      <label htmlFor={`dept-${dept}`} className="text-[10px] font-black uppercase cursor-pointer text-[#39586D]">
+                        {dept}
+                      </label>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          </ScrollArea>
 
-          <DialogFooter className="bg-[#F7F7F7] p-6 border-t">
+          <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => setIsInviteOpen(false)} className="font-bold text-xs uppercase h-11">Cancelar</Button>
             <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-8 shadow-lg h-11" onClick={handleRegister}>
               <Save className="h-4 w-4 mr-2" /> Salvar Identidade
@@ -368,69 +372,71 @@ export default function EquipePage() {
       </Dialog>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl">
-          <DialogHeader className="p-6 bg-[#39586D] text-white">
+        <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl flex flex-col max-h-[90vh]">
+          <DialogHeader className="p-6 bg-[#39586D] text-white shrink-0">
             <DialogTitle className="text-2xl font-black uppercase tracking-tight">Ajustar Regras</DialogTitle>
             <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
               Alterando perfil de: {selectedMember?.fullName}
             </DialogDescription>
           </DialogHeader>
           
-          <div className="p-6 space-y-5 bg-white">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Nome Completo</Label>
-              <Input 
-                value={editFormData.fullName} 
-                onChange={(e) => setEditFormData({...editFormData, fullName: e.target.value.toUpperCase()})}
-                className="border-[#D2D7DB] font-bold uppercase h-11"
-              />
-            </div>
+          <ScrollArea className="flex-1">
+            <div className="p-6 space-y-5 bg-white">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Nome Completo</Label>
+                <Input 
+                  value={editFormData.fullName} 
+                  onChange={(e) => setEditFormData({...editFormData, fullName: e.target.value.toUpperCase()})}
+                  className="border-[#D2D7DB] font-bold uppercase h-11"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Senha de Acesso (PIN 4 Dígitos)</Label>
-              <Input 
-                maxLength={4}
-                value={editFormData.pin} 
-                onChange={(e) => setEditFormData({...editFormData, pin: e.target.value.replace(/\D/g, '')})}
-                className="border-[#D2D7DB] font-mono font-bold h-11 text-center text-lg tracking-widest"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Nível de Acesso</Label>
-              <Select value={editFormData.profile} onValueChange={(v) => setEditFormData({...editFormData, profile: v})}>
-                <SelectTrigger className="border-[#D2D7DB] h-11">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="SÓCIO" className="text-xs font-bold">SÓCIO / PROPRIETÁRIO</SelectItem>
-                  <SelectItem value="ADMINISTRADOR" className="text-xs font-bold">ADMINISTRADOR</SelectItem>
-                  <SelectItem value="CONTADOR/GESTOR" className="text-xs font-bold">CONTADOR / GESTOR</SelectItem>
-                  <SelectItem value="ASSISTENTE" className="text-xs font-bold">ASSISTENTE / ANALISTA</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Senha de Acesso (PIN 4 Dígitos)</Label>
+                <Input 
+                  maxLength={4}
+                  value={editFormData.pin} 
+                  onChange={(e) => setEditFormData({...editFormData, pin: e.target.value.replace(/\D/g, '')})}
+                  className="border-[#D2D7DB] font-mono font-bold h-11 text-center text-lg tracking-widest"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Nível de Acesso</Label>
+                <Select value={editFormData.profile} onValueChange={(v) => setEditFormData({...editFormData, profile: v})}>
+                  <SelectTrigger className="border-[#D2D7DB] h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SÓCIO" className="text-xs font-bold">SÓCIO / PROPRIETÁRIO</SelectItem>
+                    <SelectItem value="ADMINISTRADOR" className="text-xs font-bold">ADMINISTRADOR</SelectItem>
+                    <SelectItem value="CONTADOR/GESTOR" className="text-xs font-bold">CONTADOR / GESTOR</SelectItem>
+                    <SelectItem value="ASSISTENTE" className="text-xs font-bold">ASSISTENTE / ANALISTA</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-3">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Departamentos Atuantes</Label>
-              <div className="grid grid-cols-2 gap-2 p-4 bg-[#F7F7F7] rounded-xl border border-[#D2D7DB]">
-                {DEPARTMENTS_LIST.map((dept) => (
-                  <div key={dept} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`edit-dept-${dept}`} 
-                      checked={editFormData.departmentIds.includes(dept)}
-                      onCheckedChange={() => toggleDept(dept, true)}
-                    />
-                    <label htmlFor={`edit-dept-${dept}`} className="text-[10px] font-black uppercase cursor-pointer text-[#39586D]">
-                      {dept}
-                    </label>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Departamentos Atuantes</Label>
+                <div className="grid grid-cols-2 gap-2 p-4 bg-[#F7F7F7] rounded-xl border border-[#D2D7DB]">
+                  {DEPARTMENTS_LIST.map((dept) => (
+                    <div key={dept} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`edit-dept-${dept}`} 
+                        checked={editFormData.departmentIds.includes(dept)}
+                        onCheckedChange={() => toggleDept(dept, true)}
+                      />
+                      <label htmlFor={`edit-dept-${dept}`} className="text-[10px] font-black uppercase cursor-pointer text-[#39586D]">
+                        {dept}
+                      </label>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          </ScrollArea>
 
-          <DialogFooter className="bg-[#F7F7F7] p-6 border-t">
+          <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => setIsEditOpen(false)} className="font-bold text-xs uppercase h-11">Cancelar</Button>
             <Button className="bg-[#2C4156] hover:bg-[#2C4156]/90 font-black uppercase text-xs px-8 shadow-lg h-11" onClick={handleUpdateMember}>
               <Save className="h-4 w-4 mr-2" /> Salvar Alterações

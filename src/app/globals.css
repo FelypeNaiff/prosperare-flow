@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -97,7 +98,7 @@
   }
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - Elegant & Modern */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -106,5 +107,11 @@
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted/20 rounded-full hover:bg-muted/30;
+  @apply bg-muted/30 rounded-full hover:bg-muted/50 transition-colors;
+}
+
+/* Fix for long lists in Modals */
+[data-radix-scroll-area-viewport] {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted) / 0.3) transparent;
 }

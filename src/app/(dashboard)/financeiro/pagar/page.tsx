@@ -50,6 +50,7 @@ import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, d
 import { collection, doc } from "firebase/firestore"
 import { format, addMonths, subMonths, startOfMonth } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 export default function ContasAPagarPage() {
   const firestore = useFirestore()
@@ -130,7 +131,7 @@ export default function ContasAPagarPage() {
       let count = 0
 
       lines.forEach((line, index) => {
-        if (index === 0 || !line.trim()) return // Pula cabeçalho ou linha vazia
+        if (index === 0 || !line.trim()) return 
         const parts = line.split(/[;,]/)
         if (parts.length >= 2) {
           const id = Math.random().toString(36).substr(2, 9)
@@ -349,76 +350,78 @@ export default function ContasAPagarPage() {
       </Card>
 
       <Dialog open={isNewAccountOpen} onOpenChange={setIsNewAccountOpen}>
-        <DialogContent className="max-w-md border-none shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-black text-[#2C4156] uppercase tracking-tight">Lançar Despesa</DialogTitle>
-            <DialogDescription className="font-bold text-[#98A7AA] uppercase text-[10px] tracking-widest">
+        <DialogContent className="max-w-md border-none shadow-2xl p-0 overflow-hidden flex flex-col max-h-[90vh]">
+          <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Lançar Despesa</DialogTitle>
+            <DialogDescription className="font-bold text-white/60 uppercase text-[10px] tracking-widest">
               Cadastre um novo compromisso financeiro no escritório.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Descrição do Pagamento</Label>
-              <Input placeholder="Ex: Aluguel Escritório" value={newAccount.descricao} onChange={(e) => setNewAccount({...newAccount, descricao: e.target.value.toUpperCase()})} className="border-[#D2D7DB] font-bold" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Fornecedor / Beneficiário</Label>
-              <Input placeholder="Nome da empresa ou contato" value={newAccount.entidade} onChange={(e) => setNewAccount({...newAccount, entidade: e.target.value.toUpperCase()})} className="border-[#D2D7DB]" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+          <ScrollArea className="flex-1">
+            <div className="space-y-4 p-6">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Valor (R$)</Label>
-                <Input type="number" placeholder="0,00" value={newAccount.valor} onChange={(e) => setNewAccount({...newAccount, valor: Number(e.target.value)})} className="border-[#D2D7DB] font-black text-[#E74C3C]" />
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Descrição do Pagamento</Label>
+                <Input placeholder="Ex: Aluguel Escritório" value={newAccount.descricao} onChange={(e) => setNewAccount({...newAccount, descricao: e.target.value.toUpperCase()})} className="border-[#D2D7DB] font-bold" />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Data de Vencimento</Label>
-                <Input type="date" value={newAccount.data} onChange={(e) => setNewAccount({...newAccount, data: e.target.value})} className="border-[#D2D7DB]" />
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Fornecedor / Beneficiário</Label>
+                <Input placeholder="Nome da empresa ou contato" value={newAccount.entidade} onChange={(e) => setNewAccount({...newAccount, entidade: e.target.value.toUpperCase()})} className="border-[#D2D7DB]" />
               </div>
-            </div>
-            
-            <div className="p-4 bg-[#F7F7F7] rounded-xl border border-[#D2D7DB] space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-[10px] font-black uppercase text-[#2C4156]">Conta Recorrente</Label>
-                  <p className="text-[9px] text-[#98A7AA] font-bold uppercase">Repetir todo mês</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Valor (R$)</Label>
+                  <Input type="number" placeholder="0,00" value={newAccount.valor} onChange={(e) => setNewAccount({...newAccount, valor: Number(e.target.value)})} className="border-[#D2D7DB] font-black text-[#E74C3C]" />
                 </div>
-                <Switch 
-                  checked={newAccount.recorrente} 
-                  onCheckedChange={(checked) => setNewAccount({...newAccount, recorrente: checked})} 
-                />
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Data de Vencimento</Label>
+                  <Input type="date" value={newAccount.data} onChange={(e) => setNewAccount({...newAccount, data: e.target.value})} className="border-[#D2D7DB]" />
+                </div>
+              </div>
+              
+              <div className="p-4 bg-[#F7F7F7] rounded-xl border border-[#D2D7DB] space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px] font-black uppercase text-[#2C4156]">Conta Recorrente</Label>
+                    <p className="text-[9px] text-[#98A7AA] font-bold uppercase">Repetir todo mês</p>
+                  </div>
+                  <Switch 
+                    checked={newAccount.recorrente} 
+                    onCheckedChange={(checked) => setNewAccount({...newAccount, recorrente: checked})} 
+                  />
+                </div>
+
+                {newAccount.recorrente && (
+                  <div className="animate-in fade-in slide-in-from-top-2">
+                    <Label className="text-[10px] font-black uppercase text-[#98A7AA] mb-2 block">Tipo de Recorrência</Label>
+                    <Select value={newAccount.tipoValor} onValueChange={(v) => setNewAccount({...newAccount, tipoValor: v})}>
+                      <SelectTrigger className="bg-white border-[#D2D7DB]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Fixo" className="text-xs font-bold uppercase">Valor Fixo</SelectItem>
+                        <SelectItem value="Variavel" className="text-xs font-bold uppercase">Valor Variável</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
-              {newAccount.recorrente && (
-                <div className="animate-in fade-in slide-in-from-top-2">
-                  <Label className="text-[10px] font-black uppercase text-[#98A7AA] mb-2 block">Tipo de Recorrência</Label>
-                  <Select value={newAccount.tipoValor} onValueChange={(v) => setNewAccount({...newAccount, tipoValor: v})}>
-                    <SelectTrigger className="bg-white border-[#D2D7DB]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Fixo" className="text-xs font-bold uppercase">Valor Fixo</SelectItem>
-                      <SelectItem value="Variavel" className="text-xs font-bold uppercase">Valor Variável</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Categoria Contábil</Label>
+                <Select value={newAccount.categoria} onValueChange={(v) => setNewAccount({...newAccount, categoria: v})}>
+                  <SelectTrigger className="border-[#D2D7DB]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Sistemas">Sistemas / Software</SelectItem>
+                    <SelectItem value="Aluguel">Aluguel / Infraestrutura</SelectItem>
+                    <SelectItem value="Salários">Salários / Benefícios</SelectItem>
+                    <SelectItem value="Impostos">Impostos / Taxas</SelectItem>
+                    <SelectItem value="Marketing">Marketing / Comercial</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Categoria Contábil</Label>
-              <Select value={newAccount.categoria} onValueChange={(v) => setNewAccount({...newAccount, categoria: v})}>
-                <SelectTrigger className="border-[#D2D7DB]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Sistemas">Sistemas / Software</SelectItem>
-                  <SelectItem value="Aluguel">Aluguel / Infraestrutura</SelectItem>
-                  <SelectItem value="Salários">Salários / Benefícios</SelectItem>
-                  <SelectItem value="Impostos">Impostos / Taxas</SelectItem>
-                  <SelectItem value="Marketing">Marketing / Comercial</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter className="bg-[#F7F7F7] -mx-6 -mb-6 p-6 border-t">
+          </ScrollArea>
+          <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => setIsNewAccountOpen(false)} className="font-bold uppercase text-xs">Cancelar</Button>
             <Button className="bg-[#E74C3C] text-white font-black uppercase text-xs px-8 shadow-lg" onClick={handleCreateAccount}>
               <Save className="h-4 w-4 mr-2" /> Salvar Despesa
