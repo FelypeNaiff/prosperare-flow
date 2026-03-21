@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo } from "react"
@@ -52,15 +53,17 @@ import {
 import { collection, doc, query, orderBy } from "firebase/firestore"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { ClientSearchSelect } from "@/components/clients/client-search-select"
 
 export default function GruposObrigacoesPage() {
   const firestore = useFirestore()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingGroup, setEditingGroup] = useState<any>(null)
   const [activeTab, setActiveTab] = useState("config")
-  const [clientSearch, setClientSearch] = useState("")
   
+  // Estados de Pesquisa solicitados
+  const [searchVinculadas, setSearchVinculadas] = useState('')
+  const [searchNova, setSearchNova] = useState('')
+
   const groupsQuery = useMemoFirebase(() => collection(firestore, "obligation_groups"), [firestore])
   const { data: groups = [], isLoading } = useCollection(groupsQuery)
 
@@ -76,7 +79,8 @@ export default function GruposObrigacoesPage() {
     icon: "📋",
     color: "#1FA67A",
     active: true,
-    processes: [] as any[]
+    processes: [] as any[],
+    clientesVinculados: [] as string[]
   })
 
   const [newProcess, setNewProcess] = useState({
@@ -85,7 +89,27 @@ export default function GruposObrigacoesPage() {
     dueDay: "20"
   })
 
+  // CORREÇÃO 1: Filtragem da lista de empresas vinculadas (esquerda)
+  const vinculadasFiltradas = useMemo(() => {
+    return (allClients || []).filter(c =>
+      (formData.clientesVinculados || []).includes(c.id) &&
+      (c.corporateName?.toLowerCase().includes(searchVinculadas.toLowerCase()) ||
+       c.cnpj?.includes(searchVinculadas))
+    )
+  }, [allClients, formData.clientesVinculados, searchVinculadas])
+
+  // CORREÇÃO 1: Filtragem da lista para adicionar (direita)
+  const disponiveis = useMemo(() => {
+    return (allClients || []).filter(c =>
+      !(formData.clientesVinculados || []).includes(c.id) &&
+      (c.corporateName?.toLowerCase().includes(searchNova.toLowerCase()) ||
+       c.cnpj?.includes(searchNova))
+    )
+  }, [allClients, formData.clientesVinculados, searchNova])
+
   const handleOpenModal = (group?: any) => {
+    setSearchVinculadas('')
+    setSearchNova('')
     if (group) {
       setEditingGroup(group)
       setFormData({
@@ -94,7 +118,8 @@ export default function GruposObrigacoesPage() {
         icon: group.icon || "📋",
         color: group.color || "#1FA67A",
         active: group.active !== false,
-        processes: group.processes || []
+        processes: group.processes || [],
+        clientesVinculados: group.clientesVinculados || []
       })
     } else {
       setEditingGroup(null)
@@ -104,13 +129,34 @@ export default function GruposObrigacoesPage() {
         icon: "📋",
         color: "#1FA67A",
         active: true,
-        processes: []
+        processes: [],
+        clientesVinculados: []
       })
     }
     setActiveTab("config")
     setIsModalOpen(true)
   }
 
+  // CORREÇÃO 2: Função de adicionar empresa
+  function adicionarEmpresa(clienteId: string) {
+    setFormData(prev => ({
+      ...prev,
+      clientesVinculados: prev.clientesVinculados.includes(clienteId) 
+        ? prev.clientesVinculados 
+        : [...prev.clientesVinculados, clienteId]
+    }))
+    setSearchNova('') // Limpa a busca após adicionar conforme solicitado
+  }
+
+  // CORREÇÃO 2: Função de remover empresa
+  function removerEmpresa(clienteId: string) {
+    setFormData(prev => ({
+      ...prev,
+      clientesVinculados: prev.clientesVinculados.filter(id => id !== clienteId)
+    }))
+  }
+
+  // CORREÇÃO 7: Salvar ao clicar em "SALVAR ALTERAÇÕES DO GRUPO"
   const handleSaveGroup = () => {
     if (!formData.name) {
       toast({ title: "Erro", description: "O nome do grupo é obrigatório.", variant: "destructive" })
@@ -168,46 +214,6 @@ export default function GruposObrigacoesPage() {
     }
   }
 
-  const toggleClientLink = (client: any) => {
-    if (!client || !editingGroup) return
-    const isLinked = client.obligationGroups?.includes(editingGroup?.id)
-    const clientRef = doc(firestore, "clients", client.id)
-    
-    let newGroups = client.obligationGroups || []
-    if (isLinked) {
-      newGroups = newGroups.filter((id: string) => id !== editingGroup?.id)
-      toast({ title: "Empresa Removida", description: `${client.corporateName} saiu do grupo.` })
-    } else {
-      newGroups = [...newGroups, editingGroup?.id]
-      toast({ title: "Empresa Adicionada", description: `${client.corporateName} agora faz parte do grupo.` })
-    }
-    
-    updateDocumentNonBlocking(clientRef, { obligationGroups: newGroups })
-  }
-
-  const linkedClients = useMemo(() => {
-    if (!editingGroup) return []
-    return (allClients || []).filter(c => c.obligationGroups?.includes(editingGroup.id))
-  }, [allClients, editingGroup])
-
-  const filteredLinkedClients = useMemo(() => {
-    const searchLower = clientSearch.toLowerCase()
-    const searchDigits = clientSearch.replace(/\D/g, '')
-
-    return linkedClients.filter(c => {
-      const nameMatch = c.corporateName?.toLowerCase().includes(searchLower) || 
-                       c.nomeFantasia?.toLowerCase().includes(searchLower)
-      const cnpjMatch = searchDigits !== '' && c.cnpj?.replace(/\D/g, '').includes(searchDigits)
-      
-      return nameMatch || cnpjMatch
-    })
-  }, [linkedClients, clientSearch])
-
-  const availableClientsToAdd = useMemo(() => {
-    if (!editingGroup) return []
-    return (allClients || []).filter(c => !c.obligationGroups?.includes(editingGroup.id))
-  }, [allClients, editingGroup])
-
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -228,7 +234,7 @@ export default function GruposObrigacoesPage() {
       ) : (groups || []).length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {groups.map((group: any) => {
-            const count = (allClients || []).filter(c => c.obligationGroups?.includes(group.id)).length
+            const count = group.clientesVinculados?.length || 0
             return (
               <Card key={group.id} className="border-[#D2D7DB] hover:shadow-md transition-shadow group relative overflow-hidden bg-white">
                 <div className="absolute top-0 left-0 w-1.5 h-full" style={{ backgroundColor: group.color }} />
@@ -301,15 +307,13 @@ export default function GruposObrigacoesPage() {
                   Configure as regras, tarefas e empresas vinculadas a este fluxo.
                 </DialogDescription>
               </div>
-              {editingGroup && (
-                <div className="bg-white/10 px-4 py-2 rounded-xl flex items-center gap-3">
-                  <Users className="h-5 w-5 text-[#1FA67A]" />
-                  <div className="flex flex-col">
-                    <span className="text-xs font-black leading-none">{linkedClients.length}</span>
-                    <span className="text-[8px] font-bold uppercase text-white/60">Empresas</span>
-                  </div>
+              <div className="bg-white/10 px-4 py-2 rounded-xl flex items-center gap-3">
+                <Users className="h-5 w-5 text-[#1FA67A]" />
+                <div className="flex flex-col">
+                  <span className="text-xs font-black leading-none">{formData.clientesVinculados?.length || 0}</span>
+                  <span className="text-[8px] font-bold uppercase text-white/60">Ativas</span>
                 </div>
-              )}
+              </div>
             </div>
           </DialogHeader>
           
@@ -322,11 +326,9 @@ export default function GruposObrigacoesPage() {
                 <TabsTrigger value="processos" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#1FA67A] data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none px-0 font-black uppercase text-[10px] tracking-widest gap-2">
                   Tarefas (Modelos)
                 </TabsTrigger>
-                {editingGroup && (
-                  <TabsTrigger value="clientes" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#1FA67A] data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none px-0 font-black uppercase text-[10px] tracking-widest gap-2">
-                    Clientes e Exceções
-                  </TabsTrigger>
-                )}
+                <TabsTrigger value="clientes" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#1FA67A] data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none px-0 font-black uppercase text-[10px] tracking-widest gap-2">
+                  Clientes e Exceções
+                </TabsTrigger>
               </TabsList>
             </div>
 
@@ -427,65 +429,61 @@ export default function GruposObrigacoesPage() {
                 </TabsContent>
 
                 <TabsContent value="clientes" className="m-0">
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    <div className="lg:col-span-7 space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
+                    {/* COLUNA ESQUERDA: Empresas Vinculadas */}
+                    <div className="lg:col-span-7 space-y-6 flex flex-col min-h-0">
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Pesquisar Clientes Vinculados</Label>
+                        <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Empresas Vinculadas ao Fluxo</Label>
+                        {/* CORREÇÃO 3: Input de pesquisa da lista esquerda */}
                         <div className="relative">
                           <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
                           <Input 
-                            placeholder="Filtrar por nome ou CNPJ..." 
+                            placeholder="PESQUISAR POR NOME OU CNPJ" 
                             className="pl-10 h-10 bg-[#F7F7F7] border-[#D2D7DB]"
-                            value={clientSearch}
-                            onChange={(e) => setClientSearch(e.target.value)}
+                            value={searchVinculadas}
+                            onChange={(e) => setSearchVinculadas(e.target.value)}
+                            style={{ borderColor: '#D2D7DB', outline: 'none' }}
                           />
                         </div>
                       </div>
 
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between border-b border-[#D2D7DB]/50 pb-1">
-                          <h4 className="text-[10px] font-black text-[#2C4156] uppercase tracking-[0.2em]">Empresas Vinculadas ao Fluxo</h4>
-                          <Badge variant="outline" className="text-[8px] font-black text-[#1FA67A] border-[#1FA67A]/20">
-                            {filteredLinkedClients.length} ATIVAS
-                          </Badge>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-2">
-                          {filteredLinkedClients.map(client => (
-                            <div key={client.id} className="flex items-center justify-between p-3 bg-white border border-[#D2D7DB] rounded-xl group hover:border-[#1FA67A] transition-all">
+                      {/* CORREÇÃO 5: Lista esquerda com scroll */}
+                      <ScrollArea className="h-[400px] border rounded-2xl bg-white p-4">
+                        <div className="space-y-3">
+                          {vinculadasFiltradas.map(cliente => (
+                            <div key={cliente.id} className="flex items-center justify-between p-3 bg-white border border-[#D2D7DB] rounded-xl group hover:border-[#1FA67A] transition-all">
                               <div className="flex items-center gap-4">
                                 <Avatar className="h-10 w-10 border-none shadow-sm rounded-lg overflow-hidden">
                                   <AvatarFallback className="bg-[#2C4156] text-white font-black text-xs rounded-lg">
-                                    {client.corporateName?.substr(0, 2).toUpperCase()}
+                                    {cliente.corporateName?.substr(0, 2).toUpperCase()}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex flex-col">
-                                  <span className="text-sm font-black text-[#2C4156] uppercase leading-none">{client.corporateName}</span>
-                                  <span className="text-[10px] font-mono text-[#98A7AA]">{client.cnpj}</span>
+                                  <span className="text-sm font-black text-[#2C4156] uppercase leading-none">{cliente.corporateName}</span>
+                                  <span className="text-[10px] font-mono text-[#98A7AA]">{cliente.cnpj}</span>
                                 </div>
                               </div>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 text-[#E74C3C] hover:bg-[#FEE2E2]"
-                                onClick={() => toggleClientLink(client)}
+                              <button 
+                                className="h-8 w-8 flex items-center justify-center text-[#E74C3C] hover:bg-[#FEE2E2] rounded-full transition-colors text-xl font-bold"
+                                onClick={() => removerEmpresa(cliente.id)}
                               >
-                                <X className="h-4 w-4" />
-                              </Button>
+                                ×
+                              </button>
                             </div>
                           ))}
-                          {filteredLinkedClients.length === 0 && (
+                          {vinculadasFiltradas.length === 0 && (
                             <div className="text-center py-12 border-2 border-dashed rounded-2xl bg-slate-50/50">
                               <Users className="h-8 w-8 mx-auto text-[#D2D7DB] mb-2" />
-                              <p className="text-[10px] font-black text-[#98A7AA] uppercase">Nenhuma empresa vinculada com este filtro</p>
+                              <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Nenhuma empresa encontrada</p>
                             </div>
                           )}
                         </div>
-                      </div>
+                      </ScrollArea>
                     </div>
 
-                    <div className="lg:col-span-5 space-y-4">
-                      <div className="bg-[#F7F7F7] p-6 rounded-2xl border border-[#D2D7DB] space-y-4 shadow-inner">
+                    {/* COLUNA DIREITA: Incluir Nova Empresa */}
+                    <div className="lg:col-span-5 space-y-4 flex flex-col min-h-0">
+                      <div className="bg-[#F7F7F7] p-6 rounded-2xl border border-[#D2D7DB] space-y-4 shadow-inner flex flex-col flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="p-1.5 bg-[#1FA67A] rounded-lg text-white">
                             <UserPlus className="h-4 w-4" />
@@ -493,22 +491,41 @@ export default function GruposObrigacoesPage() {
                           <h4 className="text-[10px] font-black text-[#1FA67A] uppercase tracking-[0.2em]">Incluir Nova Empresa</h4>
                         </div>
                         
-                        <ClientSearchSelect 
-                          clients={availableClientsToAdd} 
-                          onValueChange={(val: string) => toggleClientLink(allClients.find(c => c.id === val))}
-                          placeholder="ADICIONAR À LISTA..."
-                          className="border-[#1FA67A] text-[#1FA67A] h-11"
-                        />
-                        
-                        <div className="space-y-2 pt-2">
-                          <p className="text-[9px] text-[#39586D] font-bold uppercase leading-relaxed">
-                            Selecione uma empresa da base para vinculá-la automaticamente a este grupo de obrigações.
-                          </p>
-                          <div className="flex items-center gap-2 p-3 bg-white rounded-xl border border-dashed border-[#D2D7DB]">
-                            <CheckCircle2 className="h-3 w-3 text-[#1FA67A]" />
-                            <span className="text-[8px] font-black text-[#98A7AA] uppercase">Vínculo em Tempo Real</span>
-                          </div>
+                        {/* CORREÇÃO 4: Input de pesquisa do dropdown direito */}
+                        <div className="relative">
+                          <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
+                          <Input 
+                            placeholder="ADICIONAR À LISTA" 
+                            className="pl-10 h-11 bg-white border-[#1FA67A]/30 font-bold uppercase text-xs"
+                            value={searchNova}
+                            onChange={(e) => setSearchNova(e.target.value)}
+                            autoFocus
+                            style={{ borderColor: '#D2D7DB', outline: 'none' }}
+                          />
                         </div>
+                        
+                        {/* CORREÇÃO 6: Lista direita (dropdown) com scroll e clique funcional */}
+                        <ScrollArea className="flex-1 bg-white border rounded-xl mt-2">
+                          <div className="p-2 space-y-1">
+                            {disponiveis.map(cliente => (
+                              <button
+                                key={cliente.id}
+                                onClick={() => adicionarEmpresa(cliente.id)}
+                                className="w-full px-3 py-3 cursor-pointer hover:bg-gray-50 rounded-lg text-left transition-all border border-transparent hover:border-[#D2D7DB]"
+                              >
+                                <p className="text-[10px] font-black text-[#2C4156] uppercase leading-tight">{cliente.corporateName}</p>
+                                <p className="text-[9px] font-mono text-[#98A7AA] mt-0.5">{cliente.cnpj}</p>
+                              </button>
+                            ))}
+                            {disponiveis.length === 0 && (
+                              <div className="text-center py-12 px-4">
+                                <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">
+                                  {searchNova ? 'Nenhuma empresa encontrada' : 'Todos os clientes já vinculados'}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </ScrollArea>
                       </div>
                     </div>
                   </div>
@@ -517,7 +534,7 @@ export default function GruposObrigacoesPage() {
             </ScrollArea>
 
             <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
-              <Button variant="outline" onClick={() => setIsModalOpen(false)} className="font-bold text-xs uppercase border-[#D2D7DB]">Fechar Janela</Button>
+              <Button variant="outline" onClick={() => onOpenChange(false)} className="font-bold text-xs uppercase border-[#D2D7DB]">Cancelar</Button>
               <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-8 shadow-lg shadow-emerald-500/20" onClick={handleSaveGroup}>
                 <Save className="h-4 w-4 mr-2" /> Salvar Alterações do Grupo
               </Button>
