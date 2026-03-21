@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo } from "react"
@@ -50,7 +49,7 @@ import {
   deleteDocumentNonBlocking, 
   updateDocumentNonBlocking 
 } from "@/firebase"
-import { collection, doc, query, orderBy } from "firebase/firestore"
+import { collection, doc } from "firebase/firestore"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
@@ -60,7 +59,6 @@ export default function GruposObrigacoesPage() {
   const [editingGroup, setEditingGroup] = useState<any>(null)
   const [activeTab, setActiveTab] = useState("config")
   
-  // Estados de Pesquisa solicitados
   const [searchVinculadas, setSearchVinculadas] = useState('')
   const [searchNova, setSearchNova] = useState('')
 
@@ -89,7 +87,6 @@ export default function GruposObrigacoesPage() {
     dueDay: "20"
   })
 
-  // CORREÇÃO 1: Filtragem da lista de empresas vinculadas (esquerda)
   const vinculadasFiltradas = useMemo(() => {
     return (allClients || []).filter(c =>
       (formData.clientesVinculados || []).includes(c.id) &&
@@ -98,7 +95,6 @@ export default function GruposObrigacoesPage() {
     )
   }, [allClients, formData.clientesVinculados, searchVinculadas])
 
-  // CORREÇÃO 1: Filtragem da lista para adicionar (direita)
   const disponiveis = useMemo(() => {
     return (allClients || []).filter(c =>
       !(formData.clientesVinculados || []).includes(c.id) &&
@@ -137,7 +133,6 @@ export default function GruposObrigacoesPage() {
     setIsModalOpen(true)
   }
 
-  // CORREÇÃO 2: Função de adicionar empresa
   function adicionarEmpresa(clienteId: string) {
     setFormData(prev => ({
       ...prev,
@@ -145,10 +140,9 @@ export default function GruposObrigacoesPage() {
         ? prev.clientesVinculados 
         : [...prev.clientesVinculados, clienteId]
     }))
-    setSearchNova('') // Limpa a busca após adicionar conforme solicitado
+    setSearchNova('')
   }
 
-  // CORREÇÃO 2: Função de remover empresa
   function removerEmpresa(clienteId: string) {
     setFormData(prev => ({
       ...prev,
@@ -156,7 +150,6 @@ export default function GruposObrigacoesPage() {
     }))
   }
 
-  // CORREÇÃO 7: Salvar ao clicar em "SALVAR ALTERAÇÕES DO GRUPO"
   const handleSaveGroup = () => {
     if (!formData.name) {
       toast({ title: "Erro", description: "O nome do grupo é obrigatório.", variant: "destructive" })
@@ -430,11 +423,9 @@ export default function GruposObrigacoesPage() {
 
                 <TabsContent value="clientes" className="m-0">
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
-                    {/* COLUNA ESQUERDA: Empresas Vinculadas */}
                     <div className="lg:col-span-7 space-y-6 flex flex-col min-h-0">
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Empresas Vinculadas ao Fluxo</Label>
-                        {/* CORREÇÃO 3: Input de pesquisa da lista esquerda */}
                         <div className="relative">
                           <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
                           <Input 
@@ -447,7 +438,6 @@ export default function GruposObrigacoesPage() {
                         </div>
                       </div>
 
-                      {/* CORREÇÃO 5: Lista esquerda com scroll */}
                       <ScrollArea className="h-[400px] border rounded-2xl bg-white p-4">
                         <div className="space-y-3">
                           {vinculadasFiltradas.map(cliente => (
@@ -481,7 +471,6 @@ export default function GruposObrigacoesPage() {
                       </ScrollArea>
                     </div>
 
-                    {/* COLUNA DIREITA: Incluir Nova Empresa */}
                     <div className="lg:col-span-5 space-y-4 flex flex-col min-h-0">
                       <div className="bg-[#F7F7F7] p-6 rounded-2xl border border-[#D2D7DB] space-y-4 shadow-inner flex flex-col flex-1">
                         <div className="flex items-center gap-2 mb-2">
@@ -491,7 +480,6 @@ export default function GruposObrigacoesPage() {
                           <h4 className="text-[10px] font-black text-[#1FA67A] uppercase tracking-[0.2em]">Incluir Nova Empresa</h4>
                         </div>
                         
-                        {/* CORREÇÃO 4: Input de pesquisa do dropdown direito */}
                         <div className="relative">
                           <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
                           <Input 
@@ -504,7 +492,6 @@ export default function GruposObrigacoesPage() {
                           />
                         </div>
                         
-                        {/* CORREÇÃO 6: Lista direita (dropdown) com scroll e clique funcional */}
                         <ScrollArea className="flex-1 bg-white border rounded-xl mt-2">
                           <div className="p-2 space-y-1">
                             {disponiveis.map(cliente => (

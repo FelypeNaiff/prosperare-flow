@@ -175,8 +175,8 @@ export function RevenueDeclarationForm() {
                 <Input placeholder="00.000.000/0000-00" value={formData.cnpj} onChange={(e) => setFormData({...formData, cnpj: e.target.value})} />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold">Nome do Responsável / Sócio</Label>
-                <Input placeholder="Quem assinará pela empresa" value={formData.responsavel} onChange={(e) => setFormData({...formData, responsavel: e.target.value.toUpperCase()})} />
+                <Label className="text-xs font-bold">Responsável / Empresário</Label>
+                <Input placeholder="Nome completo" value={formData.responsavel} onChange={(e) => setFormData({...formData, responsavel: e.target.value.toUpperCase()})} />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold">Mês Inicial</Label>
