@@ -23,7 +23,7 @@ import {
 import { useFirestore, updateDocumentNonBlocking } from "@/firebase"
 import { doc } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
-import { Save, Loader2, RefreshCw } from "lucide-react"
+import { Save, Loader2, RefreshCw, User } from "lucide-react"
 import { formatCNPJ, validateCNPJ } from "@/lib/utils"
 import { lookupCnpjAction } from "@/app/actions/cnpj-lookup"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -94,7 +94,7 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
         taxRegime: data.taxRegime !== "Consultar no Portal" ? data.taxRegime : prev.taxRegime
       }))
 
-      toast({ title: "Dados Sincronizados!", description: "As informações foram atualizadas conforme a base oficial." })
+      toast({ title: "Dados Sincronizados!", description: "Informações corporativas e sócios atualizados." })
     } catch (error: any) {
       toast({ variant: "destructive", title: "Falha na Sincronização", description: error.message || "Não foi possível obter os dados automaticamente." })
     } finally {
@@ -163,6 +163,19 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
                 onChange={(e) => setFormData({...formData, nomeFantasia: e.target.value.toUpperCase()})}
                 className="border-[#D2D7DB]"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Sócio Administrador / Contato</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
+                <Input 
+                  placeholder="Nome do Sócio" 
+                  className="pl-10 border-[#D2D7DB] font-bold uppercase"
+                  value={formData.companyContactPerson}
+                  onChange={(e) => setFormData({...formData, companyContactPerson: e.target.value.toUpperCase()})}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useMemo } from "react"
@@ -19,7 +20,8 @@ import {
   FileSpreadsheet,
   Copy,
   SortAsc,
-  SortDesc
+  SortDesc,
+  User
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,6 +34,7 @@ import {
   TableRow 
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Badge as BadgeUI } from "@/components/ui/badge"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { 
   Dialog, 
@@ -45,7 +48,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { KpiCard } from "@/components/dashboard/kpi-card"
 import { toast } from "@/hooks/use-toast"
-import { formatCNPJ, validateCNPJ } from "@/lib/utils"
+import { formatCNPJ, validateCNPJ, cn } from "@/lib/utils"
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -90,6 +93,7 @@ export default function ClientesPage() {
     cnpj: "",
     taxRegime: "Simples Nacional",
     accountingContactUserId: "Geral",
+    companyContactPerson: "",
     status: "ATIVO",
     email: "",
     phone: "",
@@ -142,7 +146,6 @@ export default function ClientesPage() {
       ...newClient,
       id: clientId,
       createdAt: new Date().toISOString(),
-      companyContactPerson: "Responsável",
       honorariumDueDateDay: 10,
       honorariumValue: 0,
       healthScore: 100,
@@ -158,6 +161,7 @@ export default function ClientesPage() {
       cnpj: "", 
       taxRegime: "Simples Nacional", 
       accountingContactUserId: "Geral", 
+      companyContactPerson: "",
       status: "ATIVO", 
       email: "",
       phone: "",
@@ -190,15 +194,15 @@ export default function ClientesPage() {
 
   const handleDownloadModel = () => {
     const data = [
-      ["Razão Social", "Nome Fantasia", "CNPJ", "Regime Tributário", "Email", "Telefone", "CEP", "Endereço", "Bairro", "Cidade", "Estado"],
-      ["PROSPERARE EXEMPLO LTDA", "PROSPERARE DIGITAL", "00.000.000/0001-00", "Simples Nacional", "contato@exemplo.com", "(96) 98129-6544", "68900-000", "Av. Principal, 100", "Centro", "Macapá", "AP"]
+      ["Razão Social", "Nome Fantasia", "CNPJ", "Regime Tributário", "Email", "Telefone", "CEP", "Endereço", "Bairro", "Cidade", "Estado", "Responsável"],
+      ["PROSPERARE EXEMPLO LTDA", "PROSPERARE DIGITAL", "00.000.000/0001-00", "Simples Nacional", "contato@exemplo.com", "(96) 98129-6544", "68900-000", "Av. Principal, 100", "Centro", "Macapá", "AP", "JOÃO DOS EXEMPLOS"]
     ];
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Modelo Clientes");
     
     const wscols = [
-      {wch: 30}, {wch: 25}, {wch: 20}, {wch: 20}, {wch: 25}, {wch: 15}, {wch: 10}, {wch: 30}, {wch: 15}, {wch: 15}, {wch: 5}
+      {wch: 30}, {wch: 25}, {wch: 20}, {wch: 20}, {wch: 25}, {wch: 15}, {wch: 10}, {wch: 30}, {wch: 15}, {wch: 15}, {wch: 5}, {wch: 25}
     ];
     ws['!cols'] = wscols;
 
@@ -241,9 +245,9 @@ export default function ClientesPage() {
             neighborhood: String(row[8] || "").trim(),
             city: String(row[9] || "").trim(),
             state: String(row[10] || "").toUpperCase().trim().substring(0, 2),
+            companyContactPerson: String(row[11] || "Responsável").toUpperCase().trim(),
             status: "ATIVO",
             createdAt: new Date().toISOString(),
-            companyContactPerson: "Responsável",
             honorariumDueDateDay: 10,
             honorariumValue: 0,
             healthScore: 100,
@@ -464,15 +468,15 @@ export default function ClientesPage() {
       </Card>
 
       <Dialog open={isNewClientOpen} onOpenChange={setIsNewClientOpen}>
-        <DialogContent className="max-w-3xl p-0 overflow-hidden border-none shadow-2xl">
-          <DialogHeader className="p-6 bg-[#2C4156] text-white">
+        <DialogContent className="max-w-3xl p-0 overflow-hidden border-none shadow-2xl flex flex-col max-h-[90vh]">
+          <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
             <DialogTitle className="text-2xl font-black uppercase tracking-tight">Novo Cliente (Inteligência API)</DialogTitle>
             <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
               Insira o CNPJ para capturar dados completos automaticamente.
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="max-h-[70vh]">
+          <ScrollArea className="flex-1">
             <div className="grid grid-cols-2 gap-5 p-6 bg-white">
               <div className="col-span-2 md:col-span-1 space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">CNPJ (Busca Automática)</Label>
@@ -519,6 +523,19 @@ export default function ClientesPage() {
                   onChange={(e) => setNewClient({...newClient, nomeFantasia: e.target.value.toUpperCase()})}
                   className="border-[#D2D7DB]"
                 />
+              </div>
+
+              <div className="col-span-2 md:col-span-1 space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Sócio Administrador / Contato</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
+                  <Input 
+                    placeholder="Nome do Sócio" 
+                    className="pl-10 border-[#D2D7DB] font-bold uppercase"
+                    value={newClient.companyContactPerson}
+                    onChange={(e) => setNewClient({...newClient, companyContactPerson: e.target.value.toUpperCase()})}
+                  />
+                </div>
               </div>
 
               <div className="col-span-2 md:col-span-1 space-y-2">
@@ -585,7 +602,7 @@ export default function ClientesPage() {
             </div>
           </ScrollArea>
 
-          <DialogFooter className="bg-[#F7F7F7] p-6 border-t">
+          <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => setIsNewClientOpen(false)} className="font-bold text-xs uppercase">Cancelar</Button>
             <Button 
               className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-10 shadow-lg" 

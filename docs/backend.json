@@ -26,6 +26,7 @@
         "cnpj": { "type": "string" },
         "email": { "type": "string" },
         "phone": { "type": "string" },
+        "companyContactPerson": { "type": "string" },
         "taxRegime": { "type": "string" },
         "openingDate": { "type": "string" },
         "primaryCnae": { "type": "string" },

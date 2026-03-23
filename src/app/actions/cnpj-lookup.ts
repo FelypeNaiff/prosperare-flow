@@ -22,6 +22,12 @@ export async function lookupCnpjAction(cnpj: string) {
     if (rwsResponse.ok) {
       const data = await rwsResponse.json();
       if (data.status !== "ERROR") {
+        // Extrair sócio administrador (QSA)
+        const principalPartner = data.qsa?.find((p: any) => 
+          p.qual?.toLowerCase().includes("administrador") || 
+          p.qual?.toLowerCase().includes("sócio")
+        )?.nome || "";
+
         return {
           corporateName: data.nome,
           nomeFantasia: data.fantasia || data.nome,
@@ -35,7 +41,8 @@ export async function lookupCnpjAction(cnpj: string) {
           email: data.email,
           phone: data.telefone,
           primaryCnae: data.atividade_principal?.[0]?.code || "",
-          taxRegime: "Consultar no Portal" // ReceitaWS doesn't strictly provide current regime in free tier
+          taxRegime: "Consultar no Portal",
+          companyContactPerson: principalPartner.toUpperCase()
         };
       }
     }
@@ -50,6 +57,13 @@ export async function lookupCnpjAction(cnpj: string) {
     if (bData.opcao_pelo_mei) regimeSugerido = "MEI";
     else if (bData.opcao_pelo_simples) regimeSugerido = "Simples Nacional";
 
+    // Extrair sócio administrador (BrasilAPI)
+    const principalPartnerBapi = bData.qsa?.find((p: any) => 
+      p.qualificacao_socio?.toLowerCase().includes("administrador") || 
+      p.codigo_qualificacao_socio === 10 || 
+      p.codigo_qualificacao_socio === 5
+    )?.nome_socio || bData.qsa?.[0]?.nome_socio || "";
+
     return {
       corporateName: bData.razao_social,
       nomeFantasia: bData.nome_fantasia || bData.razao_social,
@@ -63,7 +77,8 @@ export async function lookupCnpjAction(cnpj: string) {
       email: bData.email,
       phone: bData.ddd_telefone_1,
       primaryCnae: bData.cnae_fiscal.toString(),
-      taxRegime: regimeSugerido
+      taxRegime: regimeSugerido,
+      companyContactPerson: principalPartnerBapi.toUpperCase()
     };
 
   } catch (error: any) {
