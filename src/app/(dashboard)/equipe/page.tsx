@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from "react"
@@ -57,7 +56,6 @@ import {
 import { collection, doc } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { ScrollArea } from "@/components/ui/scroll-area"
 
 const DEPARTMENTS_LIST = [
   "Fiscal", "Pessoal", "Contábil", "Financeiro", "Comercial", "Administrativo"
@@ -296,7 +294,7 @@ export default function EquipePage() {
       </Card>
 
       <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl flex flex-col max-h-[90vh]">
+        <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl flex flex-col">
           <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
             <DialogTitle className="text-2xl font-black uppercase tracking-tight">Nova Identidade</DialogTitle>
             <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
@@ -304,7 +302,7 @@ export default function EquipePage() {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="flex-1">
+          <div className="modal-scroll-content">
             <div className="p-6 space-y-5 bg-white">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Nome Completo</Label>
@@ -360,7 +358,7 @@ export default function EquipePage() {
                 </div>
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => setIsInviteOpen(false)} className="font-bold text-xs uppercase h-11">Cancelar</Button>
@@ -372,7 +370,7 @@ export default function EquipePage() {
       </Dialog>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl flex flex-col max-h-[90vh]">
+        <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl flex flex-col">
           <DialogHeader className="p-6 bg-[#39586D] text-white shrink-0">
             <DialogTitle className="text-2xl font-black uppercase tracking-tight">Ajustar Regras</DialogTitle>
             <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
@@ -380,7 +378,7 @@ export default function EquipePage() {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="flex-1">
+          <div className="modal-scroll-content">
             <div className="p-6 space-y-5 bg-white">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Nome Completo</Label>
@@ -434,7 +432,7 @@ export default function EquipePage() {
                 </div>
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => setIsEditOpen(false)} className="font-bold text-xs uppercase h-11">Cancelar</Button>

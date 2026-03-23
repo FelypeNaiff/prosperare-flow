@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -24,7 +23,6 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { 
   Save, 
@@ -183,7 +181,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden flex flex-col border-none shadow-2xl">
+      <DialogContent className="max-w-5xl p-0 overflow-hidden flex flex-col border-none shadow-2xl">
         <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
           <DialogTitle className="text-2xl font-black uppercase tracking-tight">
             {model ? `Editando: ${model.nome}` : "Novo Modelo de Inteligência"}
@@ -207,7 +205,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
 
           <div className="flex-1 overflow-hidden relative bg-white">
             <TabsContent value="geral" className="h-full m-0 data-[state=active]:flex flex-col">
-              <ScrollArea className="h-full">
+              <div className="modal-scroll-content">
                 <div className="p-8 space-y-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-6">
@@ -260,11 +258,11 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                     </div>
                   </div>
                 </div>
-              </ScrollArea>
+              </div>
             </TabsContent>
 
             <TabsContent value="regimes" className="h-full m-0 data-[state=active]:flex flex-col">
-              <ScrollArea className="h-full">
+              <div className="modal-scroll-content">
                 <div className="p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {dbGroups && dbGroups.length > 0 ? dbGroups.map((group: any) => (
                     <div key={group.id} className={cn("flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer", formData.groupIds.includes(group.id) ? "border-[#1FA67A] bg-[#1FA67A]/5" : "border-[#D2D7DB] bg-white hover:bg-[#F7F7F7]")} onClick={() => toggleGroup(group.id)}>
@@ -274,7 +272,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                     </div>
                   )) : <div className="col-span-full py-12 text-center border-2 border-dashed rounded-3xl bg-white/50"><p className="text-[10px] font-black text-[#98A7AA] uppercase">Nenhum grupo cadastrado</p></div>}
                 </div>
-              </ScrollArea>
+              </div>
             </TabsContent>
 
             <TabsContent value="clientes" className="h-full m-0 data-[state=active]:flex flex-col">
@@ -282,7 +280,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                 <div className="relative flex-1"><Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" /><Input placeholder="Filtrar por nome ou CNPJ..." className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
                 <Badge className="bg-[#1FA67A] font-black text-[10px] px-4 py-1.5 uppercase shrink-0 border-none">{(formData.clientesVinculados || []).length} Selecionados</Badge>
               </div>
-              <ScrollArea className="flex-1">
+              <div className="modal-scroll-content">
                 <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-3">
                   {filteredClients.map((client) => {
                     const isSelected = (formData.clientesVinculados || []).includes(client.id)
@@ -294,13 +292,13 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                     )
                   })}
                 </div>
-              </ScrollArea>
+              </div>
             </TabsContent>
 
             <TabsContent value="prazo" className="h-full m-0 data-[state=active]:flex flex-col">
-              <ScrollArea className="h-full">
+              <div className="modal-scroll-content">
                 <div className="p-8"><div className="bg-[#F7F7F7] p-6 rounded-2xl border space-y-6"><div className="grid grid-cols-1 md:grid-cols-2 gap-8"><div className="space-y-3"><Label className="text-sm font-black text-[#2C4156] uppercase">Vencimento Fixo</Label><div className="flex items-center gap-3"><span className="text-xs font-bold text-[#98A7AA] uppercase">Todo dia</span><Input type="number" min="1" max="31" value={formData.prazoFixo} onChange={(e) => setFormData({...formData, prazoFixo: Number(e.target.value)})} className="w-20 font-black text-center" /></div></div><div className="space-y-3"><Label className="text-sm font-black text-[#2C4156] uppercase">Competência</Label><Select value={formData.competencia} onValueChange={(v) => setFormData({...formData, competencia: v})}><SelectTrigger className="border-[#D2D7DB]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="mes_anterior">Mês Anterior</SelectItem><SelectItem value="mes_prazo">Mesmo Mês do Prazo</SelectItem><SelectItem value="mes_seguinte">Mês Seguinte</SelectItem></SelectContent></Select></div></div></div></div>
-              </ScrollArea>
+              </div>
             </TabsContent>
 
             <TabsContent value="tarefas" className="h-full m-0 data-[state=active]:flex flex-col">
@@ -308,7 +306,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                 <h4 className="text-xs font-black text-[#2C4156] uppercase tracking-widest flex items-center gap-2"><ClipboardList className="h-4 w-4 text-[#1FA67A]" /> Checklist do Modelo</h4>
                 <Button size="sm" className="bg-[#2C4156] gap-2 text-[10px] font-black uppercase h-8" onClick={addTarefa}><Plus className="h-3 w-3" /> Adicionar Etapa</Button>
               </div>
-              <ScrollArea className="flex-1">
+              <div className="modal-scroll-content">
                 <div className="p-8 space-y-3">
                   {(formData.tarefas || []).map((tarefa, index) => (
                     <div key={tarefa.id} className="flex flex-col gap-3 p-4 bg-white border border-[#D2D7DB] rounded-2xl shadow-sm hover:border-[#1FA67A] transition-all relative group">
@@ -318,11 +316,11 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             </TabsContent>
 
             <TabsContent value="recorrencia" className="h-full m-0 data-[state=active]:flex flex-col">
-              <ScrollArea className="h-full">
+              <div className="modal-scroll-content">
                 <div className="p-8">
                   {formData.tipo === 'recorrente' ? (
                     <div className="bg-[#2C4156] text-white p-8 rounded-3xl space-y-8 relative overflow-hidden shadow-2xl">
@@ -332,13 +330,13 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                     </div>
                   ) : <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed rounded-3xl text-center p-12 space-y-4"><Zap className="h-12 w-12 text-[#98A7AA] opacity-20" /><h4 className="text-lg font-black text-[#2C4156] uppercase">Modelo Esporádico</h4><Button variant="outline" className="border-[#D2D7DB] font-black text-[10px] uppercase" onClick={() => setFormData({...formData, tipo: 'recorrente'})}><RefreshCcw className="h-3 w-3 mr-2" /> Mudar para Recorrente</Button></div>}
                 </div>
-              </ScrollArea>
+              </div>
             </TabsContent>
           </div>
 
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => onOpenChange(false)} className="font-bold uppercase text-xs border-[#D2D7DB]">Cancelar</Button>
-            <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-10 shadow-lg" onClick={handleSave}>
+            <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-10 shadow-lg shadow-emerald-500/20" onClick={handleSave}>
               <Save className="h-4 w-4 mr-2" /> {model ? "Salvar Inteligência" : "Gerar Estrutura"}
             </Button>
           </DialogFooter>

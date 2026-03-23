@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -26,7 +25,6 @@ import { toast } from "@/hooks/use-toast"
 import { Save, Loader2, RefreshCw, User } from "lucide-react"
 import { formatCNPJ, validateCNPJ } from "@/lib/utils"
 import { lookupCnpjAction } from "@/app/actions/cnpj-lookup"
-import { ScrollArea } from "@/components/ui/scroll-area"
 
 export function EditClientModal({ open, onOpenChange, client }: any) {
   const firestore = useFirestore()
@@ -117,7 +115,7 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] p-0 border-none shadow-2xl flex flex-col">
+      <DialogContent className="max-w-3xl p-0 border-none shadow-2xl flex flex-col">
         <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
           <DialogTitle className="text-2xl font-black uppercase tracking-tight">Editar Ficha Cadastral</DialogTitle>
           <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
@@ -125,7 +123,7 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1">
+        <div className="modal-scroll-content">
           <div className="p-6 grid grid-cols-2 gap-5 bg-white">
             <div className="col-span-2 flex items-end gap-3">
               <div className="flex-1 space-y-2">
@@ -278,7 +276,7 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
               </div>
             </div>
           </div>
-        </ScrollArea>
+        </div>
 
         <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>

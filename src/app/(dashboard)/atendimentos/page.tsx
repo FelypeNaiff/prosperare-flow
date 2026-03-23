@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -246,12 +245,12 @@ export default function AtendimentosPage() {
       </div>
 
       <Dialog open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen}>
-        <DialogContent className="max-w-xl p-0 overflow-hidden border-none shadow-2xl flex flex-col max-h-[90vh]">
-          <DialogHeader className="p-6 bg-[#2C4156] text-white">
+        <DialogContent className="max-w-xl p-0 overflow-hidden border-none shadow-2xl flex flex-col">
+          <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
             <DialogTitle>Nova Demanda Interna</DialogTitle>
             <DialogDescription className="text-white/60">Inicie um fluxo de atendimento para a equipe.</DialogDescription>
           </DialogHeader>
-          <ScrollArea className="flex-1">
+          <div className="modal-scroll-content">
             <div className="p-6 space-y-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Empresa</Label>
@@ -300,8 +299,8 @@ export default function AtendimentosPage() {
                 <Textarea value={newTicket.notes} onChange={(e) => setNewTicket({...newTicket, notes: e.target.value})} className="h-24" />
               </div>
             </div>
-          </ScrollArea>
-          <DialogFooter className="p-6 bg-[#F7F7F7] border-t">
+          </div>
+          <DialogFooter className="p-6 bg-[#F7F7F7] border-t shrink-0">
             <Button variant="outline" onClick={() => setIsNewTicketOpen(false)}>Cancelar</Button>
             <Button className="bg-[#1FA67A]" onClick={handleCreateTicket}>Enviar Demanda</Button>
           </DialogFooter>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useMemo } from "react"
@@ -34,7 +33,6 @@ import {
   TableRow 
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Badge as BadgeUI } from "@/components/ui/badge"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { 
   Dialog, 
@@ -49,13 +47,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { KpiCard } from "@/components/dashboard/kpi-card"
 import { toast } from "@/hooks/use-toast"
 import { formatCNPJ, validateCNPJ, cn } from "@/lib/utils"
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu"
 import { useRouter } from "next/navigation"
 import { 
   useFirestore, 
@@ -67,7 +58,13 @@ import {
 } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 import { lookupCnpjAction } from "@/app/actions/cnpj-lookup"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu"
 import * as XLSX from 'xlsx'
 
 export default function ClientesPage() {
@@ -468,7 +465,7 @@ export default function ClientesPage() {
       </Card>
 
       <Dialog open={isNewClientOpen} onOpenChange={setIsNewClientOpen}>
-        <DialogContent className="max-w-3xl p-0 overflow-hidden border-none shadow-2xl flex flex-col max-h-[90vh]">
+        <DialogContent className="max-w-3xl p-0 overflow-hidden border-none shadow-2xl flex flex-col">
           <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
             <DialogTitle className="text-2xl font-black uppercase tracking-tight">Novo Cliente (Inteligência API)</DialogTitle>
             <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
@@ -476,7 +473,7 @@ export default function ClientesPage() {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="flex-1">
+          <div className="modal-scroll-content">
             <div className="grid grid-cols-2 gap-5 p-6 bg-white">
               <div className="col-span-2 md:col-span-1 space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">CNPJ (Busca Automática)</Label>
@@ -600,7 +597,7 @@ export default function ClientesPage() {
                 </div>
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => setIsNewClientOpen(false)} className="font-bold text-xs uppercase">Cancelar</Button>
