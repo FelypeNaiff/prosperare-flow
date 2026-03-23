@@ -205,320 +205,140 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
             </TabsList>
           </div>
 
-          <ScrollArea className="flex-1 bg-white">
-            <div className="p-8">
-              <TabsContent value="geral" className="m-0 space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Nome do Processo</Label>
-                      <Input value={formData.nome} onChange={(e) => setFormData({...formData, nome: e.target.value.toUpperCase()})} className="font-bold border-[#D2D7DB]" placeholder="Ex: PGDAS MENSAL" />
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Tipo de Fluxo</Label>
-                      <RadioGroup 
-                        value={formData.tipo} 
-                        onValueChange={(v) => setFormData({...formData, tipo: v})}
-                        className="flex gap-4"
-                      >
-                        <div className={cn(
-                          "flex-1 flex items-center justify-between p-4 rounded-xl border-2 transition-all cursor-pointer",
-                          formData.tipo === 'recorrente' ? "border-[#1FA67A] bg-[#1FA67A]/5" : "border-[#D2D7DB] bg-white"
-                        )} onClick={() => setFormData({...formData, tipo: 'recorrente'})}>
-                          <div className="flex items-center gap-3">
-                            <div className={cn("p-2 rounded-lg", formData.tipo === 'recorrente' ? "bg-[#1FA67A] text-white" : "bg-[#F7F7F7] text-[#98A7AA]")}>
-                              <Repeat className="h-4 w-4" />
-                            </div>
-                            <div className="flex flex-col text-left">
-                              <span className="text-xs font-black text-[#2C4156] uppercase">Recorrente</span>
-                              <span className="text-[9px] font-bold text-[#98A7AA]">Geração Automática</span>
-                            </div>
-                          </div>
-                          <RadioGroupItem value="recorrente" id="tipo-rec" className="sr-only" />
-                        </div>
-
-                        <div className={cn(
-                          "flex-1 flex items-center justify-between p-4 rounded-xl border-2 transition-all cursor-pointer",
-                          formData.tipo === 'esporadico' ? "border-[#2574A9] bg-[#2574A9]/5" : "border-[#D2D7DB] bg-white"
-                        )} onClick={() => setFormData({...formData, tipo: 'esporadico'})}>
-                          <div className="flex items-center gap-3">
-                            <div className={cn("p-2 rounded-lg", formData.tipo === 'esporadico' ? "bg-[#2574A9] text-white" : "bg-[#F7F7F7] text-[#98A7AA]")}>
-                              <Zap className="h-4 w-4" />
-                            </div>
-                            <div className="flex flex-col text-left">
-                              <span className="text-xs font-black text-[#2C4156] uppercase">Esporádico</span>
-                              <span className="text-[9px] font-bold text-[#98A7AA]">Geração Manual</span>
-                            </div>
-                          </div>
-                          <RadioGroupItem value="esporadico" id="tipo-esp" className="sr-only" />
-                        </div>
-                      </RadioGroup>
-                    </div>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 gap-4">
+          <div className="flex-1 overflow-hidden relative bg-white">
+            <TabsContent value="geral" className="h-full m-0 data-[state=active]:flex flex-col">
+              <ScrollArea className="h-full">
+                <div className="p-8 space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-6">
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Departamento Responsável</Label>
-                        <Select value={formData.departamento} onValueChange={(v) => setFormData({...formData, departamento: v})}>
-                          <SelectTrigger className="border-[#D2D7DB]"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Fiscal">Fiscal</SelectItem>
-                            <SelectItem value="Pessoal">Departamento Pessoal</SelectItem>
-                            <SelectItem value="Contábil">Contábil</SelectItem>
-                            <SelectItem value="Legal">Legalização</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Nome do Processo</Label>
+                        <Input value={formData.nome} onChange={(e) => setFormData({...formData, nome: e.target.value.toUpperCase()})} className="font-bold border-[#D2D7DB]" placeholder="Ex: PGDAS MENSAL" />
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Responsável Padrão</Label>
-                        <Select value={formData.responsavelPadraoId} onValueChange={(v) => setFormData({...formData, responsavelPadraoId: v})}>
-                          <SelectTrigger className="border-[#D2D7DB] font-bold">
-                            <SelectValue placeholder="Escolher..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Geral" className="font-bold">GERAL / CLIENTE</SelectItem>
-                            {team?.map(u => (
-                              <SelectItem key={u.id} value={u.fullName} className="font-medium uppercase">{u.fullName}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Tipo de Fluxo</Label>
+                        <RadioGroup value={formData.tipo} onValueChange={(v) => setFormData({...formData, tipo: v})} className="flex gap-4">
+                          <div className={cn("flex-1 flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer", formData.tipo === 'recorrente' ? "border-[#1FA67A] bg-[#1FA67A]/5" : "border-[#D2D7DB] bg-white")} onClick={() => setFormData({...formData, tipo: 'recorrente'})}>
+                            <div className="flex items-center gap-3">
+                              <div className={cn("p-2 rounded-lg", formData.tipo === 'recorrente' ? "bg-[#1FA67A] text-white" : "bg-[#F7F7F7] text-[#98A7AA]")}><Repeat className="h-4 w-4" /></div>
+                              <div className="flex flex-col text-left"><span className="text-xs font-black text-[#2C4156] uppercase">Recorrente</span></div>
+                            </div>
+                            <RadioGroupItem value="recorrente" id="tipo-rec" className="sr-only" />
+                          </div>
+                          <div className={cn("flex-1 flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer", formData.tipo === 'esporadico' ? "border-[#2574A9] bg-[#2574A9]/5" : "border-[#D2D7DB] bg-white")} onClick={() => setFormData({...formData, tipo: 'esporadico'})}>
+                            <div className="flex items-center gap-3">
+                              <div className={cn("p-2 rounded-lg", formData.tipo === 'esporadico' ? "bg-[#2574A9] text-white" : "bg-[#F7F7F7] text-[#98A7AA]")}><Zap className="h-4 w-4" /></div>
+                              <div className="flex flex-col text-left"><span className="text-xs font-black text-[#2C4156] uppercase">Esporádico</span></div>
+                            </div>
+                            <RadioGroupItem value="esporadico" id="tipo-esp" className="sr-only" />
+                          </div>
+                        </RadioGroup>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Descrição do Escopo</Label>
-                      <Textarea value={formData.descricao} onChange={(e) => setFormData({...formData, descricao: e.target.value})} className="h-24 border-[#D2D7DB]" placeholder="Descreva os detalhes deste processo para a equipe..." />
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Departamento Responsável</Label>
+                          <Select value={formData.departamento} onValueChange={(v) => setFormData({...formData, departamento: v})}>
+                            <SelectTrigger className="border-[#D2D7DB]"><SelectValue /></SelectTrigger>
+                            <SelectContent><SelectItem value="Fiscal">Fiscal</SelectItem><SelectItem value="Pessoal">Departamento Pessoal</SelectItem><SelectItem value="Contábil">Contábil</SelectItem><SelectItem value="Legal">Legalização</SelectItem></SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Responsável Padrão</Label>
+                          <Select value={formData.responsavelPadraoId} onValueChange={(v) => setFormData({...formData, responsavelPadraoId: v})}>
+                            <SelectTrigger className="border-[#D2D7DB] font-bold"><SelectValue placeholder="Escolher..." /></SelectTrigger>
+                            <SelectContent><SelectItem value="Geral" className="font-bold">GERAL / CLIENTE</SelectItem>{team?.map(u => (<SelectItem key={u.id} value={u.fullName} className="font-medium uppercase">{u.fullName}</SelectItem>))}</SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Descrição do Escopo</Label>
+                        <Textarea value={formData.descricao} onChange={(e) => setFormData({...formData, descricao: e.target.value})} className="h-24 border-[#D2D7DB]" />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </TabsContent>
+              </ScrollArea>
+            </TabsContent>
 
-              <TabsContent value="regimes" className="m-0 space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <TabsContent value="regimes" className="h-full m-0 data-[state=active]:flex flex-col">
+              <ScrollArea className="h-full">
+                <div className="p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {dbGroups && dbGroups.length > 0 ? dbGroups.map((group: any) => (
-                    <div 
-                      key={group.id} 
-                      className={cn(
-                        "flex items-center gap-3 p-4 rounded-2xl border-2 transition-all cursor-pointer",
-                        formData.groupIds.includes(group.id) ? "border-[#1FA67A] bg-[#1FA67A]/5" : "border-[#D2D7DB] bg-white hover:bg-[#F7F7F7]"
-                      )}
-                      onClick={() => toggleGroup(group.id)}
-                    >
-                      <div className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm",
-                        formData.groupIds.includes(group.id) ? "bg-[#1FA67A]" : "bg-[#98A7AA]/20 text-[#98A7AA]"
-                      )}>
-                        <Layers className="h-5 w-5" />
-                      </div>
-                      <div className="flex flex-col flex-1">
-                        <Label className="text-xs font-black uppercase cursor-pointer text-[#2C4156]">{group.name}</Label>
-                        <span className="text-[8px] font-bold text-[#98A7AA] uppercase">Puxar clientes vinculados</span>
-                      </div>
-                      <Checkbox checked={formData.groupIds.includes(group.id)} onCheckedChange={() => toggleGroup(group.id)} className="h-5 w-5 rounded-lg border-[#D2D7DB]" />
+                    <div key={group.id} className={cn("flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer", formData.groupIds.includes(group.id) ? "border-[#1FA67A] bg-[#1FA67A]/5" : "border-[#D2D7DB] bg-white hover:bg-[#F7F7F7]")} onClick={() => toggleGroup(group.id)}>
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white", formData.groupIds.includes(group.id) ? "bg-[#1FA67A]" : "bg-[#98A7AA]/20 text-[#98A7AA]")}><Layers className="h-5 w-5" /></div>
+                      <div className="flex flex-col flex-1"><Label className="text-xs font-black uppercase cursor-pointer text-[#2C4156]">{group.name}</Label></div>
+                      <Checkbox checked={formData.groupIds.includes(group.id)} className="h-5 w-5" />
                     </div>
-                  )) : (
-                    <div className="col-span-full py-12 text-center border-2 border-dashed rounded-3xl bg-white/50">
-                      <p className="text-[10px] font-black text-[#98A7AA] uppercase">Nenhum grupo de obrigações cadastrado</p>
-                    </div>
-                  )}
+                  )) : <div className="col-span-full py-12 text-center border-2 border-dashed rounded-3xl bg-white/50"><p className="text-[10px] font-black text-[#98A7AA] uppercase">Nenhum grupo cadastrado</p></div>}
                 </div>
-              </TabsContent>
+              </ScrollArea>
+            </TabsContent>
 
-              <TabsContent value="clientes" className="m-0 space-y-6">
-                <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-4">
-                  <div className="relative flex-1 w-full">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
-                    <Input placeholder="Filtrar por nome ou CNPJ..." className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                  </div>
-                  <Badge className="bg-[#1FA67A] font-black text-[10px] px-4 py-1.5 uppercase shrink-0 border-none">
-                    {(formData.clientesVinculados || []).length} Selecionados
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <TabsContent value="clientes" className="h-full m-0 data-[state=active]:flex flex-col">
+              <div className="p-8 border-b bg-[#F7F7F7]/30 flex flex-col md:flex-row gap-4 shrink-0">
+                <div className="relative flex-1"><Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" /><Input placeholder="Filtrar por nome ou CNPJ..." className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+                <Badge className="bg-[#1FA67A] font-black text-[10px] px-4 py-1.5 uppercase shrink-0 border-none">{(formData.clientesVinculados || []).length} Selecionados</Badge>
+              </div>
+              <ScrollArea className="flex-1">
+                <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-3">
                   {filteredClients.map((client) => {
                     const isSelected = (formData.clientesVinculados || []).includes(client.id)
                     return (
-                      <div 
-                        key={client.id} 
-                        className={cn(
-                          "flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer",
-                          isSelected ? "border-[#1FA67A] bg-[#1FA67A]/5" : "border-[#D2D7DB] bg-white hover:bg-[#F7F7F7]"
-                        )}
-                        onClick={() => {
-                          const currentLinked = formData.clientesVinculados || []
-                          const newLinked = isSelected 
-                            ? currentLinked.filter(id => id !== client.id)
-                            : [...currentLinked, client.id]
-                          setFormData({...formData, clientesVinculados: newLinked})
-                        }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8 rounded-lg">
-                            <AvatarFallback className="bg-[#2C4156] text-white text-[10px] font-black">{client.corporateName?.substr(0,2).toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col">
-                            <span className="text-xs font-black text-[#2C4156] uppercase leading-none">{client.corporateName}</span>
-                            <span className="text-[9px] font-mono text-[#98A7AA]">{client.cnpj}</span>
-                          </div>
-                        </div>
+                      <div key={client.id} className={cn("flex items-center justify-between p-3 rounded-xl border cursor-pointer", isSelected ? "border-[#1FA67A] bg-[#1FA67A]/5" : "border-[#D2D7DB] bg-white hover:bg-[#F7F7F7]")} onClick={() => { const currentLinked = formData.clientesVinculados || []; const newLinked = isSelected ? currentLinked.filter(id => id !== client.id) : [...currentLinked, client.id]; setFormData({...formData, clientesVinculados: newLinked}); }}>
+                        <div className="flex items-center gap-3"><Avatar className="h-8 w-8 rounded-lg"><AvatarFallback className="bg-[#2C4156] text-white text-[10px] font-black">{client.corporateName?.substr(0,2).toUpperCase()}</AvatarFallback></Avatar><div><span className="text-xs font-black text-[#2C4156] uppercase leading-none">{client.corporateName}</span><p className="text-[9px] font-mono text-[#98A7AA]">{client.cnpj}</p></div></div>
                         {isSelected ? <CheckCircle2 className="h-4 w-4 text-[#1FA67A]" /> : <div className="h-4 w-4 rounded-full border border-[#D2D7DB]" />}
                       </div>
                     )
                   })}
                 </div>
-              </TabsContent>
+              </ScrollArea>
+            </TabsContent>
 
-              <TabsContent value="prazo" className="m-0 space-y-8">
-                <div className="bg-[#F7F7F7] p-6 rounded-2xl border space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-3">
-                      <Label className="text-sm font-black text-[#2C4156] uppercase">Vencimento Fixo</Label>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-[#98A7AA] uppercase">Todo dia</span>
-                        <Input type="number" min="1" max="31" value={formData.prazoFixo} onChange={(e) => setFormData({...formData, prazoFixo: Number(e.target.value)})} className="w-20 font-black text-center" />
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      <Label className="text-sm font-black text-[#2C4156] uppercase">Competência</Label>
-                      <Select value={formData.competencia} onValueChange={(v) => setFormData({...formData, competencia: v})}>
-                        <SelectTrigger className="border-[#D2D7DB]"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="mes_anterior">Mês Anterior</SelectItem>
-                          <SelectItem value="mes_prazo">Mesmo Mês do Prazo</SelectItem>
-                          <SelectItem value="mes_seguinte">Mês Seguinte</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
+            <TabsContent value="prazo" className="h-full m-0 data-[state=active]:flex flex-col">
+              <ScrollArea className="h-full">
+                <div className="p-8"><div className="bg-[#F7F7F7] p-6 rounded-2xl border space-y-6"><div className="grid grid-cols-1 md:grid-cols-2 gap-8"><div className="space-y-3"><Label className="text-sm font-black text-[#2C4156] uppercase">Vencimento Fixo</Label><div className="flex items-center gap-3"><span className="text-xs font-bold text-[#98A7AA] uppercase">Todo dia</span><Input type="number" min="1" max="31" value={formData.prazoFixo} onChange={(e) => setFormData({...formData, prazoFixo: Number(e.target.value)})} className="w-20 font-black text-center" /></div></div><div className="space-y-3"><Label className="text-sm font-black text-[#2C4156] uppercase">Competência</Label><Select value={formData.competencia} onValueChange={(v) => setFormData({...formData, competencia: v})}><SelectTrigger className="border-[#D2D7DB]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="mes_anterior">Mês Anterior</SelectItem><SelectItem value="mes_prazo">Mesmo Mês do Prazo</SelectItem><SelectItem value="mes_seguinte">Mês Seguinte</SelectItem></SelectContent></Select></div></div></div></div>
+              </ScrollArea>
+            </TabsContent>
 
-              <TabsContent value="tarefas" className="m-0 space-y-6">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-black text-[#2C4156] uppercase tracking-widest flex items-center gap-2">
-                    <ClipboardList className="h-4 w-4 text-[#1FA67A]" /> Checklist do Modelo
-                  </h4>
-                  <Button size="sm" className="bg-[#2C4156] gap-2 text-[10px] font-black uppercase h-8" onClick={addTarefa}>
-                    <Plus className="h-3 w-3" /> Adicionar Etapa
-                  </Button>
-                </div>
-                <div className="space-y-3">
+            <TabsContent value="tarefas" className="h-full m-0 data-[state=active]:flex flex-col">
+              <div className="p-8 border-b bg-[#F7F7F7]/30 flex justify-between items-center shrink-0">
+                <h4 className="text-xs font-black text-[#2C4156] uppercase tracking-widest flex items-center gap-2"><ClipboardList className="h-4 w-4 text-[#1FA67A]" /> Checklist do Modelo</h4>
+                <Button size="sm" className="bg-[#2C4156] gap-2 text-[10px] font-black uppercase h-8" onClick={addTarefa}><Plus className="h-3 w-3" /> Adicionar Etapa</Button>
+              </div>
+              <ScrollArea className="flex-1">
+                <div className="p-8 space-y-3">
                   {(formData.tarefas || []).map((tarefa, index) => (
                     <div key={tarefa.id} className="flex flex-col gap-3 p-4 bg-white border border-[#D2D7DB] rounded-2xl shadow-sm hover:border-[#1FA67A] transition-all relative group">
-                      <div className="absolute top-4 left-[-10px] h-6 w-6 bg-[#2C4156] text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-lg">
-                        {index + 1}
-                      </div>
-                      <div className="flex justify-between items-start pl-4">
-                        <Input 
-                          placeholder="Título da Tarefa..." 
-                          className="border-none font-black text-[#2C4156] uppercase text-sm h-auto p-0 focus-visible:ring-0 shadow-none" 
-                          value={tarefa.titulo}
-                          onChange={(e) => updateTarefa(tarefa.id, 'titulo', e.target.value)}
-                        />
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C]" onClick={() => removeTarefa(tarefa.id)}><Trash2 className="h-4 w-4" /></Button>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pl-4">
-                        <div className="space-y-1">
-                          <Label className="text-[8px] font-black uppercase text-[#98A7AA]">Responsável</Label>
-                          <Select value={tarefa.responsavelTipo} onValueChange={(v) => updateTarefa(tarefa.id, 'responsavelTipo', v)}>
-                            <SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="responsavel_cliente">Resp. pelo Cliente</SelectItem>
-                              <SelectItem value="usuario_fixo">Usuário Fixo</SelectItem>
-                              <SelectItem value="qualquer">Qualquer Colaborador</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-[8px] font-black uppercase text-[#98A7AA]">Meta Interna (Dias Antes)</Label>
-                          <Input type="number" className="h-8 text-center text-[10px]" value={tarefa.prazoMeta} onChange={(e) => updateTarefa(tarefa.id, 'prazoMeta', Number(e.target.value))} />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-[8px] font-black uppercase text-[#98A7AA]">Prioridade</Label>
-                          <Select value={tarefa.prioridade} onValueChange={(v) => updateTarefa(tarefa.id, 'prioridade', v)}>
-                            <SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="baixa">Baixa</SelectItem>
-                              <SelectItem value="normal">Normal</SelectItem>
-                              <SelectItem value="alta">Alta</SelectItem>
-                              <SelectItem value="urgente">Urgente</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="flex items-center gap-2 pt-4">
-                          <Checkbox checked={tarefa.requerDocumento} onCheckedChange={(v) => updateTarefa(tarefa.id, 'requerDocumento', v)} id={`doc-${tarefa.id}`} />
-                          <Label htmlFor={`doc-${tarefa.id}`} className="text-[10px] font-black uppercase cursor-pointer">Exigir Documento</Label>
-                        </div>
-                      </div>
+                      <div className="absolute top-4 left-[-10px] h-6 w-6 bg-[#2C4156] text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-lg">{index + 1}</div>
+                      <div className="flex justify-between items-start pl-4"><Input placeholder="Título da Tarefa..." className="border-none font-black text-[#2C4156] uppercase text-sm h-auto p-0 focus-visible:ring-0 shadow-none" value={tarefa.titulo} onChange={(e) => updateTarefa(tarefa.id, 'titulo', e.target.value)} /><Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C]" onClick={() => removeTarefa(tarefa.id)}><Trash2 className="h-4 w-4" /></Button></div>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pl-4"><div className="space-y-1"><Label className="text-[8px] font-black uppercase text-[#98A7AA]">Responsável</Label><Select value={tarefa.responsavelTipo} onValueChange={(v) => updateTarefa(tarefa.id, 'responsavelTipo', v)}><SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="responsavel_cliente">Resp. pelo Cliente</SelectItem><SelectItem value="usuario_fixo">Usuário Fixo</SelectItem><SelectItem value="qualquer">Qualquer Colaborador</SelectItem></SelectContent></Select></div><div className="space-y-1"><Label className="text-[8px] font-black uppercase text-[#98A7AA]">Meta Interna</Label><Input type="number" className="h-8 text-center text-[10px]" value={tarefa.prazoMeta} onChange={(e) => updateTarefa(tarefa.id, 'prazoMeta', Number(e.target.value))} /></div><div className="space-y-1"><Label className="text-[8px] font-black uppercase text-[#98A7AA]">Prioridade</Label><Select value={tarefa.prioridade} onValueChange={(v) => updateTarefa(tarefa.id, 'prioridade', v)}><SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="baixa">Baixa</SelectItem><SelectItem value="normal">Normal</SelectItem><SelectItem value="alta">Alta</SelectItem><SelectItem value="urgente">Urgente</SelectItem></SelectContent></Select></div><div className="flex items-center gap-2 pt-4"><Checkbox checked={tarefa.requerDocumento} onCheckedChange={(v) => updateTarefa(tarefa.id, 'requerDocumento', v)} id={`doc-${tarefa.id}`} /><Label htmlFor={`doc-${tarefa.id}`} className="text-[10px] font-black uppercase cursor-pointer">Exigir Documento</Label></div></div>
                     </div>
                   ))}
                 </div>
-              </TabsContent>
+              </ScrollArea>
+            </TabsContent>
 
-              <TabsContent value="recorrencia" className="m-0 space-y-6">
-                {formData.tipo === 'recorrente' ? (
-                  <div className="bg-[#2C4156] text-white p-8 rounded-3xl space-y-8 relative overflow-hidden shadow-2xl">
-                    <div className="absolute top-[-20px] right-[-20px] w-48 h-48 bg-[#1FA67A]/20 rounded-full blur-3xl" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-xl font-black uppercase tracking-tight">Status do Robô de Geração</h4>
-                        <p className="text-white/60 font-bold text-xs uppercase tracking-widest">O sistema criará os processos automaticamente.</p>
-                      </div>
-                      <Checkbox className="h-8 w-8 rounded-xl border-white/20 data-[state=checked]:bg-[#1FA67A] data-[state=checked]:border-[#1FA67A]" checked={formData.ativo} onCheckedChange={(v) => setFormData({...formData, ativo: !!v})} />
+            <TabsContent value="recorrencia" className="h-full m-0 data-[state=active]:flex flex-col">
+              <ScrollArea className="h-full">
+                <div className="p-8">
+                  {formData.tipo === 'recorrente' ? (
+                    <div className="bg-[#2C4156] text-white p-8 rounded-3xl space-y-8 relative overflow-hidden shadow-2xl">
+                      <div className="absolute top-[-20px] right-[-20px] w-48 h-48 bg-[#1FA67A]/20 rounded-full blur-3xl" />
+                      <div className="flex items-center justify-between"><div><h4 className="text-xl font-black uppercase tracking-tight">Status do Robô de Geração</h4><p className="text-white/60 font-bold text-xs uppercase tracking-widest">O sistema criará os processos automaticamente.</p></div><Checkbox className="h-8 w-8 rounded-xl border-white/20 data-[state=checked]:bg-[#1FA67A]" checked={formData.ativo} onCheckedChange={(v) => setFormData({...formData, ativo: !!v})} /></div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-white/10"><div className="space-y-3"><Label className="text-[10px] font-black uppercase text-white/60 tracking-widest flex items-center gap-2"><RefreshCcw className="h-3 w-3 text-[#1FA67A]" /> Frequência</Label><Select value={formData.recorrencia} onValueChange={(v) => setFormData({...formData, recorrencia: v})}><SelectTrigger className="bg-white/5 border-white/10 h-12 font-bold text-white"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="mensal">Mensal</SelectItem><SelectItem value="bimestral">Bimestral</SelectItem><SelectItem value="trimestral">Trimestral</SelectItem><SelectItem value="semestral">Semestral</SelectItem><SelectItem value="anual">Anual</SelectItem></SelectContent></Select></div><div className="space-y-3"><Label className="text-[10px] font-black uppercase text-white/60 tracking-widest flex items-center gap-2"><Clock className="h-3 w-3 text-[#1FA67A]" /> Dia para Criar</Label><Input type="number" min="1" max="31" className="bg-white/5 border-white/10 h-12 font-black text-xl text-center text-white" value={formData.dataGeracaoRecorrencia} onChange={(e) => setFormData({...formData, dataGeracaoRecorrencia: Number(e.target.value)})} /></div></div>
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-white/10">
-                      <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase text-white/60 tracking-widest flex items-center gap-2">
-                          <RefreshCcw className="h-3 w-3 text-[#1FA67A]" /> Frequência de Geração
-                        </Label>
-                        <Select value={formData.recorrencia} onValueChange={(v) => setFormData({...formData, recorrencia: v})}>
-                          <SelectTrigger className="bg-white/5 border-white/10 h-12 font-bold text-white"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="mensal">Mensal</SelectItem>
-                            <SelectItem value="bimestral">Bimestral</SelectItem>
-                            <SelectItem value="trimestral">Trimestral</SelectItem>
-                            <SelectItem value="semestral">Semestral</SelectItem>
-                            <SelectItem value="anual">Anual</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase text-white/60 tracking-widest flex items-center gap-2">
-                          <Clock className="h-3 w-3 text-[#1FA67A]" /> Dia do Mês para Criar
-                        </Label>
-                        <Input type="number" min="1" max="31" className="bg-white/5 border-white/10 h-12 font-black text-xl text-center text-white" value={formData.dataGeracaoRecorrencia} onChange={(e) => setFormData({...formData, dataGeracaoRecorrencia: Number(e.target.value)})} />
-                      </div>
-                    </div>
-
-                    <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center gap-4">
-                      <CalendarClock className="h-8 w-8 text-[#1FA67A]" />
-                      <div>
-                        <p className="text-[10px] font-black uppercase text-white/40 tracking-widest">Previsão</p>
-                        <p className="text-sm font-black text-white">Próxima geração: {formData.dataGeracaoRecorrencia}/{new Date().getMonth() + 2}/{new Date().getFullYear()}</p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed rounded-3xl text-center p-12 space-y-4">
-                    <Zap className="h-12 w-12 text-[#98A7AA] opacity-20" />
-                    <div className="space-y-1">
-                      <h4 className="text-lg font-black text-[#2C4156] uppercase">Modelo Esporádico</h4>
-                      <p className="text-sm text-[#98A7AA] font-bold max-w-sm">Este fluxo não possui recorrência automática. Ele deve ser instanciado manualmente quando necessário.</p>
-                    </div>
-                    <Button variant="outline" className="border-[#D2D7DB] font-black text-[10px] uppercase" onClick={() => setFormData({...formData, tipo: 'recorrente'})}>
-                      <RefreshCcw className="h-3 w-3 mr-2" /> Mudar para Recorrente
-                    </Button>
-                  </div>
-                )}
-              </TabsContent>
-            </div>
-          </ScrollArea>
+                  ) : <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed rounded-3xl text-center p-12 space-y-4"><Zap className="h-12 w-12 text-[#98A7AA] opacity-20" /><h4 className="text-lg font-black text-[#2C4156] uppercase">Modelo Esporádico</h4><Button variant="outline" className="border-[#D2D7DB] font-black text-[10px] uppercase" onClick={() => setFormData({...formData, tipo: 'recorrente'})}><RefreshCcw className="h-3 w-3 mr-2" /> Mudar para Recorrente</Button></div>}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          </div>
 
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => onOpenChange(false)} className="font-bold uppercase text-xs border-[#D2D7DB]">Cancelar</Button>
-            <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-10 shadow-lg shadow-emerald-500/20" onClick={handleSave}>
+            <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-10 shadow-lg" onClick={handleSave}>
               <Save className="h-4 w-4 mr-2" /> {model ? "Salvar Inteligência" : "Gerar Estrutura"}
             </Button>
           </DialogFooter>

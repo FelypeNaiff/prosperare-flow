@@ -100,14 +100,14 @@
 
 /* Custom scrollbar - Elegant & Modern */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted/30 rounded-full hover:bg-muted/50 transition-colors;
+  @apply bg-muted/40 rounded-full hover:bg-muted/60 transition-colors;
 }
 
 /* Fix for long lists in Modals */
