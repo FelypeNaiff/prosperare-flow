@@ -53,12 +53,28 @@
   }
 }
 
-/* Global Modal/Dialog Optimization */
+/* Global Modal/Dialog Optimization - Fixed Header/Footer, Scrollable Body */
 [data-radix-portal] [role="dialog"] {
   max-height: 90vh !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
+}
+
+[data-radix-portal] [role="dialog"] > div[class*="DialogHeader"],
+[data-radix-portal] [role="dialog"] > header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 20 !important;
+  background: inherit !important;
+}
+
+[data-radix-portal] [role="dialog"] > div[class*="DialogFooter"],
+[data-radix-portal] [role="dialog"] > footer {
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 20 !important;
+  background: inherit !important;
 }
 
 .modal-scroll-content {
@@ -67,6 +83,7 @@
   scroll-behavior: smooth !important;
   flex: 1 1 auto !important;
   overscroll-behavior: contain !important;
+  padding-bottom: 1.5rem !important;
 }
 
 /* Scrollbar Styling - Modern & Subtle */

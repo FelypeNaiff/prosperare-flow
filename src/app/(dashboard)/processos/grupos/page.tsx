@@ -15,7 +15,12 @@ import {
   X, 
   Check, 
   Building2, 
-  UserPlus
+  UserPlus,
+  PlayCircle,
+  Calendar,
+  AlertTriangle,
+  RefreshCcw,
+  Zap
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -49,9 +54,10 @@ import {
   deleteDocumentNonBlocking, 
   updateDocumentNonBlocking 
 } from "@/firebase"
-import { collection, doc } from "firebase/firestore"
+import { collection, doc, query, where, getDocs, setDoc } from "firebase/firestore"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { format, parse, addMonths, lastDayOfMonth, setDate, parseISO } from "date-fns"
 
 export default function GruposObrigacoesPage() {
   const firestore = useFirestore()
@@ -59,6 +65,12 @@ export default function GruposObrigacoesPage() {
   const [editingGroup, setEditingGroup] = useState<any>(null)
   const [activeTab, setActiveTab] = useState("config")
   
+  // Estados para geração de processos
+  const [isGenModalOpen, setIsGenModalOpen] = useState(false)
+  const [selectedGroupForGen, setSelectedGroupForGen] = useState<any>(null)
+  const [genCompetencia, setGenCompetencia] = useState(format(new Date(), "yyyy-MM"))
+  const [isGenerating, setIsGenerating] = useState(false)
+
   const [searchVinculadas, setSearchVinculadas] = useState('')
   const [searchNova, setSearchNova] = useState('')
 
@@ -78,7 +90,8 @@ export default function GruposObrigacoesPage() {
     color: "#1FA67A",
     active: true,
     processes: [] as any[],
-    clientesVinculados: [] as string[]
+    clientesVinculados: [] as string[],
+    linkedModelId: ""
   })
 
   const [newProcess, setNewProcess] = useState({
@@ -91,6 +104,7 @@ export default function GruposObrigacoesPage() {
     return (allClients || []).filter(c =>
       (formData.clientesVinculados || []).includes(c.id) &&
       (c.corporateName?.toLowerCase().includes(searchVinculadas.toLowerCase()) ||
+       c.nomeFantasia?.toLowerCase().includes(searchVinculadas.toLowerCase()) ||
        c.cnpj?.includes(searchVinculadas))
     )
   }, [allClients, formData.clientesVinculados, searchVinculadas])
@@ -99,6 +113,7 @@ export default function GruposObrigacoesPage() {
     return (allClients || []).filter(c =>
       !(formData.clientesVinculados || []).includes(c.id) &&
       (c.corporateName?.toLowerCase().includes(searchNova.toLowerCase()) ||
+       c.nomeFantasia?.toLowerCase().includes(searchNova.toLowerCase()) ||
        c.cnpj?.includes(searchNova))
     )
   }, [allClients, formData.clientesVinculados, searchNova])
@@ -115,7 +130,8 @@ export default function GruposObrigacoesPage() {
         color: group.color || "#1FA67A",
         active: group.active !== false,
         processes: group.processes || [],
-        clientesVinculados: group.clientesVinculados || []
+        clientesVinculados: group.clientesVinculados || [],
+        linkedModelId: group.linkedModelId || ""
       })
     } else {
       setEditingGroup(null)
@@ -126,11 +142,92 @@ export default function GruposObrigacoesPage() {
         color: "#1FA67A",
         active: true,
         processes: [],
-        clientesVinculados: []
+        clientesVinculados: [],
+        linkedModelId: ""
       })
     }
     setActiveTab("config")
     setIsModalOpen(true)
+  }
+
+  const handleOpenGenModal = (group: any) => {
+    setSelectedGroupForGen(group)
+    setIsGenModalOpen(true)
+  }
+
+  const handleGenerateProcessos = async () => {
+    if (!selectedGroupForGen || !genCompetencia) return
+
+    setIsGenerating(true)
+    try {
+      const competenceDate = parse(genCompetencia, "yyyy-MM", new Date())
+      const competenceKey = format(competenceDate, "yyyy-MM")
+
+      // 1. Verificar se já existem processos para este grupo e competência
+      const processesQuery = query(
+        collection(firestore, "processes"),
+        where("groupId", "==", selectedGroupForGen.id),
+        where("competenciaKey", "==", competenceKey)
+      )
+      const existing = await getDocs(processesQuery)
+      
+      if (!existing.empty) {
+        if (!confirm(`Já existem processos gerados para ${format(competenceDate, 'MMMM/yyyy', { locale: ptBR })} neste grupo. Deseja regenerar? (Isso não apagará os existentes, criará novos)`)) {
+          setIsGenerating(false)
+          return
+        }
+      }
+
+      // 2. Gerar processos para cada cliente vinculado
+      const clientsToProcess = selectedGroupForGen.clientesVinculados || []
+      let count = 0
+
+      for (const clientId of clientsToProcess) {
+        const client = allClients.find(c => c.id === clientId)
+        if (!client) continue
+
+        // Gerar um processo para cada modelo vinculado ao grupo
+        for (const modelRef of (selectedGroupForGen.processes || [])) {
+          const model = templates.find(t => t.id === modelRef.templateId)
+          if (!model) continue
+
+          const id = Math.random().toString(36).substr(2, 9)
+          const day = parseInt(modelRef.dueDay) || 20
+          let dueDate = setDate(competenceDate, day)
+          
+          const processData = {
+            id,
+            groupId: selectedGroupForGen.id,
+            groupName: selectedGroupForGen.name,
+            clienteId: client.id,
+            nomeProcesso: modelRef.title || model.nome,
+            situacao: "a_fazer",
+            departamento: selectedGroupForGen.dept || "Fiscal",
+            responsavelId: client.accountingContactUserId || "Geral",
+            prazo: dueDate.toISOString(),
+            competencia: competenceDate.toISOString(),
+            competenciaKey: competenceKey,
+            criadoEm: new Date().toISOString(),
+            tarefas: (model.tarefas || []).map((t: any) => ({
+              id: Math.random().toString(36).substr(2, 5),
+              titulo: t.titulo,
+              situacao: "a_fazer"
+            }))
+          }
+
+          await setDoc(doc(firestore, "processes", id), processData)
+          count++
+        }
+      }
+
+      toast({ title: "Geração Concluída!", description: `${count} processos foram instanciados para ${clientsToProcess.length} clientes.` })
+      setIsGenModalOpen(false)
+    } catch (error) {
+      console.error(error)
+      toast({ variant: "destructive", title: "Erro na geração", description: "Houve uma falha técnica ao criar os processos." })
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   function adicionarEmpresa(clienteId: string) {
@@ -212,7 +309,7 @@ export default function GruposObrigacoesPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Grupos de Obrigações</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Agrupe modelos de processos para automação por perfil de cliente.</p>
+          <p className="text-[#98A7AA] font-bold text-sm">Automação de processos por perfil de cliente.</p>
         </div>
         <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg" onClick={() => handleOpenModal()}>
           <Plus className="h-4 w-4" /> Novo Grupo
@@ -260,19 +357,24 @@ export default function GruposObrigacoesPage() {
                           {p.title}
                         </Badge>
                       ))}
-                      {(!group.processes || group.processes.length === 0) && (
-                        <span className="text-[10px] text-destructive font-bold uppercase">Nenhum processo</span>
-                      )}
                     </div>
                   </div>
                   
-                  <div className="pt-2 flex gap-2 border-t border-[#F7F7F7]">
-                    <Button variant="outline" size="sm" className="h-8 text-[10px] font-black uppercase border-[#D2D7DB] gap-1 flex-1 text-[#2C4156]" onClick={() => handleOpenModal(group)}>
-                      <Edit className="h-3 w-3" /> Gerenciar Grupo
+                  <div className="pt-2 flex flex-col gap-2 border-t border-[#F7F7F7]">
+                    <Button 
+                      className="bg-[#2C4156] hover:bg-[#2C4156]/90 gap-2 h-9 text-[10px] font-black uppercase shadow-sm"
+                      onClick={() => handleOpenGenModal(group)}
+                    >
+                      <PlayCircle className="h-4 w-4" /> Gerar Processos
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C] hover:bg-[#E74C3C]/10" onClick={() => handleDeleteGroup(group.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="h-8 text-[9px] font-black uppercase border-[#D2D7DB] gap-1 flex-1 text-[#2C4156]" onClick={() => handleOpenModal(group)}>
+                        <Edit className="h-3 w-3" /> Gerenciar
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C] hover:bg-[#E74C3C]/10" onClick={() => handleDeleteGroup(group.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -283,13 +385,13 @@ export default function GruposObrigacoesPage() {
         <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed rounded-3xl bg-white/50 text-center p-12">
           <Layers className="h-12 w-12 text-[#D2D7DB] mb-4" />
           <h3 className="text-lg font-black text-[#2C4156] uppercase">Nenhum Grupo Definido</h3>
-          <p className="text-sm text-[#98A7AA] font-bold max-w-sm">Crie grupos para automatizar a geração de tarefas baseadas em modelos.</p>
           <Button className="mt-6 bg-[#1FA67A] font-black uppercase text-xs shadow-lg" onClick={() => handleOpenModal()}>Criar Primeiro Grupo</Button>
         </div>
       )}
 
+      {/* Modal de Gerenciamento do Grupo */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0 border-none shadow-2xl flex flex-col">
+        <DialogContent className="max-w-5xl p-0 overflow-hidden border-none shadow-2xl flex flex-col">
           <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
             <div className="flex items-center justify-between">
               <div>
@@ -297,7 +399,7 @@ export default function GruposObrigacoesPage() {
                   {editingGroup ? `Grupo: ${formData.name}` : "Novo Grupo de Obrigações"}
                 </DialogTitle>
                 <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
-                  Configure as regras, tarefas e empresas vinculadas a este fluxo.
+                  Configure as regras e empresas vinculadas.
                 </DialogDescription>
               </div>
               <div className="bg-white/10 px-4 py-2 rounded-xl flex items-center gap-3">
@@ -313,19 +415,19 @@ export default function GruposObrigacoesPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
             <div className="px-6 bg-[#F7F7F7] border-b">
               <TabsList className="bg-transparent h-14 p-0 gap-8">
-                <TabsTrigger value="config" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#1FA67A] data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none px-0 font-black uppercase text-[10px] tracking-widest gap-2">
+                <TabsTrigger value="config" className="data-[state=active]:bg-transparent data-[state=active]:text-[#1FA67A] data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none px-0 font-black uppercase text-[10px] tracking-widest">
                   Configurações
                 </TabsTrigger>
-                <TabsTrigger value="processos" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#1FA67A] data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none px-0 font-black uppercase text-[10px] tracking-widest gap-2">
-                  Tarefas (Modelos)
+                <TabsTrigger value="processos" className="data-[state=active]:bg-transparent data-[state=active]:text-[#1FA67A] data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none px-0 font-black uppercase text-[10px] tracking-widest">
+                  Modelos de Tarefas
                 </TabsTrigger>
-                <TabsTrigger value="clientes" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#1FA67A] data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none px-0 font-black uppercase text-[10px] tracking-widest gap-2">
+                <TabsTrigger value="clientes" className="data-[state=active]:bg-transparent data-[state=active]:text-[#1FA67A] data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none px-0 font-black uppercase text-[10px] tracking-widest">
                   Clientes e Exceções
                 </TabsTrigger>
               </TabsList>
             </div>
 
-            <ScrollArea className="flex-1">
+            <div className="modal-scroll-content">
               <div className="p-6">
                 <TabsContent value="config" className="m-0 space-y-6">
                   <div className="grid grid-cols-2 gap-5">
@@ -339,47 +441,31 @@ export default function GruposObrigacoesPage() {
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Departamento</Label>
-                      <Input 
-                        value={formData.dept} 
-                        onChange={(e) => setFormData({...formData, dept: e.target.value})}
-                        className="border-[#D2D7DB]"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Ícone</Label>
-                      <Input 
-                        value={formData.icon} 
-                        onChange={(e) => setFormData({...formData, icon: e.target.value})}
-                        className="border-[#D2D7DB] text-center text-xl"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Cor de Identificação</Label>
-                      <div className="flex gap-2">
-                        <input 
-                          type="color"
-                          value={formData.color} 
-                          onChange={(e) => setFormData({...formData, color: e.target.value})}
-                          className="border-[#D2D7DB] w-12 h-10 p-1 rounded-md"
-                        />
-                        <Input readOnly value={formData.color} className="flex-1 font-mono uppercase text-xs" />
-                      </div>
+                      <Select value={formData.dept} onValueChange={(v) => setFormData({...formData, dept: v})}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Fiscal">Fiscal</SelectItem>
+                          <SelectItem value="Pessoal">Pessoal</SelectItem>
+                          <SelectItem value="Contábil">Contábil</SelectItem>
+                          <SelectItem value="Legal">Legalização</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </TabsContent>
 
                 <TabsContent value="processos" className="m-0 space-y-6">
-                  <div className="bg-[#F7F7F7] p-5 rounded-2xl border border-[#D2D7DB] space-y-5 shadow-inner">
+                  <div className="bg-[#F7F7F7] p-5 rounded-2xl border border-[#D2D7DB] space-y-5">
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                       <div className="md:col-span-6 space-y-1.5">
-                        <Label className="text-[9px] font-black uppercase text-[#98A7AA]">Vincular Modelo de Checklist</Label>
+                        <Label className="text-[9px] font-black uppercase text-[#98A7AA]">Vincular Modelo</Label>
                         <Select value={newProcess.templateId} onValueChange={handleSelectTemplate}>
-                          <SelectTrigger className="bg-white border-[#D2D7DB] h-10">
+                          <SelectTrigger className="bg-white border-[#D2D7DB]">
                             <SelectValue placeholder="Selecione um modelo..." />
                           </SelectTrigger>
                           <SelectContent>
                             {(templates || []).map(t => (
-                              <SelectItem key={t.id} value={t.id} className="font-bold uppercase text-xs">{t.nome || t.title}</SelectItem>
+                              <SelectItem key={t.id} value={t.id} className="font-bold uppercase text-xs">{t.nome}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -388,13 +474,13 @@ export default function GruposObrigacoesPage() {
                         <Label className="text-[9px] font-black uppercase text-[#98A7AA]">Vencimento (Dia)</Label>
                         <Input 
                           placeholder="Dia (ex: 20)" 
-                          className="bg-white border-[#D2D7DB] h-10" 
+                          className="bg-white border-[#D2D7DB]" 
                           value={newProcess.dueDay} 
                           onChange={(e) => setNewProcess({...newProcess, dueDay: e.target.value})} 
                         />
                       </div>
                       <div className="md:col-span-2">
-                        <Button className="w-full bg-[#2C4156] h-10 shadow-md" onClick={addProcess}>
+                        <Button className="w-full bg-[#2C4156]" onClick={addProcess}>
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
@@ -402,17 +488,15 @@ export default function GruposObrigacoesPage() {
 
                     <div className="space-y-2">
                       {(formData.processes || []).map((proc: any, i: number) => (
-                        <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white border border-[#D2D7DB] shadow-sm hover:shadow-md transition-all group">
+                        <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white border border-[#D2D7DB]">
                           <div className="flex items-center gap-3">
-                            <div className="p-1.5 bg-[#1FA67A]/10 rounded-lg text-[#1FA67A]">
-                              <FileText className="h-4 w-4" />
-                            </div>
+                            <FileText className="h-4 w-4 text-[#1FA67A]" />
                             <div>
                               <span className="text-xs font-black text-[#2C4156] uppercase">{proc.title}</span>
-                              <p className="text-[9px] font-bold text-[#98A7AA] uppercase">Prazo fatal: Dia {proc.dueDay}</p>
+                              <p className="text-[9px] font-bold text-[#98A7AA] uppercase">Dia {proc.dueDay}</p>
                             </div>
                           </div>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C] opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeProcess(proc.id)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C]" onClick={() => removeProcess(proc.id)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -422,95 +506,64 @@ export default function GruposObrigacoesPage() {
                 </TabsContent>
 
                 <TabsContent value="clientes" className="m-0">
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
-                    <div className="lg:col-span-7 space-y-6 flex flex-col min-h-0">
-                      <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Empresas Vinculadas ao Fluxo</Label>
-                        <div className="relative">
-                          <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
-                          <Input 
-                            placeholder="PESQUISAR POR NOME OU CNPJ" 
-                            className="pl-10 h-10 bg-[#F7F7F7] border-[#D2D7DB]"
-                            value={searchVinculadas}
-                            onChange={(e) => setSearchVinculadas(e.target.value)}
-                            style={{ borderColor: '#D2D7DB', outline: 'none' }}
-                          />
-                        </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div className="lg:col-span-7 space-y-4">
+                      <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Empresas Vinculadas</Label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
+                        <Input 
+                          placeholder="PESQUISAR VINCULADAS" 
+                          className="pl-10 h-10 bg-[#F7F7F7]"
+                          value={searchVinculadas}
+                          onChange={(e) => setSearchVinculadas(e.target.value)}
+                        />
                       </div>
-
                       <ScrollArea className="h-[400px] border rounded-2xl bg-white p-4">
                         <div className="space-y-3">
                           {vinculadasFiltradas.map(cliente => (
-                            <div key={cliente.id} className="flex items-center justify-between p-3 bg-white border border-[#D2D7DB] rounded-xl group hover:border-[#1FA67A] transition-all">
+                            <div key={cliente.id} className="flex items-center justify-between p-3 border border-[#D2D7DB] rounded-xl">
                               <div className="flex items-center gap-4">
-                                <Avatar className="h-10 w-10 border-none shadow-sm rounded-lg overflow-hidden">
-                                  <AvatarFallback className="bg-[#2C4156] text-white font-black text-xs rounded-lg">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarFallback className="bg-[#2C4156] text-white font-black text-xs">
                                     {cliente.corporateName?.substr(0, 2).toUpperCase()}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex flex-col">
-                                  <span className="text-sm font-black text-[#2C4156] uppercase leading-none">{cliente.corporateName}</span>
+                                  <span className="text-sm font-black text-[#2C4156] uppercase">{cliente.corporateName}</span>
                                   <span className="text-[10px] font-mono text-[#98A7AA]">{cliente.cnpj}</span>
                                 </div>
                               </div>
-                              <button 
-                                className="h-8 w-8 flex items-center justify-center text-[#E74C3C] hover:bg-[#FEE2E2] rounded-full transition-colors text-xl font-bold"
-                                onClick={() => removerEmpresa(cliente.id)}
-                              >
-                                ×
-                              </button>
+                              <button onClick={() => removerEmpresa(cliente.id)} className="h-8 w-8 text-[#E74C3C] text-xl font-bold">×</button>
                             </div>
                           ))}
-                          {vinculadasFiltradas.length === 0 && (
-                            <div className="text-center py-12 border-2 border-dashed rounded-2xl bg-slate-50/50">
-                              <Users className="h-8 w-8 mx-auto text-[#D2D7DB] mb-2" />
-                              <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Nenhuma empresa encontrada</p>
-                            </div>
-                          )}
                         </div>
                       </ScrollArea>
                     </div>
 
-                    <div className="lg:col-span-5 space-y-4 flex flex-col min-h-0">
-                      <div className="bg-[#F7F7F7] p-6 rounded-2xl border border-[#D2D7DB] space-y-4 shadow-inner flex flex-col flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="p-1.5 bg-[#1FA67A] rounded-lg text-white">
-                            <UserPlus className="h-4 w-4" />
-                          </div>
-                          <h4 className="text-[10px] font-black text-[#1FA67A] uppercase tracking-[0.2em]">Incluir Nova Empresa</h4>
-                        </div>
-                        
+                    <div className="lg:col-span-5 space-y-4">
+                      <div className="bg-[#F7F7F7] p-6 rounded-2xl border border-[#D2D7DB] space-y-4">
+                        <Label className="text-[10px] font-black uppercase text-[#1FA67A]">Incluir Nova Empresa</Label>
                         <div className="relative">
                           <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
                           <Input 
-                            placeholder="ADICIONAR À LISTA" 
-                            className="pl-10 h-11 bg-white border-[#1FA67A]/30 font-bold uppercase text-xs"
+                            placeholder="BUSCAR CLIENTE" 
+                            className="pl-10 h-11 bg-white"
                             value={searchNova}
                             onChange={(e) => setSearchNova(e.target.value)}
-                            autoFocus
-                            style={{ borderColor: '#D2D7DB', outline: 'none' }}
                           />
                         </div>
-                        
-                        <ScrollArea className="flex-1 bg-white border rounded-xl mt-2">
+                        <ScrollArea className="h-[350px] bg-white border rounded-xl">
                           <div className="p-2 space-y-1">
                             {disponiveis.map(cliente => (
                               <button
                                 key={cliente.id}
                                 onClick={() => adicionarEmpresa(cliente.id)}
-                                className="w-full px-3 py-3 cursor-pointer hover:bg-gray-50 rounded-lg text-left transition-all border border-transparent hover:border-[#D2D7DB]"
+                                className="w-full px-3 py-3 hover:bg-gray-50 rounded-lg text-left transition-all border border-transparent hover:border-[#D2D7DB]"
                               >
-                                <p className="text-[10px] font-black text-[#2C4156] uppercase leading-tight">{cliente.corporateName}</p>
-                                <p className="text-[9px] font-mono text-[#98A7AA] mt-0.5">{cliente.cnpj}</p>
+                                <p className="text-[10px] font-black text-[#2C4156] uppercase">{cliente.corporateName}</p>
+                                <p className="text-[9px] font-mono text-[#98A7AA]">{cliente.cnpj}</p>
                               </button>
                             ))}
-                            {disponiveis.length === 0 && (
-                              <div className="text-center py-12 px-4">
-                                <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">
-                                  {searchNova ? 'Nenhuma empresa encontrada' : 'Todos os clientes já vinculados'}
-                                </p>
-                              </div>
-                            )}
                           </div>
                         </ScrollArea>
                       </div>
@@ -518,15 +571,71 @@ export default function GruposObrigacoesPage() {
                   </div>
                 </TabsContent>
               </div>
-            </ScrollArea>
+            </div>
 
             <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
-              <Button variant="outline" onClick={() => onOpenChange(false)} className="font-bold text-xs uppercase border-[#D2D7DB]">Cancelar</Button>
-              <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-8 shadow-lg shadow-emerald-500/20" onClick={handleSaveGroup}>
+              <Button variant="outline" onClick={() => setIsModalOpen(false)} className="font-bold uppercase text-xs">Cancelar</Button>
+              <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-8 shadow-lg" onClick={handleSaveGroup}>
                 <Save className="h-4 w-4 mr-2" /> Salvar Alterações do Grupo
               </Button>
             </DialogFooter>
           </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Geração de Processos */}
+      <Dialog open={isGenModalOpen} onOpenChange={setIsGenModalOpen}>
+        <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl flex flex-col">
+          <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
+            <div className="flex items-center gap-3">
+              <RefreshCcw className="h-6 w-6 text-[#1FA67A]" />
+              <DialogTitle className="text-2xl font-black uppercase tracking-tight">Gerar Processos do Mês</DialogTitle>
+            </div>
+            <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
+              Grupo: {selectedGroupForGen?.name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-6 space-y-6 bg-white">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Competência / Mês de Referência</Label>
+              <Input 
+                type="month" 
+                value={genCompetencia} 
+                onChange={(e) => setGenCompetencia(e.target.value)}
+                className="h-12 border-[#D2D7DB] font-bold text-xl text-[#2C4156]"
+              />
+            </div>
+
+            <div className="bg-[#F7F7F7] p-4 rounded-xl border border-[#D2D7DB] space-y-2">
+              <div className="flex items-center gap-2 text-[#2574A9]">
+                <Building2 className="h-4 w-4" />
+                <span className="text-[10px] font-black uppercase">Abrangência</span>
+              </div>
+              <p className="text-xs font-bold text-[#39586D]">
+                Esta ação criará tarefas para os {selectedGroupForGen?.clientesVinculados?.length || 0} clientes vinculados a este grupo.
+              </p>
+            </div>
+
+            <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 flex gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+              <p className="text-[10px] font-bold text-amber-800 leading-relaxed uppercase">
+                O sistema clonará toda a estrutura de checklist e prazos definida nos modelos vinculados a este grupo.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
+            <Button variant="outline" onClick={() => setIsGenModalOpen(false)} className="font-bold uppercase text-xs">Cancelar</Button>
+            <Button 
+              className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-8 shadow-lg" 
+              onClick={handleGenerateProcessos}
+              disabled={isGenerating}
+            >
+              {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <PlayCircle className="h-4 w-4 mr-2" />}
+              Gerar Processos Agora
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
@@ -537,7 +646,7 @@ function TabTrigger({ value, label }: { value: string, label: string }) {
   return (
     <TabsTrigger 
       value={value} 
-      className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#1FA67A] data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none px-0 font-black uppercase text-[10px] tracking-widest shrink-0"
+      className="data-[state=active]:bg-transparent data-[state=active]:text-[#1FA67A] data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none px-0 font-black uppercase text-[10px] tracking-widest shrink-0"
     >
       {label}
     </TabsTrigger>

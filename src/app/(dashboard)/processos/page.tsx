@@ -16,7 +16,13 @@ import {
   AlertCircle,
   Clock,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Filter,
+  FileText,
+  ChevronDown,
+  Download,
+  Share2,
+  ShieldCheck
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -51,7 +57,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 export default function ProcessosPage() {
   const firestore = useFirestore()
@@ -62,12 +74,13 @@ export default function ProcessosPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [openGroups, setOpenGroups] = useState<string[]>([])
 
   const processesQuery = useMemoFirebase(() => 
     userLoaded ? query(collection(firestore, "processes"), orderBy("prazo", "asc")) : null, 
     [firestore, userLoaded]
   )
-  const { data: rawProcesses, isLoading } = useCollection(processesQuery)
+  const { data: rawProcesses = [], isLoading } = useCollection(processesQuery)
 
   const clientsQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "clients") : null, 
@@ -90,6 +103,16 @@ export default function ProcessosPage() {
       const pComp = p.competencia ? format(typeof p.competencia === 'string' ? parseISO(p.competencia) : new Date(p.competencia), "yyyy-MM") : ""
       if (pComp !== competenceKey) return false
 
+      const searchLower = searchTerm.toLowerCase()
+      const client = (clients || []).find(c => c.id === p.clienteId)
+      const matchesSearch = !searchTerm || 
+        client?.corporateName?.toLowerCase().includes(searchLower) ||
+        client?.nomeFantasia?.toLowerCase().includes(searchLower) ||
+        client?.cnpj?.includes(searchTerm) ||
+        p.nomeProcesso?.toLowerCase().includes(searchLower)
+
+      if (!matchesSearch) return false
+
       if (userData.profile === 'ADMINISTRADOR' || userData.profile === 'SÓCIO') return true
 
       return (
@@ -100,41 +123,32 @@ export default function ProcessosPage() {
         p.responsavelId === "Geral"
       )
     })
-  }, [rawProcesses, userData, selectedCompetence])
+  }, [rawProcesses, userData, selectedCompetence, searchTerm, clients])
 
-  const hierarchicalData = useMemo(() => {
-    const departments: Record<string, any> = {}
-    const searchLower = searchTerm.toLowerCase()
-
-    const searchFiltered = filteredProcesses.filter(p => {
-      if (!searchTerm) return true
-      const client = (clients || []).find(c => c.id === p.clienteId)
-      return (
-        client?.corporateName?.toLowerCase().includes(searchLower) ||
-        client?.nomeFantasia?.toLowerCase().includes(searchLower) ||
-        client?.cnpj?.includes(searchTerm) ||
-        p.nomeProcesso?.toLowerCase().includes(searchLower)
-      )
+  const groupedProcesses = useMemo(() => {
+    const groups: Record<string, any> = {}
+    
+    filteredProcesses.forEach(p => {
+      const key = p.nomeProcesso || "Processo Avulso"
+      if (!groups[key]) {
+        groups[key] = {
+          name: key,
+          clientsCount: 0,
+          processesCount: 0,
+          departments: new Set(),
+          responsibles: new Set(),
+          items: []
+        }
+      }
+      groups[key].items.push(p)
+      groups[key].clientsCount++
+      groups[key].processesCount++
+      if (p.departamento) groups[key].departments.add(p.departamento)
+      if (p.responsavelId) groups[key].responsibles.add(p.responsavelId)
     })
 
-    searchFiltered.forEach(p => {
-      const dept = p.departamento || "Geral"
-      const obName = p.nomeProcesso || "Processo Avulso"
-
-      if (!departments[dept]) departments[dept] = {}
-      if (!departments[dept][obName]) departments[dept][obName] = []
-      
-      departments[dept][obName].push(p)
-    })
-
-    return Object.entries(departments).map(([deptName, obligations]) => ({
-      name: deptName,
-      obligations: Object.entries(obligations).map(([obName, items]) => ({
-        name: obName,
-        items: items as any[]
-      }))
-    }))
-  }, [filteredProcesses, searchTerm, clients])
+    return Object.values(groups)
+  }, [filteredProcesses])
 
   const stats = useMemo(() => {
     const list = filteredProcesses || []
@@ -180,8 +194,8 @@ export default function ProcessosPage() {
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão de Produção</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Controle de obrigações por departamento e processo.</p>
+          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Situação dos Processos</h1>
+          <p className="text-[#98A7AA] font-bold text-sm">Controle consolidado de produtividade e entregas.</p>
         </div>
         
         <div className="flex items-center gap-3">
@@ -216,143 +230,214 @@ export default function ProcessosPage() {
         <KpiMiniCard label="Dispensado" value={stats.waived} icon={XCircle} color="bg-[#39586D]" />
       </div>
 
-      {selectedIds.length > 0 && (
-        <div className="sticky top-20 z-30 bg-[#2C4156] text-white p-4 rounded-xl shadow-2xl flex items-center justify-between animate-in slide-in-from-top-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => setSelectedIds([])} className="text-white hover:bg-white/10">
-              <X className="h-4 w-4" />
-            </Button>
-            <span className="font-black uppercase text-xs tracking-widest">{selectedIds.length} Processos Selecionados</span>
-          </div>
-          <div className="flex gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button className="bg-white text-[#2C4156] font-black uppercase text-[10px] hover:bg-white/90">
-                  <UserPlus className="h-3 w-3 mr-2" /> Atribuir Responsável
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56">
-                <DropdownMenuItem onClick={() => handleBatchAssign("Geral")} className="font-bold text-xs uppercase">GERAL</DropdownMenuItem>
-                {team.map(u => (
-                  <DropdownMenuItem key={u.id} onClick={() => handleBatchAssign(u.fullName)} className="font-bold text-xs uppercase">
-                    {u.fullName}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button variant="destructive" className="font-black uppercase text-[10px]" onClick={handleBatchDelete}>
-              <Trash2 className="h-3 w-3 mr-2" /> Apagar Lote
-            </Button>
-          </div>
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-[#98A7AA]" />
+          <Input 
+            placeholder="Buscar por cliente ou processo..." 
+            className="pl-10 h-11 bg-white border-[#D2D7DB]"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
-      )}
+        <div className="flex gap-2">
+          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold h-11 px-4 gap-2">
+            <Filter className="h-4 w-4" /> Filtros
+          </Button>
+          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold h-11 px-4 gap-2">
+            <Download className="h-4 w-4" /> Exportar
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="border-[#D2D7DB] text-[#2C4156] font-black uppercase text-[10px] h-11">
+                Ações em Lote
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={() => toast({ title: "Modo Edição em Lote" })} className="font-bold uppercase text-[10px] gap-2">
+                <ShieldCheck className="h-3.5 w-3.5" /> Edição em Lote
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => toast({ title: "Modo Envio em Lote" })} className="font-bold uppercase text-[10px] gap-2">
+                <Share2 className="h-3.5 w-3.5" /> Envio em Lote
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="font-bold uppercase text-[10px] gap-2" onClick={() => toast({ title: "Atribuir Docs" })}>
+                <FileText className="h-3.5 w-3.5" /> Atribuir Documentos
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
 
       <Card className="border-[#D2D7DB] shadow-sm overflow-hidden">
         <CardContent className="p-0">
-          <div className="p-4 border-b bg-[#F7F7F7]/50 flex flex-col md:flex-row justify-between gap-4">
-            <div className="relative flex-1 md:max-w-md">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
-              <Input 
-                placeholder="Buscar cliente, processo ou CNPJ..." 
-                className="pl-10 bg-white border-[#D2D7DB]"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {isLoading ? (
-            <div className="h-64 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" /></div>
-          ) : hierarchicalData.length > 0 ? (
-            <div className="divide-y divide-[#D2D7DB]">
-              {hierarchicalData.map((dept) => (
-                <div key={dept.name} className="bg-white">
-                  <div className="bg-[#2C4156]/5 px-6 py-2 border-y border-[#D2D7DB]/50">
-                    <h2 className="text-[11px] font-black text-[#2C4156] uppercase tracking-[0.2em]">{dept.name}</h2>
-                  </div>
-                  
-                  {dept.obligations.map((ob) => (
-                    <div key={ob.name} className="border-b last:border-none">
-                      <div className="bg-[#F7F7F7] px-8 py-3 flex items-center gap-3">
-                        <div className="w-1 h-4 bg-[#1FA67A] rounded-full" />
-                        <h3 className="text-xs font-black text-[#39586D] uppercase tracking-wider">{ob.name}</h3>
-                        <Badge variant="outline" className="text-[8px] h-4 px-1.5 font-bold border-[#D2D7DB] text-[#98A7AA]">
-                          {ob.items.length} CLIENTES
-                        </Badge>
-                      </div>
-
-                      <Table>
-                        <TableBody>
-                          {ob.items.map(p => {
-                            const client = (clients || []).find(c => c.id === p.clienteId)
-                            const isSelected = selectedIds.includes(p.id)
-                            return (
-                              <TableRow key={p.id} className={cn(
-                                "hover:bg-[#F7F7F7] transition-colors group",
-                                isSelected && "bg-[#1FA67A]/5"
-                              )}>
-                                <TableCell className="w-12 text-center pl-8">
-                                  <Checkbox 
-                                    checked={isSelected} 
-                                    onCheckedChange={() => toggleSelect(p.id)}
-                                    className="h-5 w-5 data-[state=checked]:bg-[#1FA67A]"
-                                  />
-                                </TableCell>
-                                <TableCell className="py-4" onClick={() => handleOpenProcess(p)}>
-                                  <div className="flex flex-col">
-                                    <span className="text-xs font-black text-[#2C4156] uppercase leading-tight">{client?.corporateName || 'Cliente não identificado'}</span>
-                                    <span className="text-[9px] font-mono text-[#98A7AA]">{client?.cnpj}</span>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-center w-40">
-                                  <Badge className={cn(
-                                    "text-[9px] font-black uppercase border-none px-3",
-                                    p.situacao === 'concluido' ? "bg-[#7ED6B5] text-[#1FA67A]" :
-                                    p.situacao === 'em_multa' ? "bg-[#FEE2E2] text-[#E74C3C]" :
-                                    p.situacao === 'em_progresso' ? "bg-[#E3F0F9] text-[#2574A9]" : "bg-[#F3F4F6] text-[#98A7AA]"
-                                  )}>
-                                    {p.situacao?.replace('_', ' ') || 'A Fazer'}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-center w-32">
-                                  <div className="flex flex-col items-center">
-                                    <span className="text-[10px] font-black text-[#39586D]">
-                                      {p.prazo ? format(typeof p.prazo === 'string' ? parseISO(p.prazo) : new Date(p.prazo), 'dd/MM') : '--'}
-                                    </span>
-                                    <span className="text-[8px] font-bold text-[#98A7AA] uppercase tracking-tighter">Vencimento</span>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="w-40">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-6 h-6 rounded-full bg-[#2C4156] flex items-center justify-center text-white text-[8px] font-black uppercase">
-                                      {p.responsavelId?.charAt(0) || 'G'}
-                                    </div>
-                                    <span className="text-[10px] font-bold text-[#39586D] truncate max-w-[100px] uppercase">{p.responsavelId || 'Geral'}</span>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-right pr-8 w-12">
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]" onClick={() => handleOpenProcess(p)}>
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            )
-                          })}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="h-64 flex flex-col items-center justify-center text-center p-12 bg-white">
-              <CalendarDays className="h-12 w-12 text-[#D2D7DB] mb-4" />
-              <h3 className="text-lg font-black text-[#2C4156] uppercase">Nenhum processo localizado</h3>
-              <p className="text-sm text-[#98A7AA] font-bold max-w-sm">Tente ajustar os filtros de busca ou mude a competência mensal.</p>
-              <Button className="mt-6 bg-[#1FA67A] font-black uppercase text-xs" onClick={() => setIsCreateModalOpen(true)}>Criar Novo Processo</Button>
-            </div>
-          )}
+          <Table>
+            <TableHeader className="bg-[#2C4156]">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-12 text-center pl-4">
+                  <Checkbox 
+                    checked={selectedIds.length === filteredProcesses.length && filteredProcesses.length > 0}
+                    onCheckedChange={(checked) => {
+                      if (checked) setSelectedIds(filteredProcesses.map(i => i.id))
+                      else setSelectedIds([])
+                    }}
+                    className="border-white/30 data-[state=checked]:bg-[#1FA67A] data-[state=checked]:border-[#1FA67A]"
+                  />
+                </TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px]">Processos</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] text-center">Nº de Clientes</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] text-center">Nº de Processos</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px]">Departamentos</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px]">Responsáveis</TableHead>
+                <TableHead className="w-12"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-32 text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
+                  </TableCell>
+                </TableRow>
+              ) : groupedProcesses.length > 0 ? (
+                groupedProcesses.map((group) => (
+                  <Collapsible
+                    key={group.name}
+                    open={openGroups.includes(group.name)}
+                    onOpenChange={(isOpen) => {
+                      setOpenGroups(prev => isOpen ? [...prev, group.name] : prev.filter(n => n !== group.name))
+                    }}
+                    asChild
+                  >
+                    <React.Fragment>
+                      <CollapsibleTrigger asChild>
+                        <TableRow className="bg-white hover:bg-[#F7F7F7] cursor-pointer group transition-colors">
+                          <TableCell className="w-12 text-center pl-4">
+                            <Checkbox 
+                              checked={group.items.every((i: any) => selectedIds.includes(i.id))}
+                              onCheckedChange={(checked) => {
+                                const ids = group.items.map((i: any) => i.id)
+                                if (checked) setSelectedIds(prev => [...new Set([...prev, ...ids])])
+                                else setSelectedIds(prev => prev.filter(id => !ids.includes(id)))
+                              }}
+                              className="h-5 w-5 data-[state=checked]:bg-[#1FA67A]"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-[#2C4156] uppercase text-xs">{group.name}</span>
+                              <ChevronRight className={cn(
+                                "h-4 w-4 text-[#98A7AA] transition-transform",
+                                openGroups.includes(group.name) && "rotate-90"
+                              )} />
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center font-bold text-xs text-[#39586D]">{group.clientsCount}</TableCell>
+                          <TableCell className="text-center font-bold text-xs text-[#39586D]">{group.processesCount}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {Array.from(group.departments).map((dept: any) => (
+                                <Badge key={dept} variant="outline" className="text-[8px] uppercase border-[#D2D7DB]">{dept}</Badge>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex -space-x-2">
+                              {Array.from(group.responsibles).slice(0, 3).map((resp: any) => (
+                                <Avatar key={resp} className="h-6 w-6 border-2 border-white">
+                                  <AvatarFallback className="bg-[#2C4156] text-white text-[8px] font-black">
+                                    {resp.charAt(0)}
+                                  </AvatarFallback>
+                                </Avatar>
+                              ))}
+                              {group.responsibles.size > 3 && (
+                                <div className="h-6 w-6 rounded-full bg-[#F7F7F7] border-2 border-white flex items-center justify-center text-[8px] font-black text-[#98A7AA]">
+                                  +{group.responsibles.size - 3}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right pr-4">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent asChild>
+                        <TableRow className="bg-[#F7F7F7]/50 hover:bg-transparent">
+                          <TableCell colSpan={7} className="p-0 border-b">
+                            <div className="px-12 py-2">
+                              <Table>
+                                <TableHeader className="bg-transparent">
+                                  <TableRow className="border-none hover:bg-transparent">
+                                    <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8">Cliente / CNPJ</TableHead>
+                                    <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8 text-center">Status</TableHead>
+                                    <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8 text-center">Vencimento</TableHead>
+                                    <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8">Responsável</TableHead>
+                                    <TableHead className="w-12"></TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {group.items.map((p: any) => {
+                                    const client = clients.find(c => c.id === p.clienteId)
+                                    return (
+                                      <TableRow key={p.id} className="border-none hover:bg-[#EBEDF0] transition-colors rounded-lg group/item">
+                                        <TableCell className="py-2">
+                                          <div className="flex flex-col">
+                                            <span className="text-[11px] font-bold text-[#2C4156] uppercase">{client?.corporateName || '---'}</span>
+                                            <span className="text-[9px] font-mono text-[#98A7AA]">{client?.cnpj || '---'}</span>
+                                          </div>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                          <Badge className={cn(
+                                            "text-[9px] font-black uppercase border-none px-2",
+                                            p.situacao === 'concluido' ? "bg-[#7ED6B5] text-[#1FA67A]" :
+                                            p.situacao === 'em_multa' ? "bg-[#FEE2E2] text-[#E74C3C]" :
+                                            p.situacao === 'em_progresso' ? "bg-[#E3F0F9] text-[#2574A9]" : "bg-[#F3F4F6] text-[#98A7AA]"
+                                          )}>
+                                            {p.situacao?.replace('_', ' ')}
+                                          </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                          <span className="text-[10px] font-bold text-[#39586D]">
+                                            {p.prazo ? format(typeof p.prazo === 'string' ? parseISO(p.prazo) : new Date(p.prazo), 'dd/MM/yyyy') : '--'}
+                                          </span>
+                                        </TableCell>
+                                        <TableCell>
+                                          <span className="text-[10px] font-bold text-[#39586D] uppercase">{p.responsavelId || 'Geral'}</span>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                          <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-7 w-7 text-[#98A7AA] opacity-0 group-hover/item:opacity-100"
+                                            onClick={() => handleOpenProcess(p)}
+                                          >
+                                            <ArrowUpRight className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </TableCell>
+                                      </TableRow>
+                                    )
+                                  })}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      </CollapsibleContent>
+                    </React.Fragment>
+                  ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-32 text-center text-[#98A7AA] font-bold uppercase text-xs">
+                    Nenhum processo localizado para os filtros atuais.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
@@ -384,5 +469,21 @@ function KpiMiniCard({ label, value, icon: Icon, color }: any) {
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+function Avatar({ className, children }: any) {
+  return (
+    <div className={cn("relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full", className)}>
+      {children}
+    </div>
+  )
+}
+
+function AvatarFallback({ className, children }: any) {
+  return (
+    <div className={cn("flex h-full w-full items-center justify-center rounded-full bg-muted", className)}>
+      {children}
+    </div>
   )
 }
