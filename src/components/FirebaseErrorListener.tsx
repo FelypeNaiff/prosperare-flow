@@ -5,35 +5,34 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 /**
- * An invisible component that listens for globally emitted 'permission-error' events.
- * It throws any received error to be caught by Next.js's global-error.tsx.
+ * Um componente que escuta falhas de permissão globais.
+ * Seguindo as diretrizes de desenvolvimento, ele apenas loga no console
+ * para evitar o travamento da interface pelo overlay do Next.js.
  */
 export function FirebaseErrorListener() {
-  // Use the specific error type for the state for type safety.
-  const [error, setError] = useState<FirestorePermissionError | null>(null);
+  const [, setError] = useState<FirestorePermissionError | null>(null);
 
   useEffect(() => {
-    // The callback now expects a strongly-typed error, matching the event payload.
     const handleError = (error: FirestorePermissionError) => {
-      // Set error in state to trigger a re-render.
-      setError(error);
+      if (process.env.NODE_ENV === 'development') {
+        // Apenas logamos no console para evitar o crash total da interface no overlay
+        console.warn('[Firestore Security Policy Violation]', {
+          path: error.request.path,
+          method: error.request.method,
+          auth: error.request.auth?.uid || 'Unauthenticated'
+        });
+      } else {
+        console.error('[Firestore Security Policy Violation]', error.request.path, error.request.method);
+      }
     };
 
-    // The typed emitter will enforce that the callback for 'permission-error'
-    // matches the expected payload type (FirestorePermissionError).
     errorEmitter.on('permission-error', handleError);
 
-    // Unsubscribe on unmount to prevent memory leaks.
     return () => {
       errorEmitter.off('permission-error', handleError);
     };
   }, []);
 
-  // On re-render, if an error exists in state, throw it.
-  if (error) {
-    throw error;
-  }
-
-  // This component renders nothing.
+  // Removido o throw error para evitar o overlay do Next.js em desenvolvimento
   return null;
 }

@@ -1,11 +1,11 @@
-
-"use client"
+'use client';
 
 import { useState, useEffect } from "react"
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/layout/app-sidebar"
-import { User, ChevronRight, Home } from "lucide-react"
+import { ChevronRight, Home, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -14,32 +14,57 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
-import { useAuth } from "@/hooks/use-auth-mock"
+import { useUser, useAuth } from "@/firebase"
+import { initiateLogout } from "@/firebase/non-blocking-login"
 import { ChatWidget } from "@/components/collaboration/chat-widget"
 import { NotificationBell } from "@/components/collaboration/notification-bell"
 import { GlobalSearch } from "@/components/layout/global-search"
 import { QuickAccess } from "@/components/layout/quick-access"
-import { usePathname } from "next/navigation"
-import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { logout, user } = useAuth()
+  const { user, selectedUser, isUserLoading, isAuthChecking, userLoaded } = useUser()
+  const auth = useAuth()
   const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  if (!mounted) return null
+  useEffect(() => {
+    if (mounted && userLoaded) {
+      if (!user) {
+        router.push("/login")
+      } else if (!selectedUser && pathname !== "/escolha-usuario") {
+        router.push("/escolha-usuario")
+      }
+    }
+  }, [mounted, user, selectedUser, userLoaded, router, pathname])
+
+  if (!mounted || !userLoaded || isUserLoading || isAuthChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F7F7F7]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-[#1FA67A]" />
+          <p className="text-xs font-black uppercase text-[#98A7AA] tracking-widest animate-pulse">Sincronizando Sessão...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user || (!selectedUser && pathname !== "/escolha-usuario")) return null
 
   const pathSegments = pathname.split('/').filter(Boolean)
 
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <div className="print:hidden">
+        <AppSidebar />
+      </div>
       <SidebarInset className="bg-[#F7F7F7]">
-        <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-white px-6 sticky top-0 z-40">
+        <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-white px-6 sticky top-0 z-40 print:hidden">
           <SidebarTrigger className="text-[#2C4156]" />
           
           <div className="flex-1 flex items-center gap-4 overflow-hidden">
@@ -62,38 +87,45 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full border-2 border-[#D2D7DB]">
-                  <User className="h-5 w-5 text-[#2C4156]" />
+                <Button variant="ghost" size="icon" className="rounded-full border-2 border-[#D2D7DB] overflow-hidden p-0 h-10 w-10">
+                  <Avatar className="h-full w-full rounded-none">
+                    <AvatarFallback className="bg-[#2C4156] text-white text-xs font-black">
+                      {selectedUser?.fullName?.charAt(0) || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 shadow-xl border-[#D2D7DB]">
                 <DropdownMenuLabel className="text-[#2C4156]">
-                  <p className="font-bold">{user?.name}</p>
-                  <p className="text-[10px] text-[#98A7AA] uppercase">{user?.profile}</p>
+                  <p className="font-bold truncate">{selectedUser?.fullName || 'Usuário'}</p>
+                  <p className="text-[10px] text-[#98A7AA] uppercase font-black">{selectedUser?.profile || 'OPERADOR'}</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild><Link href="/configuracoes/meus-dados">Meu Perfil</Link></DropdownMenuItem>
-                <DropdownMenuItem>Minhas Tarefas</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/escolha-usuario")} className="font-bold text-[#2574A9] cursor-pointer">
+                  Trocar de Usuário
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="text-[#E74C3C] font-bold">Sair do Sistema</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => initiateLogout(auth)} className="text-[#E74C3C] font-bold cursor-pointer">
+                  Encerrar Sessão Mestre
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </header>
         
-        <main className="p-4 md:p-8 flex-1 overflow-x-hidden">
+        <main className="p-4 md:p-8 flex-1 overflow-x-hidden print:p-0 print:m-0 print:bg-white">
           {children}
         </main>
 
-        <footer className="h-12 border-t bg-white flex items-center justify-between px-8 text-[11px] text-[#98A7AA] font-medium">
-          <span>Prosperare Flow © 2026 — Sistema de Gestão Contábil</span>
+        <footer className="h-12 border-t bg-white flex items-center justify-between px-8 text-[11px] text-[#98A7AA] font-medium print:hidden">
+          <span>Prosperare Flow © 2026 — Gestão Digital Integrada</span>
           <div className="flex gap-4">
-            <Link href="#" className="hover:text-[#1FA67A]">Termos de Uso</Link>
-            <Link href="#" className="hover:text-[#1FA67A]">Privacidade</Link>
-            <Link href="#" className="hover:text-[#1FA67A]">Suporte</Link>
+            <span className="text-[9px] font-black uppercase text-[#1FA67A]">Operador: {selectedUser?.fullName}</span>
           </div>
         </footer>
-        <ChatWidget />
+        <div className="print:hidden">
+          <ChatWidget />
+        </div>
       </SidebarInset>
     </SidebarProvider>
   )

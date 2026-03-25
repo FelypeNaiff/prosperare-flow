@@ -12,22 +12,35 @@ import {
   Filter, 
   Download,
   ClipboardList,
-  BarChart3
+  Settings,
+  Loader2,
+  ListRestart
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { IrpfDashboard } from "@/components/irpf/irpf-dashboard"
 import { IrpfKanban } from "@/components/irpf/irpf-kanban"
 import { IrpfList } from "@/components/irpf/irpf-list"
 import { IrpfDeclarationModal } from "@/components/irpf/irpf-declaration-modal"
-import { useAuth } from "@/hooks/use-auth-mock"
+import { IrpfFlowManager } from "@/components/irpf/irpf-flow-manager"
+import { useUser } from "@/firebase"
+import Link from "next/link"
 
 export default function IrpfPage() {
   const [view, setView] = useState<"kanban" | "lista">("kanban")
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isFlowManagerOpen, setIsFlowManagerOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
-  const { user } = useAuth()
+  const { userData, isUserLoading } = useUser()
 
-  const canAccess = user?.profile !== 'ASSISTENTE'
+  if (isUserLoading) {
+    return (
+      <div className="h-[60vh] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
+      </div>
+    )
+  }
+
+  const canAccess = userData?.profile !== 'ASSISTENTE'
 
   if (!canAccess) {
     return (
@@ -49,8 +62,13 @@ export default function IrpfPage() {
           <p className="text-[#98A7AA] font-medium">Fluxo de declarações de Imposto de Renda Pessoa Física.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="border-[#D2D7DB] gap-2">
-            <Download className="h-4 w-4" /> Exportar
+          <Button variant="outline" className="border-[#D2D7DB] gap-2" onClick={() => setIsFlowManagerOpen(true)}>
+            <ListRestart className="h-4 w-4" /> Gerenciar Fluxos
+          </Button>
+          <Button asChild variant="outline" className="border-[#D2D7DB] gap-2">
+            <Link href="/configuracoes/irpf">
+              <Settings className="h-4 w-4" /> Etiquetas
+            </Link>
           </Button>
           <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2" onClick={() => setIsModalOpen(true)}>
             <Plus className="h-4 w-4" /> Nova Declaração
@@ -97,6 +115,7 @@ export default function IrpfPage() {
       </Tabs>
 
       <IrpfDeclarationModal open={isModalOpen} onOpenChange={setIsModalOpen} />
+      <IrpfFlowManager open={isFlowManagerOpen} onOpenChange={setIsFlowManagerOpen} />
     </div>
   )
 }

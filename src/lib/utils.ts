@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -23,21 +24,36 @@ export function formatCNPJ(value: string) {
 }
 
 export function validateCNPJ(cnpj: string) {
-  const b = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
   const c = String(cnpj).replace(/[^\d]/g, '')
   
   if (c.length !== 14) return false
-  if (/0{14}/.test(c)) return false
+  if (/^(\d)\1+$/.test(c)) return false
 
-  let n = 0
-  for (let i = 0; i < 12; i++) n += parseInt(c[i]) * b[i + 1]
-  let r = n % 11
-  if (parseInt(c[12]) !== (r < 2 ? 0 : 11 - r)) return false
+  let length = c.length - 2
+  let numbers = c.substring(0, length)
+  const digits = c.substring(length)
+  let sum = 0
+  let pos = length - 7
 
-  n = 0
-  for (let i = 0; i <= 12; i++) n += parseInt(c[i]) * b[i]
-  r = n % 11
-  if (parseInt(c[13]) !== (r < 2 ? 0 : 11 - r)) return false
+  for (let i = length; i >= 1; i--) {
+    sum += Number(numbers.charAt(length - i)) * pos--
+    if (pos < 2) pos = 9
+  }
+
+  let result = sum % 11 < 2 ? 0 : 11 - (sum % 11)
+  if (result !== Number(digits.charAt(0))) return false
+
+  length = length + 1
+  numbers = c.substring(0, length)
+  sum = 0
+  pos = length - 7
+  for (let i = length; i >= 1; i--) {
+    sum += Number(numbers.charAt(length - i)) * pos--
+    if (pos < 2) pos = 9
+  }
+
+  result = sum % 11 < 2 ? 0 : 11 - (sum % 11)
+  if (result !== Number(digits.charAt(1))) return false
 
   return true
 }

@@ -53,20 +53,112 @@
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
+/* Global Modal/Dialog Optimization - Fixed Header/Footer, Scrollable Body */
+[data-radix-portal] [role="dialog"] {
+  max-height: 90vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+[data-radix-portal] [role="dialog"] > div[class*="DialogHeader"],
+[data-radix-portal] [role="dialog"] > header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 20 !important;
+  background: inherit !important;
+}
+
+[data-radix-portal] [role="dialog"] > div[class*="DialogFooter"],
+[data-radix-portal] [role="dialog"] > footer {
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 20 !important;
+  background: inherit !important;
+}
+
+.modal-scroll-content {
+  overflow-y: auto !important;
+  max-height: 70vh !important;
+  scroll-behavior: smooth !important;
+  flex: 1 1 auto !important;
+  overscroll-behavior: contain !important;
+  padding-bottom: 1.5rem !important;
+}
+
+/* Scrollbar Styling - Modern & Subtle */
+.modal-scroll-content::-webkit-scrollbar {
   width: 6px;
-  height: 6px;
+}
+.modal-scroll-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.modal-scroll-content::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted) / 0.3);
+  border-radius: 10px;
+}
+.modal-scroll-content::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted) / 0.5);
+}
+
+@media print {
+  html, body {
+    height: auto !important;
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-container, .print-container * {
+    visibility: visible !important;
+  }
+
+  .print-container {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    padding: 10mm 15mm !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+    color: black !important;
+    z-index: 9999 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 0;
+  }
+}
+
+/* Custom scrollbar - Elegant & Modern */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted/20 rounded-full hover:bg-muted/30;
+  @apply bg-muted/40 rounded-full hover:bg-muted/60 transition-colors;
 }
 
-/* Custom classes for rebranding */
-.text-flow { color: #1FA67A; }
-.bg-flow { background-color: #1FA67A; }
-.text-prosperare { color: #2C4156; }
-.bg-prosperare { background-color: #2C4156; }
+/* Fix for long lists in Modals */
+[data-radix-scroll-area-viewport] {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted) / 0.3) transparent;
+}

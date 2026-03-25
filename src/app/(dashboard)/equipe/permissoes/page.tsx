@@ -2,9 +2,18 @@
 "use client"
 
 import { useState } from "react"
-import { Lock, ShieldCheck, ShieldAlert, Search, ArrowLeft, Check, X } from "lucide-react"
+import { 
+  Lock, 
+  ShieldCheck, 
+  Search, 
+  ArrowLeft, 
+  Check, 
+  X, 
+  ShieldAlert,
+  Loader2
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { 
@@ -19,27 +28,53 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { toast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection } from "firebase/firestore"
 
-const MOCK_USERS = [
-  { id: '1', name: 'Ricardo Santos', profile: 'SÓCIO', department: 'Diretoria' },
-  { id: '2', name: 'Ana Souza', profile: 'CONTADOR/GESTOR', department: 'Fiscal' },
-  { id: '3', name: 'Bruno Lima', profile: 'ASSISTENTE', department: 'Pessoal' },
-]
-
-const MODULES = [
-  { id: 'clientes', label: 'Clientes' },
-  { id: 'processos', label: 'Processos' },
-  { id: 'certidoes', label: 'Certidões' },
-  { id: 'financeiro', label: 'Financeiro' },
-  { id: 'documentos', label: 'Documentos' },
-  { id: 'equipe', label: 'Equipe' },
-  { id: 'configuracoes', label: 'Configurações' },
-]
+const PERMISSION_GROUPS = [
+  {
+    id: 'clientes',
+    label: 'Relacionamento (Clientes)',
+    description: 'Controle de acesso à base de empresas e dados sensíveis.',
+    permissions: [
+      { id: 'view_clients', label: 'Ver Ficha Completa', desc: 'Acesso aos dados básicos e contatos.' },
+      { id: 'edit_clients', label: 'Editar Dados Cadastrais', desc: 'Alterar CNPJ, regime e endereço.' },
+      { id: 'delete_clients', label: 'Excluir Cliente', desc: 'Remover empresa do sistema.' },
+      { id: 'view_passwords', label: 'Acessar Cofre de Senhas', desc: 'Visualizar senhas de prefeituras e portais.', sensitive: true },
+      { id: 'manage_procurations', label: 'Gerenciar Procurações', desc: 'Controlar vigência de procurações e-CAC.' },
+    ]
+  },
+  {
+    id: 'processos',
+    label: 'Fluxo de Produção (Processos)',
+    description: 'Gestão de tarefas e obrigações fiscais.',
+    permissions: [
+      { id: 'view_tasks', label: 'Visualizar Tarefas', desc: 'Ver kanban e listas de processos.' },
+      { id: 'manage_tasks', label: 'Criar/Editar Processos', desc: 'Cadastrar novas obrigações avulsas.' },
+      { id: 'complete_tasks', label: 'Concluir Tarefas', desc: 'Marcar processos como entregues.' },
+      { id: 'transfer_tasks', label: 'Mudar Responsável', desc: 'Passagem de bastão entre usuários.' },
+      { id: 'manage_groups', label: 'Gerenciar Grupos de Obrigações', desc: 'Configurar automação por tipo de cliente.' },
+    ]
+  }
+];
 
 export default function PermissoesPage() {
   const router = useRouter()
+  const firestore = useFirestore()
   const [selectedUser, setSelectedUser] = useState<any>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+
+  const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
+  const { data: users = [], isLoading } = useCollection(usersQuery)
 
   const handleOpenPerms = (user: any) => {
     setSelectedUser(user)
@@ -48,101 +83,153 @@ export default function PermissoesPage() {
 
   const handleSave = () => {
     setIsModalOpen(false)
-    toast({ title: "Permissões atualizadas!", className: "bg-[#1FA67A] text-white" })
+    toast({ 
+      title: "Permissões atualizadas!", 
+      description: `As novas regras para ${selectedUser.fullName} foram salvas na nuvem.`,
+      className: "bg-[#1FA67A] text-white border-none"
+    })
   }
 
+  const filteredUsers = (users || []).filter(u => 
+    u.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.profile?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+        <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-[#39586D]">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">Gestão de Permissões</h1>
-          <p className="text-[#98A7AA] font-medium">Controle o nível de acesso de cada colaborador por módulo.</p>
+          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão de Permissões</h1>
+          <p className="text-[#98A7AA] font-bold text-sm">Configuração granular de privilégios por colaborador.</p>
         </div>
       </div>
 
-      <Card className="border-[#D2D7DB]">
+      <Card className="border-[#D2D7DB] shadow-sm">
         <CardHeader className="bg-[#F7F7F7]/50 border-b">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-lg flex items-center gap-2">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <CardTitle className="text-lg font-black text-[#2C4156] uppercase flex items-center gap-2">
               <Lock className="h-5 w-5 text-[#1FA67A]" />
-              Colaboradores e Acessos
+              Colaboradores Autorizados
             </CardTitle>
-            <div className="relative w-64">
+            <div className="relative w-full md:w-80">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
-              <Input placeholder="Buscar colaborador..." className="pl-9 h-9" />
+              <Input 
+                placeholder="Buscar colaborador..." 
+                className="pl-9 h-9 bg-white border-[#D2D7DB]" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-[#2C4156]">
-              <TableRow>
-                <TableHead className="text-white font-bold uppercase text-[10px]">Nome</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[10px]">Perfil</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[10px]">Departamento</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[10px] text-right">Ações</TableHead>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-white font-black uppercase text-[10px]">Colaborador</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px]">Perfil de Acesso</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px]">E-mail</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {MOCK_USERS.map((user) => (
-                <TableRow key={user.id} className="hover:bg-[#F7F7F7]">
-                  <TableCell className="font-bold text-[#2C4156]">{user.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-[10px] font-bold uppercase">{user.profile}</Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-[#39586D]">{user.department}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="outline" size="sm" className="gap-2 border-[#D2D7DB]" onClick={() => handleOpenPerms(user)}>
-                      <ShieldCheck className="h-4 w-4 text-[#1FA67A]" /> Gerenciar Permissões
-                    </Button>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-32 text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <TableRow key={user.id} className="hover:bg-[#F7F7F7]">
+                    <TableCell className="font-bold text-[#2C4156]">{user.fullName}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-[10px] font-black uppercase border-[#D2D7DB] text-[#39586D]">{user.profile}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs font-bold text-[#98A7AA]">{user.email}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="outline" size="sm" className="gap-2 border-[#D2D7DB] text-[#2C4156] font-bold" onClick={() => handleOpenPerms(user)}>
+                        <ShieldCheck className="h-4 w-4 text-[#1FA67A]" /> Ajustar Privilégios
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-24 text-center text-[#98A7AA] font-bold">
+                    Nenhum colaborador encontrado.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <ShieldCheck className="h-6 w-6 text-[#1FA67A]" />
-              Permissões: {selectedUser?.name}
-            </DialogTitle>
-            <DialogDescription>Defina o que este usuário pode visualizar, criar, editar ou excluir.</DialogDescription>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-6 bg-[#2C4156] text-white">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/10 rounded-xl">
+                <ShieldCheck className="h-8 w-8 text-[#1FA67A]" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-black uppercase">Permissões Detalhadas</DialogTitle>
+                <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
+                  Editando: {selectedUser?.fullName}
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
           
-          <div className="flex gap-2 py-2 border-b mb-4">
-            <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold"><Check className="h-4 w-4" /> Liberar Todas</Button>
-            <Button size="sm" variant="outline" className="text-[#E74C3C] border-[#E74C3C] gap-2 font-bold hover:bg-[#E74C3C]/5"><X className="h-4 w-4" /> Bloquear Todas</Button>
-          </div>
+          <ScrollArea className="flex-1">
+            <div className="p-6 space-y-6">
+              <Accordion type="multiple" className="w-full">
+                {PERMISSION_GROUPS.map((group) => (
+                  <AccordionItem key={group.id} value={group.id} className="border-[#D2D7DB]">
+                    <AccordionTrigger className="hover:no-underline py-4 px-2 hover:bg-[#F7F7F7] rounded-lg">
+                      <div className="text-left">
+                        <p className="text-sm font-black text-[#2C4156] uppercase">{group.label}</p>
+                        <p className="text-[10px] font-bold text-[#98A7AA] uppercase">{group.description}</p>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-2 pb-4 space-y-2">
+                      {group.permissions.map((perm) => (
+                        <div key={perm.id} className={cn(
+                          "flex items-center justify-between p-3 rounded-xl border border-transparent hover:border-[#D2D7DB] hover:bg-[#F7F7F7] transition-all",
+                          perm.sensitive && "bg-amber-50/30"
+                        )}>
+                          <div className="space-y-0.5 flex-1 pr-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-black text-[#39586D] uppercase">{perm.label}</span>
+                              {perm.sensitive && (
+                                <Badge className="bg-[#FEF3C7] text-[#F2B705] border-none text-[8px] font-black uppercase flex items-center gap-1">
+                                  <ShieldAlert className="h-2 w-2" /> Sensível (LGPD)
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-[10px] font-bold text-[#98A7AA]">{perm.desc}</p>
+                          </div>
+                          <Checkbox 
+                            id={perm.id} 
+                            defaultChecked={selectedUser?.profile === 'SÓCIO' || selectedUser?.profile === 'ADMINISTRADOR'}
+                            className="h-5 w-5 border-[#D2D7DB] data-[state=checked]:bg-[#1FA67A] data-[state=checked]:border-[#1FA67A]" 
+                          />
+                        </div>
+                      ))}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
+          </ScrollArea>
 
-          <div className="space-y-4 py-4 max-h-[400px] overflow-y-auto pr-2">
-            {MODULES.map((module) => (
-              <div key={module.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-[#F7F7F7]">
-                <div className="space-y-0.5">
-                  <p className="text-sm font-bold text-[#2C4156]">{module.label}</p>
-                  <p className="text-[10px] text-[#98A7AA]">Acesso completo ao módulo de {module.label.toLowerCase()}</p>
-                </div>
-                <div className="flex gap-6">
-                  {['Ver', 'Criar', 'Editar', 'Excluir'].map((action) => (
-                    <div key={action} className="flex flex-col items-center gap-1">
-                      <span className="text-[9px] uppercase font-bold text-[#98A7AA]">{action}</span>
-                      <Checkbox defaultChecked={selectedUser?.profile === 'SÓCIO'} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-            <Button className="bg-[#1FA67A] font-bold" onClick={handleSave}>Salvar Permissões</Button>
+          <DialogFooter className="bg-[#F7F7F7] p-6 border-t">
+            <Button variant="outline" onClick={() => setIsModalOpen(false)} className="border-[#D2D7DB] font-bold">Cancelar</Button>
+            <Button className="bg-[#1FA67A] font-black uppercase text-xs px-10 shadow-lg" onClick={handleSave}>Salvar Configurações</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

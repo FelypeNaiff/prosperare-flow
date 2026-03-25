@@ -6,45 +6,60 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { 
-  Paperclip, 
-  MessageSquare, 
-  Clock, 
   Plus, 
   MoreVertical,
-  ChevronRight,
-  Copy
+  Loader2,
+  GripVertical
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { IrpfDetailsDrawer } from "./irpf-details-drawer"
 import { cn } from "@/lib/utils"
-import { toast } from "@/hooks/use-toast"
+import { useFirestore, useCollection, useMemoFirebase, useUser, updateDocumentNonBlocking } from "@/firebase"
+import { collection, query, where, doc, orderBy } from "firebase/firestore"
 
-const COLUMNS = [
-  { id: 'awaiting_docs', title: '📥 Aguardando Documentos', count: 12, total: 3500 },
-  { id: 'docs_received', title: '📂 Documentos Recebidos', count: 8, total: 2400 },
-  { id: 'analyzing', title: '🔄 Em Análise', count: 5, total: 1500 },
-  { id: 'filling', title: '⚙️ Em Preenchimento', count: 15, total: 4500 },
-  { id: 'approval', title: '✅ Aguardando Aprovação', count: 4, total: 1200 },
-  { id: 'sent', title: '📤 Enviada RFB', count: 22, total: 6600 },
-  { id: 'completed', title: '🏆 Concluída', count: 10, total: 3000 },
-]
-
-const MOCK_CARDS = [
-  { id: 'ir1', name: 'João da Silva', cpf: '123.456.789-00', govPass: 'SenhaGov123!', year: '2026', status: 'awaiting_docs', progress: 30, tags: ['Prioritário', 'Restituição'], due: '15/04', responsible: 'Ricardo', attachments: 2, comments: 1 },
-  { id: 'ir2', name: 'Maria Santos', cpf: '456.789.123-11', govPass: 'MariaGov@2026', year: '2026', status: 'filling', progress: 65, tags: ['Em dia'], due: '20/04', responsible: 'Fernanda', attachments: 5, comments: 3 },
-  { id: 'ir3', name: 'Carlos Oliveira', cpf: '789.123.456-22', govPass: 'Carlos#Pass', year: '2026', status: 'analyzing', progress: 10, tags: ['Novo cliente', 'A pagar'], due: '10/04', responsible: 'Ana', attachments: 0, comments: 0 },
-  { id: 'ir4', name: 'Beatriz Lima', cpf: '321.654.987-33', govPass: 'Beatriz@Gov', year: '2026', status: 'sent', progress: 100, tags: ['Concluído'], due: '05/04', responsible: 'Ricardo', attachments: 8, comments: 2 },
+const AVAILABLE_TAGS = [
+  { name: 'AGUARDANDO RETORNO...', color: 'bg-[#F2B705] text-white' },
+  { name: 'MALHA FISCAL', color: 'bg-[#E74C3C] text-white' },
+  { name: 'NÃO PAGO', color: 'bg-[#A569BD] text-white' },
+  { name: 'FINALIZADO!', color: 'bg-[#3498DB] text-white' },
+  { name: 'PAGO', color: 'bg-[#2E86C1] text-white' },
+  { name: '2 FATORES', color: 'bg-[#5DADE2] text-white' },
+  { name: 'EM PROCESSAMENTO', color: 'bg-[#1FA67A] text-white' },
+  { name: 'GOV', color: 'bg-[#566573] text-white' },
 ]
 
 export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
+  const { selectedUser } = useUser()
+  const firestore = useFirestore()
   const [selectedDeclaration, setSelectedDeclaration] = useState<any>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [draggedId, setDraggedId] = useState<string | null>(null)
 
-  const filteredCards = MOCK_CARDS.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.cpf.includes(searchTerm)
+  // Query de estágios (colunas)
+  const stagesQuery = useMemoFirebase(() => query(collection(firestore, "irpf_stages"), orderBy("order", "asc")), [firestore])
+  const { data: dbStages, isLoading: loadingStages } = useCollection(stagesQuery)
+
+  // Fallback para colunas padrão se o banco estiver vazio
+  const DEFAULT_COLUMNS = [
+    { id: 'not_started', title: '⚪ NÃO INICIADO' },
+    { id: 'filling', title: '⚙️ EM PREENCHIMENTO' },
+    { id: 'awaiting_production', title: '⏳ AGUARDANDO PRODUÇÃO' },
+    { id: 'sent', title: '📤 ENVIADO RFB' },
+    { id: 'completed', title: '✅ CONCLUIDA' },
+  ]
+
+  const columns = (dbStages && dbStages.length > 0) ? dbStages : DEFAULT_COLUMNS
+
+  // Consulta individualizada: Filtra apenas declarações do colaborador operacional atual
+  const irpfQuery = useMemoFirebase(() => 
+    selectedUser?.id ? query(collection(firestore, "irpf_declarations"), where("responsibleId", "==", selectedUser.id)) : null,
+    [firestore, selectedUser?.id]
+  )
+  const { data: declarations, isLoading: loadingDecls } = useCollection(irpfQuery)
+
+  const filteredCards = (declarations || []).filter(c => 
+    c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    c.cpf?.includes(searchTerm)
   )
 
   const handleOpenDetails = (card: any) => {
@@ -52,119 +67,125 @@ export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
     setIsDrawerOpen(true)
   }
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text)
-    toast({
-      title: "Copiado!",
-      description: `${label} copiado para a área de transferência.`
-    })
+  const getColumnStats = (colId: string) => {
+    const colCards = filteredCards.filter(c => c.status === colId)
+    const totalValue = colCards.reduce((acc, c) => acc + (Number(c.value) || 0), 0)
+    return { count: colCards.length, total: totalValue }
+  }
+
+  // Lógica de Drag & Drop Nativa
+  const onDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedId(id)
+    e.dataTransfer.setData("cardId", id)
+    e.dataTransfer.effectAllowed = "move"
+  }
+
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = "move"
+  }
+
+  const onDrop = (e: React.DragEvent, targetStatus: string) => {
+    e.preventDefault()
+    const cardId = e.dataTransfer.getData("cardId")
+    if (!cardId) return
+
+    const card = (declarations || []).find(d => d.id === cardId)
+    if (card && card.status !== targetStatus) {
+      updateDocumentNonBlocking(doc(firestore, "irpf_declarations", cardId), { 
+        status: targetStatus,
+        updatedAt: new Date().toISOString()
+      })
+    }
+    setDraggedId(null)
+  }
+
+  if (loadingStages || loadingDecls) {
+    return (
+      <div className="h-64 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
+      </div>
+    )
   }
 
   return (
     <div className="relative">
-      <ScrollArea className="w-full whitespace-nowrap rounded-md border-none">
+      <ScrollArea className="w-full whitespace-nowrap rounded-md border-none pb-4">
         <div className="flex gap-4 p-1">
-          {COLUMNS.map(col => (
-            <div key={col.id} className="w-[300px] flex flex-col gap-4 bg-[#F7F7F7]/50 p-2 rounded-lg min-h-[600px] border border-dashed border-[#D2D7DB]">
-              <div className="flex items-center justify-between px-2">
-                <div className="space-y-0.5">
-                  <h3 className="text-xs font-black text-[#2C4156] uppercase tracking-tighter flex items-center gap-2">
-                    {col.title}
-                  </h3>
-                  <p className="text-[10px] font-bold text-[#98A7AA]">
-                    {col.count} DECLARAÇÕES • R$ {col.total.toLocaleString('pt-BR')}
-                  </p>
+          {columns.map(col => {
+            const stats = getColumnStats(col.id)
+            return (
+              <div 
+                key={col.id} 
+                className="w-[300px] flex flex-col gap-4 bg-[#EBEDF0] p-2 rounded-lg min-h-[600px] border border-[#D2D7DB] transition-colors"
+                onDragOver={onDragOver}
+                onDrop={(e) => onDrop(e, col.id)}
+              >
+                <div className="flex items-center justify-between px-2 pt-1">
+                  <div className="space-y-0.5">
+                    <h3 className="text-[11px] font-black text-[#172B4D] uppercase tracking-wider flex items-center gap-2">
+                      {col.title}
+                    </h3>
+                    <p className="text-[10px] font-bold text-[#5E6C84]">
+                      {stats.count} CARDS • R$ {stats.total.toLocaleString('pt-BR')}
+                    </p>
+                  </div>
                 </div>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-[#98A7AA] hover:text-[#1FA67A]">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
 
-              <div className="flex flex-col gap-3">
-                {filteredCards.filter(c => c.status === col.id).map(card => (
-                  <Card 
-                    key={card.id} 
-                    className="bg-white border-[#D2D7DB] hover:shadow-md transition-all cursor-pointer group"
-                    onClick={() => handleOpenDetails(card)}
-                  >
-                    <CardContent className="p-3 space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-6 w-6">
-                            <AvatarFallback className="bg-[#2C4156] text-white text-[10px] font-bold">
-                              {card.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col">
-                            <span className="text-xs font-bold text-[#2C4156] group-hover:text-[#1FA67A] transition-colors">{card.name}</span>
-                            <div className="flex items-center gap-1">
-                              <span className="text-[9px] font-bold text-[#98A7AA] font-mono">{card.cpf}</span>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  copyToClipboard(card.cpf, "CPF");
-                                }}
-                                className="text-[#98A7AA] hover:text-[#1FA67A] transition-colors"
-                              >
-                                <Copy className="h-2 w-2" />
-                              </button>
+                <div className="flex flex-col gap-3">
+                  {filteredCards.filter(c => c.status === col.id).map(card => (
+                    <Card 
+                      key={card.id} 
+                      draggable
+                      onDragStart={(e) => onDragStart(e, card.id)}
+                      className={cn(
+                        "bg-white border-[#D2D7DB] shadow-sm cursor-grab active:cursor-grabbing hover:bg-[#F4F5F7] transition-all group relative",
+                        draggedId === card.id && "opacity-40"
+                      )}
+                      onClick={() => handleOpenDetails(card)}
+                    >
+                      <CardContent className="p-3 space-y-3">
+                        <div className="flex flex-wrap gap-1">
+                          {card.tags?.map((tagName: string) => {
+                            const tag = AVAILABLE_TAGS.find(t => t.name === tagName)
+                            return (
+                              <div key={tagName} className={cn("h-2 w-8 rounded-full", tag?.color || "bg-slate-400")} />
+                            )
+                          })}
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-bold text-[#172B4D] leading-tight break-words whitespace-normal flex-1">{card.name}</p>
+                            <GripVertical className="h-3 w-3 text-[#D2D7DB] opacity-0 group-hover:opacity-100" />
+                          </div>
+                          <p className="text-[10px] font-mono text-[#5E6C84]">{card.cpf}</p>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t mt-2">
+                          <div className="flex items-center gap-2 text-[#5E6C84]">
+                            <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest">
+                              R$ {Number(card.value || 0).toLocaleString('pt-BR')}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[9px] font-black text-[#98A7AA]">{card.progress || 0}%</span>
+                            <div className="w-10 h-1 bg-slate-100 rounded-full">
+                              <div className="h-full bg-[#1FA67A]" style={{ width: `${card.progress || 0}%` }} />
                             </div>
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100">
-                          <MoreVertical className="h-3 w-3" />
-                        </Button>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1">
-                        {card.tags.map(tag => (
-                          <Badge key={tag} className={cn(
-                            "text-[8px] px-1 h-3.5 uppercase font-black border-none",
-                            tag === 'Prioritário' ? 'bg-[#FEE2E2] text-[#E74C3C]' : 
-                            tag === 'Restituição' ? 'bg-[#7ED6B5] text-[#1FA67A]' :
-                            tag === 'A pagar' ? 'bg-[#FEE2E2] text-[#E74C3C]' :
-                            'bg-[#F7F7F7] text-[#98A7AA]'
-                          )}>
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[9px] font-bold uppercase text-[#98A7AA]">
-                          <span>Progresso Checklist</span>
-                          <span>{card.progress}%</span>
-                        </div>
-                        <Progress value={card.progress} className="h-1 bg-[#F7F7F7]" />
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2 border-t border-[#F7F7F7]">
-                        <div className="flex items-center gap-2 text-[#98A7AA]">
-                          <div className="flex items-center gap-0.5">
-                            <Paperclip className="h-2.5 w-2.5" />
-                            <span className="text-[9px] font-bold">{card.attachments}</span>
-                          </div>
-                          <div className="flex items-center gap-0.5">
-                            <MessageSquare className="h-2.5 w-2.5" />
-                            <span className="text-[9px] font-bold">{card.comments}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-[#FEF3C7] rounded text-[#F2B705]">
-                            <Clock className="h-2.5 w-2.5" />
-                            <span className="text-[9px] font-black">{card.due}</span>
-                          </div>
-                          <Avatar className="h-5 w-5 border border-white">
-                            <AvatarFallback className="bg-[#39586D] text-white text-[8px]">{card.responsible.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))}
+                  
+                  {filteredCards.filter(c => c.status === col.id).length === 0 && (
+                    <div className="text-center py-12 text-[10px] font-black text-[#98A7AA] uppercase tracking-widest border-2 border-dashed rounded-lg opacity-50">
+                      Solte o card aqui
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>

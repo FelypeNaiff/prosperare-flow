@@ -1,12 +1,11 @@
 
-"use client"
+'use client';
 
 import * as React from "react"
 import { 
   LayoutDashboard, 
   Users, 
   Files, 
-  ShieldCheck, 
   DollarSign, 
   FolderOpen, 
   UserCircle, 
@@ -22,7 +21,6 @@ import {
   CalendarClock,
   MessageSquare,
   Lock,
-  CreditCard,
   History,
   Building2,
   Calendar,
@@ -34,7 +32,10 @@ import {
   Layers,
   TicketCheck,
   BrainCircuit,
-  CreditCard as InstallmentIcon
+  CreditCard as InstallmentIcon,
+  FileSignature,
+  FileStack,
+  UsersRound
 } from "lucide-react"
 
 import {
@@ -56,15 +57,16 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { useAuth } from "@/hooks/use-auth-mock"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from "@/firebase"
+import { initiateLogout } from "@/firebase/non-blocking-login"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { doc } from "firebase/firestore"
 
-const items = [
+const menuItems = [
   {
     title: "Painel Estratégico",
     url: "/dashboard",
@@ -92,7 +94,6 @@ const items = [
     url: "/processos",
     icon: Files,
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
-    badge: 5,
     subItems: [
       { title: "Todos os Processos", url: "/processos", icon: Files },
       { title: "Grupos de Obrigações", url: "/processos/grupos", icon: Layers },
@@ -103,14 +104,13 @@ const items = [
     ]
   },
   {
-    title: "Certidões (CND)",
-    url: "/certidoes",
-    icon: ShieldCheck,
-    profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR"],
-    badge: 2,
+    title: "Docs Flow",
+    url: "/docs-flow",
+    icon: FileStack,
+    profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
     subItems: [
-      { title: "Painel Geral", url: "/certidoes", icon: PieChart },
-      { title: "Visão por Empresa", url: "/certidoes", icon: Building },
+      { title: "Gerar Documentos", url: "/docs-flow", icon: FileSignature },
+      { title: "Histórico de Docs", url: "/docs-flow/historico", icon: History },
     ]
   },
   {
@@ -121,6 +121,7 @@ const items = [
     subItems: [
       { title: "Contas a Receber", url: "/financeiro/receber", icon: ArrowUpRight },
       { title: "Contas a Pagar", url: "/financeiro/pagar", icon: ArrowDownRight },
+      { title: "Calendário Financeiro", url: "/financeiro/calendario", icon: Calendar },
       { title: "Gestão de Contratos", url: "/financeiro/contratos", icon: FileText },
       { title: "DRE Gerencial", url: "/financeiro/dre", icon: PieChart },
       { title: "Fluxo de Caixa", url: "/financeiro/fluxo", icon: LineChart },
@@ -135,7 +136,6 @@ const items = [
       { title: "Colaboradores", url: "/equipe", icon: Users },
       { title: "Departamentos", url: "/equipe/departamentos", icon: Building2 },
       { title: "Permissões", url: "/equipe/permissoes", icon: Lock },
-      { title: "Histórico de Ações", url: "/equipe/historico", icon: History },
     ]
   },
   {
@@ -145,64 +145,62 @@ const items = [
     profiles: ["ADMINISTRADOR"],
     subItems: [
       { title: "Meus Dados", url: "/configuracoes/meus-dados", icon: Building },
+      { title: "Configurações IRPF", url: "/configuracoes/irpf", icon: ClipboardList },
       { title: "Certificado Digital", url: "/configuracoes/certificado", icon: Key },
       { title: "Agendamento Automático", url: "/configuracoes/agendamento", icon: CalendarClock },
       { title: "WhatsApp", url: "/configuracoes/whatsapp", icon: MessageSquare },
-      { title: "Segurança & Logs", url: "/configuracoes/seguranca", icon: Lock },
       { title: "Aparência", url: "/configuracoes/aparencia", icon: Palette },
       { title: "Integrações", url: "/configuracoes/integracoes", icon: LinkIcon },
-      { title: "Plano e Assinatura", url: "/configuracoes/plano", icon: CreditCard },
     ]
   },
 ]
 
 export function AppSidebar() {
-  const { user, logout } = useAuth()
+  const { selectedUser } = useUser()
+  const auth = useAuth()
+  const firestore = useFirestore()
   const pathname = usePathname()
-  
-  const [openItem, setOpenItem] = React.useState<string | null>(() => {
-    const active = items.find(item => 
-      pathname.startsWith(item.url) || item.subItems?.some(si => pathname === si.url)
-    )
-    return active ? active.title : null
-  })
+  const router = useRouter()
 
-  const filteredItems = items.filter(item => 
-    user && item.profiles.includes(user.profile)
-  )
+  // Busca o nome do escritório das configurações reais
+  const officeRef = useMemoFirebase(() => doc(firestore, "officeSettings", "main"), [firestore])
+  const { data: officeData } = useDoc(officeRef)
+  
+  const filteredItems = React.useMemo(() => {
+    if (!selectedUser) return []
+    return menuItems.filter(item => item.profiles.includes(selectedUser.profile))
+  }, [selectedUser?.profile])
+
+  const officeName = officeData?.nomeFantasia || officeData?.razaoSocial || "PROSPERARE"
 
   return (
     <Sidebar className="border-r-0 bg-[#2C4156] text-white">
       <SidebarHeader className="h-24 flex flex-col items-start px-6 justify-center">
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-[#1FA67A] rounded-lg shadow-lg">
-            <TrendingUp className="h-6 w-6 text-white" />
+          <div className="p-2 bg-[#1FA67A] rounded-lg shadow-lg relative w-10 h-10 flex items-center justify-center">
+            <TrendingUp className="h-6 w-6 text-white z-10" />
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-              <span className="text-white font-bold text-xl leading-none tracking-tight">PROSPERARE</span>
-              <span className="text-[#1FA67A] font-bold text-xl leading-none tracking-tight">FLOW</span>
+              <span className="text-white font-bold text-lg leading-none tracking-tight uppercase">{officeName.split(' ')[0]}</span>
+              <span className="text-[#1FA67A] font-bold text-lg leading-none tracking-tight">FLOW</span>
             </div>
-            <span className="text-[#98A7AA] text-[10px] uppercase font-bold tracking-[0.2em] mt-1">Sistema Contábil</span>
+            <span className="text-[#98A7AA] text-[10px] uppercase font-bold tracking-[0.2em] mt-1">Gestão Team</span>
           </div>
         </div>
       </SidebarHeader>
+      
       <SidebarContent className="px-2 mt-4 scrollbar-hide">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               {filteredItems.map((item) => {
                 const isActive = pathname.startsWith(item.url) || item.subItems?.some(si => pathname === si.url)
-                const isOpen = openItem === item.title
-
+                
                 return (
                   <Collapsible 
                     key={item.title} 
-                    open={isOpen}
-                    onOpenChange={(open) => {
-                      if (open) setOpenItem(item.title)
-                      else if (openItem === item.title) setOpenItem(null)
-                    }}
+                    defaultOpen={isActive}
                     className="group/collapsible"
                   >
                     <SidebarMenuItem>
@@ -214,12 +212,7 @@ export function AppSidebar() {
                           <item.icon className={cn("h-5 w-5", isActive && "text-[#1FA67A]")} />
                           <span className={cn("text-sm font-medium", isActive && "font-bold")}>{item.title}</span>
                           <div className="ml-auto flex items-center gap-2">
-                            {item.badge && (
-                              <Badge variant="destructive" className="px-1.5 h-4 min-w-4 flex items-center justify-center text-[9px] bg-[#E74C3C] border-none">
-                                {item.badge}
-                              </Badge>
-                            )}
-                            <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isOpen && "rotate-180")} />
+                            <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
                           </div>
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
@@ -245,29 +238,34 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
       <SidebarFooter className="p-4 bg-[#39586D]/30 border-t border-white/10">
-        {user && (
+        {selectedUser && (
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="relative">
+              <div className="relative w-9 h-9">
                 <Avatar className="h-9 w-9 border-2 border-[#1FA67A]/50">
-                  <AvatarImage src={user.avatarUrl} />
-                  <AvatarFallback className="bg-white text-[#2C4156] font-bold">
-                    {user.name.charAt(0)}
+                  <AvatarFallback className="bg-white text-[#2C4156] font-black text-xs">
+                    {selectedUser.fullName?.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#1FA67A] border-2 border-[#39586D] rounded-full" />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-semibold text-white truncate">{user.name}</span>
-                <span className="text-[10px] text-[#98A7AA] font-medium uppercase tracking-wider truncate">
-                  {user.profile}
+                <span className="text-xs font-bold text-white truncate">{selectedUser.fullName?.split(' ')[0]}</span>
+                <span className="text-[8px] text-[#98A7AA] font-black uppercase tracking-wider truncate">
+                  {selectedUser.profile}
                 </span>
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="text-white/50 hover:text-[#E74C3C] hover:bg-transparent" onClick={logout}>
-              <LogOut className="h-5 w-5" />
-            </Button>
+            <div className="flex gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/50 hover:text-[#2574A9]" onClick={() => router.push("/escolha-usuario")}>
+                <UsersRound className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/50 hover:text-[#E74C3C]" onClick={() => initiateLogout(auth)}>
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
       </SidebarFooter>
