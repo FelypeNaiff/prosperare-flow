@@ -22,7 +22,8 @@ import {
   ChevronDown,
   Download,
   Share2,
-  ShieldCheck
+  ShieldCheck,
+  ArrowUpRight
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -59,11 +60,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
 
 export default function ProcessosPage() {
   const firestore = useFirestore()
@@ -87,12 +83,6 @@ export default function ProcessosPage() {
     [firestore, userLoaded]
   )
   const { data: clients = [] } = useCollection(clientsQuery)
-
-  const usersQuery = useMemoFirebase(() => 
-    userLoaded ? collection(firestore, "users") : null, 
-    [firestore, userLoaded]
-  )
-  const { data: team = [] } = useCollection(usersQuery)
 
   const filteredProcesses = useMemo(() => {
     if (!rawProcesses || !userData) return []
@@ -168,22 +158,10 @@ export default function ProcessosPage() {
     setIsDrawerOpen(true)
   }
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])
-  }
-
-  const handleBatchDelete = () => {
-    if (confirm(`Deseja excluir permanentemente ${selectedIds.length} processos?`)) {
-      selectedIds.forEach(id => deleteDocumentNonBlocking(doc(firestore, "processes", id)))
-      toast({ title: "Processos excluídos", variant: "destructive" })
-      setSelectedIds([])
-    }
-  }
-
-  const handleBatchAssign = (userName: string) => {
-    selectedIds.forEach(id => updateDocumentNonBlocking(doc(firestore, "processes", id), { responsavelId: userName }))
-    toast({ title: `${selectedIds.length} processos atribuídos a ${userName}` })
-    setSelectedIds([])
+  const toggleGroup = (name: string) => {
+    setOpenGroups(prev => 
+      prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
+    )
   }
 
   const changeMonth = (direction: 'next' | 'prev') => {
@@ -301,134 +279,127 @@ export default function ProcessosPage() {
                 </TableRow>
               ) : groupedProcesses.length > 0 ? (
                 groupedProcesses.map((group) => (
-                  <Collapsible
-                    key={group.name}
-                    open={openGroups.includes(group.name)}
-                    onOpenChange={(isOpen) => {
-                      setOpenGroups(prev => isOpen ? [...prev, group.name] : prev.filter(n => n !== group.name))
-                    }}
-                    asChild
-                  >
-                    <React.Fragment>
-                      <CollapsibleTrigger asChild>
-                        <TableRow className="bg-white hover:bg-[#F7F7F7] cursor-pointer group transition-colors">
-                          <TableCell className="w-12 text-center pl-4">
-                            <Checkbox 
-                              checked={group.items.every((i: any) => selectedIds.includes(i.id))}
-                              onCheckedChange={(checked) => {
-                                const ids = group.items.map((i: any) => i.id)
-                                if (checked) setSelectedIds(prev => [...new Set([...prev, ...ids])])
-                                else setSelectedIds(prev => prev.filter(id => !ids.includes(id)))
-                              }}
-                              className="h-5 w-5 data-[state=checked]:bg-[#1FA67A]"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </TableCell>
-                          <TableCell className="py-4">
-                            <div className="flex items-center gap-2">
-                              <span className="font-black text-[#2C4156] uppercase text-xs">{group.name}</span>
-                              <ChevronRight className={cn(
-                                "h-4 w-4 text-[#98A7AA] transition-transform",
-                                openGroups.includes(group.name) && "rotate-90"
-                              )} />
+                  <React.Fragment key={group.name}>
+                    <TableRow 
+                      className="bg-white hover:bg-[#F7F7F7] cursor-pointer group transition-colors"
+                      onClick={() => toggleGroup(group.name)}
+                    >
+                      <TableCell className="w-12 text-center pl-4">
+                        <Checkbox 
+                          checked={group.items.every((i: any) => selectedIds.includes(i.id))}
+                          onCheckedChange={(checked) => {
+                            const ids = group.items.map((i: any) => i.id)
+                            if (checked) setSelectedIds(prev => [...new Set([...prev, ...ids])])
+                            else setSelectedIds(prev => prev.filter(id => !ids.includes(id)))
+                          }}
+                          className="h-5 w-5 data-[state=checked]:bg-[#1FA67A]"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-[#2C4156] uppercase text-xs">{group.name}</span>
+                          <ChevronRight className={cn(
+                            "h-4 w-4 text-[#98A7AA] transition-transform",
+                            openGroups.includes(group.name) && "rotate-90"
+                          )} />
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center font-bold text-xs text-[#39586D]">{group.clientsCount}</TableCell>
+                      <TableCell className="text-center font-bold text-xs text-[#39586D]">{group.processesCount}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {Array.from(group.departments).map((dept: any) => (
+                            <Badge key={dept} variant="outline" className="text-[8px] uppercase border-[#D2D7DB]">{dept}</Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex -space-x-2">
+                          {Array.from(group.responsibles).slice(0, 3).map((resp: any) => (
+                            <Avatar key={resp} className="h-6 w-6 border-2 border-white">
+                              <AvatarFallback className="bg-[#2C4156] text-white text-[8px] font-black">
+                                {resp.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                          ))}
+                          {group.responsibles.size > 3 && (
+                            <div className="h-6 w-6 rounded-full bg-[#F7F7F7] border-2 border-white flex items-center justify-center text-[8px] font-black text-[#98A7AA]">
+                              +{group.responsibles.size - 3}
                             </div>
-                          </TableCell>
-                          <TableCell className="text-center font-bold text-xs text-[#39586D]">{group.clientsCount}</TableCell>
-                          <TableCell className="text-center font-bold text-xs text-[#39586D]">{group.processesCount}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {Array.from(group.departments).map((dept: any) => (
-                                <Badge key={dept} variant="outline" className="text-[8px] uppercase border-[#D2D7DB]">{dept}</Badge>
-                              ))}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex -space-x-2">
-                              {Array.from(group.responsibles).slice(0, 3).map((resp: any) => (
-                                <Avatar key={resp} className="h-6 w-6 border-2 border-white">
-                                  <AvatarFallback className="bg-[#2C4156] text-white text-[8px] font-black">
-                                    {resp.charAt(0)}
-                                  </AvatarFallback>
-                                </Avatar>
-                              ))}
-                              {group.responsibles.size > 3 && (
-                                <div className="h-6 w-6 rounded-full bg-[#F7F7F7] border-2 border-white flex items-center justify-center text-[8px] font-black text-[#98A7AA]">
-                                  +{group.responsibles.size - 3}
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right pr-4">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent asChild>
-                        <TableRow className="bg-[#F7F7F7]/50 hover:bg-transparent">
-                          <TableCell colSpan={7} className="p-0 border-b">
-                            <div className="px-12 py-2">
-                              <Table>
-                                <TableHeader className="bg-transparent">
-                                  <TableRow className="border-none hover:bg-transparent">
-                                    <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8">Cliente / CNPJ</TableHead>
-                                    <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8 text-center">Status</TableHead>
-                                    <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8 text-center">Vencimento</TableHead>
-                                    <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8">Responsável</TableHead>
-                                    <TableHead className="w-12"></TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {group.items.map((p: any) => {
-                                    const client = clients.find(c => c.id === p.clienteId)
-                                    return (
-                                      <TableRow key={p.id} className="border-none hover:bg-[#EBEDF0] transition-colors rounded-lg group/item">
-                                        <TableCell className="py-2">
-                                          <div className="flex flex-col">
-                                            <span className="text-[11px] font-bold text-[#2C4156] uppercase">{client?.corporateName || '---'}</span>
-                                            <span className="text-[9px] font-mono text-[#98A7AA]">{client?.cnpj || '---'}</span>
-                                          </div>
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                          <Badge className={cn(
-                                            "text-[9px] font-black uppercase border-none px-2",
-                                            p.situacao === 'concluido' ? "bg-[#7ED6B5] text-[#1FA67A]" :
-                                            p.situacao === 'em_multa' ? "bg-[#FEE2E2] text-[#E74C3C]" :
-                                            p.situacao === 'em_progresso' ? "bg-[#E3F0F9] text-[#2574A9]" : "bg-[#F3F4F6] text-[#98A7AA]"
-                                          )}>
-                                            {p.situacao?.replace('_', ' ')}
-                                          </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                          <span className="text-[10px] font-bold text-[#39586D]">
-                                            {p.prazo ? format(typeof p.prazo === 'string' ? parseISO(p.prazo) : new Date(p.prazo), 'dd/MM/yyyy') : '--'}
-                                          </span>
-                                        </TableCell>
-                                        <TableCell>
-                                          <span className="text-[10px] font-bold text-[#39586D] uppercase">{p.responsavelId || 'Geral'}</span>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                          <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="h-7 w-7 text-[#98A7AA] opacity-0 group-hover/item:opacity-100"
-                                            onClick={() => handleOpenProcess(p)}
-                                          >
-                                            <ArrowUpRight className="h-3.5 w-3.5" />
-                                          </Button>
-                                        </TableCell>
-                                      </TableRow>
-                                    )
-                                  })}
-                                </TableBody>
-                              </Table>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      </CollapsibleContent>
-                    </React.Fragment>
-                  ))
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right pr-4">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    {openGroups.includes(group.name) && (
+                      <TableRow className="bg-[#F7F7F7]/50 hover:bg-transparent">
+                        <TableCell colSpan={7} className="p-0 border-b">
+                          <div className="px-12 py-2">
+                            <Table>
+                              <TableHeader className="bg-transparent">
+                                <TableRow className="border-none hover:bg-transparent">
+                                  <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8">Cliente / CNPJ</TableHead>
+                                  <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8 text-center">Status</TableHead>
+                                  <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8 text-center">Vencimento</TableHead>
+                                  <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8">Responsável</TableHead>
+                                  <TableHead className="w-12"></TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {group.items.map((p: any) => {
+                                  const client = clients.find(c => c.id === p.clienteId)
+                                  return (
+                                    <TableRow key={p.id} className="border-none hover:bg-[#EBEDF0] transition-colors rounded-lg group/item">
+                                      <TableCell className="py-2">
+                                        <div className="flex flex-col">
+                                          <span className="text-[11px] font-bold text-[#2C4156] uppercase">{client?.corporateName || '---'}</span>
+                                          <span className="text-[9px] font-mono text-[#98A7AA]">{client?.cnpj || '---'}</span>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="text-center">
+                                        <Badge className={cn(
+                                          "text-[9px] font-black uppercase border-none px-2",
+                                          p.situacao === 'concluido' ? "bg-[#7ED6B5] text-[#1FA67A]" :
+                                          p.situacao === 'em_multa' ? "bg-[#FEE2E2] text-[#E74C3C]" :
+                                          p.situacao === 'em_progresso' ? "bg-[#E3F0F9] text-[#2574A9]" : "bg-[#F3F4F6] text-[#98A7AA]"
+                                        )}>
+                                          {p.situacao?.replace('_', ' ')}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-center">
+                                        <span className="text-[10px] font-bold text-[#39586D]">
+                                          {p.prazo ? format(typeof p.prazo === 'string' ? parseISO(p.prazo) : new Date(p.prazo), 'dd/MM/yyyy') : '--'}
+                                        </span>
+                                      </TableCell>
+                                      <TableCell>
+                                        <span className="text-[10px] font-bold text-[#39586D] uppercase">{p.responsavelId || 'Geral'}</span>
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="h-7 w-7 text-[#98A7AA] opacity-0 group-hover/item:opacity-100"
+                                          onClick={() => handleOpenProcess(p)}
+                                        >
+                                          <ArrowUpRight className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </TableCell>
+                                    </TableRow>
+                                  )
+                                })}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
+                ))
               ) : (
                 <TableRow>
                   <TableCell colSpan={7} className="h-32 text-center text-[#98A7AA] font-bold uppercase text-xs">
