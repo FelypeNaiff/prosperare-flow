@@ -25,10 +25,27 @@ export async function initiateGoogleSignIn(authInstance: Auth): Promise<void> {
 
 /** Initiate Email/Password sign-in (non-blocking). */
 export async function initiateEmailSignIn(authInstance: Auth, email: string, pass: string): Promise<void> {
-  try {
-    await signInWithEmailAndPassword(authInstance, email, pass);
-  } catch (error: any) {
-    throw error;
+  // If this is the specific hardcoded credential requested, 
+  // we try to sign in, but if it fails (e.g., account not created yet),
+  // we create it automatically to ensure initial access.
+  if (email === 'pscsucesso@gmail.com' && pass === 'PSC2026#') {
+    try {
+      await signInWithEmailAndPassword(authInstance, email, pass);
+    } catch (error: any) {
+      // If user-not-found or invalid credential (meaning it might not exist)
+      try {
+        const { createUserWithEmailAndPassword } = await import('firebase/auth');
+        await createUserWithEmailAndPassword(authInstance, email, pass);
+      } catch (createError) {
+        throw createError;
+      }
+    }
+  } else {
+    try {
+      await signInWithEmailAndPassword(authInstance, email, pass);
+    } catch (error: any) {
+      throw error;
+    }
   }
 }
 
