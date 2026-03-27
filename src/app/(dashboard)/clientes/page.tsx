@@ -185,8 +185,52 @@ export default function ClientesPage() {
     toast({ title: "CNPJ Copiado!", description: cnpj })
   }
 
-  const handleExportPDF = () => {
-    window.print()
+  const handleExportPDF = async () => {
+    const element = document.getElementById('pdf-export-content')
+    if (!element) return
+
+    try {
+      toast({ title: "Gerando PDF...", description: "Aguarde um momento enquanto capturamos os dados." })
+      
+      const html2canvas = (await import('html2canvas')).default
+      const { jsPDF } = await import('jspdf')
+
+      const header = document.getElementById('pdf-header')
+      const footer = document.getElementById('pdf-footer')
+      const actions = document.querySelectorAll('.action-col')
+      
+      if (header) { header.classList.remove('hidden'); header.classList.add('block'); }
+      if (footer) { footer.classList.remove('hidden'); footer.classList.add('block'); }
+      actions.forEach(el => el.classList.add('hidden'))
+      
+      const canvas = await html2canvas(element, { 
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      })
+      
+      if (header) { header.classList.add('hidden'); header.classList.remove('block'); }
+      if (footer) { footer.classList.add('hidden'); footer.classList.remove('block'); }
+      actions.forEach(el => el.classList.remove('hidden'))
+      
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      })
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+      pdf.save('Relatorio_Clientes_Prosperare.pdf')
+      toast({ title: "Sucesso", description: "Download do PDF concluído." })
+    } catch (error) {
+       console.error(error)
+       toast({ variant: "destructive", title: "Erro", description: "Falha ao gerar o PDF." })
+    }
   }
 
   const handleDownloadModel = () => {
@@ -350,33 +394,34 @@ export default function ClientesPage() {
           </div>
         </CardHeader>
         
-        <div className="hidden print:block p-8 border-b-2 border-[#2C4156] mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-3xl font-black text-[#2C4156] uppercase tracking-tighter">PROSPERARE <span className="text-[#1FA67A]">FLOW</span></h2>
-              <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.4em] mt-1">Relatório Oficial de Clientes Cadastrados</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] font-bold text-[#39586D] uppercase">Documento Interno de Gestão</p>
-              <p className="text-[9px] text-[#98A7AA] font-mono mt-1">Gerado em: {new Date().toLocaleString('pt-BR')}</p>
+        <div id="pdf-export-content" className="bg-white">
+          <div id="pdf-header" className="hidden p-8 border-b-2 border-[#2C4156] mb-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-3xl font-black text-[#2C4156] uppercase tracking-tighter">PROSPERARE <span className="text-[#1FA67A]">FLOW</span></h2>
+                <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.4em] mt-1">Relatório Oficial de Clientes Cadastrados</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-[#39586D] uppercase">Documento Interno de Gestão</p>
+                <p className="text-[9px] text-[#98A7AA] font-mono mt-1">Gerado em: {new Date().toLocaleString('pt-BR')}</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <CardContent className="p-0">
-          <Table className="print:w-full">
-            <TableHeader className="bg-[#2C4156] print:bg-[#2C4156]">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px] print:text-white cursor-pointer group" onClick={toggleSort}>
-                  <div className="flex items-center gap-2">
-                    Empresa / Razão Social
-                    {sortOrder === 'asc' ? <SortAsc className="h-3 w-3 text-[#1FA67A]" /> : <SortDesc className="h-3 w-3 text-[#1FA67A]" />}
-                  </div>
+          <CardContent className="p-0">
+            <Table className="print:w-full">
+              <TableHeader className="bg-[#2C4156] print:bg-[#2C4156]">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-white font-black uppercase text-[10px] print:text-white cursor-pointer group" onClick={toggleSort}>
+                    <div className="flex items-center gap-2">
+                      Empresa / Razão Social
+                      {sortOrder === 'asc' ? <SortAsc className="h-3 w-3 text-[#1FA67A]" /> : <SortDesc className="h-3 w-3 text-[#1FA67A]" />}
+                    </div>
                 </TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px] print:text-white">CNPJ</TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px] print:text-white">Regime Tributário</TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px] print:text-white">Responsável</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right print:hidden">Ações</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] text-right action-col">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -407,7 +452,7 @@ export default function ClientesPage() {
                         {client.cnpj}
                         <button 
                           onClick={() => handleCopyCNPJ(client.cnpj)}
-                          className="p-1 rounded hover:bg-[#EBEDF0] text-[#98A7AA] hover:text-[#1FA67A] opacity-0 group-hover/cnpj:opacity-100 transition-all print:hidden"
+                          className="p-1 rounded hover:bg-[#EBEDF0] text-[#98A7AA] hover:text-[#1FA67A] opacity-0 group-hover/cnpj:opacity-100 transition-all action-col"
                           title="Copiar CNPJ"
                         >
                           <Copy className="h-3 w-3" />
@@ -422,7 +467,7 @@ export default function ClientesPage() {
                     <TableCell className="text-[10px] font-bold text-[#39586D] uppercase">
                       {client.accountingContactUserId || "Geral"}
                     </TableCell>
-                    <TableCell className="text-right print:hidden">
+                    <TableCell className="text-right action-col">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="text-[#98A7AA]"><MoreHorizontal className="h-4 w-4" /></Button>
@@ -457,10 +502,11 @@ export default function ClientesPage() {
           </Table>
         </CardContent>
         
-        <div className="hidden print:block p-12 text-center border-t border-[#D2D7DB] mt-8">
+        <div id="pdf-footer" className="hidden p-12 text-center border-t border-[#D2D7DB] mt-8">
           <p className="text-[8px] font-black text-[#98A7AA] uppercase tracking-[0.3em]">
             Prosperare Flow — Inteligência e Gestão Contábil Digital • www.prosperare.flow
           </p>
+        </div>
         </div>
       </Card>
 

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -16,12 +15,7 @@ import {
   PlusCircle, 
   FileSearch, 
   Loader2,
-  Save,
-  Trash2,
-  AlertTriangle,
-  RefreshCw,
-  FileDown,
-  ExternalLink
+  Trash2
 } from "lucide-react"
 import {
   Dialog,
@@ -40,132 +34,97 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
-import { format, differenceInDays, parseISO, isBefore } from "date-fns"
+import { format, parseISO, isBefore, isValid } from "date-fns"
 import { 
   useFirestore, 
   useCollection, 
   useMemoFirebase, 
   setDocumentNonBlocking, 
-  deleteDocumentNonBlocking,
-  updateDocumentNonBlocking
+  deleteDocumentNonBlocking
 } from "@/firebase"
 import { collection, query, where, doc } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
-
-interface Certificate {
-  id: string;
-  tipo: string;
-  numero: string;
-  emissao: string;
-  validade: string;
-  fileUrl?: string;
-  clientId: string;
-}
 
 export function ClientCertificatesTable({ clientId }: { clientId: string }) {
   const firestore = useFirestore()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [syncingId, setSyncingId] = useState<string | null>(null)
   
-  const [newCert, setNewCert] = useState({
+  const [formData, setFormData] = useState({
+    id: "",
+    clienteId: clientId,
     tipo: "Federal",
-    numero: "",
     emissao: "",
     validade: "",
-    fileUrl: ""
+    numero: "",
+    codigoAutenticacao: "",
+    status: "REGULAR",
+    observacoes: ""
   })
 
   const certsQuery = useMemoFirebase(() => 
-    query(collection(firestore, "certifications"), where("clientId", "==", clientId)),
+    query(collection(firestore, "certidoes"), where("clienteId", "==", clientId)),
     [firestore, clientId]
   )
-  const { data: certificates, isLoading } = useCollection<Certificate>(certsQuery)
+  const { data: certidoes, isLoading } = useCollection(certsQuery)
 
-  const handleSave = () => {
-    if (!newCert.validade || !newCert.tipo) {
-      toast({ variant: "destructive", title: "Erro", description: "O tipo e a validade são obrigatórios." })
+  const handleSave = async () => {
+    if (!formData.tipo) {
+      toast({ variant: "destructive", title: "Erro", description: "O tipo de certidão é obrigatório." })
       return
     }
 
     setIsSaving(true)
-    const id = Math.random().toString(36).substr(2, 9)
-    const docRef = doc(firestore, "certifications", id)
+    const id = formData.id || Math.random().toString(36).substr(2, 9)
+    const docRef = doc(firestore, "certidoes", id)
     
-    const certData = {
-      ...newCert,
+    const payload = {
+      ...formData,
       id,
-      clientId,
-      createdAt: new Date().toISOString()
+      clienteId: clientId,
+      createdAt: formData.id ? undefined : new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
 
-    setDocumentNonBlocking(docRef, certData, { merge: true })
-    
-    setTimeout(() => {
-      setIsSaving(false)
+    try {
+      await setDocumentNonBlocking(docRef, payload, { merge: true })
       setIsModalOpen(false)
-      setNewCert({ tipo: "Federal", numero: "", emissao: "", validade: "", fileUrl: "" })
-      toast({ title: "Certidão Registrada!", description: "O monitoramento de validade está ativo." })
-    }, 500)
-  }
-
-  const handleSyncIndividual = (cert: Certificate) => {
-    setSyncingId(cert.id)
-    
-    setTimeout(() => {
-      const today = new Date()
-      let newFileUrl = cert.fileUrl || ""
-      
-      if (cert.tipo === 'Federal') newFileUrl = "https://servicos.receitafederal.gov.br/servico/certidoes/#/home/cnpj"
-      if (cert.tipo === 'FGTS') newFileUrl = "https://consulta-crf.caixa.gov.br/consultacrf/pages/consultaEmpregador.jsf"
-
-      updateDocumentNonBlocking(doc(firestore, "certifications", cert.id), {
-        validade: format(addDaysToDate(today, cert.tipo === 'FGTS' ? 30 : 180), 'yyyy-MM-dd'),
-        emissao: format(today, 'yyyy-MM-dd'),
-        numero: `${cert.tipo === 'FGTS' ? 'CRF' : 'SYN'}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-        fileUrl: newFileUrl,
-        updatedAt: new Date().toISOString()
+      setFormData({
+        id: "",
+        clienteId: clientId,
+        tipo: "Federal",
+        emissao: "",
+        validade: "",
+        numero: "",
+        codigoAutenticacao: "",
+        status: "REGULAR",
+        observacoes: ""
       })
-      
-      setSyncingId(null)
-      toast({ title: "Documento Sincronizado", description: `${cert.tipo} validada com sucesso.` })
-    }, 2000)
-  }
-
-  const addDaysToDate = (date: Date, days: number) => {
-    const result = new Date(date)
-    result.setDate(result.getDate() + days)
-    return result
+      toast({ title: "Registrado!", description: "Certidão atualizada na base global." })
+    } catch (err) {
+      toast({ variant: "destructive", title: "Erro ao salvar" })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleDelete = (id: string) => {
-    if (confirm("Deseja remover este registro de certidão?")) {
-      deleteDocumentNonBlocking(doc(firestore, "certifications", id))
-      toast({ title: "Certidão removida", variant: "destructive" })
+    if (confirm("Deseja remover este registro da base global de certidões?")) {
+      deleteDocumentNonBlocking(doc(firestore, "certidoes", id))
+      toast({ title: "Removida", variant: "destructive" })
     }
   }
 
-  const getStatusInfo = (validadeStr: string) => {
-    if (!validadeStr) return { label: 'Pendente', color: 'bg-slate-400', days: 0 };
-    
-    try {
-      const hoje = new Date();
-      const validade = parseISO(validadeStr);
-      const diasRestantes = differenceInDays(validade, hoje);
+  const getStatusInfo = (cert: any) => {
+    const validade = cert.validade ? new Date(cert.validade) : null;
+    const isLate = cert.status === 'VENCIDA' || cert.status === 'POSITIVA' || 
+                   (validade && isValid(validade) && isBefore(validade, new Date()));
+                   
+    const isWarning = cert.status === 'POSITIVA_EFEITO_NEGATIVA';
 
-      if (isBefore(validade, hoje)) {
-        return { label: 'Vencida', color: 'bg-[#E74C3C]', days: diasRestantes };
-      }
-      if (diasRestantes <= 7) {
-        return { label: 'Crítica', color: 'bg-[#F2B705] text-black', days: diasRestantes };
-      }
-      if (diasRestantes <= 30) {
-        return { label: 'A Vencer', color: 'bg-amber-400 text-black', days: diasRestantes };
-      }
-      return { label: 'Válida', color: 'bg-[#1FA67A]', days: diasRestantes };
-    } catch (e) {
-      return { label: 'Erro Data', color: 'bg-slate-400', days: 0 };
-    }
+    if (isWarning) return { label: 'P. EFEITO NEGATIVA', color: 'bg-[#FFF4E5] text-[#F39C12]' }
+    if (isLate) return { label: cert.status === 'POSITIVA' ? 'POSITIVA' : 'VENCIDA', color: 'bg-[#FEE2E2] text-[#E74C3C]' }
+    return { label: 'REGULAR', color: 'bg-[#E6F6F0] text-[#1FA67A]' }
   }
 
   return (
@@ -173,10 +132,10 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
       <div className="flex justify-between items-center">
         <h3 className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
           <FileSearch className="h-4 w-4 text-[#1FA67A]" /> 
-          Histórico de Regularidade
+          Histórico de Regularidade Fiscal
         </h3>
-        <Button size="sm" variant="outline" className="gap-2 border-[#D2D7DB] text-[#39586D] font-bold h-8 text-[10px] uppercase" onClick={() => setIsModalOpen(true)}>
-          <PlusCircle className="h-3.5 w-3.5" /> Incluir Manual
+        <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold shadow-lg uppercase text-[10px]" onClick={() => setIsModalOpen(true)}>
+          <PlusCircle className="h-3.5 w-3.5" /> Registrar CND
         </Button>
       </div>
 
@@ -184,65 +143,45 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
         <Table>
           <TableHeader className="bg-[#F7F7F7]">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="text-[10px] font-black uppercase text-[#2C4156]">Tipo de Certidão</TableHead>
-              <TableHead className="text-[10px] font-black uppercase text-[#2C4156]">Número / Código</TableHead>
-              <TableHead className="text-[10px] font-black uppercase text-[#2C4156]">Emissão</TableHead>
-              <TableHead className="text-[10px] font-black uppercase text-[#2C4156]">Validade</TableHead>
+              <TableHead className="text-[10px] font-black uppercase text-[#2C4156] pl-6">Tipo</TableHead>
+              <TableHead className="text-[10px] font-black uppercase text-[#2C4156]">Controle / Número</TableHead>
+              <TableHead className="text-[10px] font-black uppercase text-[#2C4156]">Recibos</TableHead>
               <TableHead className="text-[10px] font-black uppercase text-[#2C4156] text-center">Status</TableHead>
-              <TableHead className="text-[10px] font-black uppercase text-[#2C4156] text-right">Ações</TableHead>
+              <TableHead className="text-[10px] font-black uppercase text-[#2C4156] text-right pr-6">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={5} className="h-24 text-center">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1FA67A]" />
                 </TableCell>
               </TableRow>
-            ) : certificates && certificates.length > 0 ? (
-              certificates.map((cert) => {
-                const status = getStatusInfo(cert.validade);
-                const isSyncing = syncingId === cert.id;
+            ) : certidoes && certidoes.length > 0 ? (
+              certidoes.map((cert: any) => {
+                const status = getStatusInfo(cert);
                 return (
                   <TableRow key={cert.id} className="hover:bg-[#F7F7F7]/50 transition-colors">
-                    <TableCell className="font-bold text-[#2C4156] text-xs uppercase">
-                      <div className="flex items-center gap-2">
-                        {cert.tipo}
-                        {cert.numero?.startsWith('AUT-') && (
-                          <Badge variant="secondary" className="bg-[#E3F0F9] text-[#2574A9] text-[7px] font-black uppercase h-4 px-1">AUTO</Badge>
-                        )}
+                    <TableCell className="font-bold text-[#2C4156] text-xs uppercase pl-6">
+                      {cert.tipo}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-mono font-bold text-[#39586D]">{cert.numero || 'S/N'}</span>
+                        <span className="text-[8px] font-mono text-[#98A7AA]">{cert.codigoAutenticacao || '--'}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-[10px] font-mono font-bold text-[#39586D]">{cert.numero || '--'}</TableCell>
-                    <TableCell className="text-xs font-medium text-[#98A7AA]">{cert.emissao ? format(parseISO(cert.emissao), 'dd/MM/yyyy') : '--'}</TableCell>
-                    <TableCell className="text-xs font-black text-[#39586D]">{cert.validade ? format(parseISO(cert.validade), 'dd/MM/yyyy') : '--'}</TableCell>
-                    <TableCell className="text-center">
-                      <Badge className={status.color + " border-none text-[9px] font-black uppercase px-2"}>{status.label}</Badge>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-bold text-[#98A7AA]">E: {cert.emissao ? format(parseISO(cert.emissao), 'dd/MM/yyyy') : '--'}</span>
+                        <span className="text-[9px] font-black text-[#2C4156]">V: {cert.validade ? format(parseISO(cert.validade), 'dd/MM/yyyy') : '--'}</span>
+                      </div>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-center">
+                      <Badge className={status.color + " border-none text-[9px] font-black uppercase px-2 shadow-sm"}>{status.label}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right pr-6">
                       <div className="flex justify-end gap-1">
-                        {cert.fileUrl && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-[#2574A9] hover:bg-blue-50"
-                            title="Ver PDF / Portal"
-                            asChild
-                          >
-                            <a href={cert.fileUrl} target="_blank" rel="noreferrer">
-                              <ExternalLink className="h-3.5 w-3.5" />
-                            </a>
-                          </Button>
-                        )}
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-[#1FA67A] hover:bg-emerald-50"
-                          onClick={() => handleSyncIndividual(cert)}
-                          disabled={isSyncing}
-                        >
-                          {isSyncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                        </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C] hover:bg-red-50" onClick={() => handleDelete(cert.id)}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -253,8 +192,8 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-[#98A7AA] font-bold text-[10px] uppercase italic">
-                  Nenhuma certidão registrada para esta empresa.
+                <TableCell colSpan={5} className="h-32 text-center text-[#98A7AA] font-bold text-[10px] uppercase italic">
+                  Nenhuma certidão registrada na base global.
                 </TableCell>
               </TableRow>
             )}
@@ -263,60 +202,63 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-md border-none shadow-2xl">
-          <DialogHeader className="pb-4 border-b">
-            <DialogTitle className="text-xl font-black text-[#2C4156] uppercase tracking-tight">Novo Registro de CND</DialogTitle>
-            <DialogDescription className="text-[10px] font-bold text-[#98A7AA] uppercase tracking-widest">Lance os dados da certidão obtida manualmente.</DialogDescription>
+        <DialogContent className="max-w-[450px] p-0 border-none shadow-2xl overflow-hidden">
+          <DialogHeader className="p-6 bg-[#2C4156] text-white">
+            <DialogTitle className="text-xl font-black text-white uppercase tracking-tight">Nova Certidão</DialogTitle>
+            <DialogDescription className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Registre uma nova CND para a base global.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-5 py-6">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Tipo / Abrangência</Label>
-              <Select value={newCert.tipo} onValueChange={(v) => setNewCert({...newCert, tipo: v})}>
-                <SelectTrigger className="border-[#D2D7DB] font-bold"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Federal">FEDERAL (RFB/PGFN)</SelectItem>
-                  <SelectItem value="Estadual">ESTADUAL (SEFA)</SelectItem>
-                  <SelectItem value="Municipal">MUNICIPAL (PREFEITURA)</SelectItem>
-                  <SelectItem value="FGTS">FGTS (CRF)</SelectItem>
-                  <SelectItem value="Trabalhista">TRABALHISTA (CNDT)</SelectItem>
-                  <SelectItem value="Outros">OUTRAS CERTIDÕES</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Número da Certidão</Label>
-              <Input 
-                placeholder="Código de controle ou número" 
-                value={newCert.numero} 
-                onChange={(e) => setNewCert({...newCert, numero: e.target.value.toUpperCase()})}
-                className="border-[#D2D7DB] font-mono font-bold"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Emissão</Label>
-                <Input type="date" value={newCert.emissao} onChange={(e) => setNewCert({...newCert, emissao: e.target.value})} className="border-[#D2D7DB]" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Vencimento</Label>
-                <Input type="date" value={newCert.validade} onChange={(e) => setNewCert({...newCert, validade: e.target.value})} className="border-[#D2D7DB] font-black" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Link do PDF / Portal (Opcional)</Label>
-              <Input 
-                placeholder="https://..." 
-                value={newCert.fileUrl} 
-                onChange={(e) => setNewCert({...newCert, fileUrl: e.target.value})}
-                className="border-[#D2D7DB]"
-              />
-            </div>
+          <div className="p-6 bg-white space-y-4">
+             <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Tipo / Abrangência</Label>
+                <Select value={formData.tipo} onValueChange={(v) => setFormData({...formData, tipo: v})}>
+                  <SelectTrigger className="border-[#D2D7DB] font-bold uppercase text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Federal" className="font-bold text-[10px] uppercase">FEDERAL (RFB/PGFN)</SelectItem>
+                    <SelectItem value="Estadual" className="font-bold text-[10px] uppercase">ESTADUAL (SEFA)</SelectItem>
+                    <SelectItem value="Municipal" className="font-bold text-[10px] uppercase">MUNICIPAL (PREFEITURA)</SelectItem>
+                    <SelectItem value="FGTS" className="font-bold text-[10px] uppercase">FGTS (CRF) / CAIXA</SelectItem>
+                    <SelectItem value="Trabalhista" className="font-bold text-[10px] uppercase">TRABALHISTA (CNDT)</SelectItem>
+                    <SelectItem value="Outros" className="font-bold text-[10px] uppercase">OUTRAS CERTIDÕES</SelectItem>
+                  </SelectContent>
+                </Select>
+             </div>
+             <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Status Atual</Label>
+                <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
+                  <SelectTrigger className="border-[#D2D7DB] font-bold uppercase text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="REGULAR" className="font-bold text-[10px] uppercase text-[#1FA67A]">Regular (Negativa)</SelectItem>
+                    <SelectItem value="POSITIVA_EFEITO_NEGATIVA" className="font-bold text-[10px] uppercase text-[#F39C12]">Positiva c/ Efeito Negativa</SelectItem>
+                    <SelectItem value="VENCIDA" className="font-bold text-[10px] uppercase text-[#E74C3C]">Vencido</SelectItem>
+                    <SelectItem value="POSITIVA" className="font-bold text-[10px] uppercase text-[#000000]">Positiva (Irregular)</SelectItem>
+                  </SelectContent>
+                </Select>
+             </div>
+             <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Nº Certidão</Label>
+                  <Input value={formData.numero} onChange={(e) => setFormData({...formData, numero: e.target.value.toUpperCase()})} className="border-[#D2D7DB] font-mono text-[10px] font-bold" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Código Autenticação</Label>
+                  <Input value={formData.codigoAutenticacao} onChange={(e) => setFormData({...formData, codigoAutenticacao: e.target.value.toUpperCase()})} className="border-[#D2D7DB] font-mono text-[10px] font-bold" />
+                </div>
+             </div>
+             <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Emissão</Label>
+                  <Input type="date" value={formData.emissao} onChange={(e) => setFormData({...formData, emissao: e.target.value})} className="border-[#D2D7DB] font-bold" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#1FA67A]">Validade</Label>
+                  <Input type="date" value={formData.validade} onChange={(e) => setFormData({...formData, validade: e.target.value})} className="border-[#1FA67A] focus-visible:ring-[#1FA67A] font-black text-[#2C4156]" />
+                </div>
+             </div>
           </div>
-          <DialogFooter className="bg-[#F7F7F7] -mx-6 -mb-6 p-6 border-t mt-2">
-            <Button variant="outline" onClick={() => setIsModalOpen(false)} className="font-bold uppercase text-[10px]">Cancelar</Button>
+          <DialogFooter className="bg-[#F7F7F7] p-6 border-t flex justify-between w-full">
+            <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="font-bold uppercase text-[10px] text-[#98A7AA]">Cancelar</Button>
             <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-[10px] px-8 shadow-lg shadow-emerald-500/20" onClick={handleSave} disabled={isSaving}>
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-              Salvar Registro
+              Salvar na Base Global
             </Button>
           </DialogFooter>
         </DialogContent>

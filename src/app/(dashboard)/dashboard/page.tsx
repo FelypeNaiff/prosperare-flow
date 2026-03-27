@@ -43,17 +43,17 @@ export default function DashboardPage() {
   )
   const { data: receivables } = useCollection(receivablesQuery)
 
-  const licensesQuery = useMemoFirebase(() => 
-    userLoaded ? collection(firestore, "licenses") : null, 
+  const alvarasQuery = useMemoFirebase(() => 
+    userLoaded ? collection(firestore, "alvaras") : null, 
     [firestore, userLoaded]
   )
-  const { data: licenses } = useCollection(licensesQuery)
+  const { data: alvaras } = useCollection(alvarasQuery)
 
-  const certificationsQuery = useMemoFirebase(() => 
-    userLoaded ? collection(firestore, "certifications") : null, 
+  const certidoesQuery = useMemoFirebase(() => 
+    userLoaded ? collection(firestore, "certidoes") : null, 
     [firestore, userLoaded]
   )
-  const { data: certifications } = useCollection(certificationsQuery)
+  const { data: certidoes } = useCollection(certidoesQuery)
 
   // Lógica de Cálculo de Indicadores
   const stats = useMemo(() => {
@@ -83,20 +83,22 @@ export default function DashboardPage() {
       .reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0)
 
     // 3. Alvarás Críticos (Vencidos ou em Alerta de 30 dias)
-    const criticalLicenses = (licenses || []).filter(l => {
-      if (!l.expiryDate) return false
+    const criticalAlvaras = (alvaras || []).filter((l: any) => {
+      if (l.status === 'VENCIDO' || l.status === 'CASSADO') return true;
+      if (!l.validade) return false
       try {
-        const exp = parseISO(l.expiryDate)
+        const exp = parseISO(l.validade)
         return isBefore(exp, today) || differenceInDays(exp, today) <= 30
       } catch { return false }
     }).length
 
-    // 4. Certidões Críticas (Vencidas ou em Alerta de 30 dias)
-    const criticalCerts = (certifications || []).filter(c => {
+    // 4. Certidões Críticas (Vencidas ou em Alerta de 15 dias)
+    const criticalCertidoes = (certidoes || []).filter((c: any) => {
+      if (c.status === 'VENCIDA' || c.status === 'POSITIVA' || c.status === 'POSITIVA_EFEITO_NEGATIVA') return true;
       if (!c.validade) return false
       try {
         const val = parseISO(c.validade)
-        return isBefore(val, today) || differenceInDays(val, today) <= 30
+        return isBefore(val, today) || differenceInDays(val, today) <= 15
       } catch { return false }
     }).length
 
@@ -105,10 +107,10 @@ export default function DashboardPage() {
       percentOk: `${percentOk}%`,
       atrasos: atrasosProd,
       honorarios: monthlyHonoraries.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-      criticalLicenses,
-      criticalCerts
+      criticalAlvaras,
+      criticalCertidoes
     }
-  }, [clients, processes, receivables, licenses, certifications])
+  }, [clients, processes, receivables, alvaras, certidoes])
 
   const isDataLoading = loadingClients
 
@@ -155,16 +157,16 @@ export default function DashboardPage() {
         
         <KpiCard 
           label="Alvarás Alerta" 
-          value={stats.criticalLicenses} 
+          value={stats.criticalAlvaras} 
           icon={FlameKindling} 
-          color={stats.criticalLicenses > 0 ? "warning" : "success"} 
+          color={stats.criticalAlvaras > 0 ? "warning" : "success"} 
         />
         
         <KpiCard 
           label="Certidões Alerta" 
-          value={stats.criticalCerts} 
+          value={stats.criticalCertidoes} 
           icon={ShieldAlert} 
-          color={stats.criticalCerts > 0 ? "destructive" : "success"} 
+          color={stats.criticalCertidoes > 0 ? "destructive" : "success"} 
         />
 
         <KpiCard label="Honorários" value={stats.honorarios} icon={DollarSign} color="info" />

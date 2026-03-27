@@ -35,7 +35,8 @@ import {
   CreditCard as InstallmentIcon,
   FileSignature,
   FileStack,
-  UsersRound
+  UsersRound,
+  ShieldCheck
 } from "lucide-react"
 
 import {
@@ -101,6 +102,8 @@ const menuItems = [
       { title: "Calendário de Prazos", url: "/processos/calendario", icon: Calendar },
       { title: "IRPF 2026", url: "/processos/irpf", icon: ClipboardList },
       { title: "Parcelamentos", url: "/processos/parcelamentos", icon: InstallmentIcon },
+      { title: "Alvarás e Licenças", url: "/alvaras", icon: FileSignature },
+      { title: "Certidões Negativas", url: "/certidoes", icon: ShieldCheck },
     ]
   },
   {
