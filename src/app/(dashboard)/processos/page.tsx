@@ -171,12 +171,7 @@ export default function ProcessosPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Situação dos Processos</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Controle consolidado de produtividade e entregas.</p>
-        </div>
-        
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 order-2 md:order-1">
           <div className="flex items-center bg-white border border-[#D2D7DB] rounded-xl px-2 py-1 shadow-sm">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => changeMonth('prev')}>
               <ChevronLeft className="h-4 w-4" />
@@ -196,6 +191,10 @@ export default function ProcessosPage() {
           >
             <Plus className="h-4 w-4" /> Criar Processo
           </Button>
+        </div>
+        <div className="order-1 md:order-2 md:text-right">
+          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Situação dos Processos</h1>
+          <p className="text-[#98A7AA] font-bold text-sm">Controle consolidado de produtividade e entregas.</p>
         </div>
       </div>
 

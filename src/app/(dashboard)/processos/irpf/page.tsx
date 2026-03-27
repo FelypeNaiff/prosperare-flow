@@ -55,13 +55,7 @@ export default function IrpfPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">
-            Gestão <span className="text-[#1FA67A]">IRPF 2026</span>
-          </h1>
-          <p className="text-[#98A7AA] font-medium">Fluxo de declarações de Imposto de Renda Pessoa Física.</p>
-        </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 order-2 md:order-1">
           <Button variant="outline" className="border-[#D2D7DB] gap-2" onClick={() => setIsFlowManagerOpen(true)}>
             <ListRestart className="h-4 w-4" /> Gerenciar Fluxos
           </Button>
@@ -73,6 +67,12 @@ export default function IrpfPage() {
           <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2" onClick={() => setIsModalOpen(true)}>
             <Plus className="h-4 w-4" /> Nova Declaração
           </Button>
+        </div>
+        <div className="order-1 md:order-2 md:text-right">
+          <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">
+            Gestão <span className="text-[#1FA67A]">IRPF 2026</span>
+          </h1>
+          <p className="text-[#98A7AA] font-medium">Fluxo de declarações de Imposto de Renda Pessoa Física.</p>
         </div>
       </div>
 

@@ -25,14 +25,18 @@ export function NotificationBell() {
     if (!userLoaded || !userData?.id) return null
     return query(
       collection(firestore, "notifications"),
-      where("userId", "==", userData.id),
-      orderBy("createdAt", "desc"),
-      limit(20)
+      where("userId", "==", userData.id)
     )
   }, [firestore, userLoaded, userData?.id])
 
-  const { data: notifications = [], isLoading } = useCollection(notificationsQuery)
-  const unreadCount = (notifications || []).filter(n => !n.read).length
+  const { data: rawNotifications = [], isLoading } = useCollection(notificationsQuery)
+  
+  // Sort and limit in memory to avoid needing a composite index
+  const notifications = [...(rawNotifications || [])]
+    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 20)
+
+  const unreadCount = notifications.filter((n: any) => !n.read).length
 
   const markAsRead = (id: string) => {
     updateDocumentNonBlocking(doc(firestore, "notifications", id), { read: true })

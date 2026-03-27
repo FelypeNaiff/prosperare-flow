@@ -56,7 +56,7 @@ export function MultiClientSearchSelect({
 
   return (
     <div className="space-y-2">
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen} modal={true}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
@@ -95,7 +95,7 @@ export function MultiClientSearchSelect({
                       "relative flex w-full cursor-pointer select-none items-center rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none hover:bg-[#F7F7F7] transition-all text-left mb-1",
                       value.includes(client.id) && "bg-[#1FA67A]/5 text-[#1FA67A]"
                     )}
-                    onPointerDown={(e) => {
+                    onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
                       toggleClient(client.id)
@@ -127,7 +127,7 @@ export function MultiClientSearchSelect({
               <Badge key={id} variant="secondary" className="bg-white border-[#D2D7DB] text-[#2C4156] font-bold text-[9px] uppercase px-2 h-6 gap-1">
                 {client?.corporateName?.split(' ')[0]}
                 <X className="h-3 w-3 cursor-pointer hover:text-[#E74C3C]" 
-                   onPointerDown={(e) => {
+                   onClick={(e) => {
                      e.preventDefault()
                      e.stopPropagation()
                      toggleClient(id)

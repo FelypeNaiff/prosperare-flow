@@ -307,13 +307,15 @@ export default function GruposObrigacoesPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="order-2 md:order-1">
+          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg" onClick={() => handleOpenModal()}>
+            <Plus className="h-4 w-4" /> Novo Grupo
+          </Button>
+        </div>
+        <div className="order-1 md:order-2 md:text-right">
           <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Grupos de Obrigações</h1>
           <p className="text-[#98A7AA] font-bold text-sm">Automação de processos por perfil de cliente.</p>
         </div>
-        <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg" onClick={() => handleOpenModal()}>
-          <Plus className="h-4 w-4" /> Novo Grupo
-        </Button>
       </div>
 
       {isLoading ? (

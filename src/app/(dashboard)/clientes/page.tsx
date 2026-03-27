@@ -303,11 +303,7 @@ export default function ClientesPage() {
       />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
-        <div>
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão de Clientes</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Administre sua base de empresas e acompanhe a regularidade.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 order-2 md:order-1">
           <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={handleDownloadModel}>
             <FileSpreadsheet className="h-4 w-4 text-[#1FA67A]" /> Modelo Excel
           </Button>
@@ -326,6 +322,10 @@ export default function ClientesPage() {
           <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-bold shadow-lg" onClick={() => setIsNewClientOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Novo Cliente
           </Button>
+        </div>
+        <div className="order-1 md:order-2 md:text-right">
+          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão de Clientes</h1>
+          <p className="text-[#98A7AA] font-bold text-sm">Administre sua base de empresas e acompanhe a regularidade.</p>
         </div>
       </div>
 

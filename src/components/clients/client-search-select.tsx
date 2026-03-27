@@ -57,7 +57,7 @@ export function ClientSearchSelect({
   }, [open])
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -107,8 +107,7 @@ export function ClientSearchSelect({
                       "relative flex w-full cursor-pointer select-none items-center rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none hover:bg-[#1FA67A] hover:text-white transition-all text-left mb-1 last:mb-0",
                       value === client.id ? "bg-[#1FA67A] text-white" : "text-[#2C4156]"
                     )}
-                    // Usamos onPointerDown para interceptar antes da perda de foco do modal
-                    onPointerDown={(e) => {
+                    onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
                       onValueChange(client.id)

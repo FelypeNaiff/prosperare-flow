@@ -39,8 +39,10 @@ import {
   CheckCircle2,
   Zap,
   Repeat,
-  Layers
+  Layers,
+  History
 } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 import { useFirestore, setDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase"
 import { doc, collection } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
@@ -180,7 +182,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
               <TabTrigger value="regimes" label="2. Grupos" />
               <TabTrigger value="prazo" label="3. Prazos" />
               <TabTrigger value="tarefas" label="4. Checklist" />
-              <TabTrigger value="recorrencia" label="5. Robô" />
+              {formData.tipo !== 'esporadico' && <TabTrigger value="recorrencia" label="5. Robô" />}
             </TabsList>
           </div>
 
@@ -266,39 +268,50 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
 
               <TabsContent value="prazo" className="m-0">
                 <div className="bg-[#F7F7F7] p-8 rounded-2xl border space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                    <div className="space-y-4">
-                      <Label className="text-sm font-black text-[#2C4156] uppercase flex items-center gap-2">
-                        <CalendarClock className="h-5 w-5 text-[#1FA67A]" /> Vencimento Fixo
-                      </Label>
-                      <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-[#D2D7DB]">
-                        <span className="text-xs font-bold text-[#98A7AA] uppercase">Todo dia</span>
-                        <Input 
-                          type="number" 
-                          min="1" max="31" 
-                          value={formData.prazoFixo} 
-                          onChange={(e) => setFormData({...formData, prazoFixo: Number(e.target.value)})} 
-                          className="w-24 font-black text-xl text-center border-none shadow-none focus-visible:ring-0" 
-                        />
+                  {formData.tipo === 'esporadico' ? (
+                    <div className="flex flex-col items-center justify-center text-center p-6 space-y-4">
+                      <CalendarClock className="h-12 w-12 text-[#1FA67A] mb-2" />
+                      <div>
+                        <h4 className="text-lg font-black text-[#2C4156] uppercase">Prazo Sob Demanda</h4>
+                        <p className="text-xs font-bold text-[#98A7AA] mt-1">Neste tipo de fluxo, não há prazo fixo predefinido.</p>
+                        <p className="text-[10px] font-black uppercase text-[#1FA67A] tracking-wider mt-4">A data de vencimento será escolhida através do calendário ao instanciar o processo.</p>
                       </div>
-                      <p className="text-[10px] font-bold text-[#98A7AA] uppercase">A data de vencimento será calculada baseada na competência.</p>
                     </div>
-                    <div className="space-y-4">
-                      <Label className="text-sm font-black text-[#2C4156] uppercase flex items-center gap-2">
-                        <History className="h-5 w-5 text-[#2574A9]" /> Competência Relativa
-                      </Label>
-                      <Select value={formData.competencia} onValueChange={(v) => setFormData({...formData, competencia: v})}>
-                        <SelectTrigger className="h-14 border-[#D2D7DB] bg-white font-bold text-[#2C4156] uppercase text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="mes_anterior" className="font-bold">MÊS ANTERIOR (EX: FEVEREIRO REF. JANEIRO)</SelectItem>
-                          <SelectItem value="mes_prazo" className="font-bold">MESMO MÊS (EX: FEVEREIRO REF. FEVEREIRO)</SelectItem>
-                          <SelectItem value="mes_seguinte" className="font-bold">MÊS SEGUINTE (EX: FEVEREIRO REF. MARÇO)</SelectItem>
-                        </SelectContent>
-                      </Select>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                      <div className="space-y-4">
+                        <Label className="text-sm font-black text-[#2C4156] uppercase flex items-center gap-2">
+                          <CalendarClock className="h-5 w-5 text-[#1FA67A]" /> Vencimento Fixo
+                        </Label>
+                        <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-[#D2D7DB]">
+                          <span className="text-xs font-bold text-[#98A7AA] uppercase">Todo dia</span>
+                          <Input 
+                            type="number" 
+                            min="1" max="31" 
+                            value={formData.prazoFixo} 
+                            onChange={(e) => setFormData({...formData, prazoFixo: Number(e.target.value)})} 
+                            className="w-24 font-black text-xl text-center border-none shadow-none focus-visible:ring-0" 
+                          />
+                        </div>
+                        <p className="text-[10px] font-bold text-[#98A7AA] uppercase">A data de vencimento será calculada baseada na competência.</p>
+                      </div>
+                      <div className="space-y-4">
+                        <Label className="text-sm font-black text-[#2C4156] uppercase flex items-center gap-2">
+                          <History className="h-5 w-5 text-[#2574A9]" /> Competência Relativa
+                        </Label>
+                        <Select value={formData.competencia} onValueChange={(v) => setFormData({...formData, competencia: v})}>
+                          <SelectTrigger className="h-14 border-[#D2D7DB] bg-white font-bold text-[#2C4156] uppercase text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="mes_anterior" className="font-bold">MÊS ANTERIOR (EX: FEVEREIRO REF. JANEIRO)</SelectItem>
+                            <SelectItem value="mes_prazo" className="font-bold">MESMO MÊS (EX: FEVEREIRO REF. FEVEREIRO)</SelectItem>
+                            <SelectItem value="mes_seguinte" className="font-bold">MÊS SEGUINTE (EX: FEVEREIRO REF. MARÇO)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </TabsContent>
 

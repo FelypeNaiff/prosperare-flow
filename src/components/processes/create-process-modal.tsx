@@ -43,8 +43,12 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
     modeloId: "",
     clientIds: [] as string[],
     competencia: format(new Date(), "yyyy-MM"),
-    responsavelId: "Padrao" 
+    responsavelId: "Padrao",
+    customDeadline: ""
   })
+
+  const selectedModel = (models || []).find((m: any) => m.id === formData.modeloId)
+  const isSporadic = selectedModel?.tipo === 'esporadico'
 
   const handleCreate = async () => {
     if (!formData.modeloId || formData.clientIds.length === 0) {
@@ -52,23 +56,36 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
       return
     }
 
+    if (isSporadic && !formData.customDeadline) {
+      toast({ title: "Atenção", description: "Para processos esporádicos, o prazo de entrega é obrigatório.", variant: "destructive" })
+      return
+    }
+
     setIsSaving(true)
     try {
-      const model = (models || []).find(m => m.id === formData.modeloId)
+      const model = selectedModel
       if (!model) throw new Error("Modelo não localizado")
 
       const competenceDate = parse(formData.competencia, "yyyy-MM", new Date())
-      const day = model.prazoFixo || 20
-      let dueDate = setDate(competenceDate, day)
       
-      if (model.competencia === 'mes_anterior') {
-        dueDate = addMonths(dueDate, 1) 
-      } else if (model.competencia === 'mes_seguinte') {
-        dueDate = addMonths(dueDate, -1)
-      }
+      let finalDueDateStr = ""
+      if (isSporadic) {
+        const [year, month, day] = formData.customDeadline.split("-")
+        finalDueDateStr = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0).toISOString()
+      } else {
+        const day = model.prazoFixo || 20
+        let dueDate = setDate(competenceDate, day)
+        
+        if (model.competencia === 'mes_anterior') {
+          dueDate = addMonths(dueDate, 1) 
+        } else if (model.competencia === 'mes_seguinte') {
+          dueDate = addMonths(dueDate, -1)
+        }
 
-      const lastDay = lastDayOfMonth(dueDate)
-      if (dueDate > lastDay) dueDate = lastDay
+        const lastDay = lastDayOfMonth(dueDate)
+        if (dueDate > lastDay) dueDate = lastDay
+        finalDueDateStr = dueDate.toISOString()
+      }
 
       formData.clientIds.forEach(clientId => {
         const client = (clients || []).find(c => c.id === clientId)
@@ -89,8 +106,8 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
           situacao: "a_fazer",
           departamento: model.departamento || "Geral",
           responsavelId: finalResponsible,
-          prazo: dueDate.toISOString(),
-          prazoMeta: dueDate.toISOString(),
+          prazo: finalDueDateStr,
+          prazoMeta: finalDueDateStr,
           competencia: competenceDate.toISOString(),
           criadoEm: new Date().toISOString(),
           tarefas: (model.tarefas || []).map((t: any) => ({
@@ -109,7 +126,7 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
         description: `${formData.clientIds.length} processos foram criados com sucesso.` 
       })
       onOpenChange(false)
-      setFormData({ modeloId: "", clientIds: [], competencia: format(new Date(), "yyyy-MM"), responsavelId: "Padrao" })
+      setFormData({ modeloId: "", clientIds: [], competencia: format(new Date(), "yyyy-MM"), responsavelId: "Padrao", customDeadline: "" })
     } catch (e) {
       toast({ title: "Erro ao criar", description: "Houve uma falha na geração dos processos.", variant: "destructive" })
     } finally {
@@ -185,6 +202,21 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
                 </Select>
               </div>
             </div>
+
+            {isSporadic && (
+              <div className="space-y-2 border-t pt-4">
+                <Label className="text-[10px] font-black uppercase text-[#1FA67A] tracking-widest flex items-center gap-2">
+                  <Calendar className="h-3 w-3 text-[#1FA67A]" /> Prazo / Vencimento do Processo
+                </Label>
+                <Input 
+                  type="date" 
+                  value={formData.customDeadline} 
+                  onChange={(e) => setFormData({...formData, customDeadline: e.target.value})}
+                  className="border-[#1FA67A] focus-visible:ring-[#1FA67A] h-11 font-bold text-[#2C4156]"
+                />
+                <p className="text-[10px] font-bold text-[#98A7AA] uppercase">Por se tratar de um fluxo esporádico, defina o prazo real de entrega.</p>
+              </div>
+            )}
           </div>
         </div>
 

@@ -122,6 +122,19 @@ export default function AtendimentosPage() {
     }
 
     setDocumentNonBlocking(doc(firestore, "tasks", id), ticketData, { merge: true })
+    
+    // Notificar o responsável
+    const notifId = Math.random().toString(36).substr(2, 9)
+    setDocumentNonBlocking(doc(firestore, "notifications", notifId), {
+      id: notifId,
+      userId: newTicket.responsibleId,
+      title: "Nova Demanda",
+      message: `Você foi designado para a demanda: ${ticketData.title}`,
+      read: false,
+      createdAt: new Date().toISOString(),
+      link: "/atendimentos"
+    })
+
     setIsNewTicketOpen(false)
     setNewTicket({ clientId: "", templateId: "", responsibleId: "", notes: "", title: "" })
     toast({ title: "Demanda Enviada!", description: "O colaborador foi notificado." })
