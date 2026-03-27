@@ -50,8 +50,26 @@ import { collection, query, orderBy, doc } from "firebase/firestore"
 import { cn } from "@/lib/utils"
 import { ProcessDetailsDrawer } from "@/components/processes/process-details-drawer"
 import { CreateProcessModal } from "@/components/processes/create-process-modal"
-import { format, parseISO, addMonths, subMonths, startOfMonth } from "date-fns"
+import { format, parseISO, addMonths, subMonths, startOfMonth, isValid } from "date-fns"
 import { ptBR } from "date-fns/locale"
+
+const safeFormatDate = (dateVal: any, fmt: string, options?: any) => {
+  if (!dateVal) return '';
+  try {
+    let d: Date;
+    if (dateVal instanceof Date) d = dateVal;
+    else if (typeof dateVal === 'string') d = parseISO(dateVal);
+    else if (dateVal && typeof dateVal.toDate === 'function') d = dateVal.toDate();
+    else d = new Date(dateVal);
+
+    if (isValid(d)) {
+      return format(d, fmt, options);
+    }
+  } catch (err) {
+    console.error("Invalid date obj:", dateVal);
+  }
+  return '';
+}
 import { toast } from "@/hooks/use-toast"
 import {
   DropdownMenu,
@@ -60,6 +78,14 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog"
 import { 
   Sheet, 
   SheetContent, 
@@ -84,6 +110,10 @@ export default function ProcessosPage() {
   const [filtroDepartamento, setFiltroDepartamento] = useState("todos")
   const [filtroStatus, setFiltroStatus] = useState("todos")
 
+  const [isBatchAssignOpen, setIsBatchAssignOpen] = useState(false)
+  const [batchAssignee, setBatchAssignee] = useState("")
+  const [isBatchUpdating, setIsBatchUpdating] = useState(false)
+
   const processesQuery = useMemoFirebase(() => 
     userLoaded ? query(collection(firestore, "processes"), orderBy("prazo", "asc")) : null, 
     [firestore, userLoaded]
@@ -96,14 +126,37 @@ export default function ProcessosPage() {
   )
   const { data: clients = [] } = useCollection(clientsQuery)
 
+  const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
+  const { data: team = [] } = useCollection(usersQuery)
+
+  const handleBatchAssign = async () => {
+    if (!batchAssignee || selectedIds.length === 0) return;
+    setIsBatchUpdating(true);
+    try {
+      for (const id of selectedIds) {
+        const docRef = doc(firestore, "processes", id);
+        updateDocumentNonBlocking(docRef, { responsavelId: batchAssignee });
+      }
+      toast({ title: "Responsáveis atualizados", description: `${selectedIds.length} processos foram alterados com sucesso.` });
+      setIsBatchAssignOpen(false);
+      setSelectedIds([]);
+      setBatchAssignee("");
+    } catch (e) {
+      toast({ title: "Erro ao atualizar", variant: "destructive", description: "Ocorreu um erro ao realizar a alteração em lote." });
+    } finally {
+      setIsBatchUpdating(false);
+    }
+  }
+
   const filteredProcesses = useMemo(() => {
     if (!rawProcesses || !userData) return []
     
     const competenceKey = format(selectedCompetence, "yyyy-MM")
 
     return rawProcesses.filter(p => {
-      const pComp = p.competencia ? format(typeof p.competencia === 'string' ? parseISO(p.competencia) : new Date(p.competencia), "yyyy-MM") : ""
-      if (pComp !== competenceKey) return false
+      const pComp = p.competencia ? safeFormatDate(p.competencia, "yyyy-MM") : ""
+      if (pComp && pComp !== competenceKey) return false;
+      else if (!pComp && competenceKey !== "") return false;
 
       const searchLower = searchTerm.toLowerCase()
       const client = (clients || []).find(c => c.id === p.clienteId)
@@ -335,8 +388,17 @@ export default function ProcessosPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={() => toast({ title: "Modo Edição em Lote" })} className="font-bold uppercase text-[10px] gap-2">
-                <ShieldCheck className="h-3.5 w-3.5" /> Edição em Lote
+              <DropdownMenuItem 
+                onClick={() => {
+                  if (selectedIds.length === 0) {
+                    toast({ title: "Atenção", description: "Selecione pelo menos um processo.", variant: "destructive" })
+                    return
+                  }
+                  setIsBatchAssignOpen(true)
+                }} 
+                className="font-bold uppercase text-[10px] gap-2"
+              >
+                <UserPlus className="h-3.5 w-3.5" /> Alterar Responsável
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => toast({ title: "Modo Envio em Lote" })} className="font-bold uppercase text-[10px] gap-2">
                 <Share2 className="h-3.5 w-3.5" /> Envio em Lote
@@ -422,7 +484,7 @@ export default function ProcessosPage() {
                           {Array.from(group.responsibles).slice(0, 3).map((resp: any) => (
                             <Avatar key={resp} className="h-6 w-6 border-2 border-white">
                               <AvatarFallback className="bg-[#2C4156] text-white text-[8px] font-black">
-                                {resp.charAt(0)}
+                                {String(resp).charAt(0)}
                               </AvatarFallback>
                             </Avatar>
                           ))}
@@ -471,14 +533,14 @@ export default function ProcessosPage() {
                                           p.situacao === 'em_multa' ? "bg-[#FEE2E2] text-[#E74C3C]" :
                                           p.situacao === 'em_progresso' ? "bg-[#E3F0F9] text-[#2574A9]" : "bg-[#F3F4F6] text-[#98A7AA]"
                                         )}>
-                                          {p.situacao?.replace('_', ' ')}
+                                          {typeof p.situacao === 'string' ? p.situacao.replace('_', ' ') : p.situacao || ''}
                                         </Badge>
                                       </TableCell>
-                                      <TableCell className="text-center">
-                                        <span className="text-[10px] font-bold text-[#39586D]">
-                                          {p.prazo ? format(typeof p.prazo === 'string' ? parseISO(p.prazo) : new Date(p.prazo), 'dd/MM/yyyy') : '--'}
-                                        </span>
-                                      </TableCell>
+                                        <TableCell className="text-center">
+                                          <span className="text-[10px] font-bold text-[#39586D]">
+                                            {p.prazo ? safeFormatDate(p.prazo, 'dd/MM/yyyy') || '--' : '--'}
+                                          </span>
+                                        </TableCell>
                                       <TableCell>
                                         <span className="text-[10px] font-bold text-[#39586D] uppercase">{p.responsavelId || 'Geral'}</span>
                                       </TableCell>
@@ -525,6 +587,40 @@ export default function ProcessosPage() {
         open={isCreateModalOpen} 
         onOpenChange={setIsCreateModalOpen} 
       />
+
+      <Dialog open={isBatchAssignOpen} onOpenChange={setIsBatchAssignOpen}>
+        <DialogContent className="sm:max-w-[425px] border-[#D2D7DB] bg-[#F7F7F7]">
+          <DialogHeader>
+            <DialogTitle className="text-[#2C4156] font-black uppercase text-xl">Atribuir Responsável</DialogTitle>
+            <DialogDescription className="text-[#98A7AA] font-bold text-xs uppercase">
+              Selecione o novo responsável para os {selectedIds.length} processos selecionados.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Novo Responsável</Label>
+            <Select value={batchAssignee} onValueChange={setBatchAssignee}>
+              <SelectTrigger className="bg-white border-[#D2D7DB] font-bold text-xs uppercase text-[#39586D] h-11 mt-2">
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Geral" className="text-xs font-bold uppercase">Geral</SelectItem>
+                {team?.map((u: any) => (
+                  <SelectItem key={u.id} value={u.fullName} className="text-xs font-bold uppercase">{u.fullName}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBatchAssignOpen(false)} className="border-[#D2D7DB] font-bold text-xs uppercase" disabled={isBatchUpdating}>
+              Cancelar
+            </Button>
+            <Button onClick={handleBatchAssign} className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 text-white font-black text-xs uppercase px-6" disabled={isBatchUpdating || !batchAssignee}>
+              {isBatchUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Confirmar Alteração
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
