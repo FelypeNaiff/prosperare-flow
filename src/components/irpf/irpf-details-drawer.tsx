@@ -81,7 +81,7 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
   const availableStages = (dbStages && dbStages.length > 0) ? dbStages : DEFAULT_STAGES
 
   useEffect(() => {
-    if (declaration) {
+    if (declaration && open) {
       setActiveTags(declaration.tags || [])
       setServiceValue(declaration.value || 0)
       setIsPaid(declaration.isPaid || false)
@@ -91,7 +91,8 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
         govPass: declaration.govPass || ""
       })
     }
-  }, [declaration, open])
+    // Usamos declaration?.id para não reescrever o estado local a cada re-render do pai (o que causava campos "travados")
+  }, [declaration?.id, open])
 
   if (!declaration) return null
 
@@ -196,24 +197,29 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                       </Badge>
                     )
                   })}
-                  <Popover>
+                  <Popover modal={true}>
                     <PopoverTrigger asChild>
                       <button className="h-8 w-8 rounded bg-[#EBEDF0] hover:bg-[#D2D7DB] flex items-center justify-center shadow-sm">
                         <Plus className="h-4 w-4 text-[#172B4D]" />
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-72 p-0 bg-white border-[#D2D7DB] shadow-2xl">
+                    <PopoverContent className="w-72 p-0 bg-white border-[#D2D7DB] shadow-2xl z-[9999]" align="start">
                       <div className="p-3 border-b flex items-center justify-between bg-[#F4F5F7]">
                         <span className="text-xs font-bold text-[#5E6C84] uppercase text-center w-full">Etiquetas</span>
                       </div>
                       <div className="p-3 space-y-1 max-h-[300px] overflow-y-auto">
                         {AVAILABLE_TAGS.map((tag) => (
-                          <div key={tag.name} className="flex items-center gap-2">
-                            <Checkbox checked={activeTags.includes(tag.name)} onCheckedChange={() => toggleTag(tag.name)} id={`tag-${tag.name}`} />
-                            <button onClick={() => toggleTag(tag.name)} className={cn("flex-1 text-left px-3 py-2 rounded text-[10px] font-black uppercase tracking-wide", tag.color)}>
+                          <label key={tag.name} htmlFor={`tag-${tag.name}`} className="flex items-center gap-2 cursor-pointer group">
+                            <Checkbox 
+                              checked={activeTags.includes(tag.name)} 
+                              onCheckedChange={() => toggleTag(tag.name)} 
+                              id={`tag-${tag.name}`} 
+                              className="group-hover:ring-2 ring-primary/20 transition-all cursor-pointer"
+                            />
+                            <div className={cn("flex-1 text-left px-3 py-2 rounded text-[10px] font-black uppercase tracking-wide cursor-pointer", tag.color)}>
                               {tag.name}
-                            </button>
-                          </div>
+                            </div>
+                          </label>
                         ))}
                       </div>
                     </PopoverContent>

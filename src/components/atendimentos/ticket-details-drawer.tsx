@@ -1,0 +1,287 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader, 
+  SheetTitle, 
+} from "@/components/ui/sheet"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Button } from "@/components/ui/button"
+import { 
+  X,
+  UserCircle,
+  Send,
+  Trash2,
+  CalendarDays,
+  Clock,
+  MessageSquare
+} from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { cn } from "@/lib/utils"
+import { toast } from "@/hooks/use-toast"
+import { Separator } from "@/components/ui/separator"
+import { 
+  useFirestore, 
+  updateDocumentNonBlocking, 
+  deleteDocumentNonBlocking,
+  useCollection, 
+  useMemoFirebase,
+  setDocumentNonBlocking,
+  useUser
+} from "@/firebase"
+import { doc, collection, query, orderBy } from "firebase/firestore"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team, templates }: any) {
+  const firestore = useFirestore()
+  const { user } = useUser()
+  const [localData, setLocalData] = useState({
+    title: "",
+    notes: "",
+    clientId: "",
+    templateId: "",
+    responsibleId: "",
+    dueDate: ""
+  })
+  
+  const [newComment, setNewComment] = useState("")
+
+  const commentsQuery = useMemoFirebase(() => 
+    ticket?.id ? query(collection(firestore, "tasks", ticket.id, "comments"), orderBy("createdAt", "asc")) : null, 
+    [firestore, ticket?.id]
+  )
+  const { data: comments = [] } = useCollection(commentsQuery)
+
+  useEffect(() => {
+    if (ticket && open) {
+      setLocalData({
+        title: ticket.title || "",
+        notes: ticket.notes || "",
+        clientId: ticket.clientId || "none",
+        templateId: ticket.templateId || "none",
+        responsibleId: ticket.responsibleId || "",
+        dueDate: ticket.dueDate || ""
+      })
+    }
+  }, [ticket?.id, open])
+
+  if (!ticket) return null
+
+  const handleUpdate = (field: string, value: any) => {
+    setLocalData(prev => ({ ...prev, [field]: value }))
+    
+    // Auto-update extra names to avoid inconsistencies
+    const updates: any = { [field]: value, updatedAt: new Date().toISOString() }
+    
+    if (field === 'clientId' && value !== 'none') {
+      const client = clients.find((c: any) => c.id === value)
+      if (client) updates.clientName = client.corporateName
+    }
+    if (field === 'responsibleId') {
+      const resp = team.find((t: any) => t.id === value)
+      if (resp) updates.responsibleName = resp.fullName
+    }
+    if (field === 'templateId' && value !== 'none') {
+      const temp = templates.find((t: any) => t.id === value)
+      if (temp) updates.title = temp.nome
+    }
+
+    const docRef = doc(firestore, "tasks", ticket.id)
+    updateDocumentNonBlocking(docRef, updates)
+  }
+
+  const handleDelete = () => {
+    if (confirm("Tem certeza que deseja excluir esta demanda irreversivelmente?")) {
+      deleteDocumentNonBlocking(doc(firestore, "tasks", ticket.id))
+      toast({ title: "Demanda excluída", variant: "destructive" })
+      onOpenChange(false)
+    }
+  }
+
+  const handleSendComment = () => {
+    if (!newComment.trim()) return
+    const commentId = Math.random().toString(36).substr(2, 9)
+    const commentData = {
+      id: commentId,
+      text: newComment,
+      userId: user?.uid,
+      userName: user?.displayName || "Usuário",
+      createdAt: new Date().toISOString()
+    }
+    setDocumentNonBlocking(doc(firestore, "tasks", ticket.id, "comments", commentId), commentData, { merge: true })
+    setNewComment("")
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-[700px] p-0 flex flex-col border-l-[#D2D7DB] overflow-hidden bg-[#F7F7F7]">
+        <div className="p-6 bg-white border-b flex justify-between items-center shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#2C4156] rounded-xl flex items-center justify-center shrink-0">
+              <UserCircle className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <SheetTitle className="text-xl font-black text-[#2C4156] leading-tight uppercase">Ficha da Demanda</SheetTitle>
+              <p className="text-[10px] font-bold text-[#98A7AA]">ID: {ticket.id}</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="h-8 w-8 rounded-full">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <ScrollArea className="flex-1">
+          <div className="p-6 space-y-6">
+            <div className="bg-white p-6 rounded-xl border border-[#D2D7DB] shadow-sm space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-wider">Título da Demanda</Label>
+                <Input 
+                  value={localData.title} 
+                  onChange={(e) => setLocalData({...localData, title: e.target.value.toUpperCase()})}
+                  onBlur={() => handleUpdate('title', localData.title)}
+                  className="border-[#D2D7DB] font-bold text-[#2C4156] uppercase"
+                  disabled={localData.templateId !== 'none' && localData.templateId !== ''}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-wider">Empresa</Label>
+                  <Select value={localData.clientId} onValueChange={(v) => handleUpdate('clientId', v)}>
+                    <SelectTrigger className="border-[#D2D7DB] font-bold text-[#2C4156] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Selecione...</SelectItem>
+                      {(clients || []).map((c: any) => (
+                        <SelectItem key={c.id} value={c.id} className="text-xs uppercase">{c.corporateName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-wider">Modelo</Label>
+                  <Select value={localData.templateId} onValueChange={(v) => handleUpdate('templateId', v)}>
+                    <SelectTrigger className="border-[#D2D7DB] font-bold text-[#2C4156] text-xs">
+                      <SelectValue placeholder="Sem Modelo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem Modelo</SelectItem>
+                      {(templates || []).map((t: any) => (
+                        <SelectItem key={t.id} value={t.id} className="text-xs uppercase">{t.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-wider">Responsável</Label>
+                  <Select value={localData.responsibleId} onValueChange={(v) => handleUpdate('responsibleId', v)}>
+                    <SelectTrigger className="border-[#D2D7DB] font-bold text-[#2C4156] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(team || []).map((t: any) => (
+                        <SelectItem key={t.id} value={t.id} className="text-xs uppercase">{t.fullName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-wider">Prazo de Conclusão</Label>
+                  <div className="relative">
+                    <CalendarDays className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
+                    <Input 
+                      type="date"
+                      value={localData.dueDate} 
+                      onChange={(e) => handleUpdate('dueDate', e.target.value)}
+                      className="border-[#D2D7DB] font-bold text-[#2C4156] pl-10"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 pt-2">
+                <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-wider">Notas Internas</Label>
+                <Textarea 
+                  value={localData.notes} 
+                  onChange={(e) => setLocalData({...localData, notes: e.target.value})}
+                  onBlur={() => handleUpdate('notes', localData.notes)}
+                  className="border-[#D2D7DB] min-h-[100px] text-sm"
+                  placeholder="Insira detalhes da tarefa..."
+                />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-[#D2D7DB] shadow-sm overflow-hidden flex flex-col h-[350px]">
+              <div className="p-3 border-b bg-[#F4F5F7]">
+                <h4 className="text-[11px] font-black text-[#2C4156] uppercase tracking-widest flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" /> Conversa Interna
+                </h4>
+              </div>
+              <ScrollArea className="flex-1 p-4">
+                <div className="space-y-4 pr-3">
+                  {(!comments || comments.length === 0) ? (
+                     <div className="text-center py-6 text-[10px] font-black text-[#98A7AA] uppercase">
+                       Nenhum comentário ainda.
+                     </div>
+                  ) : (
+                    (comments || []).map((comment: any) => {
+                      const isMe = comment.userId === user?.uid;
+                      return (
+                        <div key={comment.id} className={cn("flex flex-col gap-1", isMe ? "items-end" : "items-start")}>
+                          <div className={cn(
+                            "max-w-[85%] rounded-2xl px-4 py-2 text-sm",
+                            isMe ? "bg-[#1FA67A] text-white rounded-br-sm" : "bg-[#F4F5F7] text-[#2C4156] rounded-bl-sm"
+                          )}>
+                            {comment.text}
+                          </div>
+                          <span className="text-[9px] font-bold text-[#98A7AA]">
+                            {comment.userName.split(' ')[0]} • {new Date(comment.createdAt).toLocaleString('pt-BR')}
+                          </span>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </ScrollArea>
+              <div className="p-3 border-t bg-white flex gap-2">
+                <Input 
+                  placeholder="Digite uma mensagem..." 
+                  className="border-[#D2D7DB] h-9"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendComment()}
+                />
+                <Button size="icon" className="h-9 w-9 bg-[#2C4156]" onClick={handleSendComment}>
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            
+            <div className="flex justify-end pt-4">
+               <Button variant="destructive" className="gap-2 text-xs font-black uppercase shadow-sm" onClick={handleDelete}>
+                 <Trash2 className="h-4 w-4" /> Excluir Demanda
+               </Button>
+            </div>
+          </div>
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
+  )
+}
