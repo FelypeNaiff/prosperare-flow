@@ -60,6 +60,15 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader, 
+  SheetTitle,
+  SheetTrigger
+} from "@/components/ui/sheet"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function ProcessosPage() {
   const firestore = useFirestore()
@@ -71,6 +80,9 @@ export default function ProcessosPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [openGroups, setOpenGroups] = useState<string[]>([])
+  const [filtroResponsavel, setFiltroResponsavel] = useState("todas")
+  const [filtroDepartamento, setFiltroDepartamento] = useState("todos")
+  const [filtroStatus, setFiltroStatus] = useState("todos")
 
   const processesQuery = useMemoFirebase(() => 
     userLoaded ? query(collection(firestore, "processes"), orderBy("prazo", "asc")) : null, 
@@ -103,17 +115,28 @@ export default function ProcessosPage() {
 
       if (!matchesSearch) return false
 
-      if (userData.profile === 'ADMINISTRADOR' || userData.profile === 'SÓCIO') return true
+      if (userData.profile !== 'ADMINISTRADOR' && userData.profile !== 'SÓCIO') {
+        const hasAccess = p.responsavelId === userData.fullName || p.responsavelId === userData.id || p.auxiliarId === userData.fullName || p.auxiliarId === userData.id || p.responsavelId === "Geral"
+        if (!hasAccess) return false
+      }
 
-      return (
-        p.responsavelId === userData.fullName || 
-        p.responsavelId === userData.id ||
-        p.auxiliarId === userData.fullName ||
-        p.auxiliarId === userData.id ||
-        p.responsavelId === "Geral"
-      )
+      const matchesAssignee = filtroResponsavel === "todas" ? true : p.responsavelId === filtroResponsavel
+      const matchesDept = filtroDepartamento === "todos" ? true : p.departamento === filtroDepartamento
+      const matchesStatus = filtroStatus === "todos" ? true : p.situacao === filtroStatus
+
+      return matchesAssignee && matchesDept && matchesStatus
     })
-  }, [rawProcesses, userData, selectedCompetence, searchTerm, clients])
+  }, [rawProcesses, userData, selectedCompetence, searchTerm, clients, filtroResponsavel, filtroDepartamento, filtroStatus])
+
+  const uniqueAssignees = useMemo(() => {
+    return Array.from(new Set(rawProcesses.map(p => p.responsavelId).filter(Boolean)))
+      .map(id => ({ id: String(id), name: String(id) }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [rawProcesses])
+
+  const uniqueDepartments = useMemo(() => {
+    return Array.from(new Set(rawProcesses.map(p => p.departamento).filter(Boolean))).sort()
+  }, [rawProcesses])
 
   const groupedProcesses = useMemo(() => {
     const groups: Record<string, any> = {}
@@ -198,6 +221,33 @@ export default function ProcessosPage() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#D2D7DB] pb-4">
+        <span className="text-[10px] font-black uppercase text-[#98A7AA]">Filtrar por Responsável:</span>
+        <Button 
+          variant={filtroResponsavel === "todas" ? "default" : "outline"} 
+          onClick={() => setFiltroResponsavel("todas")}
+          className={cn(
+            "h-8 text-xs font-bold rounded-full transition-all",
+            filtroResponsavel === "todas" ? "bg-[#2C4156] text-white hover:bg-[#2C4156]/90 shadow-md" : "text-[#39586D] border-[#D2D7DB] hover:bg-[#F7F7F7]"
+          )}
+        >
+          Todos
+        </Button>
+        {uniqueAssignees.map(assignee => (
+          <Button 
+            key={assignee.id}
+            variant={filtroResponsavel === assignee.id ? "default" : "outline"}
+            onClick={() => setFiltroResponsavel(assignee.id)}
+            className={cn(
+              "h-8 text-xs font-bold rounded-full transition-all",
+              filtroResponsavel === assignee.id ? "bg-[#2C4156] text-white hover:bg-[#2C4156]/90 shadow-md" : "text-[#39586D] border-[#D2D7DB] hover:bg-[#F7F7F7]"
+            )}
+          >
+            {assignee.name}
+          </Button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <KpiMiniCard label="Total" value={stats.total} icon={Layers} color="bg-[#2C4156]" />
         <KpiMiniCard label="Em Multa" value={stats.late} icon={AlertCircle} color="bg-[#E74C3C]" />
@@ -218,9 +268,63 @@ export default function ProcessosPage() {
           />
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold h-11 px-4 gap-2">
-            <Filter className="h-4 w-4" /> Filtros
-          </Button>
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold h-11 px-4 gap-2 relative">
+                <Filter className="h-4 w-4" /> Filtros Avançados
+                {(filtroDepartamento !== "todos" || filtroStatus !== "todos") && (
+                   <span className="absolute -top-1.5 -right-1.5 h-3 w-3 bg-[#E74C3C] rounded-full border border-white"></span>
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="w-full sm:max-w-[400px] bg-[#F7F7F7] border-l-[#D2D7DB]">
+               <SheetHeader className="mb-6 pt-4">
+                  <SheetTitle className="text-[#2C4156] font-black uppercase tracking-tight text-xl">Filtros Avançados</SheetTitle>
+               </SheetHeader>
+               <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Departamento</Label>
+                    <Select value={filtroDepartamento} onValueChange={setFiltroDepartamento}>
+                      <SelectTrigger className="bg-white border-[#D2D7DB] font-bold text-xs uppercase text-[#39586D] h-11">
+                        <SelectValue placeholder="Todos os Departamentos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos" className="text-xs uppercase font-bold text-[#39586D]">Todos</SelectItem>
+                        {uniqueDepartments.map((dept: any) => (
+                          <SelectItem key={dept} value={dept} className="text-xs uppercase font-bold text-[#39586D]">{dept}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Status do Processo</Label>
+                    <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                      <SelectTrigger className="bg-white border-[#D2D7DB] font-bold text-xs uppercase text-[#39586D] h-11">
+                        <SelectValue placeholder="Todos os Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos" className="text-xs uppercase font-bold text-[#39586D]">Todos</SelectItem>
+                        <SelectItem value="a_fazer" className="text-xs uppercase font-bold text-[#98A7AA]">A Fazer</SelectItem>
+                        <SelectItem value="em_progresso" className="text-xs uppercase font-bold text-[#2574A9]">Em Progresso</SelectItem>
+                        <SelectItem value="concluido" className="text-xs uppercase font-bold text-[#1FA67A]">Concluído</SelectItem>
+                        <SelectItem value="em_multa" className="text-xs uppercase font-bold text-[#E74C3C]">Em Multa</SelectItem>
+                        <SelectItem value="dispensado" className="text-xs uppercase font-bold text-[#39586D]">Dispensado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full mt-4 border-[#D2D7DB] text-[#E74C3C] font-black uppercase text-xs h-11"
+                    onClick={() => {
+                       setFiltroDepartamento("todos")
+                       setFiltroStatus("todos")
+                    }}
+                  >
+                    Limpar Filtros
+                  </Button>
+               </div>
+            </SheetContent>
+          </Sheet>
           <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold h-11 px-4 gap-2">
             <Download className="h-4 w-4" /> Exportar
           </Button>

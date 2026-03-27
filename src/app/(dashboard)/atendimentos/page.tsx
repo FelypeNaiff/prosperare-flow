@@ -50,6 +50,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
 import { ClientSearchSelect } from "@/components/clients/client-search-select"
+import { TicketDetailsDrawer } from "@/components/atendimentos/ticket-details-drawer"
 
 const COLUMNS = [
   { id: 'novo', title: 'Novos', color: 'border-t-[#2C4156]', bg: 'bg-[#2C4156]/5' },
@@ -63,6 +64,9 @@ export default function AtendimentosPage() {
   const { userLoaded } = useUser()
   const [searchTerm, setSearchTerm] = useState("")
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false)
+  const [filtroResponsavel, setFiltroResponsavel] = useState("todas")
+  const [isHistoryView, setIsHistoryView] = useState(false)
+  const [selectedTicket, setSelectedTicket] = useState<any>(null)
 
   const tasksQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "tasks") : null, 
@@ -93,7 +97,8 @@ export default function AtendimentosPage() {
     templateId: "",
     responsibleId: "",
     notes: "",
-    title: ""
+    title: "",
+    dueDate: ""
   })
 
   const handleCreateTicket = () => {
@@ -116,6 +121,7 @@ export default function AtendimentosPage() {
       responsibleId: newTicket.responsibleId,
       responsibleName: responsible?.fullName || "Responsável",
       notes: newTicket.notes,
+      dueDate: newTicket.dueDate || null,
       status: 'novo',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -136,8 +142,24 @@ export default function AtendimentosPage() {
     })
 
     setIsNewTicketOpen(false)
-    setNewTicket({ clientId: "", templateId: "", responsibleId: "", notes: "", title: "" })
+    setNewTicket({ clientId: "", templateId: "", responsibleId: "", notes: "", title: "", dueDate: "" })
     toast({ title: "Demanda Enviada!", description: "O colaborador foi notificado." })
+  }
+
+  const handleDragStart = (e: React.DragEvent, ticketId: string) => {
+    e.dataTransfer.setData('ticketId', ticketId);
+  }
+
+  const handleDrop = (e: React.DragEvent, statusId: string) => {
+    e.preventDefault();
+    const ticketId = e.dataTransfer.getData('ticketId');
+    if (ticketId) {
+      updateStatus(ticketId, statusId);
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
   }
 
   const updateStatus = (id: string, newStatus: string) => {
@@ -145,21 +167,38 @@ export default function AtendimentosPage() {
     toast({ title: "Status Atualizado" })
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (id: string, e?: React.MouseEvent) => {
+    if(e) e.stopPropagation();
     deleteDocumentNonBlocking(doc(firestore, "tasks", id))
     toast({ title: "Ticket Removido", variant: "destructive" })
   }
 
-  const filteredTickets = (tickets || []).filter(t => 
-    t.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    t.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.responsibleName?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredTickets = (tickets || []).filter(t => {
+    const matchesSearch = t.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      t.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.responsibleName?.toLowerCase().includes(searchTerm.toLowerCase())
+      
+    const matchesResponsible = filtroResponsavel === "todas" ? true : t.responsibleId === filtroResponsavel
+    
+    if (isHistoryView) {
+      return t.status === 'concluido' && matchesSearch && matchesResponsible
+    } else {
+      return t.status !== 'concluido' && matchesSearch && matchesResponsible
+    }
+  })
+
+  const uniqueAssignees = Array.from(new Set((tickets || []).map(t => t.responsibleId)))
+    .map(id => {
+      const ticket = (tickets || []).find(t => t.responsibleId === id)
+      return { id, name: ticket?.responsibleName }
+    })
+    .filter(a => a.id && a.name)
+    .sort((a, b) => a.name!.localeCompare(b.name!))
 
   const stats = {
-    open: filteredTickets.filter(t => t.status !== 'concluido').length,
-    critical: filteredTickets.filter(t => t.status === 'pendente').length,
-    completed: filteredTickets.filter(t => t.status === 'concluido').length,
+    open: (tickets || []).filter(t => t.status !== 'concluido').length,
+    critical: (tickets || []).filter(t => t.status === 'pendente').length,
+    completed: (tickets || []).filter(t => t.status === 'concluido').length,
   }
 
   return (
@@ -169,9 +208,45 @@ export default function AtendimentosPage() {
           <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Demandas Internas</h1>
           <p className="text-[#98A7AA] font-bold text-sm">Gestão de solicitações entre departamentos.</p>
         </div>
-        <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg" onClick={() => setIsNewTicketOpen(true)}>
-          <Plus className="h-4 w-4" /> Novo Atendimento
+        <div className="flex gap-2">
+          <Button 
+            variant={isHistoryView ? "default" : "outline"}
+            className={cn("gap-2 font-black uppercase text-xs", isHistoryView ? "bg-[#2C4156] text-white" : "border-[#D2D7DB] text-[#5E6C84]")}
+            onClick={() => setIsHistoryView(!isHistoryView)}
+          >
+            <Clock className="h-4 w-4" /> {isHistoryView ? "Ver Kanban Ativo" : "Histórico/Arquivados"}
+          </Button>
+          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg" onClick={() => setIsNewTicketOpen(true)}>
+            <Plus className="h-4 w-4" /> Novo Atendimento
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#D2D7DB] pb-4">
+        <span className="text-[10px] font-black uppercase text-[#98A7AA]">Filtrar por Responsável:</span>
+        <Button 
+          variant={filtroResponsavel === "todas" ? "default" : "outline"} 
+          onClick={() => setFiltroResponsavel("todas")}
+          className={cn(
+            "h-8 text-xs font-bold rounded-full transition-all",
+            filtroResponsavel === "todas" ? "bg-[#2C4156] text-white hover:bg-[#2C4156]/90 shadow-md" : "text-[#39586D] border-[#D2D7DB] hover:bg-[#F7F7F7]"
+          )}
+        >
+          Todas as Demandas
         </Button>
+        {uniqueAssignees.map(assignee => (
+          <Button 
+            key={assignee.id}
+            variant={filtroResponsavel === assignee.id ? "default" : "outline"}
+            onClick={() => setFiltroResponsavel(assignee.id)}
+            className={cn(
+              "h-8 text-xs font-bold rounded-full transition-all",
+              filtroResponsavel === assignee.id ? "bg-[#2C4156] text-white hover:bg-[#2C4156]/90 shadow-md" : "text-[#39586D] border-[#D2D7DB] hover:bg-[#F7F7F7]"
+            )}
+          >
+            {assignee.name}
+          </Button>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -190,25 +265,37 @@ export default function AtendimentosPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 min-h-[600px]">
-        {COLUMNS.map(col => (
-          <div key={col.id} className={cn("flex flex-col gap-4 p-2 rounded-xl border-t-4", col.color, col.bg)}>
-            <div className="flex items-center justify-between px-2 pt-1">
-              <h3 className="font-black text-[#2C4156] text-[11px] uppercase tracking-widest flex items-center gap-2">
-                {col.title}
-                <Badge variant="secondary" className="rounded-full px-1.5 h-5 min-w-5 text-[10px] bg-white border">
-                  {filteredTickets.filter(t => t.status === col.id).length}
-                </Badge>
-              </h3>
-            </div>
-            
-            <ScrollArea className="h-[calc(100vh-350px)]">
-              <div className="flex flex-col gap-3 pr-2 pb-4">
-                {loadingTickets ? (
-                  <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#1FA67A]" /></div>
-                ) : filteredTickets.filter(t => t.status === col.id).length > 0 ? (
-                  filteredTickets.filter(t => t.status === col.id).map((ticket) => (
-                    <Card key={ticket.id} className="bg-white border-[#D2D7DB] shadow-sm hover:shadow-md transition-all group">
+      {!isHistoryView ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 min-h-[600px]">
+          {COLUMNS.filter(c => c.id !== 'concluido').map(col => (
+            <div 
+              key={col.id} 
+              className={cn("flex flex-col gap-4 p-2 rounded-xl border-t-4 transition-all duration-300", col.color, col.bg)}
+              onDrop={(e) => handleDrop(e, col.id)}
+              onDragOver={handleDragOver}
+            >
+              <div className="flex items-center justify-between px-2 pt-1">
+                <h3 className="font-black text-[#2C4156] text-[11px] uppercase tracking-widest flex items-center gap-2">
+                  {col.title}
+                  <Badge variant="secondary" className="rounded-full px-1.5 h-5 min-w-5 text-[10px] bg-white border">
+                    {filteredTickets.filter(t => t.status === col.id).length}
+                  </Badge>
+                </h3>
+              </div>
+              
+              <ScrollArea className="h-[calc(100vh-350px)]">
+                <div className="flex flex-col gap-3 pr-2 pb-4">
+                  {loadingTickets ? (
+                    <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#1FA67A]" /></div>
+                  ) : filteredTickets.filter(t => t.status === col.id).length > 0 ? (
+                    filteredTickets.filter(t => t.status === col.id).map((ticket) => (
+                      <Card 
+                        key={ticket.id} 
+                        className="bg-white border-[#D2D7DB] shadow-sm hover:shadow-md transition-all group cursor-pointer active:cursor-grabbing hover:border-[#1FA67A]/40"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, ticket.id)}
+                        onClick={() => setSelectedTicket(ticket)}
+                      >
                       <CardContent className="p-4 space-y-3">
                         <div className="flex justify-between items-start">
                           <div className="space-y-1">
@@ -232,30 +319,70 @@ export default function AtendimentosPage() {
                           </DropdownMenu>
                         </div>
 
-                        <div className="flex items-center gap-2 pt-2 border-t">
-                          <Avatar className="h-6 w-6 border">
-                            <AvatarFallback className="text-[8px] font-black bg-[#2C4156] text-white">
-                              {ticket.responsibleName?.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-[#39586D] uppercase">{ticket.responsibleName}</span>
-                            <span className="text-[8px] text-[#98A7AA] font-bold">{new Date(ticket.createdAt).toLocaleDateString('pt-BR')}</span>
+                          <div className="flex items-center gap-2 pt-2 border-t justify-between">
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6 border">
+                                <AvatarFallback className="text-[8px] font-black bg-[#2C4156] text-white">
+                                  {ticket.responsibleName?.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-black text-[#39586D] uppercase">{ticket.responsibleName}</span>
+                                <span className="text-[8px] text-[#98A7AA] font-bold">{new Date(ticket.createdAt).toLocaleDateString('pt-BR')}</span>
+                              </div>
+                            </div>
+                            {ticket.dueDate && (
+                               <div className="bg-[#FFF4E5] text-[#F2B705] text-[9px] font-black px-2 py-0.5 rounded uppercase border border-[#FADF98]">
+                                 Prazo: {new Date(ticket.dueDate).toLocaleDateString('pt-BR')}
+                               </div>
+                            )}
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                ) : (
-                  <div className="text-center py-12 text-[10px] font-black text-[#98A7AA] uppercase border-2 border-dashed rounded-xl">
-                    Vazio
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
+                        </CardContent>
+                      </Card>
+                    ))
+                  ) : (
+                    <div className="text-center py-12 text-[10px] font-black text-[#98A7AA] uppercase border-2 border-dashed rounded-xl">
+                      Solte as tarefas aqui
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-[#D2D7DB] shadow-sm overflow-hidden min-h-[500px]">
+          <div className="p-4 border-b bg-[#F4F5F7] flex justify-between items-center">
+             <h3 className="font-black text-[#2C4156] text-[11px] uppercase tracking-widest flex items-center gap-2">
+                Tarefas Concluídas
+                <Badge variant="secondary" className="rounded-full px-1.5 h-5 min-w-5 text-[10px] bg-white border">
+                  {filteredTickets.length}
+                </Badge>
+              </h3>
           </div>
-        ))}
-      </div>
+          <ScrollArea className="h-[500px]">
+             {filteredTickets.length === 0 ? (
+                <div className="py-12 flex justify-center text-[10px] font-black uppercase text-[#98A7AA]">Nenhum histórico encontrado.</div>
+             ) : (
+                <div className="divide-y">
+                   {filteredTickets.map(ticket => (
+                      <div key={ticket.id} className="p-4 hover:bg-[#F9FAFB] cursor-pointer flex justify-between items-center transition-colors" onClick={() => setSelectedTicket(ticket)}>
+                         <div className="flex flex-col gap-1">
+                            <p className="text-[9px] font-black text-[#1FA67A] uppercase">{ticket.clientName}</p>
+                            <h4 className="text-xs font-black text-[#2C4156] leading-tight uppercase">{ticket.title}</h4>
+                            <div className="flex gap-4 mt-1 text-[10px] font-bold text-[#98A7AA]">
+                               <span>Concluído em: {new Date(ticket.updatedAt).toLocaleDateString('pt-BR')}</span>
+                               <span>Responsável: {ticket.responsibleName}</span>
+                            </div>
+                         </div>
+                         <Button variant="outline" size="sm" className="h-8 text-[10px] font-black uppercase" onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'novo') }}>Reabrir</Button>
+                      </div>
+                   ))}
+                </div>
+             )}
+          </ScrollArea>
+        </div>
+      )}
 
       <Dialog open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen}>
         <DialogContent className="max-w-xl p-0 overflow-hidden border-none shadow-2xl flex flex-col">
@@ -301,6 +428,17 @@ export default function AtendimentosPage() {
                   </Select>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Prazo de Conclusão</Label>
+                  <Input 
+                    type="date"
+                    className="border-[#D2D7DB]" 
+                    value={newTicket.dueDate} 
+                    onChange={(e) => setNewTicket({...newTicket, dueDate: e.target.value})} 
+                  />
+                </div>
+              </div>
               {!newTicket.templateId && (
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Título Manual</Label>
@@ -319,6 +457,15 @@ export default function AtendimentosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      <TicketDetailsDrawer 
+        open={!!selectedTicket} 
+        onOpenChange={(v: boolean) => !v && setSelectedTicket(null)} 
+        ticket={selectedTicket}
+        clients={clients}
+        team={team}
+        templates={templates}
+      />
     </div>
   )
 }
