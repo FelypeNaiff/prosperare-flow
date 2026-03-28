@@ -112,6 +112,12 @@ export default function ProcessosPage() {
 
   const [isBatchAssignOpen, setIsBatchAssignOpen] = useState(false)
   const [batchAssignee, setBatchAssignee] = useState("")
+  
+  const [isBatchStatusOpen, setIsBatchStatusOpen] = useState(false)
+  const [batchStatusValue, setBatchStatusValue] = useState("")
+
+  const [isBatchDeleteOpen, setIsBatchDeleteOpen] = useState(false)
+
   const [isBatchUpdating, setIsBatchUpdating] = useState(false)
 
   const processesQuery = useMemoFirebase(() => 
@@ -148,6 +154,43 @@ export default function ProcessosPage() {
     }
   }
 
+  const handleBatchStatusChange = async () => {
+    if (!batchStatusValue || selectedIds.length === 0) return;
+    setIsBatchUpdating(true);
+    try {
+      for (const id of selectedIds) {
+        const docRef = doc(firestore, "processes", id);
+        updateDocumentNonBlocking(docRef, { situacao: batchStatusValue });
+      }
+      toast({ title: "Status atualizado", description: `${selectedIds.length} processos foram alterados com sucesso.` });
+      setIsBatchStatusOpen(false);
+      setSelectedIds([]);
+      setBatchStatusValue("");
+    } catch (e) {
+      toast({ title: "Erro ao atualizar", variant: "destructive", description: "Ocorreu um erro ao realizar a alteração em lote." });
+    } finally {
+      setIsBatchUpdating(false);
+    }
+  }
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBatchUpdating(true);
+    try {
+      for (const id of selectedIds) {
+        const docRef = doc(firestore, "processes", id);
+        deleteDocumentNonBlocking(docRef);
+      }
+      toast({ title: "Processos excluídos", description: `${selectedIds.length} processos foram removidos permanentemente.` });
+      setIsBatchDeleteOpen(false);
+      setSelectedIds([]);
+    } catch (e) {
+      toast({ title: "Erro ao excluir", variant: "destructive", description: "Ocorreu um erro ao excluir os processos." });
+    } finally {
+      setIsBatchUpdating(false);
+    }
+  }
+
   const filteredProcesses = useMemo(() => {
     if (!rawProcesses || !userData) return []
     
@@ -173,7 +216,7 @@ export default function ProcessosPage() {
         if (!hasAccess) return false
       }
 
-      const matchesAssignee = filtroResponsavel === "todas" ? true : p.responsavelId === filtroResponsavel
+      const matchesAssignee = filtroResponsavel === "todas" ? true : (p.responsavelId === filtroResponsavel || p.auxiliarId === filtroResponsavel)
       const matchesDept = filtroDepartamento === "todos" ? true : p.departamento === filtroDepartamento
       const matchesStatus = filtroStatus === "todos" ? true : p.situacao === filtroStatus
 
@@ -182,7 +225,12 @@ export default function ProcessosPage() {
   }, [rawProcesses, userData, selectedCompetence, searchTerm, clients, filtroResponsavel, filtroDepartamento, filtroStatus])
 
   const uniqueAssignees = useMemo(() => {
-    return Array.from(new Set((rawProcesses || []).map(p => p.responsavelId).filter(Boolean)))
+    const list = new Set<string>()
+    ;(rawProcesses || []).forEach(p => {
+      if (p.responsavelId && p.responsavelId !== "Geral") list.add(p.responsavelId)
+      if (p.auxiliarId && p.auxiliarId !== "Nenhum") list.add(p.auxiliarId)
+    })
+    return Array.from(list)
       .map(id => ({ id: String(id), name: String(id) }))
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [rawProcesses])
@@ -210,7 +258,8 @@ export default function ProcessosPage() {
       groups[key].clientsCount++
       groups[key].processesCount++
       if (p.departamento) groups[key].departments.add(p.departamento)
-      if (p.responsavelId) groups[key].responsibles.add(p.responsavelId)
+      if (p.responsavelId && p.responsavelId !== "Geral") groups[key].responsibles.add(p.responsavelId)
+      if (p.auxiliarId && p.auxiliarId !== "Nenhum") groups[key].responsibles.add(p.auxiliarId)
     })
 
     return Object.values(groups)
@@ -400,12 +449,30 @@ export default function ProcessosPage() {
               >
                 <UserPlus className="h-3.5 w-3.5" /> Alterar Responsável
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast({ title: "Modo Envio em Lote" })} className="font-bold uppercase text-[10px] gap-2">
-                <Share2 className="h-3.5 w-3.5" /> Envio em Lote
+              <DropdownMenuItem 
+                onClick={() => {
+                  if (selectedIds.length === 0) {
+                    toast({ title: "Atenção", description: "Selecione pelo menos um processo.", variant: "destructive" })
+                    return
+                  }
+                  setIsBatchStatusOpen(true)
+                }} 
+                className="font-bold uppercase text-[10px] gap-2"
+              >
+                <Layers className="h-3.5 w-3.5" /> Alterar Status em Lote
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="font-bold uppercase text-[10px] gap-2" onClick={() => toast({ title: "Atribuir Docs" })}>
-                <FileText className="h-3.5 w-3.5" /> Atribuir Documentos
+              <DropdownMenuItem 
+                onClick={() => {
+                  if (selectedIds.length === 0) {
+                    toast({ title: "Atenção", description: "Selecione pelo menos um processo.", variant: "destructive" })
+                    return
+                  }
+                  setIsBatchDeleteOpen(true)
+                }} 
+                className="font-bold uppercase text-[10px] gap-2 text-[#E74C3C] focus:bg-[#FEE2E2] focus:text-[#E74C3C]"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Apagar Processos Selecionados
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -542,7 +609,25 @@ export default function ProcessosPage() {
                                           </span>
                                         </TableCell>
                                       <TableCell>
-                                        <span className="text-[10px] font-bold text-[#39586D] uppercase">{p.responsavelId || 'Geral'}</span>
+                                        <div className="flex items-center -space-x-2">
+                                          {p.responsavelId && p.responsavelId !== "Geral" && (
+                                            <Avatar className="h-6 w-6 border-2 border-white relative z-10" title={`Responsável: ${p.responsavelId}`}>
+                                              <AvatarFallback className="bg-[#2C4156] text-white text-[8px] font-black uppercase">
+                                                {String(p.responsavelId).charAt(0)}
+                                              </AvatarFallback>
+                                            </Avatar>
+                                          )}
+                                          {p.auxiliarId && p.auxiliarId !== "Nenhum" && (
+                                            <Avatar className="h-5 w-5 border-2 border-white relative z-0 opacity-90 grayscale-[20%]" title={`Auxiliar: ${p.auxiliarId}`}>
+                                              <AvatarFallback className="bg-[#98A7AA] text-white text-[7px] font-black uppercase">
+                                                {String(p.auxiliarId).charAt(0)}
+                                              </AvatarFallback>
+                                            </Avatar>
+                                          )}
+                                          {(!p.responsavelId || p.responsavelId === "Geral") && (!p.auxiliarId || p.auxiliarId === "Nenhum") && (
+                                            <span className="text-[10px] font-bold text-[#39586D] uppercase">Geral</span>
+                                          )}
+                                        </div>
                                       </TableCell>
                                       <TableCell className="text-right">
                                         <Button 
@@ -617,6 +702,60 @@ export default function ProcessosPage() {
             <Button onClick={handleBatchAssign} className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 text-white font-black text-xs uppercase px-6" disabled={isBatchUpdating || !batchAssignee}>
               {isBatchUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Confirmar Alteração
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isBatchStatusOpen} onOpenChange={setIsBatchStatusOpen}>
+        <DialogContent className="sm:max-w-[425px] border-[#D2D7DB] bg-[#F7F7F7]">
+          <DialogHeader>
+            <DialogTitle className="text-[#2C4156] font-black uppercase text-xl">Alterar Status em Lote</DialogTitle>
+            <DialogDescription className="text-[#98A7AA] font-bold text-xs uppercase">
+              Selecione o novo status para os {selectedIds.length} processos selecionados:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Novo Status</Label>
+            <Select value={batchStatusValue} onValueChange={setBatchStatusValue}>
+              <SelectTrigger className="bg-white border-[#D2D7DB] font-bold text-xs uppercase text-[#39586D] h-11 mt-2">
+                <SelectValue placeholder="Selecione o Status..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="a_fazer" className="text-xs uppercase font-bold text-[#98A7AA]">A Fazer</SelectItem>
+                <SelectItem value="em_progresso" className="text-xs uppercase font-bold text-[#2574A9]">Em Progresso</SelectItem>
+                <SelectItem value="concluido" className="text-xs uppercase font-bold text-[#1FA67A]">Concluído</SelectItem>
+                <SelectItem value="em_multa" className="text-xs uppercase font-bold text-[#E74C3C]">Em Multa</SelectItem>
+                <SelectItem value="dispensado" className="text-xs uppercase font-bold text-[#39586D]">Dispensado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBatchStatusOpen(false)} className="border-[#D2D7DB] font-bold text-xs uppercase" disabled={isBatchUpdating}>
+              Cancelar
+            </Button>
+            <Button onClick={handleBatchStatusChange} className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 text-white font-black text-xs uppercase px-6" disabled={isBatchUpdating || !batchStatusValue}>
+              {isBatchUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isBatchDeleteOpen} onOpenChange={setIsBatchDeleteOpen}>
+        <DialogContent className="sm:max-w-[425px] border-[#D2D7DB] bg-[#F7F7F7]">
+          <DialogHeader>
+            <DialogTitle className="text-[#E74C3C] font-black uppercase text-xl">Excluir Processos</DialogTitle>
+            <DialogDescription className="text-[#98A7AA] font-bold text-xs uppercase">
+              Atenção: Tem certeza que deseja excluir os {selectedIds.length} processos selecionados? Esta ação é irreversível.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setIsBatchDeleteOpen(false)} className="border-[#D2D7DB] font-bold text-xs uppercase" disabled={isBatchUpdating}>
+              Cancelar
+            </Button>
+            <Button onClick={handleBatchDelete} className="bg-[#E74C3C] hover:bg-[#E74C3C]/90 text-white font-black text-xs uppercase px-6" disabled={isBatchUpdating}>
+              {isBatchUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Excluir
             </Button>
           </DialogFooter>
         </DialogContent>
