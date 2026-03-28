@@ -182,13 +182,13 @@ export default function ProcessosPage() {
   }, [rawProcesses, userData, selectedCompetence, searchTerm, clients, filtroResponsavel, filtroDepartamento, filtroStatus])
 
   const uniqueAssignees = useMemo(() => {
-    return Array.from(new Set(rawProcesses.map(p => p.responsavelId).filter(Boolean)))
+    return Array.from(new Set((rawProcesses || []).map(p => p.responsavelId).filter(Boolean)))
       .map(id => ({ id: String(id), name: String(id) }))
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [rawProcesses])
 
   const uniqueDepartments = useMemo(() => {
-    return Array.from(new Set(rawProcesses.map(p => p.departamento).filter(Boolean))).sort()
+    return Array.from(new Set((rawProcesses || []).map(p => p.departamento).filter(Boolean))).sort()
   }, [rawProcesses])
 
   const groupedProcesses = useMemo(() => {
@@ -517,7 +517,7 @@ export default function ProcessosPage() {
                               </TableHeader>
                               <TableBody>
                                 {group.items.map((p: any) => {
-                                  const client = clients.find(c => c.id === p.clienteId)
+                                  const client = (clients || []).find(c => c.id === p.clienteId)
                                   return (
                                     <TableRow key={p.id} className="border-none hover:bg-[#EBEDF0] transition-colors rounded-lg group/item">
                                       <TableCell className="py-2">

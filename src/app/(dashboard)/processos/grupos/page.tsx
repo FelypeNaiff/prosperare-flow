@@ -183,12 +183,12 @@ export default function GruposObrigacoesPage() {
       let count = 0
 
       for (const clientId of clientsToProcess) {
-        const client = allClients.find(c => c.id === clientId)
+        const client = (allClients || []).find(c => c.id === clientId)
         if (!client) continue
 
         // Gerar um processo para cada modelo vinculado ao grupo
         for (const modelRef of (selectedGroupForGen.processes || [])) {
-          const model = templates.find(t => t.id === modelRef.templateId)
+          const model = (templates || []).find(t => t.id === modelRef.templateId)
           if (!model) continue
 
           const id = Math.random().toString(36).substr(2, 9)
@@ -325,7 +325,7 @@ export default function GruposObrigacoesPage() {
         </div>
       ) : (groups || []).length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {groups.map((group: any) => {
+          {(groups || []).map((group: any) => {
             const count = group.clientesVinculados?.length || 0
             return (
               <Card key={group.id} className="border-[#D2D7DB] hover:shadow-md transition-shadow group relative overflow-hidden bg-white">

@@ -148,7 +148,7 @@ export default function ContatosPage() {
       clientCnpj: client?.cnpj || "00.000.000/0000-00",
       clientRegime: client?.taxRegime || "Não informado",
       updatedAt: new Date().toISOString(),
-      createdAt: editingId ? (contracts.find(c => c.id === editingId)?.createdAt || new Date().toISOString()) : new Date().toISOString()
+      createdAt: editingId ? ((contracts || []).find(c => c.id === editingId)?.createdAt || new Date().toISOString()) : new Date().toISOString()
     }
 
     setDocumentNonBlocking(contractRef, contractData, { merge: true })
