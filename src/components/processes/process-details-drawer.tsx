@@ -55,6 +55,9 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
   const { userData } = useUser()
   const [localTarefas, setLocalTarefas] = useState<any[]>([])
   const [newComment, setNewComment] = useState("")
+  const [showMentions, setShowMentions] = useState(false)
+  const [mentionSearch, setMentionSearch] = useState("")
+  const [mentionStart, setMentionStart] = useState(-1)
   
   const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
   const { data: team = [] } = useCollection(usersQuery)
@@ -147,16 +150,17 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
     
     handleUpdate('comments', [...comments, comment])
 
-    const mentions = newComment.match(/@(\w+ \w+|\w+)/g)
-    if (mentions) {
-      mentions.forEach(mention => {
-        const name = mention.substring(1)
-        const mentionedUser = team?.find(u => u.fullName?.toLowerCase() === name.toLowerCase())
-        if (mentionedUser && mentionedUser.id) {
+    const mentionsRegex = /@\[([^\]]+)\]\(([^)]+)\)/g;
+    const mentions = Array.from(newComment.matchAll(mentionsRegex));
+    
+    if (mentions.length > 0) {
+      mentions.forEach(match => {
+        const userId = match[2];
+        if (userId) {
           notifyUser(
-            mentionedUser.id,
+            userId,
             "Você foi mencionado",
-            `${userData?.fullName} mencionou você em um comentário no processo de ${process.client?.corporateName}.`,
+            `${userData?.fullName} mencionou você no processo de ${process.client?.corporateName}.`,
             'mention'
           )
         }
@@ -171,9 +175,61 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
     ? Math.round((localTarefas.filter(t => t.situacao === 'concluido').length / localTarefas.length) * 100)
     : 0
 
+  const usersData = (team || [])
+    .filter((u: any) => u && u.id && u.fullName)
+    .map((u: any) => ({ id: String(u.id), display: String(u.fullName) }))
+
+  const renderCommentText = (text: string) => {
+    if (!text) return null;
+    const parts = text.split(/(@\[[^\]]+\]\([^)]+\))/g);
+    return parts.map((part, i) => {
+      const match = part.match(/@\[([^\]]+)\]\(([^)]+)\)/);
+      if (match) {
+        return <span key={i} className="font-bold text-[#1FA67A]">{`@${match[1]}`}</span>;
+      }
+      return <span key={i}>{part}</span>;
+    });
+  }
+
+  const handleTextChange = (e: any) => {
+    const val = e.target.value;
+    setNewComment(val);
+
+    const cursor = e.target.selectionStart;
+    const textBeforeCursor = val.slice(0, cursor);
+    const lastAtPos = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtPos !== -1) {
+      if (lastAtPos === 0 || textBeforeCursor[lastAtPos - 1] === ' ' || textBeforeCursor[lastAtPos - 1] === '\n') {
+        const searchText = textBeforeCursor.slice(lastAtPos + 1);
+        if (!searchText.includes(' ')) {
+          setShowMentions(true);
+          setMentionSearch(searchText.toLowerCase());
+          setMentionStart(lastAtPos);
+          return;
+        }
+      }
+    }
+    setShowMentions(false);
+  };
+
+  const handleMentionSelect = (u: any) => {
+    const textBefore = newComment.slice(0, mentionStart);
+    const mentionText = `@[${u.fullName}](${u.id}) `;
+    const textAfter = newComment.slice(mentionStart + mentionSearch.length + 1);
+    
+    setNewComment(textBefore + mentionText + textAfter);
+    setShowMentions(false);
+  };
+
+  const filteredTeam = (team || []).filter((u: any) => 
+    u && u.id && u.fullName && u.fullName.toLowerCase().includes(mentionSearch)
+  );
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-[1000px] p-0 border-l-[#D2D7DB] overflow-hidden flex flex-col">
+        <SheetTitle className="sr-only">Detalhes do Processo</SheetTitle>
         <div className="flex-1 flex overflow-hidden">
           <div className="flex-[7] border-r flex flex-col overflow-hidden bg-white">
             <header className="p-8 border-b bg-[#F7F7F7]/50">
@@ -273,13 +329,30 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
                   <TabsContent value="comments" className="space-y-6">
                     <div className="bg-[#F7F7F7] p-4 rounded-2xl border border-[#D2D7DB] shadow-inner">
                       <div className="relative">
-                        <AtSign className="absolute left-3 top-3 h-4 w-4 text-[#98A7AA]" />
+                        <AtSign className="absolute left-3 top-3.5 h-4 w-4 text-[#98A7AA] z-10" />
                         <Textarea 
-                          className="pl-9 h-24 bg-white border-[#D2D7DB] text-xs resize-none"
-                          placeholder="Mencione um colega com @..."
+                          className="pl-9 h-24 bg-white border-[#D2D7DB] text-xs resize-none w-full"
+                          placeholder="Digite seu comentário. Use @Nome para mencionar alguém..."
                           value={newComment}
-                          onChange={(e) => setNewComment(e.target.value)}
+                          onChange={handleTextChange}
                         />
+
+                        {showMentions && filteredTeam.length > 0 && (
+                          <div className="absolute z-50 bottom-12 left-8 bg-white border border-[#D2D7DB] shadow-lg rounded-xl overflow-hidden max-h-48 overflow-y-auto w-64">
+                            {filteredTeam.map((u: any) => (
+                              <div 
+                                key={u.id}
+                                className="px-4 py-2 hover:bg-[#1FA67A] hover:text-white cursor-pointer text-xs font-bold text-[#2C4156] transition-colors uppercase border-b last:border-b-0 flex items-center gap-2"
+                                onClick={() => handleMentionSelect(u)}
+                              >
+                                <div className="h-5 w-5 bg-[#F7F7F7] text-[#2C4156] rounded-full flex items-center justify-center text-[8px] border">
+                                  {u.fullName.charAt(0)}
+                                </div>
+                                {u.fullName}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         <Button 
                           className="absolute bottom-2 right-2 h-8 bg-[#1FA67A] text-[10px] font-black uppercase gap-2"
                           onClick={handleAddComment}
@@ -301,7 +374,7 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
                                 <span className="text-xs font-black text-[#2C4156] uppercase">{c.user}</span>
                                 <span className="text-[9px] font-bold text-[#98A7AA]">{new Date(c.createdAt).toLocaleString('pt-BR')}</span>
                               </div>
-                              <p className="text-xs text-[#39586D] leading-relaxed">{c.text}</p>
+                              <p className="text-xs text-[#39586D] leading-relaxed whitespace-pre-wrap">{renderCommentText(c.text)}</p>
                             </div>
                           </div>
                         )).reverse()

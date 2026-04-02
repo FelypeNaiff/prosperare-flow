@@ -56,6 +56,9 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
   })
   
   const [newComment, setNewComment] = useState("")
+  const [showMentions, setShowMentions] = useState(false)
+  const [mentionSearch, setMentionSearch] = useState("")
+  const [mentionStart, setMentionStart] = useState(-1)
 
   const commentsQuery = useMemoFirebase(() => 
     ticket?.id ? query(collection(firestore, "tasks", ticket.id, "comments"), orderBy("createdAt", "asc")) : null, 
@@ -109,6 +112,21 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
     }
   }
 
+  const notifyUser = (userId: string, title: string, message: string, type: 'assignment' | 'mention') => {
+    const id = Math.random().toString(36).substr(2, 9)
+    const notificationRef = doc(firestore, "notifications", id)
+    setDocumentNonBlocking(notificationRef, {
+      id,
+      userId,
+      title,
+      message,
+      type,
+      read: false,
+      createdAt: new Date().toISOString(),
+      ticketId: ticket.id
+    }, { merge: true })
+  }
+
   const handleSendComment = () => {
     if (!newComment.trim()) return
     const commentId = Math.random().toString(36).substr(2, 9)
@@ -120,8 +138,77 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
       createdAt: new Date().toISOString()
     }
     setDocumentNonBlocking(doc(firestore, "tasks", ticket.id, "comments", commentId), commentData, { merge: true })
+
+    const mentionsRegex = /@\[([^\]]+)\]\(([^)]+)\)/g;
+    const mentions = Array.from(newComment.matchAll(mentionsRegex));
+    
+    if (mentions.length > 0) {
+      mentions.forEach((match: any) => {
+        const userId = match[2];
+        if (userId) {
+          notifyUser(
+            userId,
+            "Você foi mencionado",
+            `${user?.displayName || 'Usuário'} mencionou você na demanda ${ticket.title}.`,
+            'mention'
+          )
+        }
+      })
+    }
+
     setNewComment("")
   }
+
+  const usersData = (team || [])
+    .filter((u: any) => u && u.id && u.fullName)
+    .map((u: any) => ({ id: String(u.id), display: String(u.fullName) }))
+
+  const renderCommentText = (text: string) => {
+    if (!text) return null;
+    const parts = text.split(/(@\[[^\]]+\]\([^)]+\))/g);
+    return parts.map((part: string, i: number) => {
+      const match = part.match(/@\[([^\]]+)\]\(([^)]+)\)/);
+      if (match) {
+        return <span key={i} className="font-bold text-[#1FA67A]">{`@${match[1]}`}</span>;
+      }
+      return <span key={i}>{part}</span>;
+    });
+  }
+
+  const handleTextChange = (e: any) => {
+    const val = e.target.value;
+    setNewComment(val);
+
+    const cursor = e.target.selectionStart;
+    const textBeforeCursor = val.slice(0, cursor);
+    const lastAtPos = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtPos !== -1) {
+      if (lastAtPos === 0 || textBeforeCursor[lastAtPos - 1] === ' ' || textBeforeCursor[lastAtPos - 1] === '\n') {
+        const searchText = textBeforeCursor.slice(lastAtPos + 1);
+        if (!searchText.includes(' ')) {
+          setShowMentions(true);
+          setMentionSearch(searchText.toLowerCase());
+          setMentionStart(lastAtPos);
+          return;
+        }
+      }
+    }
+    setShowMentions(false);
+  };
+
+  const handleMentionSelect = (u: any) => {
+    const textBefore = newComment.slice(0, mentionStart);
+    const mentionText = `@[${u.fullName}](${u.id}) `;
+    const textAfter = newComment.slice(mentionStart + mentionSearch.length + 1);
+    
+    setNewComment(textBefore + mentionText + textAfter);
+    setShowMentions(false);
+  };
+
+  const filteredTeam = (team || []).filter((u: any) => 
+    u && u.id && u.fullName && u.fullName.toLowerCase().includes(mentionSearch)
+  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -246,10 +333,10 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
                       return (
                         <div key={comment.id} className={cn("flex flex-col gap-1", isMe ? "items-end" : "items-start")}>
                           <div className={cn(
-                            "max-w-[85%] rounded-2xl px-4 py-2 text-sm",
+                            "max-w-[85%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap",
                             isMe ? "bg-[#1FA67A] text-white rounded-br-sm" : "bg-[#F4F5F7] text-[#2C4156] rounded-bl-sm"
                           )}>
-                            {comment.text}
+                            {renderCommentText(comment.text)}
                           </div>
                           <span className="text-[9px] font-bold text-[#98A7AA]">
                             {comment.userName.split(' ')[0]} • {new Date(comment.createdAt).toLocaleString('pt-BR')}
@@ -260,17 +347,39 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
                   )}
                 </div>
               </ScrollArea>
-              <div className="p-3 border-t bg-white flex gap-2">
+              <div className="p-3 border-t bg-white flex gap-2 relative">
                 <Input 
-                  placeholder="Digite uma mensagem..." 
-                  className="border-[#D2D7DB] h-9"
+                  placeholder="Digite uma mensagem. Use @Nome para mencionar..." 
+                  className="border-[#D2D7DB] h-9 pr-10 inline-flex"
                   value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSendComment()}
+                  onChange={handleTextChange}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !showMentions) {
+                      e.preventDefault();
+                      handleSendComment();
+                    }
+                  }}
                 />
-                <Button size="icon" className="h-9 w-9 bg-[#2C4156]" onClick={handleSendComment}>
+                <Button size="icon" className="h-9 w-9 bg-[#2C4156] shrink-0" onClick={handleSendComment}>
                   <Send className="h-4 w-4" />
                 </Button>
+
+                {showMentions && filteredTeam.length > 0 && (
+                  <div className="absolute z-50 bottom-14 left-3 bg-white border border-[#D2D7DB] shadow-lg rounded-xl overflow-hidden max-h-48 overflow-y-auto w-64">
+                    {filteredTeam.map((u: any) => (
+                      <div 
+                        key={u.id}
+                        className="px-4 py-2 hover:bg-[#1FA67A] hover:text-white cursor-pointer text-xs font-bold text-[#2C4156] transition-colors uppercase border-b last:border-b-0 flex items-center gap-2"
+                        onClick={() => handleMentionSelect(u)}
+                      >
+                        <div className="h-5 w-5 bg-[#F7F7F7] text-[#2C4156] rounded-full flex items-center justify-center text-[8px] border">
+                          {u.fullName.charAt(0)}
+                        </div>
+                        {u.fullName}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             

@@ -26,26 +26,23 @@ export function ClientSearchSelect({
   disabled = false
 }: any) {
   const [open, setOpen] = React.useState(false)
-  const [search, setSearch] = React.useState("")
+  const [searchTerm, setSearchTerm] = React.useState("")
   const inputRef = React.useRef<HTMLInputElement>(null)
 
-  const filteredClients = React.useMemo(() => {
-    if (!search || search.trim() === "") return clients || []
+  const clientesFiltrados = React.useMemo(() => {
+    if (!searchTerm || searchTerm.trim() === "") return clients || []
     
-    const searchLower = search.toLowerCase().trim()
-    const searchDigits = search.replace(/\D/g, '')
+    const searchLower = searchTerm.toLowerCase().trim()
+    const searchDigits = searchTerm.replace(/\D/g, '')
 
     return (clients || []).filter((c: any) => {
-      const name = String(c.corporateName || "").toLowerCase()
-      const fantasia = String(c.nomeFantasia || "").toLowerCase()
-      const cnpj = String(c.cnpj || "").replace(/\D/g, '')
-
-      const nameMatch = name.includes(searchLower) || fantasia.includes(searchLower)
-      const cnpjMatch = searchDigits !== '' && cnpj.includes(searchDigits)
+      const nomeMatch = String(c.corporateName || "").toLowerCase().includes(searchLower) || 
+                        String(c.nomeFantasia || "").toLowerCase().includes(searchLower)
+      const cnpjMatch = searchDigits !== '' && String(c.cnpj || "").replace(/\D/g, '').includes(searchDigits)
       
-      return nameMatch || cnpjMatch
+      return nomeMatch || cnpjMatch
     })
-  }, [clients, search])
+  }, [clients, searchTerm])
 
   const selectedClient = React.useMemo(() => {
     return (clients || []).find((c: any) => c.id === value)
@@ -93,19 +90,20 @@ export function ClientSearchSelect({
               ref={inputRef}
               placeholder="PESQUISAR POR NOME OU CNPJ..."
               className="flex h-12 w-full rounded-md bg-transparent py-3 text-[11px] outline-none border-none focus-visible:ring-0 shadow-none font-bold uppercase"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.stopPropagation()}
             />
           </div>
           <ScrollArea className="h-72">
             <div className="p-1">
-              {filteredClients.length === 0 ? (
+              {clientesFiltrados.length === 0 ? (
                 <div className="p-8 text-center text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">
                   Nenhum cliente localizado
                 </div>
               ) : (
-                filteredClients.map((client: any) => (
+                clientesFiltrados.map((client: any) => (
                   <button
                     key={client.id}
                     type="button"
@@ -118,7 +116,7 @@ export function ClientSearchSelect({
                       e.stopPropagation()
                       onValueChange(client.id)
                       setOpen(false)
-                      setSearch("")
+                      setSearchTerm("")
                     }}
                   >
                     <div className="flex flex-col flex-1 overflow-hidden">

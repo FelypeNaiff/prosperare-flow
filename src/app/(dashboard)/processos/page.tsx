@@ -110,6 +110,7 @@ export default function ProcessosPage() {
   const [filtroResponsavel, setFiltroResponsavel] = useState("todas")
   const [filtroDepartamento, setFiltroDepartamento] = useState("todos")
   const [filtroStatus, setFiltroStatus] = useState("todos")
+  const [localSubStatus, setLocalSubStatus] = useState("todos")
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' })
 
   const [isBatchAssignOpen, setIsBatchAssignOpen] = useState(false)
@@ -219,7 +220,8 @@ export default function ProcessosPage() {
       }
 
       const matchesAssignee = filtroResponsavel === "todas" ? true : (p.responsavelId === filtroResponsavel || p.auxiliarId === filtroResponsavel)
-      const matchesDept = filtroDepartamento === "todos" ? true : p.departamento === filtroDepartamento
+      const matchesDept = filtroDepartamento === "todos" || 
+        (p.departamento && String(p.departamento).toLowerCase().trim().includes(filtroDepartamento.toLowerCase().trim()))
       const matchesStatus = filtroStatus === "todos" ? true : p.situacao === filtroStatus
 
       return matchesAssignee && matchesDept && matchesStatus
@@ -237,9 +239,13 @@ export default function ProcessosPage() {
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [rawProcesses])
 
-  const uniqueDepartments = useMemo(() => {
-    return Array.from(new Set((rawProcesses || []).map(p => p.departamento).filter(Boolean))).sort()
-  }, [rawProcesses])
+  const uniqueDepartments = [
+    "PESSOAL",
+    "ADMINISTRATIVO",
+    "FISCAL",
+    "COMERCIAL",
+    "FINANCEIRO"
+  ]
 
   const groupedProcesses = useMemo(() => {
     const groups: Record<string, any> = {}
@@ -347,7 +353,7 @@ export default function ProcessosPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 border-b border-[#D2D7DB] pb-4">
+      <div className="flex flex-wrap items-center gap-2 pb-4">
         <span className="text-[10px] font-black uppercase text-[#98A7AA]">Filtrar por Responsável:</span>
         <Button 
           variant={filtroResponsavel === "todas" ? "default" : "outline"} 
@@ -370,6 +376,33 @@ export default function ProcessosPage() {
             )}
           >
             {assignee.name}
+          </Button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#D2D7DB] pb-4 mb-4">
+        <span className="text-[10px] font-black uppercase text-[#98A7AA]">Filtrar por Departamento:</span>
+        <Button 
+          variant={filtroDepartamento === "todos" ? "default" : "outline"} 
+          onClick={() => setFiltroDepartamento("todos")}
+          className={cn(
+            "h-8 text-[11px] font-bold rounded-full transition-all px-4",
+            filtroDepartamento === "todos" ? "bg-[#1FA67A] text-white hover:bg-[#1FA67A]/90 shadow-md" : "text-[#39586D] border-[#D2D7DB] hover:bg-[#F7F7F7]"
+          )}
+        >
+          Todos
+        </Button>
+        {uniqueDepartments.map((dept: any) => (
+          <Button 
+            key={dept}
+            variant={filtroDepartamento === dept ? "default" : "outline"}
+            onClick={() => setFiltroDepartamento(dept)}
+            className={cn(
+              "h-8 text-[11px] font-bold rounded-full transition-all px-4",
+              filtroDepartamento === dept ? "bg-[#1FA67A] text-white hover:bg-[#1FA67A]/90 shadow-md" : "text-[#39586D] border-[#D2D7DB] hover:bg-[#F7F7F7]"
+            )}
+          >
+            {dept}
           </Button>
         ))}
       </div>
@@ -617,17 +650,39 @@ export default function ProcessosPage() {
                                     />
                                   </TableHead>
                                   <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8">Cliente / CNPJ</TableHead>
-                                  <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8 text-center">Status</TableHead>
+                                  <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8 text-center p-0">
+                                    <div className="flex justify-center">
+                                      <Select value={localSubStatus} onValueChange={setLocalSubStatus}>
+                                        <SelectTrigger className="h-6 border-none bg-transparent text-[9px] font-black uppercase shadow-none ring-0 w-max mx-auto text-[#98A7AA]">
+                                          <SelectValue placeholder="STATUS" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="todos" className="text-[9px] font-bold">TODOS OS STATUS</SelectItem>
+                                          <SelectItem value="a_fazer" className="text-[9px] font-bold">A FAZER</SelectItem>
+                                          <SelectItem value="em_progresso" className="text-[9px] font-bold">EM PROGRESSO</SelectItem>
+                                          <SelectItem value="concluido" className="text-[9px] font-bold">CONCLUÍDO</SelectItem>
+                                          <SelectItem value="em_multa" className="text-[9px] font-bold">EM MULTA</SelectItem>
+                                          <SelectItem value="dispensado" className="text-[9px] font-bold">DISPENSADO</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </TableHead>
                                   <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8 text-center">Vencimento</TableHead>
                                   <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8">Responsável</TableHead>
                                   <TableHead className="w-12"></TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {group.items.map((p: any) => {
+                                {group.items
+                                  .filter((p: any) => localSubStatus === "todos" || p.situacao === localSubStatus)
+                                  .map((p: any) => {
                                   const client = (clients || []).find(c => c.id === p.clienteId)
                                   return (
-                                    <TableRow key={p.id} className="border-none hover:bg-[#EBEDF0] transition-colors rounded-lg group/item">
+                                    <TableRow 
+                                      key={p.id} 
+                                      className="border-none hover:bg-[#EBEDF0] transition-colors rounded-lg group/item cursor-pointer"
+                                      onClick={() => handleOpenProcess(p)}
+                                    >
                                       <TableCell className="w-10 text-center pl-4">
                                         <Checkbox 
                                           checked={selectedIds.includes(p.id)}

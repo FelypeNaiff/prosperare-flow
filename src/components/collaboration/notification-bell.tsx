@@ -22,12 +22,12 @@ export function NotificationBell() {
 
   const notificationsQuery = useMemoFirebase(() => {
     // Só dispara a query se o usuário estiver totalmente carregado e identificado
-    if (!userLoaded || !userData?.id) return null
+    if (!userLoaded || !user?.uid) return null
     return query(
       collection(firestore, "notifications"),
-      where("userId", "==", userData.id)
+      where("userId", "==", user.uid)
     )
-  }, [firestore, userLoaded, userData?.id])
+  }, [firestore, userLoaded, user?.uid])
 
   const { data: rawNotifications = [], isLoading } = useCollection(notificationsQuery)
   
