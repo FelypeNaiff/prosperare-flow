@@ -20,6 +20,7 @@ import {
   Filter,
   FileText,
   ChevronDown,
+  ChevronUp,
   Download,
   Share2,
   ShieldCheck,
@@ -109,6 +110,7 @@ export default function ProcessosPage() {
   const [filtroResponsavel, setFiltroResponsavel] = useState("todas")
   const [filtroDepartamento, setFiltroDepartamento] = useState("todos")
   const [filtroStatus, setFiltroStatus] = useState("todos")
+  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' })
 
   const [isBatchAssignOpen, setIsBatchAssignOpen] = useState(false)
   const [batchAssignee, setBatchAssignee] = useState("")
@@ -262,8 +264,30 @@ export default function ProcessosPage() {
       if (p.auxiliarId && p.auxiliarId !== "Nenhum") groups[key].responsibles.add(p.auxiliarId)
     })
 
-    return Object.values(groups)
-  }, [filteredProcesses])
+    return Object.values(groups).sort((a: any, b: any) => {
+      let valA = a[sortConfig.key];
+      let valB = b[sortConfig.key];
+      
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        const cmp = valA.localeCompare(valB);
+        return sortConfig.direction === 'asc' ? cmp : -cmp;
+      } else {
+        return sortConfig.direction === 'asc' ? (valA - valB) : (valB - valA);
+      }
+    })
+  }, [filteredProcesses, sortConfig])
+
+  const handleSort = (key: string) => {
+    setSortConfig(prev => prev.key === key 
+      ? { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+      : { key, direction: 'asc' }
+    )
+  }
+
+  const SortIcon = ({ columnKey }: { columnKey: string }) => {
+    if (sortConfig.key !== columnKey) return <ArrowUpRight className="h-3 w-3 ml-1 opacity-20" />
+    return sortConfig.direction === 'asc' ? <ChevronDown className="h-3 w-3 ml-1" /> : <ChevronUp className="h-3 w-3 ml-1" />
+  }
 
   const stats = useMemo(() => {
     const list = filteredProcesses || []
@@ -494,9 +518,15 @@ export default function ProcessosPage() {
                     className="border-white/30 data-[state=checked]:bg-[#1FA67A] data-[state=checked]:border-[#1FA67A]"
                   />
                 </TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Processos</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-center">Nº de Clientes</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-center">Nº de Processos</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] cursor-pointer" onClick={() => handleSort('name')}>
+                  <div className="flex items-center">Processos <SortIcon columnKey="name" /></div>
+                </TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] text-center cursor-pointer" onClick={() => handleSort('clientsCount')}>
+                  <div className="flex items-center justify-center">Nº de Clientes <SortIcon columnKey="clientsCount" /></div>
+                </TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] text-center cursor-pointer" onClick={() => handleSort('processesCount')}>
+                  <div className="flex items-center justify-center">Nº de Processos <SortIcon columnKey="processesCount" /></div>
+                </TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px]">Departamentos</TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px]">Responsáveis</TableHead>
                 <TableHead className="w-12"></TableHead>
@@ -575,6 +605,17 @@ export default function ProcessosPage() {
                             <Table>
                               <TableHeader className="bg-transparent">
                                 <TableRow className="border-none hover:bg-transparent">
+                                  <TableHead className="w-10 text-center pl-4">
+                                    <Checkbox 
+                                      checked={group.items.length > 0 && group.items.every((i: any) => selectedIds.includes(i.id))}
+                                      onCheckedChange={(checked) => {
+                                        const ids = group.items.map((i: any) => i.id)
+                                        if (checked) setSelectedIds(prev => [...new Set([...prev, ...ids])])
+                                        else setSelectedIds(prev => prev.filter(id => !ids.includes(id)))
+                                      }}
+                                      className="h-4 w-4 border-[#D2D7DB] data-[state=checked]:bg-[#1FA67A]"
+                                    />
+                                  </TableHead>
                                   <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8">Cliente / CNPJ</TableHead>
                                   <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8 text-center">Status</TableHead>
                                   <TableHead className="text-[9px] font-black uppercase text-[#98A7AA] h-8 text-center">Vencimento</TableHead>
@@ -587,6 +628,17 @@ export default function ProcessosPage() {
                                   const client = (clients || []).find(c => c.id === p.clienteId)
                                   return (
                                     <TableRow key={p.id} className="border-none hover:bg-[#EBEDF0] transition-colors rounded-lg group/item">
+                                      <TableCell className="w-10 text-center pl-4">
+                                        <Checkbox 
+                                          checked={selectedIds.includes(p.id)}
+                                          onCheckedChange={(checked) => {
+                                            if (checked) setSelectedIds(prev => [...prev, p.id])
+                                            else setSelectedIds(prev => prev.filter(id => id !== p.id))
+                                          }}
+                                          className="h-4 w-4 border-[#D2D7DB] data-[state=checked]:bg-[#1FA67A]"
+                                          onClick={(e) => e.stopPropagation()}
+                                        />
+                                      </TableCell>
                                       <TableCell className="py-2">
                                         <div className="flex flex-col">
                                           <span className="text-[11px] font-bold text-[#2C4156] uppercase">{client?.corporateName || '---'}</span>
@@ -634,7 +686,10 @@ export default function ProcessosPage() {
                                           variant="ghost" 
                                           size="icon" 
                                           className="h-7 w-7 text-[#98A7AA] opacity-0 group-hover/item:opacity-100"
-                                          onClick={() => handleOpenProcess(p)}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleOpenProcess(p);
+                                          }}
                                         >
                                           <ArrowUpRight className="h-3.5 w-3.5" />
                                         </Button>

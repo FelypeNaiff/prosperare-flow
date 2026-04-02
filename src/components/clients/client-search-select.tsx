@@ -30,13 +30,18 @@ export function ClientSearchSelect({
   const inputRef = React.useRef<HTMLInputElement>(null)
 
   const filteredClients = React.useMemo(() => {
-    const searchLower = search.toLowerCase()
+    if (!search || search.trim() === "") return clients || []
+    
+    const searchLower = search.toLowerCase().trim()
     const searchDigits = search.replace(/\D/g, '')
 
     return (clients || []).filter((c: any) => {
-      const nameMatch = c.corporateName?.toLowerCase().includes(searchLower) ||
-                       c.nomeFantasia?.toLowerCase().includes(searchLower)
-      const cnpjMatch = searchDigits !== '' && c.cnpj?.replace(/\D/g, '').includes(searchDigits)
+      const name = String(c.corporateName || "").toLowerCase()
+      const fantasia = String(c.nomeFantasia || "").toLowerCase()
+      const cnpj = String(c.cnpj || "").replace(/\D/g, '')
+
+      const nameMatch = name.includes(searchLower) || fantasia.includes(searchLower)
+      const cnpjMatch = searchDigits !== '' && cnpj.includes(searchDigits)
       
       return nameMatch || cnpjMatch
     })
@@ -90,6 +95,7 @@ export function ClientSearchSelect({
               className="flex h-12 w-full rounded-md bg-transparent py-3 text-[11px] outline-none border-none focus-visible:ring-0 shadow-none font-bold uppercase"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
             />
           </div>
           <ScrollArea className="h-72">

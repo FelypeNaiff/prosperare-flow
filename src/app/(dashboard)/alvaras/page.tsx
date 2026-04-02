@@ -35,7 +35,7 @@ import {
   deleteDocumentNonBlocking
 } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
-import { format, parseISO, isBefore, addDays, isValid } from "date-fns"
+import { format, parseISO, isBefore, addDays, isValid, differenceInDays } from "date-fns"
 import { cn } from "@/lib/utils"
 
 export default function AlvarasPage() {
@@ -288,11 +288,10 @@ export default function AlvarasPage() {
           <Table>
             <TableHeader className="bg-[#2C4156]">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px] pl-6">Empresa</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Alvará / Licença</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Registro</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Vencimento</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-center">Situação</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] pl-6 w-1/3">Empresa</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px]">Descrição</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] text-center w-48">Data Vencimento</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] text-right pr-6 w-24 action-col">Ações</TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px] text-right pr-6 action-col">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -307,42 +306,57 @@ export default function AlvarasPage() {
               ) : processedList.length > 0 ? (
                 processedList.map((item: any) => {
                   const valDate = item.validade ? new Date(item.validade) : null;
-                  const isLate = valDate && isValid(valDate) && isBefore(valDate, new Date()) || item.status === 'VENCIDO';
+                  const today = new Date();
+                  
+                  let isLate = item.status === 'VENCIDO' || item.status === 'CASSADO';
+                  let isWarning = item.status === 'EM_RENOVACAO';
+                  
+                  if (valDate && isValid(valDate)) {
+                    if (isBefore(valDate, today)) {
+                      isLate = true;
+                    } else if (differenceInDays(valDate, today) <= 30) {
+                      isWarning = true;
+                    }
+                  }
+
+                  const dateStr = valDate && isValid(valDate) ? format(valDate, 'dd/MM/yyyy') : 'Sem Prazo';
+
+                  const statusWord = isLate && item.status !== 'EM_RENOVACAO' ? 'VENCIDO' : isWarning ? 'ALERTA' : 'OK';
+
+                  const wrapperClass = isLate ? "bg-white border hover:bg-[#FEE2E2] border-[#E74C3C]/20 text-[#E74C3C]" :
+                                       isWarning ? "bg-white border hover:bg-[#FFF4E5] border-[#F39C12]/30 text-[#F39C12]" :
+                                       "bg-white border hover:bg-[#E6F6F0] border-[#1FA67A]/30 text-[#1FA67A]";
+
+                  const badgeClass = isLate ? "bg-[#E74C3C] text-white" :
+                                     isWarning ? "bg-[#F39C12] text-white" :
+                                     "bg-[#1FA67A] text-white";
+
                   return (
                   <TableRow key={item.id} className="hover:bg-[#F7F7F7]/50 group transition-colors pdf-row">
-                    <TableCell className="pl-6 py-4">
+                    <TableCell className="pl-6 py-3">
                       <div className="flex flex-col">
                         <span className="font-bold text-[#2C4156] text-xs uppercase">{item.clientName}</span>
-                        <span className="text-[9px] font-mono text-[#98A7AA]">{item.clientCnpj || '---'}</span>
+                        <span className="text-[9px] font-mono text-[#98A7AA] font-bold tracking-widest">{item.clientCnpj || '---'}</span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-bold text-[#39586D] text-[11px] uppercase">{item.tipo}</span>
-                        <span className="text-[9px] text-[#98A7AA] font-bold">{item.orgaoEmissor || '---'}</span>
+                        <span className="text-[9px] text-[#98A7AA] font-bold">{item.orgaoEmissor || '---'} {item.numero ? `| Reg: ${item.numero}` : ''}</span>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <span className="font-mono text-[10px] text-[#2C4156] font-bold">{item.numero || 'S/N'}</span>
-                    </TableCell>
-                    <TableCell>
-                       <span className={cn(
-                          "text-[10px] font-black",
-                          isLate ? "text-[#E74C3C]" : "text-[#1FA67A]"
-                       )}>
-                         {valDate && isValid(valDate) ? format(valDate, 'dd/MM/yyyy') : 'Prazo Indeterminado'}
-                       </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge className={cn(
-                        "text-[9px] font-black uppercase border-none px-2",
-                        isLate ? "bg-[#FEE2E2] text-[#E74C3C]" :
-                        item.status === 'ATIVO' ? "bg-[#E6F6F0] text-[#1FA67A]" :
-                        item.status === 'EM_RENOVACAO' ? "bg-[#FFF4E5] text-[#F39C12]" : 
-                        "bg-[#F3F4F6] text-[#98A7AA]"
-                      )}>
-                        {isLate && item.status !== 'EM_RENOVACAO' ? 'VENCIDO' : item.status.replace('_', ' ')}
-                      </Badge>
+                    <TableCell className="text-center p-1.5 align-middle">
+                       <div 
+                         className={cn(
+                           "w-full max-w-[160px] mx-auto flex items-center justify-between gap-1 p-1.5 rounded-lg shadow-sm border",
+                           wrapperClass
+                         )}
+                       >
+                         <span className="text-[10px] font-bold font-mono tracking-tight">{dateStr}</span>
+                         <Badge className={cn("text-[8px] font-black uppercase px-2 py-0 min-h-0 h-4 border-none", badgeClass)}>
+                           {statusWord}
+                         </Badge>
+                       </div>
                     </TableCell>
                     <TableCell className="text-right pr-6 action-col">
                       <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

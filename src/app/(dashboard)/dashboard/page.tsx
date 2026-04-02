@@ -18,8 +18,9 @@ import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection } from "firebase/firestore"
 import { Skeleton } from "@/components/ui/skeleton"
-import { parseISO, isBefore, differenceInDays, startOfMonth, endOfMonth, isWithinInterval } from "date-fns"
-
+import { parseISO, isBefore, differenceInDays, startOfMonth, endOfMonth, isWithinInterval, subMonths, format } from "date-fns"
+import { ptBR } from "date-fns/locale"
+import { ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, Line } from "recharts"
 export default function DashboardPage() {
   const firestore = useFirestore()
   const { userLoaded } = useUser()
@@ -102,17 +103,53 @@ export default function DashboardPage() {
       } catch { return false }
     }).length
 
+    // 5. Histórico e Alertas Críticos para a UI
+    const chartData = []
+    for (let i = 5; i >= 0; i--) {
+      const targetMonthStart = startOfMonth(subMonths(today, i))
+      const targetMonthEnd = endOfMonth(subMonths(today, i))
+      
+      const monthProcs = (processes || []).filter(p => {
+        if (!p.competencia && !p.prazo) return false
+        const dateRaw = p.competencia || p.prazo
+        let parsed = new Date()
+        try { parsed = typeof dateRaw === 'string' ? parseISO(dateRaw) : new Date(dateRaw) } catch {}
+        return isWithinInterval(parsed, { start: targetMonthStart, end: targetMonthEnd })
+      })
+
+      const concluido = monthProcs.filter(p => p.situacao === 'concluido' || p.situacao === 'dispensado').length
+      const em_progresso = monthProcs.filter(p => p.situacao === 'em_progresso').length
+      const a_fazer = monthProcs.filter(p => p.situacao === 'a_fazer' || p.situacao === 'em_multa').length
+      const total = monthProcs.length
+
+      chartData.push({
+        name: format(targetMonthStart, "MMM/yy", { locale: ptBR }).toUpperCase(),
+        concluido,
+        em_progresso,
+        a_fazer,
+        total
+      })
+    }
+
+    const urgentList = (processes || [])
+      .filter(p => p.situacao !== 'concluido' && p.situacao !== 'dispensado' && !!p.prazo)
+      .sort((a, b) => new Date(a.prazo).getTime() - new Date(b.prazo).getTime())
+      .slice(0, 5)
+
     return {
       clientsCount: clients?.length || 0,
       percentOk: `${percentOk}%`,
       atrasos: atrasosProd,
       honorarios: monthlyHonoraries.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
       criticalAlvaras,
-      criticalCertidoes
+      criticalCertidoes,
+      chartData,
+      urgentList
     }
   }, [clients, processes, receivables, alvaras, certidoes])
 
   const isDataLoading = loadingClients
+  const { chartData, urgentList: topUrgentProcesses } = stats
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
@@ -172,17 +209,76 @@ export default function DashboardPage() {
         <KpiCard label="Honorários" value={stats.honorarios} icon={DollarSign} color="info" />
       </div>
 
-      {/* 
-          Os gráficos e o status da operação foram removidos conforme solicitação (X na imagem).
-          O Dashboard agora foca na clareza dos indicadores superiores.
-      */}
-      
-      <div className="h-64 flex flex-col items-center justify-center text-center opacity-20 grayscale pointer-events-none">
-        <div className="flex items-center justify-center gap-2">
-          <span className="text-xs font-black tracking-tighter">PROSPERARE</span>
-          <span className="text-xs font-black tracking-tighter text-[#1FA67A]">FLOW</span>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="border-[#D2D7DB] shadow-sm bg-white">
+            <CardContent className="p-6">
+              <div className="mb-6 flex justify-between items-center border-b pb-4">
+                <div>
+                  <h2 className="text-lg font-black text-[#2C4156] uppercase tracking-tight">Visão Geral de Desempenho</h2>
+                  <p className="text-[#98A7AA] font-bold text-xs">Processos por Status e Evolução Mensal</p>
+                </div>
+              </div>
+              <div className="h-72 w-full">
+                 <ResponsiveContainer width="100%" height="100%">
+                   <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                     <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} fontWeight="bold" stroke="#98A7AA" />
+                     <YAxis fontSize={10} tickLine={false} axisLine={false} fontWeight="bold" stroke="#98A7AA" />
+                     <Tooltip 
+                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                       itemStyle={{ fontWeight: 'bold', fontSize: '12px' }}
+                     />
+                     <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
+                     <Bar dataKey="concluido" stackId="a" fill="#1FA67A" name="Concluídos" radius={[0, 0, 4, 4]} />
+                     <Bar dataKey="em_progresso" stackId="a" fill="#2574A9" name="Em Progresso" />
+                     <Bar dataKey="a_fazer" stackId="a" fill="#F2B705" name="Pendente" radius={[4, 4, 0, 0]} />
+                     <Line type="monotone" dataKey="total" stroke="#2C4156" name="Total Demandado" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                   </ComposedChart>
+                 </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-        <p className="text-[10px] font-bold uppercase tracking-widest mt-2">Inteligência e Gestão Contábil</p>
+        
+        <div className="lg:col-span-1">
+          <Card className="border-[#D2D7DB] shadow-sm bg-white border-t-4 border-t-[#E74C3C] h-full flex flex-col">
+            <CardContent className="p-6 flex flex-col h-full">
+               <div className="mb-4">
+                  <h2 className="text-sm font-black text-[#2C4156] uppercase tracking-tight flex items-center gap-2">
+                    <FlameKindling className="h-4 w-4 text-[#E74C3C]" />
+                    Alertas Críticos
+                  </h2>
+                  <p className="text-[#98A7AA] font-bold text-[10px] uppercase">Atenção Imediata Necessária</p>
+               </div>
+               
+               <div className="flex-1 overflow-y-auto pr-2 space-y-3">
+                 {topUrgentProcesses.length > 0 ? topUrgentProcesses.map((process: any) => (
+                    <div key={process.id} className="p-3 bg-[#F7F7F7] border border-[#D2D7DB] rounded-lg relative overflow-hidden group hover:border-[#E74C3C]/50 transition-colors cursor-pointer" onClick={() => window.location.href='/processos'}>
+                       <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#E74C3C]" />
+                       <div className="pl-2">
+                         <div className="flex justify-between items-start mb-1">
+                           <span className="text-[9px] font-black uppercase text-[#E74C3C] bg-[#FEE2E2] px-1.5 py-0.5 rounded">
+                             Urgente
+                           </span>
+                           <span className="text-[10px] font-bold text-[#E74C3C]">
+                             Prazo: {process.prazo ? parseISO(process.prazo).toLocaleDateString('pt-BR') : 'Sem Prazo'}
+                           </span>
+                         </div>
+                         <h4 className="text-xs font-black text-[#2C4156] uppercase tracking-tight leading-none mb-1 line-clamp-1">{process.nomeProcesso || 'Processo'}</h4>
+                         <p className="text-[10px] font-bold text-[#98A7AA] truncate">Cliente ID: {process.clienteId?.slice(0,8)} | Resp: {process.responsavelId}</p>
+                       </div>
+                    </div>
+                 )) : (
+                   <div className="h-full flex flex-col items-center justify-center py-8">
+                     <CheckCircle2 className="h-8 w-8 text-[#1FA67A] mb-2 opacity-50" />
+                     <p className="text-xs font-black text-[#98A7AA] uppercase text-center">Nenhum processo<br/>em nível crítico.</p>
+                   </div>
+                 )}
+               </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

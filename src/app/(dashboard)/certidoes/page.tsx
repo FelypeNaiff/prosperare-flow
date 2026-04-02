@@ -37,7 +37,7 @@ import {
   deleteDocumentNonBlocking
 } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
-import { format, parseISO, isBefore, addDays, isValid } from "date-fns"
+import { format, parseISO, isBefore, addDays, isValid, differenceInDays } from "date-fns"
 
 const CND_TYPES = [
   "Federal",
@@ -351,30 +351,48 @@ export default function CertidoesPage() {
                     
                     {CND_TYPES.map(type => {
                       const cert = item.certsByType[type]
-                       const valDate = cert?.validade ? new Date(cert.validade) : null;
-                       const isLate = valDate && isValid(valDate) && isBefore(valDate, new Date()) || cert?.status === 'VENCIDA' || cert?.status === 'POSITIVA';
-                       
-                       const label = !cert ? '---' : 
-                                     isLate ? 'VENCIDA' : 
-                                     cert.status === 'POSITIVA_EFEITO_NEGATIVA' ? 'P.E.N' : 
-                                     cert.status === 'REGULAR' ? 'OK' : '---'
+                      const valDate = cert?.validade ? parseISO(cert.validade) : null;
+                      const today = new Date();
+                      
+                      let isLate = cert?.status === 'VENCIDA' || cert?.status === 'POSITIVA';
+                      let isWarning = cert?.status === 'POSITIVA_EFEITO_NEGATIVA';
+                      
+                      if (valDate && isValid(valDate)) {
+                        if (isBefore(valDate, today)) {
+                          isLate = true;
+                        } else if (differenceInDays(valDate, today) <= 30) {
+                          isWarning = true;
+                        }
+                      }
 
-                       const bgColor = !cert ? "bg-transparent text-[#98A7AA] border-dashed border border-[#D2D7DB]" :
-                                       isLate ? "bg-[#FEE2E2] text-[#E74C3C] border border-[#FCA5A5]" :
-                                       cert.status === 'POSITIVA_EFEITO_NEGATIVA' ? "bg-[#FFF4E5] text-[#F39C12] border border-[#FCD34D]" :
-                                       "bg-[#E6F6F0] text-[#1FA67A] border border-[#6EE7B7]"
+                      const dateStr = valDate && isValid(valDate) ? format(valDate, 'dd/MM/yyyy') : '---';
+
+                      const statusWord = !cert ? 'ND' : isLate ? 'VENCIDO' : isWarning ? 'ALERTA' : 'OK';
+
+                      const wrapperClass = !cert ? "bg-transparent border-dashed border border-[#D2D7DB]" :
+                                       isLate ? "bg-white border hover:bg-[#FEE2E2] border-[#E74C3C]/20 text-[#E74C3C]" :
+                                       isWarning ? "bg-white border hover:bg-[#FFF4E5] border-[#F39C12]/30 text-[#F39C12]" :
+                                       "bg-white border hover:bg-[#E6F6F0] border-[#1FA67A]/30 text-[#1FA67A]";
+
+                      const badgeClass = !cert ? "bg-[#F4F5F7] text-[#98A7AA]" :
+                                         isLate ? "bg-[#E74C3C] text-white" :
+                                         isWarning ? "bg-[#F39C12] text-white" :
+                                         "bg-[#1FA67A] text-white";
 
                       return (
                         <TableCell key={type} className="text-center p-1.5">
                            <div 
                              onClick={() => handleOpenModal(item, type, cert)}
                              className={cn(
-                               "h-8 w-full flex items-center justify-center rounded cursor-pointer transition-transform hover:scale-105 active:scale-95 text-[9px] font-black tracking-wider uppercase",
-                               bgColor
+                               "w-full flex md:flex-col lg:flex-row items-center justify-between gap-1 p-1.5 rounded-lg cursor-pointer transition-all shadow-sm active:scale-95",
+                               wrapperClass
                              )}
-                             title={cert ? `Vencimento: ${valDate && isValid(valDate) ? format(valDate, 'dd/MM/yyyy') : 'Sem Prazo'}` : 'Clique para registar'}
+                             title={cert ? `Vencimento: ${dateStr}` : 'Clique para registar'}
                            >
-                             {label}
+                             <span className="text-[10px] font-bold font-mono tracking-tight">{!cert ? 'Sem Registro' : dateStr}</span>
+                             <Badge className={cn("text-[8px] font-black uppercase px-1.5 py-0 min-h-0 h-4 border-none shrink-0", badgeClass)}>
+                               {statusWord}
+                             </Badge>
                            </div>
                         </TableCell>
                       )

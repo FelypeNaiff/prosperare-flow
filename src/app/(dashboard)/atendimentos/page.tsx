@@ -72,7 +72,8 @@ export default function AtendimentosPage() {
     userLoaded ? collection(firestore, "tasks") : null, 
     [firestore, userLoaded]
   )
-  const { data: tickets = [], isLoading: loadingTickets } = useCollection(tasksQuery)
+  const { data: rawTickets, isLoading: loadingTickets } = useCollection(tasksQuery)
+  const tickets = (rawTickets || []).filter((t: any) => ['novo', 'atendimento', 'pendente', 'concluido'].includes(t.status))
 
   const clientsQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "clients") : null, 
@@ -85,6 +86,8 @@ export default function AtendimentosPage() {
     [firestore, userLoaded]
   )
   const { data: team = [] } = useCollection(usersQuery)
+
+
 
   const templatesQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "processoModelos") : null, 

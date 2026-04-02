@@ -4,31 +4,31 @@
 
 @layer base {
   :root {
-    --background: 0 0% 97%; /* #F7F7F7 */
-    --foreground: 210 32% 15%;
+    --background: 210 40% 98.1%; /* #F9FAFB ultra-claro suave */
+    --foreground: 222.2 84% 4.9%; /* text-gray-900 para constraste base */
     --card: 0 0% 100%;
-    --card-foreground: 210 32% 15%;
+    --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 210 32% 15%;
+    --popover-foreground: 222.2 84% 4.9%;
     --primary: 210 32% 25%; /* #2C4156 - Azul Institucional */
     --primary-foreground: 0 0% 100%;
-    --secondary: 203 31% 33%; /* #39586D - Azul Petróleo */
-    --secondary-foreground: 0 0% 100%;
-    --muted: 188 9% 63%; /* #98A7AA - Cinza Médio */
-    --muted-foreground: 188 9% 40%;
+    --secondary: 210 40% 96.1%; /* Fundo sutil para secundários */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%; 
+    --muted-foreground: 215.4 16.3% 46.9%; /* text-gray-500 */
     --accent: 161 68% 39%; /* #1FA67A - Verde Flow */
     --accent-foreground: 0 0% 100%;
-    --destructive: 6 78% 57%; /* #E74C3C - Vermelho Alerta */
+    --destructive: 0 84.2% 60.2%; /* Vermelho Alerta */
     --destructive-foreground: 0 0% 100%;
-    --border: 208 10% 84%; /* #D2D7DB - Cinza Claro */
-    --input: 208 10% 84%;
-    --ring: 161 68% 39%;
+    --border: 214.3 31.8% 91.4%; /* gray-200 bordas super finas/claras */
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%; /* blue-600 para foco */
     --chart-1: 161 68% 39%; /* Verde Flow */
     --chart-2: 203 31% 33%; /* Azul Petróleo */
     --chart-3: 45 96% 48%;  /* Amarelo Alerta */
     --chart-4: 6 78% 57%;   /* Vermelho Alerta */
     --chart-5: 204 64% 41%; /* Azul Info */
-    --radius: 0.6rem;
+    --radius: 0.75rem; /* rounded-xl by default */
     
     --sidebar-background: 210 32% 25%; /* #2C4156 */
     --sidebar-foreground: 0 0% 100%;
@@ -46,10 +46,10 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-body antialiased;
+    @apply bg-background text-foreground font-body antialiased leading-relaxed;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-headline font-bold text-primary;
+    @apply font-headline font-semibold text-gray-900 tracking-tight;
   }
 }
 

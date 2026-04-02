@@ -28,14 +28,21 @@ export function MultiClientSearchSelect({
   const inputRef = React.useRef<HTMLInputElement>(null)
 
   const filteredClients = React.useMemo(() => {
-    const searchLower = search.toLowerCase()
+    if (!search || search.trim() === "") return clients || []
+
+    const searchLower = search.toLowerCase().trim()
     const searchDigits = search.replace(/\D/g, '')
     
-    return (clients || []).filter((c: any) => 
-      c.corporateName?.toLowerCase().includes(searchLower) ||
-      c.nomeFantasia?.toLowerCase().includes(searchLower) ||
-      (searchDigits !== '' && c.cnpj?.replace(/\D/g, '').includes(searchDigits))
-    )
+    return (clients || []).filter((c: any) => {
+      const name = String(c.corporateName || "").toLowerCase()
+      const fantasia = String(c.nomeFantasia || "").toLowerCase()
+      const cnpj = String(c.cnpj || "").replace(/\D/g, '')
+
+      const nameMatch = name.includes(searchLower) || fantasia.includes(searchLower)
+      const cnpjMatch = searchDigits !== '' && cnpj.includes(searchDigits)
+      
+      return nameMatch || cnpjMatch
+    })
   }, [clients, search])
 
   const toggleClient = (id: string) => {
@@ -83,6 +90,7 @@ export function MultiClientSearchSelect({
                 className="flex h-11 w-full rounded-md bg-transparent py-3 text-xs outline-none border-none focus-visible:ring-0 shadow-none font-bold uppercase"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => e.stopPropagation()}
               />
             </div>
             <ScrollArea className="h-72">

@@ -99,7 +99,7 @@ const menuItems = [
       { title: "Todos os Processos", url: "/processos", icon: Files },
       { title: "Grupos de Obrigações", url: "/processos/grupos", icon: Layers },
       { title: "Modelos de Checklist", url: "/processos/modelos", icon: FileText },
-      { title: "Calendário de Prazos", url: "/processos/calendario", icon: Calendar },
+      { title: "Agenda de Obrigações", url: "/processos/calendario", icon: Calendar },
       { title: "IRPF 2026", url: "/processos/irpf", icon: ClipboardList },
       { title: "Parcelamentos", url: "/processos/parcelamentos", icon: InstallmentIcon },
       { title: "Alvarás e Licenças", url: "/alvaras", icon: FileSignature },
