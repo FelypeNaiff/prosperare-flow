@@ -12,7 +12,15 @@ export async function initiateGoogleSignIn(authInstance: Auth): Promise<void> {
   const provider = new GoogleAuthProvider();
   try {
     const result = await signInWithPopup(authInstance, provider);
-    if (result.user.email !== 'pscsucesso@gmail.com') {
+    const authorizedEmails = [
+      'pscsucesso@gmail.com',
+      'felypenaiff01@gmail.com',
+      'thalyssonluiz@gmail.com',
+      'cpgama79@gmail.com',
+      'marrypassosmarques@gmail.com',
+      'thalyssonluiz20@gmail.com'
+    ];
+    if (!authorizedEmails.includes(result.user.email || '')) {
       await signOut(authInstance);
       throw new Error('Acesso restrito: O e-mail utilizado não possui permissão de acesso.');
     }
