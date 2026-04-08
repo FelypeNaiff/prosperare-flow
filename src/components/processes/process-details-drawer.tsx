@@ -81,7 +81,9 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
       type,
       read: false,
       createdAt: new Date().toISOString(),
-      processId: process.id
+      processId: process.id,
+      remetente: userData?.fullName || "Sistema",
+      link: "/processos"
     }, { merge: true })
   }
 

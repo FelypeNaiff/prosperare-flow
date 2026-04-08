@@ -110,6 +110,7 @@ export default function ProcessosPage() {
   const [filtroResponsavel, setFiltroResponsavel] = useState("todas")
   const [filtroDepartamento, setFiltroDepartamento] = useState("todos")
   const [filtroStatus, setFiltroStatus] = useState("todos")
+  const [activeStatusCard, setActiveStatusCard] = useState("Total")
   const [localSubStatus, setLocalSubStatus] = useState("todos")
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' })
 
@@ -224,9 +225,16 @@ export default function ProcessosPage() {
         (p.departamento && String(p.departamento).toLowerCase().trim().includes(filtroDepartamento.toLowerCase().trim()))
       const matchesStatus = filtroStatus === "todos" ? true : p.situacao === filtroStatus
 
-      return matchesAssignee && matchesDept && matchesStatus
+      const matchesCardStatus = activeStatusCard === 'Total' 
+        || (activeStatusCard === 'Em Multa' && p.situacao === 'em_multa')
+        || (activeStatusCard === 'A Fazer' && p.situacao === 'a_fazer')
+        || (activeStatusCard === 'Progresso' && p.situacao === 'em_progresso')
+        || (activeStatusCard === 'Concluído' && p.situacao === 'concluido')
+        || (activeStatusCard === 'Dispensado' && p.situacao === 'dispensado')
+
+      return matchesAssignee && matchesDept && matchesStatus && matchesCardStatus
     })
-  }, [rawProcesses, userData, selectedCompetence, searchTerm, clients, filtroResponsavel, filtroDepartamento, filtroStatus])
+  }, [rawProcesses, userData, selectedCompetence, searchTerm, clients, filtroResponsavel, filtroDepartamento, filtroStatus, activeStatusCard])
 
   const uniqueAssignees = useMemo(() => {
     const list = new Set<string>()
@@ -408,12 +416,12 @@ export default function ProcessosPage() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <KpiMiniCard label="Total" value={stats.total} icon={Layers} color="bg-[#2C4156]" />
-        <KpiMiniCard label="Em Multa" value={stats.late} icon={AlertCircle} color="bg-[#E74C3C]" />
-        <KpiMiniCard label="A Fazer" value={stats.todo} icon={Clock} color="bg-[#98A7AA]" />
-        <KpiMiniCard label="Progresso" value={stats.progress} icon={Loader2} color="bg-[#2574A9]" />
-        <KpiMiniCard label="Concluído" value={stats.done} icon={CheckCircle2} color="bg-[#1FA67A]" />
-        <KpiMiniCard label="Dispensado" value={stats.waived} icon={XCircle} color="bg-[#39586D]" />
+        <KpiMiniCard label="Total" value={stats.total} icon={Layers} color="bg-[#2C4156]" isActive={activeStatusCard === 'Total'} onClick={() => setActiveStatusCard('Total')} />
+        <KpiMiniCard label="Em Multa" value={stats.late} icon={AlertCircle} color="bg-[#E74C3C]" isActive={activeStatusCard === 'Em Multa'} onClick={() => setActiveStatusCard('Em Multa')} />
+        <KpiMiniCard label="A Fazer" value={stats.todo} icon={Clock} color="bg-[#98A7AA]" isActive={activeStatusCard === 'A Fazer'} onClick={() => setActiveStatusCard('A Fazer')} />
+        <KpiMiniCard label="Progresso" value={stats.progress} icon={Loader2} color="bg-[#2574A9]" isActive={activeStatusCard === 'Progresso'} onClick={() => setActiveStatusCard('Progresso')} />
+        <KpiMiniCard label="Concluído" value={stats.done} icon={CheckCircle2} color="bg-[#1FA67A]" isActive={activeStatusCard === 'Concluído'} onClick={() => setActiveStatusCard('Concluído')} />
+        <KpiMiniCard label="Dispensado" value={stats.waived} icon={XCircle} color="bg-[#39586D]" isActive={activeStatusCard === 'Dispensado'} onClick={() => setActiveStatusCard('Dispensado')} />
       </div>
 
       <div className="flex flex-col md:flex-row gap-4">
@@ -874,9 +882,15 @@ export default function ProcessosPage() {
   )
 }
 
-function KpiMiniCard({ label, value, icon: Icon, color }: any) {
+function KpiMiniCard({ label, value, icon: Icon, color, isActive, onClick }: any) {
   return (
-    <Card className="border-none shadow-sm overflow-hidden bg-white h-20">
+    <Card 
+      onClick={onClick}
+      className={cn(
+        "border-none shadow-sm overflow-hidden h-20 cursor-pointer transition-all",
+        isActive ? "bg-white ring-2 ring-blue-500 shadow-md transform scale-[1.02]" : "bg-white/80 hover:bg-white"
+      )}
+    >
       <CardContent className="p-0 flex flex-col h-full">
         <div className={cn("h-1", color)} />
         <div className="p-4 flex items-center justify-between flex-1">
@@ -884,7 +898,7 @@ function KpiMiniCard({ label, value, icon: Icon, color }: any) {
             <p className="text-[9px] font-black text-[#98A7AA] uppercase tracking-widest leading-none mb-1">{label}</p>
             <p className="text-xl font-black text-[#2C4156] leading-none">{value}</p>
           </div>
-          <Icon className="h-4 w-4 text-[#D2D7DB]" />
+          <Icon className={cn("h-5 w-5", isActive ? "text-blue-500" : "text-[#D2D7DB]")} />
         </div>
       </CardContent>
     </Card>

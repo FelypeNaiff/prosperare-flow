@@ -14,27 +14,51 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase, useUser, updateDocumentNonBlocking } from "@/firebase"
-import { collection, query, where, orderBy, limit, doc } from "firebase/firestore"
+import { useEffect, useState } from "react"
+import { collection, query, where, orderBy, doc, onSnapshot } from "firebase/firestore"
 
 export function NotificationBell() {
-  const { user, userLoaded, userData } = useUser()
+  const { user, userLoaded } = useUser()
   const firestore = useFirestore()
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const notificationsQuery = useMemoFirebase(() => {
-    // Só dispara a query se o usuário estiver totalmente carregado e identificado
-    if (!userLoaded || !user?.uid) return null
-    return query(
+  useEffect(() => {
+    if (!userLoaded || !user?.uid) {
+      setIsLoading(false)
+      return
+    }
+
+    const q = query(
+      collection(firestore, "notifications"),
+      where("userId", "==", user.uid),
+      orderBy("createdAt", "desc")
+    )
+
+    const qFallback = query(
       collection(firestore, "notifications"),
       where("userId", "==", user.uid)
     )
-  }, [firestore, userLoaded, user?.uid])
 
-  const { data: rawNotifications = [], isLoading } = useCollection(notificationsQuery)
-  
-  // Sort and limit in memory to avoid needing a composite index
-  const notifications = [...(rawNotifications || [])]
-    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 20)
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        const notifs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        setNotifications(notifs)
+        setIsLoading(false)
+      }, 
+      (error) => {
+        console.warn("Falling back to client-side sort due to missing index:", error)
+        onSnapshot(qFallback, (snap) => {
+          const notifs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+            .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          setNotifications(notifs)
+          setIsLoading(false)
+        })
+      }
+    )
+
+    return () => unsubscribe()
+  }, [firestore, userLoaded, user?.uid])
 
   const unreadCount = notifications.filter((n: any) => !n.read).length
 

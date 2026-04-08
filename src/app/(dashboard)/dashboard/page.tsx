@@ -11,9 +11,11 @@ import {
   Loader2,
   ShieldAlert,
   FlameKindling,
-  DollarSign
+  DollarSign,
+  ShieldCheck
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection } from "firebase/firestore"
@@ -93,15 +95,29 @@ export default function DashboardPage() {
       } catch { return false }
     }).length
 
-    // 4. Certidões Críticas (Vencidas ou em Alerta de 15 dias)
-    const criticalCertidoes = (certidoes || []).filter((c: any) => {
+    // 4. Certidões Críticas (Vencidas ou em Alerta de 15 a 30 dias)
+    const criticalCertidoesList = (certidoes || []).filter((c: any) => {
       if (c.status === 'VENCIDA' || c.status === 'POSITIVA' || c.status === 'POSITIVA_EFEITO_NEGATIVA') return true;
       if (!c.validade) return false
       try {
         const val = parseISO(c.validade)
-        return isBefore(val, today) || differenceInDays(val, today) <= 15
+        return isBefore(val, today) || differenceInDays(val, today) <= 30
       } catch { return false }
-    }).length
+    }).map((c: any) => {
+      let days = Infinity;
+      try {
+        if (c.validade) days = differenceInDays(parseISO(c.validade), today);
+      } catch {}
+      const client = (clients || []).find((cl: any) => cl.id === c.clientId || cl.id === c.clienteId)
+      return { 
+        ...c, 
+        days, 
+        clientName: c.clientName || client?.corporateName || client?.nomeFantasia,
+        document: client?.cnpj || client?.cpf 
+      }
+    }).sort((a: any, b: any) => a.days - b.days)
+
+    const criticalCertidoes = criticalCertidoesList.length
 
     // 5. Histórico e Alertas Críticos para a UI
     const chartData = []
@@ -144,12 +160,13 @@ export default function DashboardPage() {
       criticalAlvaras,
       criticalCertidoes,
       chartData,
-      urgentList
+      urgentList,
+      criticalCertidoesList
     }
   }, [clients, processes, receivables, alvaras, certidoes])
 
   const isDataLoading = loadingClients
-  const { chartData, urgentList: topUrgentProcesses } = stats
+  const { chartData, urgentList: topUrgentProcesses, criticalCertidoesList } = stats
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
@@ -236,6 +253,61 @@ export default function DashboardPage() {
                      <Line type="monotone" dataKey="total" stroke="#2C4156" name="Total Demandado" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                    </ComposedChart>
                  </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white rounded-xl shadow-sm border-[#D2D7DB]">
+            <CardContent className="p-6">
+              <div className="mb-4 pb-4 border-b">
+                <h2 className="text-lg font-black text-[#2C4156] uppercase tracking-tight flex items-center gap-2">
+                  ⚠️ ALERTA DE CERTIDÕES
+                </h2>
+                <p className="text-[#98A7AA] font-bold text-xs uppercase pt-1">Gestão de Vencimentos (Vencidas e A Vencer em até 30 dias)</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="pb-3 text-[10px] font-black uppercase text-[#98A7AA]">Cliente / Documento</th>
+                      <th className="pb-3 text-[10px] font-black uppercase text-[#98A7AA]">Tipo</th>
+                      <th className="pb-3 text-[10px] font-black uppercase text-[#98A7AA] text-center">Vencimento</th>
+                      <th className="pb-3 text-[10px] font-black uppercase text-[#98A7AA] text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {criticalCertidoesList?.length > 0 ? (
+                      criticalCertidoesList.map((c: any) => (
+                        <tr key={c.id} className="border-b last:border-0 hover:bg-[#F7F7F7] transition-colors">
+                          <td className="py-3">
+                            <p className="text-xs font-black text-[#2C4156] uppercase leading-tight">{c.clientName || 'Cliente Indefinido'}</p>
+                            <p className="text-[10px] font-bold text-[#98A7AA] uppercase">{c.document || c.cnpj || '---'}</p>
+                          </td>
+                          <td className="py-3 text-[10px] font-black text-[#39586D] uppercase">{c.tipo || '---'}</td>
+                          <td className="py-3 text-center text-xs font-bold text-[#E74C3C]">
+                            {c.validade ? new Date(c.validade).toLocaleDateString('pt-BR') : '--'}
+                          </td>
+                          <td className="py-3 text-right">
+                            {c.days < 0 ? (
+                              <Badge className="bg-red-50 text-red-700 hover:bg-red-50 border-none text-[9px] font-black uppercase px-2 py-1">Vencida</Badge>
+                            ) : (
+                              <Badge className="bg-orange-50 text-orange-700 hover:bg-orange-50 border-none text-[9px] font-black uppercase px-2 py-1">A Vencer</Badge>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="py-8 text-center bg-white">
+                          <div className="flex flex-col items-center justify-center">
+                            <ShieldCheck className="h-8 w-8 text-[#1FA67A] mb-2 opacity-50" />
+                            <p className="text-xs font-black text-[#98A7AA] uppercase">Tudo em dia</p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </CardContent>
           </Card>
