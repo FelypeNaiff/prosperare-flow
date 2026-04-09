@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { 
   Sheet, 
   SheetContent, 
@@ -24,7 +24,9 @@ import {
   X,
   Check,
   DollarSign,
-  ListRestart
+  ListRestart,
+  Edit2,
+  Save
 } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -72,9 +74,9 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
   const firestore = useFirestore()
   const [showGovPass, setShowGovPass] = useState(false)
   const [activeTags, setActiveTags] = useState<string[]>([])
-  const [serviceValue, setServiceValue] = useState(0)
   const [isPaid, setIsPaid] = useState(false)
-  const [localData, setLocalData] = useState({ name: "", cpf: "", govPass: "" })
+  const [editData, setEditData] = useState({ name: "", cpf: "", govPass: "", value: 0, notes: "" })
+  const govPassRef = useRef<HTMLInputElement>(null)
 
   const stagesQuery = useMemoFirebase(() => query(collection(firestore, "irpf_stages"), orderBy("order", "asc")), [firestore])
   const { data: dbStages } = useCollection(stagesQuery)
@@ -83,15 +85,15 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
   useEffect(() => {
     if (declaration && open) {
       setActiveTags(declaration.tags || [])
-      setServiceValue(declaration.value || 0)
       setIsPaid(declaration.isPaid || false)
-      setLocalData({
+      setEditData({
         name: declaration.name || "",
         cpf: declaration.cpf || "",
-        govPass: declaration.govPass || ""
+        govPass: declaration.govPass || "",
+        value: declaration.value || 0,
+        notes: declaration.notes || ""
       })
     }
-    // Usamos declaration?.id para não reescrever o estado local a cada re-render do pai (o que causava campos "travados")
   }, [declaration?.id, open])
 
   if (!declaration) return null
@@ -99,6 +101,13 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
   const handleUpdate = (data: any) => {
     const docRef = doc(firestore, "irpf_declarations", declaration.id)
     updateDocumentNonBlocking(docRef, data)
+  }
+
+  const handleSaveChanges = async () => {
+    const docRef = doc(firestore, "irpf_declarations", declaration.id)
+    await updateDocumentNonBlocking(docRef, { ...editData })
+    toast({ title: "Alterações Salvas", description: "Os dados do contribuinte foram atualizados." })
+    onOpenChange(false)
   }
 
   const handleStageChange = (stageId: string) => {
@@ -140,9 +149,8 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-black text-[#5E6C84] uppercase tracking-wider">Nome Completo</Label>
                   <Input 
-                    value={localData.name} 
-                    onChange={(e) => setLocalData({...localData, name: e.target.value})}
-                    onBlur={() => handleUpdate({ name: localData.name })}
+                    value={editData.name} 
+                    onChange={(e) => setEditData({...editData, name: e.target.value})}
                     className="border-[#D2D7DB] font-bold text-[#172B4D] uppercase"
                   />
                 </div>
@@ -150,9 +158,8 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                   <div className="space-y-1.5">
                     <Label className="text-[10px] font-black text-[#5E6C84] uppercase tracking-wider">CPF</Label>
                     <Input 
-                      value={localData.cpf} 
-                      onChange={(e) => setLocalData({...localData, cpf: e.target.value})}
-                      onBlur={() => handleUpdate({ cpf: localData.cpf })}
+                      value={editData.cpf} 
+                      onChange={(e) => setEditData({...editData, cpf: e.target.value})}
                       className="border-[#D2D7DB] font-mono"
                     />
                   </div>
@@ -230,14 +237,24 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
               <div className="space-y-3">
                 <Label className="text-[11px] font-black text-[#5E6C84] uppercase tracking-wider">Senha GOV.BR</Label>
                 <div className="flex gap-2">
-                  <div className="flex-1 bg-[#F4F5F7] border border-[#D2D7DB] rounded p-2 flex items-center justify-between overflow-hidden">
-                    <span className="text-xs font-mono font-bold truncate pr-2">{showGovPass ? localData.govPass : '••••••••'}</span>
-                    <div className="flex gap-2 shrink-0">
-                      <button onClick={() => setShowGovPass(!showGovPass)} className="text-[#5E6C84]">
-                        {showGovPass ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                  <div className="flex-1 border border-[#D2D7DB] rounded p-1 flex items-center justify-between bg-white overflow-hidden focus-within:ring-2 ring-primary/20 transition-all">
+                    <input
+                      ref={govPassRef}
+                      type={showGovPass ? "text" : "password"}
+                      value={editData.govPass}
+                      onChange={(e) => setEditData({...editData, govPass: e.target.value})}
+                      className="flex-1 bg-transparent text-xs font-mono font-bold px-2 outline-none w-full border-none focus:ring-0 text-[#172B4D]"
+                      placeholder="Senha Gov.br"
+                    />
+                    <div className="flex gap-1 shrink-0 px-1">
+                      <button onClick={() => govPassRef.current?.focus()} className="text-[#5E6C84] hover:bg-gray-100 p-1 rounded-md transition-colors" title="Editar">
+                        <Edit2 className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => copyToClipboard(localData.govPass, "Senha")} className="text-[#5E6C84]">
-                        <Copy className="h-3 w-3" />
+                      <button onClick={() => setShowGovPass(!showGovPass)} className="text-[#5E6C84] hover:bg-gray-100 p-1 rounded-md transition-colors" title={showGovPass ? "Ocultar" : "Mostrar"}>
+                        {showGovPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </button>
+                      <button onClick={() => copyToClipboard(editData.govPass, "Senha")} className="text-[#5E6C84] hover:bg-gray-100 p-1 rounded-md transition-colors" title="Copiar">
+                        <Copy className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>
@@ -255,12 +272,8 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                 <Input 
                   type="number" 
                   className="bg-white border-[#D2D7DB] font-black text-[#172B4D]" 
-                  value={serviceValue}
-                  onChange={(e) => {
-                    const val = Number(e.target.value)
-                    setServiceValue(val)
-                    handleUpdate({ value: val })
-                  }}
+                  value={editData.value}
+                  onChange={(e) => setEditData({...editData, value: Number(e.target.value)})}
                 />
               </div>
               <div className="space-y-3">
@@ -279,8 +292,8 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
               <Textarea 
                 placeholder="Detalhes sobre a declaração..." 
                 className="bg-white border-[#D2D7DB] text-sm h-32"
-                value={declaration.notes || ""}
-                onChange={(e) => handleUpdate({ notes: e.target.value })}
+                value={editData.notes}
+                onChange={(e) => setEditData({...editData, notes: e.target.value})}
               />
               <div className="space-y-2">
                 <div className="flex justify-between text-[10px] font-black text-[#5E6C84] uppercase">
@@ -303,8 +316,8 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
               <span className="text-xs font-bold text-[#172B4D]">Você</span>
             </div>
           </div>
-          <Button className="h-9 bg-[#1FA67A] font-black text-[10px] uppercase gap-2 shadow-lg" onClick={() => handleUpdate({ status: 'completed', progress: 100 })}>
-            <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
+          <Button className="h-9 bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black text-[10px] uppercase gap-2 shadow-lg" onClick={handleSaveChanges}>
+            <Save className="h-3.5 w-3.5" /> Salvar Alterações
           </Button>
         </div>
       </SheetContent>

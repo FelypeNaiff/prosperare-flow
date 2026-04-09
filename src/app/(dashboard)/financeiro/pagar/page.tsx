@@ -18,7 +18,8 @@ import {
   Clock,
   AlertTriangle,
   Repeat,
-  TrendingUp
+  TrendingUp,
+  Undo
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -114,6 +115,13 @@ export default function ContasAPagarPage() {
       toast({ title: "Contas excluídas", variant: "destructive" })
       setSelectedIds([])
     }
+  }
+
+  const handleTogglePaymentStatus = (contaId: string, statusAtual: string) => {
+    const docRef = doc(firestore, "payables", contaId)
+    const newStatus = statusAtual === 'Pago' ? 'Pendente' : 'Pago'
+    setDocumentNonBlocking(docRef, { situacao: newStatus }, { merge: true })
+    toast({ title: newStatus === 'Pago' ? "Conta marcada como paga" : "Conta retornou para pendente" })
   }
 
   const toggleSelect = (id: string) => {
@@ -333,7 +341,29 @@ export default function ContasAPagarPage() {
                       {Number(item.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </TableCell>
                     <TableCell className="text-right pr-4">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]"><MoreVertical className="h-4 w-4" /></Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className={cn(
+                            "h-8 w-8 transition-colors rounded-full",
+                            item.situacao === 'Pago' 
+                              ? "hover:bg-gray-100 text-gray-400 hover:text-gray-600" 
+                              : "hover:bg-green-50 text-[#1FA67A]/60 hover:text-[#1FA67A]"
+                          )}
+                          onClick={() => handleTogglePaymentStatus(item.id, item.situacao)}
+                          title={item.situacao === 'Pago' ? "Retornar para Pendente" : "Marcar como Pago"}
+                        >
+                          {item.situacao === 'Pago' ? (
+                            <Undo className="h-4 w-4" />
+                          ) : (
+                            <CheckCircle2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
