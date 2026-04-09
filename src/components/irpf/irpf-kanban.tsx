@@ -28,7 +28,7 @@ const AVAILABLE_TAGS = [
   { name: 'GOV', color: 'bg-[#566573] text-white' },
 ]
 
-export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
+export function IrpfKanban({ searchTerm, filtroPagamento = "Todos" }: { searchTerm: string, filtroPagamento?: string }) {
   const { selectedUser } = useUser()
   const firestore = useFirestore()
   const [selectedDeclaration, setSelectedDeclaration] = useState<any>(null)
@@ -57,10 +57,14 @@ export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
   )
   const { data: declarations, isLoading: loadingDecls } = useCollection(irpfQuery)
 
-  const filteredCards = (declarations || []).filter(c => 
-    c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.cpf?.includes(searchTerm)
-  )
+  const filteredCards = (declarations || []).filter(c => {
+    const matchesSearch = c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || c.cpf?.includes(searchTerm);
+    const matchesPagamento = filtroPagamento === "Todos" 
+      || (filtroPagamento === "Pago" && c.isPaid === true) 
+      || (filtroPagamento === "Pendente" && c.isPaid !== true);
+      
+    return matchesSearch && matchesPagamento;
+  })
 
   const handleOpenDetails = (card: any) => {
     setSelectedDeclaration(card)

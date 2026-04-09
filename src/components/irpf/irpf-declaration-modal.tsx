@@ -21,13 +21,16 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/hooks/use-toast"
-import { useFirestore, useUser, setDocumentNonBlocking } from "@/firebase"
-import { collection, doc } from "firebase/firestore"
+import { useFirestore, useUser, setDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase"
+import { collection, doc, query, orderBy } from "firebase/firestore"
 
 export function IrpfDeclarationModal({ open, onOpenChange }: any) {
   const { selectedUser } = useUser()
   const firestore = useFirestore()
   
+  const stagesQuery = useMemoFirebase(() => query(collection(firestore, "irpf_stages"), orderBy("order", "asc")), [firestore])
+  const { data: dbStages } = useCollection(stagesQuery)
+
   const [formData, setFormData] = useState({
     name: "",
     cpf: "",
@@ -55,11 +58,13 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
     const id = Math.random().toString(36).substr(2, 9)
     const docRef = doc(firestore, "irpf_declarations", id)
     
+    const defaultStatus = (dbStages && dbStages.length > 0) ? dbStages[0].id : "not_started"
+
     const declarationData = {
       ...formData,
       id,
       responsibleId: selectedUser.id,
-      status: "not_started",
+      status: defaultStatus,
       progress: 0,
       isPaid: false,
       tags: [],

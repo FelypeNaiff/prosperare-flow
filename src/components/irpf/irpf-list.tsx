@@ -21,7 +21,17 @@ import { collection, query, where, doc } from "firebase/firestore"
 import { useState } from "react"
 import { IrpfDetailsDrawer } from "./irpf-details-drawer"
 
-export function IrpfList({ searchTerm }: { searchTerm: string }) {
+export function IrpfList({ 
+  searchTerm, 
+  filtroEtapa, 
+  filtroPagamento, 
+  columns 
+}: { 
+  searchTerm: string, 
+  filtroEtapa: string, 
+  filtroPagamento: string, 
+  columns: any[] 
+}) {
   const { selectedUser } = useUser()
   const firestore = useFirestore()
   const [selectedDeclaration, setSelectedDeclaration] = useState<any>(null)
@@ -35,9 +45,15 @@ export function IrpfList({ searchTerm }: { searchTerm: string }) {
   
   const { data: declarations = [], isLoading } = useCollection(irpfQuery)
 
-  const filtered = (declarations || []).filter(d => 
-    d.name?.toLowerCase().includes(searchTerm.toLowerCase()) || d.cpf?.includes(searchTerm)
-  )
+  const filtered = (declarations || []).filter(d => {
+    const matchesSearch = d.name?.toLowerCase().includes(searchTerm.toLowerCase()) || d.cpf?.includes(searchTerm);
+    const matchesEtapa = filtroEtapa === "Todas" || d.status === filtroEtapa;
+    const matchesPagamento = filtroPagamento === "Todos" 
+      || (filtroPagamento === "Pago" && d.isPaid === true) 
+      || (filtroPagamento === "Pendente" && d.isPaid !== true);
+      
+    return matchesSearch && matchesEtapa && matchesPagamento;
+  })
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text)
@@ -89,7 +105,7 @@ export function IrpfList({ searchTerm }: { searchTerm: string }) {
               </TableCell>
               <TableCell>
                 <Badge className="bg-[#E3F0F9] text-[#2574A9] border-none text-[9px] font-black uppercase">
-                  {item.status?.replace('_', ' ')}
+                  {columns.find(c => c.id === item.status)?.title || item.status?.replace('_', ' ') || 'DESCONHECIDO'}
                 </Badge>
               </TableCell>
               <TableCell className="w-[150px]">
