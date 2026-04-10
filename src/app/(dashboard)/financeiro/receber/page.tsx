@@ -60,14 +60,15 @@ import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { useFirestore, useCollection, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase"
-import { collection, doc } from "firebase/firestore"
-import { format, addMonths, subMonths, startOfMonth } from "date-fns"
+import { collection, doc, query, where } from "firebase/firestore"
+import { format, addMonths, subMonths, startOfMonth, endOfMonth } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { ClientSearchSelect } from "@/components/clients/client-search-select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 export default function ContasAReceberPage() {
   const firestore = useFirestore()
+  const { user } = useUser()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [isNewAccountOpen, setIsNewAccountOpen] = useState(false)
@@ -76,7 +77,15 @@ export default function ContasAReceberPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [sortConfig, setSortConfig] = useState<{ key: string | null, direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' })
 
-  const receivablesQuery = useMemoFirebase(() => collection(firestore, "receivables"), [firestore])
+  const receivablesQuery = useMemoFirebase(() => {
+    const firstDay = format(startOfMonth(selectedCompetence), "yyyy-MM-dd")
+    const lastDay = format(endOfMonth(selectedCompetence), "yyyy-MM-dd")
+    return query(
+      collection(firestore, "receivables"),
+      where("data", ">=", firstDay),
+      where("data", "<=", lastDay)
+    )
+  }, [firestore, selectedCompetence])
   const { data: items = [], isLoading } = useCollection(receivablesQuery)
 
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
@@ -199,7 +208,12 @@ export default function ContasAReceberPage() {
   }
 
   const handleUpdateStatus = (id: string, newStatus: string, cliente: string) => {
-    updateDocumentNonBlocking(doc(firestore, "receivables", id), { situacao: newStatus })
+    const updateData: any = { situacao: newStatus }
+    if (newStatus === "Confirmado" || newStatus === "Pago") {
+      updateData.responsavelConfirmacao = user?.displayName || user?.email || "Operador"
+    }
+    
+    updateDocumentNonBlocking(doc(firestore, "receivables", id), updateData)
     
     if (newStatus === "Confirmado") {
       toast({ 
@@ -216,7 +230,10 @@ export default function ContasAReceberPage() {
   }
 
   const handleCancelReceipt = async (contaId: string) => {
-    await updateDocumentNonBlocking(doc(firestore, "receivables", contaId), { situacao: "Pendente" })
+    await updateDocumentNonBlocking(doc(firestore, "receivables", contaId), { 
+      situacao: "Pendente",
+      responsavelConfirmacao: null 
+    })
     toast({ 
       title: "Recebimento Cancelado", 
       description: "A situação da conta foi revertida para pendente.",
@@ -242,6 +259,8 @@ export default function ContasAReceberPage() {
 
   const changeMonth = (direction: 'next' | 'prev') => {
     setSelectedCompetence(prev => direction === 'next' ? addMonths(prev, 1) : subMonths(prev, 1))
+    setSearchTerm("")
+    setSortConfig({ key: null, direction: 'asc' })
   }
 
   const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -424,6 +443,14 @@ export default function ContasAReceberPage() {
                 </TableHead>
                 <TableHead 
                   className="text-white font-black uppercase text-[10px] cursor-pointer hover:bg-white/10 transition-colors select-none"
+                  onClick={() => handleSort('responsavelConfirmacao')}
+                >
+                  <div className="flex items-center gap-1">
+                    Responsável {sortConfig.key === 'responsavelConfirmacao' && (sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-white font-black uppercase text-[10px] cursor-pointer hover:bg-white/10 transition-colors select-none"
                   onClick={() => handleSort('valor')}
                 >
                   <div className="flex items-center justify-end gap-1">
@@ -436,7 +463,7 @@ export default function ContasAReceberPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-32 text-center">
+                  <TableCell colSpan={9} className="h-32 text-center">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
                   </TableCell>
                 </TableRow>
@@ -477,6 +504,9 @@ export default function ContasAReceberPage() {
                       )}>
                         {item.situacao}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-[#98A7AA] text-[10px] font-medium uppercase truncate max-w-[120px]">
+                      {item.responsavelConfirmacao || <span className="text-gray-400">-</span>}
                     </TableCell>
                     <TableCell className={cn(
                       "text-right font-black",
@@ -526,7 +556,7 @@ export default function ContasAReceberPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-32 text-center text-[#98A7AA] font-bold uppercase text-xs">
+                  <TableCell colSpan={9} className="h-32 text-center text-[#98A7AA] font-bold uppercase text-xs">
                     Nenhum honorário localizado para este filtro.
                   </TableCell>
                 </TableRow>
