@@ -21,7 +21,10 @@ import {
   Mail,
   Filter,
   Download,
-  TrendingUp
+  TrendingUp,
+  XCircle,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -71,6 +74,7 @@ export default function ContasAReceberPage() {
   const [selectedCompetence, setSelectedCompetence] = useState<Date>(startOfMonth(new Date()))
   const [activeFilter, setActiveFilter] = useState("Todos")
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [sortConfig, setSortConfig] = useState<{ key: string | null, direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' })
 
   const receivablesQuery = useMemoFirebase(() => collection(firestore, "receivables"), [firestore])
   const { data: items = [], isLoading } = useCollection(receivablesQuery)
@@ -89,18 +93,86 @@ export default function ContasAReceberPage() {
     tipoValor: "Fixo"
   })
 
-  const filteredItems = useMemo(() => {
-    return (items || []).filter(item => {
+  const baseFilteredItems = useMemo(() => {
+    let baseItems = [...(items || [])]
+
+    if (activeFilter === "Sem Contrato") {
+      const monthPrefix = format(selectedCompetence, "yyyy-MM")
+      const monthItems = baseItems.filter(item => item.data && item.data.startsWith(monthPrefix))
+      const clientsWithRecords = new Set(monthItems.map(i => (i.cliente || "").toUpperCase()))
+
+      const missingClients = (clients || [])
+        .filter(c => c.corporateName && !clientsWithRecords.has(c.corporateName.toUpperCase()))
+        .map(c => ({
+          id: `missing-${c.id}`,
+          descricao: "SEM LANÇAMENTO NO MÊS",
+          cliente: c.corporateName,
+          pagamento: "--",
+          data: "",
+          valor: 0,
+          situacao: "Sem Contrato",
+          recorrente: false,
+          semContrato: true
+        }))
+        
+      baseItems = [...baseItems, ...missingClients]
+    }
+
+    return baseItems.filter(item => {
       const matchSearch = item.cliente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.descricao?.toLowerCase().includes(searchTerm.toLowerCase())
       
-      const matchStatus = activeFilter === "Todos" || item.situacao === activeFilter
+      let matchStatus = false
+      if (activeFilter === "Todos") {
+        matchStatus = true
+      } else if (activeFilter === "Sem Contrato") {
+        matchStatus = Number(item.valor) === 0 || !item.valor || item.semContrato === true
+      } else {
+        matchStatus = item.situacao === activeFilter
+      }
       
-      return matchSearch && matchStatus
+      let matchMonth = true
+      if (activeFilter === "Sem Contrato") {
+        const monthPrefix = format(selectedCompetence, "yyyy-MM")
+        matchMonth = !item.data || item.data.startsWith(monthPrefix)
+      }
+
+      return matchSearch && matchStatus && matchMonth
     })
-  }, [items, searchTerm, activeFilter])
+  }, [items, searchTerm, activeFilter, clients, selectedCompetence])
+
+  const filteredItems = useMemo(() => {
+    if (!sortConfig.key) return baseFilteredItems;
+    
+    return [...baseFilteredItems].sort((a: any, b: any) => {
+      let aValue = a[sortConfig.key as string];
+      let bValue = b[sortConfig.key as string];
+
+      if (sortConfig.key === 'valor') {
+        aValue = Number(aValue) || 0;
+        bValue = Number(bValue) || 0;
+      } else if (sortConfig.key === 'data') {
+        aValue = aValue ? new Date(aValue).getTime() : 0;
+        bValue = bValue ? new Date(bValue).getTime() : 0;
+      } else {
+        aValue = String(aValue || '').toLowerCase();
+        bValue = String(bValue || '').toLowerCase();
+      }
+
+      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [baseFilteredItems, sortConfig]);
 
   const totalValue = filteredItems.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0)
+
+  const handleSort = (key: string) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }))
+  }
 
   const handleCreateAccount = () => {
     if (!newAccount.descricao || !newAccount.clientId || !newAccount.valor) {
@@ -141,6 +213,14 @@ export default function ContasAReceberPage() {
     } else {
       toast({ title: "Status Atualizado" })
     }
+  }
+
+  const handleCancelReceipt = async (contaId: string) => {
+    await updateDocumentNonBlocking(doc(firestore, "receivables", contaId), { situacao: "Pendente" })
+    toast({ 
+      title: "Recebimento Cancelado", 
+      description: "A situação da conta foi revertida para pendente.",
+    })
   }
 
   const handleDelete = (id: string) => {
@@ -274,7 +354,7 @@ export default function ContasAReceberPage() {
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex gap-2 p-1 bg-[#EBEDF0] rounded-lg w-fit">
-            {["Todos", "Pendente", "Confirmado", "Atrasado"].map((filter) => (
+            {["Todos", "Pendente", "Confirmado", "Atrasado", "Sem Contrato"].map((filter) => (
               <Button
                 key={filter}
                 variant="ghost"
@@ -317,11 +397,39 @@ export default function ContasAReceberPage() {
                   />
                 </TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px]">Descrição</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Cliente</TableHead>
+                <TableHead 
+                  className="text-white font-black uppercase text-[10px] cursor-pointer hover:bg-white/10 transition-colors select-none"
+                  onClick={() => handleSort('cliente')}
+                >
+                  <div className="flex items-center gap-1">
+                    Cliente {sortConfig.key === 'cliente' && (sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
+                  </div>
+                </TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px]">Pagamento</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Vencimento</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-center">Situação</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Valor</TableHead>
+                <TableHead 
+                  className="text-white font-black uppercase text-[10px] cursor-pointer hover:bg-white/10 transition-colors select-none"
+                  onClick={() => handleSort('data')}
+                >
+                  <div className="flex items-center gap-1">
+                    Vencimento {sortConfig.key === 'data' && (sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-white font-black uppercase text-[10px] cursor-pointer hover:bg-white/10 transition-colors select-none"
+                  onClick={() => handleSort('situacao')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Situação {sortConfig.key === 'situacao' && (sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-white font-black uppercase text-[10px] cursor-pointer hover:bg-white/10 transition-colors select-none"
+                  onClick={() => handleSort('valor')}
+                >
+                  <div className="flex items-center justify-end gap-1">
+                    Valor {sortConfig.key === 'valor' && (sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
+                  </div>
+                </TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px] text-right pr-4">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -388,6 +496,14 @@ export default function ContasAReceberPage() {
                               onClick={() => handleUpdateStatus(item.id, "Confirmado", item.cliente)}
                             >
                               <CheckCircle2 className="h-4 w-4" /> Confirmar Recebimento
+                            </DropdownMenuItem>
+                          )}
+                          {(item.situacao === 'Confirmado' || item.situacao === 'Pago') && (
+                            <DropdownMenuItem 
+                              className="gap-2 text-xs font-bold text-[#E74C3C] uppercase"
+                              onClick={() => handleCancelReceipt(item.id)}
+                            >
+                              <XCircle className="h-4 w-4" /> Cancelar Recebimento
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem className="gap-2 text-xs font-bold uppercase">
