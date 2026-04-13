@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
@@ -61,7 +62,7 @@ const COLUMNS = [
 
 export default function AtendimentosPage() {
   const firestore = useFirestore()
-  const { userLoaded } = useUser()
+  const { userLoaded, selectedUser } = useUser()
   const [searchTerm, setSearchTerm] = useState("")
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false)
   const [filtroResponsavel, setFiltroResponsavel] = useState("todas")
@@ -101,7 +102,8 @@ export default function AtendimentosPage() {
     responsibleId: "",
     notes: "",
     title: "",
-    dueDate: ""
+    dueDate: "",
+    isRestricted: false
   })
 
   const handleCreateTicket = () => {
@@ -126,6 +128,8 @@ export default function AtendimentosPage() {
       notes: newTicket.notes,
       dueDate: newTicket.dueDate || null,
       status: 'novo',
+      restrita: newTicket.isRestricted,
+      criadorId: selectedUser?.id || "",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
@@ -145,7 +149,7 @@ export default function AtendimentosPage() {
     })
 
     setIsNewTicketOpen(false)
-    setNewTicket({ clientId: "", templateId: "", responsibleId: "", notes: "", title: "", dueDate: "" })
+    setNewTicket({ clientId: "", templateId: "", responsibleId: "", notes: "", title: "", dueDate: "", isRestricted: false })
     toast({ title: "Demanda Enviada!", description: "O colaborador foi notificado." })
   }
 
@@ -176,7 +180,12 @@ export default function AtendimentosPage() {
     toast({ title: "Ticket Removido", variant: "destructive" })
   }
 
-  const filteredTickets = (tickets || []).filter(t => {
+  const visibleTickets = (tickets || []).filter((t: any) => {
+    if (!t.restrita) return true;
+    return t.restrita && t.criadorId === selectedUser?.id;
+  });
+
+  const filteredTickets = visibleTickets.filter((t: any) => {
     const matchesSearch = t.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
       t.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.responsibleName?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -190,18 +199,18 @@ export default function AtendimentosPage() {
     }
   })
 
-  const uniqueAssignees = Array.from(new Set((tickets || []).map(t => t.responsibleId)))
+  const uniqueAssignees = Array.from(new Set(visibleTickets.map((t: any) => t.responsibleId)))
     .map(id => {
-      const ticket = (tickets || []).find(t => t.responsibleId === id)
+      const ticket = visibleTickets.find((t: any) => t.responsibleId === id)
       return { id, name: ticket?.responsibleName }
     })
     .filter(a => a.id && a.name)
     .sort((a, b) => a.name!.localeCompare(b.name!))
 
   const stats = {
-    open: (tickets || []).filter(t => t.status !== 'concluido').length,
-    critical: (tickets || []).filter(t => t.status === 'pendente').length,
-    completed: (tickets || []).filter(t => t.status === 'concluido').length,
+    open: visibleTickets.filter((t: any) => t.status !== 'concluido').length,
+    critical: visibleTickets.filter((t: any) => t.status === 'pendente').length,
+    completed: visibleTickets.filter((t: any) => t.status === 'concluido').length,
   }
 
   return (
@@ -440,6 +449,18 @@ export default function AtendimentosPage() {
                     value={newTicket.dueDate} 
                     onChange={(e) => setNewTicket({...newTicket, dueDate: e.target.value})} 
                   />
+                </div>
+                <div className="space-y-2 flex flex-col justify-center">
+                  <div className="flex items-center space-x-2 pt-4">
+                    <Switch 
+                      id="restricted-mode"
+                      checked={newTicket.isRestricted}
+                      onCheckedChange={(v) => setNewTicket({...newTicket, isRestricted: v})}
+                    />
+                    <Label htmlFor="restricted-mode" className="text-[10px] font-black uppercase text-[#98A7AA] cursor-pointer">
+                      Demanda Restrita (Visível apenas para mim)
+                    </Label>
+                  </div>
                 </div>
               </div>
               {!newTicket.templateId && (
