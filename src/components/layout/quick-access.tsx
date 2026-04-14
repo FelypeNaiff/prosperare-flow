@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 const SHORTCUTS = [
   { title: "Processos", url: "/processos", icon: ClipboardCheck, color: "text-[#2574A9]" },
-  { title: "Tickets", url: "/atendimentos", icon: MessageCircle, color: "text-[#F2B705]" },
+  { title: "Demandas Internas", url: "/atendimentos", icon: MessageCircle, color: "text-[#F2B705]" },
   { title: "IRPF", url: "/processos/irpf", icon: FileSearch, color: "text-[#1FA67A]" },
   { title: "Novo Cliente", url: "/clientes", icon: Plus, color: "text-[#1FA67A]", isAction: true },
 ]

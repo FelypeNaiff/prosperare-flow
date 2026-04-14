@@ -12,7 +12,8 @@ import {
   Loader2,
   Save,
   Building2,
-  FileText
+  FileText,
+  AlertTriangle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -303,7 +304,10 @@ export default function AtendimentosPage() {
                     filteredTickets.filter(t => t.status === col.id).map((ticket) => (
                       <Card 
                         key={ticket.id} 
-                        className="bg-white border-[#D2D7DB] shadow-sm hover:shadow-md transition-all group cursor-pointer active:cursor-grabbing hover:border-[#1FA67A]/40"
+                        className={cn(
+                          "bg-white border-[#D2D7DB] shadow-sm hover:shadow-md transition-all group cursor-pointer active:cursor-grabbing hover:border-[#1FA67A]/40",
+                          ticket.dueDate && ticket.dueDate < (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0')) && "animate-pulse border-2 border-red-600 bg-red-50 shadow-md shadow-red-200"
+                        )}
                         draggable
                         onDragStart={(e) => handleDragStart(e, ticket.id)}
                         onClick={() => setSelectedTicket(ticket)}
@@ -344,8 +348,16 @@ export default function AtendimentosPage() {
                               </div>
                             </div>
                             {ticket.dueDate && (
-                               <div className="bg-[#FFF4E5] text-[#F2B705] text-[9px] font-black px-2 py-0.5 rounded uppercase border border-[#FADF98]">
-                                 Prazo: {new Date(ticket.dueDate).toLocaleDateString('pt-BR')}
+                               <div className="flex items-center gap-1">
+                                 {ticket.dueDate < (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0')) && <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />}
+                                 <div className={cn(
+                                   "text-[9px] font-black px-2 py-0.5 rounded uppercase border",
+                                   ticket.dueDate < (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0')) 
+                                     ? "bg-red-50 text-red-700 border-red-200" 
+                                     : "bg-gray-50 text-[#98A7AA] border-gray-200"
+                                 )}>
+                                   Prazo: {new Date(ticket.dueDate + 'T12:00:00Z').toLocaleDateString('pt-BR')}
+                                 </div>
                                </div>
                             )}
                           </div>

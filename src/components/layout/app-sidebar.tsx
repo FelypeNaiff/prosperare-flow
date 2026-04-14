@@ -86,7 +86,7 @@ const menuItems = [
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
     subItems: [
       { title: "Gestão de Clientes", url: "/clientes", icon: Users },
-      { title: "Central de Atendimentos", url: "/atendimentos", icon: TicketCheck },
+      { title: "Demandas Internas", url: "/atendimentos", icon: TicketCheck },
       { title: "Agenda de Demandas", url: "/agenda-demandas", icon: CalendarClock },
     ]
   },

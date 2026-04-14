@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Calendar as CalendarIcon, Loader2, Search, ArrowLeft, ArrowRight, Clock, AlertCircle } from "lucide-react"
+import { Calendar as CalendarIcon, Loader2, Search, ArrowLeft, ArrowRight, Clock, AlertCircle, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -50,8 +50,9 @@ export default function AgendaDemandasPage() {
       // Regra de privacidade: 'Demanda Restrita'
       if (t.restrita && t.criadorId !== selectedUser?.id) return
 
-      // Somente tarefas n\u00e3o conclu\u00eddas que tem dueDate
-      if (!t.dueDate || t.status === 'concluido' || t.status === 'dispensado') return
+      // FILTRO EXCLUSIVO: Apenas collection fields mapeados como Demandas Internas
+      if (!['novo', 'atendimento', 'pendente'].includes(t.status)) return
+      if (!t.dueDate) return
 
       const matchesSearch = t.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             t.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -83,9 +84,9 @@ export default function AgendaDemandasPage() {
     return list.sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime())
   }, [rawTasks, selectedUser, searchTerm, filtroResponsavel, filtroPrazo])
 
-  const uniqueAssignees = Array.from(new Set(rawTasks.filter((t:any) => (!t.restrita || t.criadorId === selectedUser?.id) && !!t.dueDate && t.status !== 'concluido').map((t: any) => t.responsibleId)))
+  const uniqueAssignees = Array.from(new Set((rawTasks || []).filter((t:any) => ['novo', 'atendimento', 'pendente'].includes(t.status) && (!t.restrita || t.criadorId === selectedUser?.id) && !!t.dueDate).map((t: any) => t.responsibleId)))
     .map(id => {
-      const ticket = rawTasks.find((t: any) => t.responsibleId === id)
+      const ticket = (rawTasks || []).find((t: any) => t.responsibleId === id)
       return { id, name: ticket?.responsibleName }
     })
     .filter(a => a.id && a.name)
@@ -103,8 +104,8 @@ export default function AgendaDemandasPage() {
 
   const getColorClasses = (color: string) => {
     switch(color) {
-      case 'red': return 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
-      case 'yellow': return 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100'
+      case 'red': return 'animate-pulse border-2 border-red-600 bg-red-50 shadow-md shadow-red-200 text-red-700 hover:bg-red-100'
+      case 'yellow': return 'border-2 border-orange-500 bg-orange-50 text-orange-700 hover:bg-orange-100'
       default: return 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
     }
   }
@@ -253,6 +254,7 @@ export default function AgendaDemandasPage() {
                           )}
                           title={`${evt.title} - ${evt.clientName}`}
                         >
+                          {evt.color === 'red' && <AlertTriangle className="h-3 w-3 text-red-700 shrink-0" />}
                           <span className="truncate">{evt.title}</span>
                         </div>
                      ))}
