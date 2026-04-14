@@ -52,6 +52,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
 import { ClientSearchSelect } from "@/components/clients/client-search-select"
+import { TemplateSearchSelect } from "@/components/atendimentos/template-search-select"
 import { TicketDetailsDrawer } from "@/components/atendimentos/ticket-details-drawer"
 
 const COLUMNS = [
@@ -67,6 +68,7 @@ export default function AtendimentosPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false)
   const [filtroResponsavel, setFiltroResponsavel] = useState("todas")
+  const [filtroPrazo, setFiltroPrazo] = useState("Todos")
   const [isHistoryView, setIsHistoryView] = useState(false)
   const [selectedTicket, setSelectedTicket] = useState<any>(null)
 
@@ -186,19 +188,27 @@ export default function AtendimentosPage() {
     return t.restrita && t.criadorId === selectedUser?.id;
   });
 
-  const filteredTickets = visibleTickets.filter((t: any) => {
+  const baseFilteredTickets = visibleTickets.filter((t: any) => {
     const matchesSearch = t.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
       t.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.responsibleName?.toLowerCase().includes(searchTerm.toLowerCase())
       
     const matchesResponsible = filtroResponsavel === "todas" ? true : t.responsibleId === filtroResponsavel
     
-    if (isHistoryView) {
-      return t.status === 'concluido' && matchesSearch && matchesResponsible
-    } else {
-      return t.status !== 'concluido' && matchesSearch && matchesResponsible
+    const todayStr = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0')
+    let matchesPrazo = true
+    if (filtroPrazo === 'Vencidos') {
+      matchesPrazo = !!t.dueDate && t.dueDate < todayStr
+    } else if (filtroPrazo === 'Vence Hoje') {
+      matchesPrazo = !!t.dueDate && t.dueDate === todayStr
+    } else if (filtroPrazo === 'No Prazo') {
+      matchesPrazo = !!t.dueDate && t.dueDate > todayStr
     }
+
+    return matchesSearch && matchesResponsible && matchesPrazo
   })
+
+  const filteredTickets = baseFilteredTickets.filter((t: any) => isHistoryView ? t.status === 'concluido' : t.status !== 'concluido')
 
   const uniqueAssignees = Array.from(new Set(visibleTickets.map((t: any) => t.responsibleId)))
     .map(id => {
@@ -209,9 +219,9 @@ export default function AtendimentosPage() {
     .sort((a, b) => a.name!.localeCompare(b.name!))
 
   const stats = {
-    open: visibleTickets.filter((t: any) => t.status !== 'concluido').length,
-    critical: visibleTickets.filter((t: any) => t.status === 'pendente').length,
-    completed: visibleTickets.filter((t: any) => t.status === 'concluido').length,
+    open: baseFilteredTickets.filter((t: any) => t.status !== 'concluido').length,
+    critical: baseFilteredTickets.filter((t: any) => t.status === 'pendente').length,
+    completed: baseFilteredTickets.filter((t: any) => t.status === 'concluido').length,
   }
 
   return (
@@ -235,31 +245,49 @@ export default function AtendimentosPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 border-b border-[#D2D7DB] pb-4">
-        <span className="text-[10px] font-black uppercase text-[#98A7AA]">Filtrar por Responsável:</span>
-        <Button 
-          variant={filtroResponsavel === "todas" ? "default" : "outline"} 
-          onClick={() => setFiltroResponsavel("todas")}
-          className={cn(
-            "h-8 text-xs font-bold rounded-full transition-all",
-            filtroResponsavel === "todas" ? "bg-[#2C4156] text-white hover:bg-[#2C4156]/90 shadow-md" : "text-[#39586D] border-[#D2D7DB] hover:bg-[#F7F7F7]"
-          )}
-        >
-          Todas as Demandas
-        </Button>
-        {uniqueAssignees.map(assignee => (
+      <div className="flex flex-col gap-3 border-b border-[#D2D7DB] pb-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-black uppercase text-[#98A7AA]">Filtrar por Responsável:</span>
           <Button 
-            key={assignee.id}
-            variant={filtroResponsavel === assignee.id ? "default" : "outline"}
-            onClick={() => setFiltroResponsavel(assignee.id)}
+            variant={filtroResponsavel === "todas" ? "default" : "outline"} 
+            onClick={() => setFiltroResponsavel("todas")}
             className={cn(
               "h-8 text-xs font-bold rounded-full transition-all",
-              filtroResponsavel === assignee.id ? "bg-[#2C4156] text-white hover:bg-[#2C4156]/90 shadow-md" : "text-[#39586D] border-[#D2D7DB] hover:bg-[#F7F7F7]"
+              filtroResponsavel === "todas" ? "bg-[#2C4156] text-white hover:bg-[#2C4156]/90 shadow-md" : "text-[#39586D] border-[#D2D7DB] hover:bg-[#F7F7F7]"
             )}
           >
-            {assignee.name}
+            Todas as Demandas
           </Button>
-        ))}
+          {uniqueAssignees.map(assignee => (
+            <Button 
+              key={assignee.id}
+              variant={filtroResponsavel === assignee.id ? "default" : "outline"}
+              onClick={() => setFiltroResponsavel(assignee.id)}
+              className={cn(
+                "h-8 text-xs font-bold rounded-full transition-all",
+                filtroResponsavel === assignee.id ? "bg-[#2C4156] text-white hover:bg-[#2C4156]/90 shadow-md" : "text-[#39586D] border-[#D2D7DB] hover:bg-[#F7F7F7]"
+              )}
+            >
+              {assignee.name}
+            </Button>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-black uppercase text-[#98A7AA]">Filtrar por Prazo:</span>
+          {['Todos', 'Vencidos', 'Vence Hoje', 'No Prazo'].map(p => (
+            <Button 
+              key={p}
+              variant={filtroPrazo === p ? "default" : "outline"} 
+              onClick={() => setFiltroPrazo(p)}
+              className={cn(
+                "h-8 text-xs font-bold rounded-full transition-all",
+                filtroPrazo === p ? "bg-[#2C4156] text-white hover:bg-[#2C4156]/90 shadow-md" : "text-[#39586D] border-[#D2D7DB] hover:bg-[#F7F7F7]"
+              )}
+            >
+              {p}
+            </Button>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -408,8 +436,11 @@ export default function AtendimentosPage() {
         </div>
       )}
 
-      <Dialog open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen}>
-        <DialogContent className="max-w-xl p-0 overflow-hidden border-none shadow-2xl flex flex-col">
+      <Dialog open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen} modal={false}>
+        <DialogContent 
+          className="max-w-xl p-0 overflow-hidden border-none shadow-2xl flex flex-col"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
             <DialogTitle>Nova Demanda Interna</DialogTitle>
             <DialogDescription className="text-white/60">Inicie um fluxo de atendimento para a equipe.</DialogDescription>
@@ -427,16 +458,11 @@ export default function AtendimentosPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Modelo</Label>
-                  <Select value={newTicket.templateId} onValueChange={(v) => setNewTicket({...newTicket, templateId: v})}>
-                    <SelectTrigger className="border-[#D2D7DB] h-11">
-                      <SelectValue placeholder="Opcional..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(templates || []).map(t => (
-                        <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <TemplateSearchSelect 
+                    templates={templates}
+                    value={newTicket.templateId}
+                    onValueChange={(v: string) => setNewTicket({...newTicket, templateId: v})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Responsável</Label>

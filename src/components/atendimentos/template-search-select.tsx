@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -13,15 +12,11 @@ import {
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
-/**
- * Componente de seleção de cliente com busca integrada.
- * Ajustado para funcionar perfeitamente dentro de Modais (Dialogs).
- */
-export function ClientSearchSelect({ 
-  clients, 
+export function TemplateSearchSelect({ 
+  templates, 
   value, 
   onValueChange, 
-  placeholder = "SELECIONE O CLIENTE...",
+  placeholder = "Opcional...",
   className,
   disabled = false
 }: any) {
@@ -29,34 +24,19 @@ export function ClientSearchSelect({
   const [searchTerm, setSearchTerm] = React.useState("")
   const inputRef = React.useRef<HTMLInputElement>(null)
 
-  const clientesFiltrados = React.useMemo(() => {
-    if (!searchTerm || searchTerm.trim() === "") return clients || []
+  const modelosFiltrados = React.useMemo(() => {
+    if (!searchTerm || searchTerm.trim() === "") return templates || []
     
     const searchLower = searchTerm.toLowerCase().trim()
-    const searchDigits = searchTerm.replace(/\D/g, '')
 
-    return (clients || []).filter((c: any) => {
-      const nomeMatch = String(c.corporateName || "").toLowerCase().includes(searchLower) || 
-                        String(c.nomeFantasia || "").toLowerCase().includes(searchLower)
-      const cnpjMatch = searchDigits !== '' && String(c.cnpj || "").replace(/\D/g, '').includes(searchDigits)
-      
-      return nomeMatch || cnpjMatch
+    return (templates || []).filter((t: any) => {
+      return String(t.nome || "").toLowerCase().includes(searchLower)
     })
-  }, [clients, searchTerm])
+  }, [templates, searchTerm])
 
-  const selectedClient = React.useMemo(() => {
-    return (clients || []).find((c: any) => c.id === value)
-  }, [clients, value])
-
-  // Força o foco no input quando o popover abre, mesmo dentro de modais
-  React.useEffect(() => {
-    if (open) {
-      const timer = setTimeout(() => {
-        inputRef.current?.focus()
-      }, 150)
-      return () => clearTimeout(timer)
-    }
-  }, [open])
+  const selectedTemplate = React.useMemo(() => {
+    return (templates || []).find((t: any) => t.id === value)
+  }, [templates, value])
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal={true}>
@@ -67,23 +47,23 @@ export function ClientSearchSelect({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "w-full justify-between h-11 border-[#D2D7DB] hover:border-[#1FA67A] transition-colors font-bold uppercase text-[11px] px-4 bg-white",
+            "w-full justify-between h-10 border-[#D2D7DB] hover:border-[#1FA67A] transition-colors text-xs font-normal px-3 bg-white",
             open && "border-[#1FA67A] ring-1 ring-[#1FA67A]/20",
             className
           )}
         >
-          <span className="truncate">
-            {selectedClient ? selectedClient.corporateName : placeholder}
+          <span className="truncate uppercase">
+            {selectedTemplate ? selectedTemplate.nome : placeholder}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-[500px] max-w-[calc(100vw-40px)] p-0 border-[#D2D7DB] shadow-2xl z-[10000] pointer-events-auto"
+        className="w-[400px] max-w-[calc(100vw-40px)] p-0 border-[#D2D7DB] shadow-2xl z-[10000] pointer-events-auto"
         align="start"
-        onOpenAutoFocus={(e) => e.preventDefault()} // Impede o Dialog de roubar o foco
-        onCloseAutoFocus={(e) => e.preventDefault()} // Impede o foco de travar no select ao fechar
-        onPointerDownOutside={(e) => e.preventDefault()} // Impede que o clique fora fecha ou trava se não quiser
+        onOpenAutoFocus={(e) => e.preventDefault()} 
+        onCloseAutoFocus={(e) => e.preventDefault()} 
+        onPointerDownOutside={(e) => e.preventDefault()} 
       >
         <div className="flex flex-col">
           <div className="flex items-center border-b px-3 bg-[#F7F7F7]">
@@ -91,7 +71,7 @@ export function ClientSearchSelect({
             <Input
               ref={inputRef}
               autoFocus
-              placeholder="PESQUISAR POR NOME OU CNPJ..."
+              placeholder="PESQUISAR MODELO..."
               className="flex h-12 w-full rounded-md bg-transparent py-3 text-[11px] outline-none border-none focus-visible:ring-0 shadow-none font-bold uppercase pointer-events-auto"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -101,43 +81,55 @@ export function ClientSearchSelect({
               onPointerDown={(e) => e.stopPropagation()}
             />
           </div>
-          <ScrollArea className="h-72">
+          <ScrollArea className="h-64">
             <div className="p-1">
-              {clientesFiltrados.length === 0 ? (
+              <button
+                type="button"
+                className={cn(
+                  "relative flex w-full cursor-pointer select-none items-center rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none hover:bg-gray-100 transition-all text-left mb-1",
+                  !value ? "bg-gray-100 text-[#2C4156]" : "text-[#98A7AA]"
+                )}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onValueChange("")
+                  setOpen(false)
+                  setSearchTerm("")
+                }}
+              >
+                <div className="flex flex-col flex-1 overflow-hidden">
+                  <span className="truncate">Nenhum (Livre)</span>
+                </div>
+                {!value && (
+                  <Check className="ml-2 h-4 w-4 shrink-0" />
+                )}
+              </button>
+
+              {modelosFiltrados.length === 0 ? (
                 <div className="p-8 text-center text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">
-                  Nenhum cliente localizado
+                  Nenhum modelo localizado
                 </div>
               ) : (
-                clientesFiltrados.map((client: any) => (
+                modelosFiltrados.map((t: any) => (
                   <button
-                    key={client.id}
+                    key={t.id}
                     type="button"
                     className={cn(
                       "relative flex w-full cursor-pointer select-none items-center rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none hover:bg-[#1FA67A] hover:text-white transition-all text-left mb-1 last:mb-0",
-                      value === client.id ? "bg-[#1FA67A] text-white" : "text-[#2C4156]"
+                      value === t.id ? "bg-[#1FA67A] text-white" : "text-[#2C4156]"
                     )}
                     onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
-                      onValueChange(client.id)
+                      onValueChange(t.id)
                       setOpen(false)
                       setSearchTerm("")
                     }}
                   >
                     <div className="flex flex-col flex-1 overflow-hidden">
-                      <span className="truncate">{client.corporateName}</span>
-                      {client.nomeFantasia && client.nomeFantasia !== client.corporateName && (
-                        <span className={cn(
-                          "text-[8px] font-bold italic opacity-60",
-                          value === client.id ? "text-white" : "text-[#98A7AA]"
-                        )}>{client.nomeFantasia}</span>
-                      )}
-                      <span className={cn(
-                        "text-[8px] font-mono opacity-60",
-                        value === client.id ? "text-white" : "text-[#98A7AA]"
-                      )}>{client.cnpj}</span>
+                      <span className="truncate">{t.nome}</span>
                     </div>
-                    {value === client.id && (
+                    {value === t.id && (
                       <Check className="ml-2 h-4 w-4 shrink-0" />
                     )}
                   </button>
