@@ -171,8 +171,20 @@ export function AppSidebar() {
   
   const filteredItems = React.useMemo(() => {
     if (!selectedUser) return []
-    return menuItems.filter(item => item.profiles.includes(selectedUser.profile))
-  }, [selectedUser?.profile])
+    return menuItems.filter(item => {
+      if (!item.profiles.includes(selectedUser.profile)) return false;
+      
+      if (item.title === "Financeiro") {
+        const isMaster = selectedUser.profile === "SÓCIO" || selectedUser.profile === "ADMINISTRADOR";
+        const hasFinanceiro = (selectedUser.departmentIds || []).some((d: string) => d.toUpperCase() === "FINANCEIRO");
+        
+        if (!isMaster && !hasFinanceiro) {
+          return false;
+        }
+      }
+      return true;
+    })
+  }, [selectedUser])
 
   const officeName = officeData?.nomeFantasia || officeData?.razaoSocial || "PROSPERARE"
 

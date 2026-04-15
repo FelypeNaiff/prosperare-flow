@@ -57,6 +57,8 @@ import { collection, doc } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 
+import { useEffect } from "react"
+
 const DEPARTMENTS_LIST = [
   "Fiscal", "Pessoal", "Contábil", "Financeiro", "Comercial", "Administrativo"
 ]
@@ -71,6 +73,41 @@ export default function EquipePage() {
   
   const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
   const { data: team = [], isLoading } = useCollection(usersQuery)
+
+  // --- Função utilitária temporária para revogação em massa ---
+  useEffect(() => {
+    const runFix = async () => {
+      try {
+        const { getDocs, updateDoc, doc } = await import("firebase/firestore");
+        const snap = await getDocs(usersQuery);
+        snap.forEach((docSnap) => {
+          const data = docSnap.data();
+          const name = (data.fullName || "").toUpperCase();
+          if (name.includes("CHARLES PEREIRA") || name.includes("MARRYETH GIZELLE")) {
+            let changed = false;
+            let currentDepts = data.departmentIds || [];
+            
+            // Remover 'Financeiro' ou 'FINANCEIRO' ou 'financeiro' se houver
+            const hasFin = currentDepts.some((d: string) => d.toUpperCase() === "FINANCEIRO");
+            
+            if (hasFin) {
+              currentDepts = currentDepts.filter((d: string) => d.toUpperCase() !== "FINANCEIRO");
+              changed = true;
+            }
+            
+            if (changed) {
+              updateDoc(docSnap.ref, { departmentIds: currentDepts });
+              console.log(`[REVOGAÇÃO] Acesso FINANCEIRO removido de: ${name}`);
+            }
+          }
+        });
+      } catch (e) {
+        console.error("Erro na revogação em massa:", e);
+      }
+    };
+    runFix();
+  }, [usersQuery]);
+  // -------------------------------------------------------------
 
   const [newMember, setNewMember] = useState({
     fullName: "",
