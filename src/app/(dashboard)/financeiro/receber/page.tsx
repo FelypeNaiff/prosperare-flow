@@ -63,7 +63,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser, setDocumentNonBl
 import { collection, doc, query, where } from "firebase/firestore"
 import { format, addMonths, subMonths, startOfMonth, endOfMonth } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { ClientSearchSelect } from "@/components/clients/client-search-select"
+import { ClientCombobox } from "@/components/shared/client-combobox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 export default function ContasAReceberPage() {
@@ -210,7 +210,8 @@ export default function ContasAReceberPage() {
   const handleUpdateStatus = (id: string, newStatus: string, cliente: string) => {
     const updateData: any = { situacao: newStatus }
     if (newStatus === "Confirmado" || newStatus === "Pago") {
-      updateData.responsavelConfirmacao = user?.displayName || user?.email || "Operador"
+      updateData.responsavelBaixa = user?.displayName || user?.email || "Operador"
+      updateData.dataRecebimento = new Date().toISOString()
     }
     
     updateDocumentNonBlocking(doc(firestore, "receivables", id), updateData)
@@ -232,7 +233,8 @@ export default function ContasAReceberPage() {
   const handleCancelReceipt = async (contaId: string) => {
     await updateDocumentNonBlocking(doc(firestore, "receivables", contaId), { 
       situacao: "Pendente",
-      responsavelConfirmacao: null 
+      responsavelBaixa: null,
+      dataRecebimento: null
     })
     toast({ 
       title: "Recebimento Cancelado", 
@@ -443,10 +445,10 @@ export default function ContasAReceberPage() {
                 </TableHead>
                 <TableHead 
                   className="text-white font-black uppercase text-[10px] cursor-pointer hover:bg-white/10 transition-colors select-none"
-                  onClick={() => handleSort('responsavelConfirmacao')}
+                  onClick={() => handleSort('responsavelBaixa')}
                 >
                   <div className="flex items-center gap-1">
-                    Responsável {sortConfig.key === 'responsavelConfirmacao' && (sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
+                    Responsável {sortConfig.key === 'responsavelBaixa' && (sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
                   </div>
                 </TableHead>
                 <TableHead 
@@ -498,15 +500,17 @@ export default function ContasAReceberPage() {
                     <TableCell className="text-center">
                       <Badge className={cn(
                         "text-[9px] font-black uppercase border-none px-3 py-1",
-                        item.situacao === 'Confirmado' ? "bg-[#7ED6B5] text-[#1FA67A]" :
+                        (item.situacao === 'Confirmado' || item.situacao === 'Pago') ? "bg-[#7ED6B5] text-[#1FA67A]" :
                         item.situacao === 'Atrasado' ? "bg-[#FEE2E2] text-[#E74C3C]" :
                         "bg-[#FEF3C7] text-[#F2B705]"
                       )}>
-                        {item.situacao}
+                        {(item.situacao === 'Confirmado' || item.situacao === 'Pago') && item.dataRecebimento 
+                          ? format(new Date(item.dataRecebimento), "dd/MM/yyyy") 
+                          : item.situacao}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-[#98A7AA] text-[10px] font-medium uppercase truncate max-w-[120px]">
-                      {item.responsavelConfirmacao || <span className="text-gray-400">-</span>}
+                      {item.responsavelBaixa || <span className="text-gray-400">-</span>}
                     </TableCell>
                     <TableCell className={cn(
                       "text-right font-black",
@@ -582,10 +586,9 @@ export default function ContasAReceberPage() {
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Empresa / Cliente</Label>
-                <ClientSearchSelect 
-                  clients={clients} 
+                <ClientCombobox 
                   value={newAccount.clientId} 
-                  onValueChange={(v: string) => setNewAccount({...newAccount, clientId: v})} 
+                  onChange={(v: string) => setNewAccount({...newAccount, clientId: v})} 
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">

@@ -51,7 +51,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
-import { ClientSearchSelect } from "@/components/clients/client-search-select"
+import { ClientCombobox } from "@/components/shared/client-combobox"
 import { TemplateSearchSelect } from "@/components/atendimentos/template-search-select"
 import { TicketDetailsDrawer } from "@/components/atendimentos/ticket-details-drawer"
 
@@ -449,10 +449,9 @@ export default function AtendimentosPage() {
             <div className="p-6 space-y-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Empresa</Label>
-                <ClientSearchSelect 
-                  clients={clients} 
+                <ClientCombobox 
                   value={newTicket.clientId} 
-                  onValueChange={(v: string) => setNewTicket({...newTicket, clientId: v})} 
+                  onChange={(v: string) => setNewTicket({...newTicket, clientId: v})} 
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">

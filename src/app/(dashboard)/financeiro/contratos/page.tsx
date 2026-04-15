@@ -54,7 +54,7 @@ import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
-import { ClientSearchSelect } from "@/components/clients/client-search-select"
+import { ClientCombobox } from "@/components/shared/client-combobox"
 
 const SERVICE_OPTIONS = [
   { id: "pessoal", label: "Departamento Pessoal" },
@@ -315,10 +315,9 @@ export default function ContatosPage() {
           <div className="grid grid-cols-2 gap-6 py-4">
             <div className="col-span-2 space-y-2">
               <Label className="text-xs font-black text-[#98A7AA] uppercase">Empresa (Cliente)</Label>
-              <ClientSearchSelect 
-                clients={clients} 
+              <ClientCombobox 
                 value={formData.clientId} 
-                onValueChange={(v: string) => setFormData({...formData, clientId: v})} 
+                onChange={(v: string) => setFormData({...formData, clientId: v})} 
                 disabled={!!editingId}
               />
             </div>
