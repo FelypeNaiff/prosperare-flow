@@ -25,7 +25,8 @@ import {
   PlayCircle,
   Layers,
   Copy,
-  FlameKindling
+  FlameKindling,
+  PowerOff
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
@@ -40,7 +41,7 @@ import { LicensesTab } from "@/components/clients/licenses-tab"
 import { ClientCommunicationTool } from "@/components/clients/client-communication-tool"
 import { Label } from "@/components/ui/label"
 import { useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase"
-import { doc, collection, query, where, orderBy } from "firebase/firestore"
+import { doc, collection, query, where, orderBy, getDocs } from "firebase/firestore"
 import { useState } from "react"
 import { EditClientModal } from "@/components/clients/edit-client-modal"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -54,6 +55,7 @@ export default function DetalhesClientePage() {
   const clientId = params.clientId as string
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isInactivating, setIsInactivating] = useState(false)
 
   const clientRef = useMemoFirebase(() => clientId ? doc(firestore, "clients", clientId) : null, [firestore, clientId])
   const { data: client, isLoading: loadingClient } = useDoc(clientRef)
@@ -123,6 +125,44 @@ export default function DetalhesClientePage() {
     }
   }
 
+  const handleInactivateCompany = async () => {
+    if (!confirm("Tem certeza que deseja inativar esta empresa? Esta ação irá suspender contratos e processos recorrentes(dispensados) e as tarefas pendentes.")) return;
+
+    setIsInactivating(true)
+    try {
+      if (clientRef) {
+        updateDocumentNonBlocking(clientRef, { status: 'Inativa' })
+      }
+
+      const contractsSnap = await getDocs(query(collection(firestore, "contracts"), where("clientId", "==", clientId)))
+      contractsSnap.forEach(docSnap => {
+        updateDocumentNonBlocking(doc(firestore, "contracts", docSnap.id), { status: 'Suspenso' })
+      })
+
+      const processesSnap = await getDocs(query(collection(firestore, "processes"), where("clienteId", "==", clientId)))
+      processesSnap.forEach(docSnap => {
+        const data = docSnap.data()
+        if (data.situacao !== 'concluido' && data.situacao !== 'dispensado') {
+          updateDocumentNonBlocking(doc(firestore, "processes", docSnap.id), { situacao: 'dispensado' })
+        }
+      })
+
+      const tasksSnap = await getDocs(query(collection(firestore, "tasks"), where("clientId", "==", clientId)))
+      tasksSnap.forEach(docSnap => {
+        const data = docSnap.data()
+        if (data.status !== 'done' && data.status !== 'cancelled') {
+          updateDocumentNonBlocking(doc(firestore, "tasks", docSnap.id), { status: 'cancelled' })
+        }
+      })
+
+      toast({ title: "Empresa Inativada", description: "Operação realizada com sucesso." })
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível inativar a empresa." })
+    } finally {
+      setIsInactivating(false)
+    }
+  }
+
   if (loadingClient) {
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
@@ -152,7 +192,7 @@ export default function DetalhesClientePage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-black text-[#2C4156]">{client.corporateName}</h1>
-              <Badge className="bg-[#7ED6B5] text-[#1FA67A] border-none font-bold text-[10px] uppercase">
+              <Badge className={cn("border-none font-bold text-[10px] uppercase", client.status === 'Inativa' ? "bg-[#F3F4F6] text-[#98A7AA]" : "bg-[#7ED6B5] text-[#1FA67A]")}>
                 {client.status || 'Ativa'}
               </Badge>
             </div>
@@ -169,6 +209,11 @@ export default function DetalhesClientePage() {
           </div>
         </div>
         <div className="flex gap-2">
+          {client.status !== 'Inativa' && (
+            <Button variant="outline" className="border-[#E74C3C] text-[#E74C3C] hover:bg-[#FEE2E2] gap-2 font-black uppercase text-xs" onClick={handleInactivateCompany} disabled={isInactivating}>
+              {isInactivating ? <Loader2 className="h-4 w-4 animate-spin" /> : <PowerOff className="h-4 w-4" />} Inativar Empresa
+            </Button>
+          )}
           <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] gap-2 font-black uppercase text-xs" onClick={() => setIsEditOpen(true)}>
             <Edit2 className="h-4 w-4" /> Editar Dados
           </Button>
@@ -441,7 +486,7 @@ function ClientTasksList({ clientId }: { clientId: string }) {
           <div className="flex items-center gap-4">
             <div className={cn(
               "w-2 h-2 rounded-full",
-              task.status === 'done' ? 'bg-[#1FA67A]' : 'bg-[#F2B705]'
+              task.status === 'done' ? 'bg-[#1FA67A]' : task.status === 'cancelled' ? 'bg-[#98A7AA]' : 'bg-[#F2B705]'
             )} />
             <div>
               <div className="flex items-center gap-2">
@@ -453,9 +498,9 @@ function ClientTasksList({ clientId }: { clientId: string }) {
           </div>
           <Badge className={cn(
             "text-[9px] font-black uppercase border-none",
-            task.status === 'done' ? 'bg-[#7ED6B5] text-[#1FA67A]' : 'bg-[#FEF3C7] text-[#F2B705]'
+            task.status === 'done' ? 'bg-[#7ED6B5] text-[#1FA67A]' : task.status === 'cancelled' ? 'bg-[#EBEDF0] text-[#98A7AA]' : 'bg-[#FEF3C7] text-[#F2B705]'
           )}>
-            {task.status === 'done' ? 'Concluído' : 'Pendente'}
+            {task.status === 'done' ? 'Concluído' : task.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
           </Badge>
         </div>
       ))}
