@@ -111,6 +111,7 @@ export default function EquipePage() {
 
   const [newMember, setNewMember] = useState({
     fullName: "",
+    email: "",
     profile: "ASSISTENTE",
     departmentIds: [] as string[],
     status: "ATIVO",
@@ -119,14 +120,20 @@ export default function EquipePage() {
 
   const [editFormData, setEditFormData] = useState({
     fullName: "",
+    email: "",
     profile: "",
     departmentIds: [] as string[],
     pin: ""
   })
 
   const handleRegister = () => {
-    if (!newMember.fullName || !newMember.profile || !newMember.pin) {
-      toast({ title: "Erro", description: "Nome, Perfil e PIN são obrigatórios.", variant: "destructive" })
+    if (!newMember.fullName || !newMember.email || !newMember.profile || !newMember.pin) {
+      toast({ title: "Erro", description: "Nome, E-mail, Perfil e PIN são obrigatórios.", variant: "destructive" })
+      return
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newMember.email)) {
+      toast({ title: "Erro", description: "Informe um e-mail vÃ¡lido para o colaborador.", variant: "destructive" })
       return
     }
 
@@ -140,6 +147,7 @@ export default function EquipePage() {
     
     const userData = {
       ...newMember,
+      email: newMember.email.trim().toLowerCase(),
       id: userId,
       createdAt: new Date().toISOString()
     }
@@ -147,7 +155,7 @@ export default function EquipePage() {
     setIsInviteOpen(false)
     setDocumentNonBlocking(userRef, userData, { merge: true })
     
-    setNewMember({ fullName: "", profile: "ASSISTENTE", departmentIds: [], status: "ATIVO", pin: "1234" })
+    setNewMember({ fullName: "", email: "", profile: "ASSISTENTE", departmentIds: [], status: "ATIVO", pin: "1234" })
     toast({ title: "Colaborador Cadastrado!", description: `Perfil pronto para uso com PIN ${userData.pin}.` })
   }
 
@@ -155,6 +163,7 @@ export default function EquipePage() {
     setSelectedMember(member)
     setEditFormData({
       fullName: member.fullName || "",
+      email: member.email || "",
       profile: member.profile || "ASSISTENTE",
       departmentIds: member.departmentIds || [],
       pin: member.pin || "1234"
@@ -163,7 +172,12 @@ export default function EquipePage() {
   }
 
   const handleUpdateMember = () => {
-    if (!selectedMember || !editFormData.pin) return
+    if (!selectedMember || !editFormData.email || !editFormData.pin) return
+    
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editFormData.email)) {
+      toast({ title: "Erro", description: "Informe um e-mail vÃ¡lido para o colaborador.", variant: "destructive" })
+      return
+    }
     
     if (editFormData.pin.length !== 4) {
       toast({ title: "Erro", description: "O PIN deve ter exatamente 4 dígitos.", variant: "destructive" })
@@ -173,6 +187,7 @@ export default function EquipePage() {
     const userRef = doc(firestore, "users", selectedMember.id)
     updateDocumentNonBlocking(userRef, {
       ...editFormData,
+      email: editFormData.email.trim().toLowerCase(),
       updatedAt: new Date().toISOString()
     })
 
@@ -206,7 +221,8 @@ export default function EquipePage() {
   }
 
   const filteredTeam = (team || []).filter(m => 
-    m.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
+    m.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    m.email?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
@@ -238,6 +254,7 @@ export default function EquipePage() {
             <TableHeader className="bg-[#2C4156]">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="text-white font-black uppercase text-[10px]">Identidade</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px]">E-mail</TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px]">Departamentos</TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px]">Perfil</TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px]">Status</TableHead>
@@ -247,7 +264,7 @@ export default function EquipePage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center">
+                  <TableCell colSpan={6} className="h-32 text-center">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
                   </TableCell>
                 </TableRow>
@@ -268,6 +285,9 @@ export default function EquipePage() {
                           </span>
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell className="text-xs font-bold text-[#39586D] lowercase">
+                      {member.email || "sem e-mail"}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
@@ -320,7 +340,7 @@ export default function EquipePage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center text-[#98A7AA] font-bold uppercase text-xs">
+                  <TableCell colSpan={6} className="h-32 text-center text-[#98A7AA] font-bold uppercase text-xs">
                     Nenhuma identidade localizada.
                   </TableCell>
                 </TableRow>
@@ -349,6 +369,18 @@ export default function EquipePage() {
                   onChange={(e) => setNewMember({...newMember, fullName: e.target.value.toUpperCase()})}
                   className="border-[#D2D7DB] font-bold uppercase h-11"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">E-mail de Login</Label>
+                <Input 
+                  type="email"
+                  placeholder="colaborador@empresa.com" 
+                  value={newMember.email} 
+                  onChange={(e) => setNewMember({...newMember, email: e.target.value.trim().toLowerCase()})}
+                  className="border-[#D2D7DB] font-bold lowercase h-11"
+                />
+                <p className="text-[9px] font-bold text-[#98A7AA] uppercase">Este e-mail poderÃ¡ acessar pelo Google se o status estiver ativo.</p>
               </div>
 
               <div className="space-y-2">
@@ -424,6 +456,17 @@ export default function EquipePage() {
                   onChange={(e) => setEditFormData({...editFormData, fullName: e.target.value.toUpperCase()})}
                   className="border-[#D2D7DB] font-bold uppercase h-11"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">E-mail de Login</Label>
+                <Input 
+                  type="email"
+                  value={editFormData.email} 
+                  onChange={(e) => setEditFormData({...editFormData, email: e.target.value.trim().toLowerCase()})}
+                  className="border-[#D2D7DB] font-bold lowercase h-11"
+                />
+                <p className="text-[9px] font-bold text-[#98A7AA] uppercase">Colaboradores ativos com este e-mail podem entrar pelo Google.</p>
               </div>
 
               <div className="space-y-2">
