@@ -22,6 +22,7 @@ import { TemplateSearchSelect } from "@/components/atendimentos/template-search-
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { TicketDetailsDrawer } from "@/components/atendimentos/ticket-details-drawer"
+import { buildTaskAssignmentNotificationKey, createAppNotification } from "@/lib/notifications"
 
 export default function MobileDemandasPage() {
   const firestore = useFirestore()
@@ -117,16 +118,15 @@ export default function MobileDemandasPage() {
 
     setDocumentNonBlocking(doc(firestore, "tasks", id), ticketData, { merge: true })
     
-    // Notificar
-    const notifId = Math.random().toString(36).substr(2, 9)
-    setDocumentNonBlocking(doc(firestore, "notifications", notifId), {
-      id: notifId,
+    createAppNotification(firestore, {
       userId: newTicket.responsibleId,
-      title: "Nova Demanda",
+      title: "Nova Demanda Interna",
       message: `Você foi designado para a demanda: ${ticketData.title}`,
-      read: false,
-      createdAt: new Date().toISOString(),
-      link: "/mobile/demandas"
+      type: "task_new",
+      link: "/mobile/demandas",
+      taskId: id,
+      remetente: selectedUser?.fullName || "Sistema",
+      metaKey: buildTaskAssignmentNotificationKey(id, newTicket.responsibleId),
     })
 
     setIsNewOpen(false)

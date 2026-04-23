@@ -18,6 +18,7 @@ import { useUser, useAuth } from "@/firebase"
 import { initiateLogout } from "@/firebase/non-blocking-login"
 import { ChatWidget } from "@/components/collaboration/chat-widget"
 import { NotificationBell } from "@/components/collaboration/notification-bell"
+import { TaskNotificationSync } from "@/components/collaboration/task-notification-sync"
 import { GlobalSearch } from "@/components/layout/global-search"
 import { QuickAccess } from "@/components/layout/quick-access"
 import { usePathname, useRouter } from "next/navigation"
@@ -64,6 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <AppSidebar />
       </div>
       <SidebarInset className="bg-background">
+        <TaskNotificationSync />
         <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 sticky top-0 z-40 print:hidden">
           <SidebarTrigger className="text-[#2C4156]" />
           

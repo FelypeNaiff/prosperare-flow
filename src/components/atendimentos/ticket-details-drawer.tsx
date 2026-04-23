@@ -25,6 +25,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { Separator } from "@/components/ui/separator"
+import { buildTaskAssignmentNotificationKey, createAppNotification } from "@/lib/notifications"
 import { 
   useFirestore, 
   updateDocumentNonBlocking, 
@@ -102,6 +103,19 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
 
     const docRef = doc(firestore, "tasks", ticket.id)
     updateDocumentNonBlocking(docRef, updates)
+
+    if (field === 'responsibleId' && value && value !== ticket.responsibleId) {
+      createAppNotification(firestore, {
+        userId: value,
+        title: "Demanda Interna Atualizada",
+        message: `Você foi designado para a demanda: ${updates.title || ticket.title}`,
+        type: "assignment",
+        link: "/atendimentos",
+        taskId: ticket.id,
+        remetente: user?.displayName || "Sistema",
+        metaKey: buildTaskAssignmentNotificationKey(ticket.id, value),
+      })
+    }
   }
 
   const handleDelete = () => {
@@ -113,18 +127,15 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
   }
 
   const notifyUser = (userId: string, title: string, message: string, type: 'assignment' | 'mention') => {
-    const id = Math.random().toString(36).substr(2, 9)
-    const notificationRef = doc(firestore, "notifications", id)
-    setDocumentNonBlocking(notificationRef, {
-      id,
+    createAppNotification(firestore, {
       userId,
       title,
       message,
       type,
-      read: false,
-      createdAt: new Date().toISOString(),
-      ticketId: ticket.id
-    }, { merge: true })
+      link: "/atendimentos",
+      taskId: ticket.id,
+      remetente: user?.displayName || "Sistema",
+    })
   }
 
   const handleSendComment = () => {

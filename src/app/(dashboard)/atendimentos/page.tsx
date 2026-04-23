@@ -54,6 +54,7 @@ import {
 import { ClientCombobox } from "@/components/shared/client-combobox"
 import { TemplateSearchSelect } from "@/components/atendimentos/template-search-select"
 import { TicketDetailsDrawer } from "@/components/atendimentos/ticket-details-drawer"
+import { buildTaskAssignmentNotificationKey, createAppNotification } from "@/lib/notifications"
 
 const COLUMNS = [
   { id: 'novo', title: 'Novos', color: 'border-t-[#2C4156]', bg: 'bg-[#2C4156]/5' },
@@ -139,16 +140,15 @@ export default function AtendimentosPage() {
 
     setDocumentNonBlocking(doc(firestore, "tasks", id), ticketData, { merge: true })
     
-    // Notificar o responsável
-    const notifId = Math.random().toString(36).substr(2, 9)
-    setDocumentNonBlocking(doc(firestore, "notifications", notifId), {
-      id: notifId,
+    createAppNotification(firestore, {
       userId: newTicket.responsibleId,
-      title: "Nova Demanda",
+      title: "Nova Demanda Interna",
       message: `Você foi designado para a demanda: ${ticketData.title}`,
-      read: false,
-      createdAt: new Date().toISOString(),
-      link: "/atendimentos"
+      type: "task_new",
+      link: "/atendimentos",
+      taskId: id,
+      remetente: selectedUser?.fullName || "Sistema",
+      metaKey: buildTaskAssignmentNotificationKey(id, newTicket.responsibleId),
     })
 
     setIsNewTicketOpen(false)
