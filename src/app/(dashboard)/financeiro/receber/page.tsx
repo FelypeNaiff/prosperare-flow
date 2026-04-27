@@ -91,6 +91,9 @@ export default function ContasAReceberPage() {
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
   const { data: clients = [] } = useCollection(clientsQuery)
 
+  const contractsQuery = useMemoFirebase(() => collection(firestore, "contracts"), [firestore])
+  const { data: contracts = [] } = useCollection(contractsQuery)
+
   const [newAccount, setNewAccount] = useState({
     descricao: "",
     clientId: "",
@@ -303,6 +306,86 @@ export default function ContasAReceberPage() {
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
+  const handleGenerateMonth = () => {
+    const monthPrefix = format(selectedCompetence, "yyyy-MM")
+    const competenceEnd = format(endOfMonth(selectedCompetence), "yyyy-MM-dd")
+    const activeContracts = (contracts || []).filter((contract: any) => {
+      if (contract.status !== "Ativo") return false
+      if (!contract.clientId || !contract.value) return false
+      if (!contract.startDate) return true
+      return contract.startDate <= competenceEnd
+    })
+
+    if (activeContracts.length === 0) {
+      toast({
+        title: "Nenhum contrato ativo encontrado",
+        description: "Nao ha contratos aptos para gerar honorarios nesta competencia.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    let generatedCount = 0
+    let skippedCount = 0
+
+    activeContracts.forEach((contract: any) => {
+      const dueDay = Math.min(Math.max(Number(contract.dueDay) || 10, 1), 28)
+      const dueDate = `${monthPrefix}-${String(dueDay).padStart(2, "0")}`
+
+      const alreadyExists = (items || []).some((item: any) => {
+        if (!item?.data?.startsWith(monthPrefix)) return false
+        if (contract.id && item.contractId === contract.id) return true
+        if (contract.clientId && item.clientId === contract.clientId && item.recorrente) return true
+        return false
+      })
+
+      if (alreadyExists) {
+        skippedCount++
+        return
+      }
+
+      const receivableId = Math.random().toString(36).substr(2, 9)
+      const receivableRef = doc(firestore, "receivables", receivableId)
+      const servicesLabel = Array.isArray(contract.services) && contract.services.length > 0
+        ? contract.services.join(", ")
+        : "HONORARIOS MENSAIS"
+
+      setDocumentNonBlocking(receivableRef, {
+        id: receivableId,
+        contractId: contract.id,
+        clientId: contract.clientId,
+        cliente: contract.clientName || "CLIENTE AVULSO",
+        descricao: `HONORARIO - ${servicesLabel}`.toUpperCase(),
+        pagamento: "PIX",
+        data: dueDate,
+        valor: Number(contract.value) || 0,
+        situacao: "Pendente",
+        recorrente: true,
+        tipoValor: "Fixo",
+        competencia: monthPrefix,
+        generatedFromContract: true,
+        createdAt: new Date().toISOString()
+      }, { merge: true })
+
+      generatedCount++
+    })
+
+    if (generatedCount === 0) {
+      toast({
+        title: "Competencia ja gerada",
+        description: skippedCount > 0
+          ? `Nenhum novo honorario foi criado. ${skippedCount} contrato(s) ja tinham lancamento neste mes.`
+          : "Nenhum novo honorario foi criado para esta competencia."
+      })
+      return
+    }
+
+    toast({
+      title: "Mes gerado com sucesso",
+      description: `${generatedCount} honorario(s) criado(s) para ${format(selectedCompetence, "MMMM yyyy", { locale: ptBR })}${skippedCount > 0 ? ` e ${skippedCount} ja existente(s) foram ignorado(s)` : ""}.`
+    })
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
       <input 
@@ -347,7 +430,7 @@ export default function ContasAReceberPage() {
           <Upload className="h-4 w-4" /> Importar Honorários
         </Button>
         
-        <Button variant="outline" className="h-11 border-[#D2D7DB] gap-2 font-bold text-[#39586D] text-xs uppercase px-5" onClick={() => toast({ title: "Processando recorrências..." })}>
+        <Button variant="outline" className="h-11 border-[#D2D7DB] gap-2 font-bold text-[#39586D] text-xs uppercase px-5" onClick={handleGenerateMonth}>
           <RefreshCw className="h-4 w-4" /> Gerar Mês
         </Button>
 
@@ -485,7 +568,7 @@ export default function ContasAReceberPage() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-[#2C4156]">{item.descricao}</span>
-                        {item.recorrente && <Repeat className="h-3 w-3 text-[#1FA67A]" title={`Recorrência ${item.tipoValor}`} />}
+                        {item.recorrente && <Repeat className="h-3 w-3 text-[#1FA67A]" aria-label={`Recorrencia ${item.tipoValor || "Fixo"}`} />}
                       </div>
                     </TableCell>
                     <TableCell className="text-[#39586D] font-medium uppercase text-xs">{item.cliente}</TableCell>
