@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { EmptyState } from "@/components/ui/empty-state"
 import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection } from "firebase/firestore"
@@ -299,10 +300,12 @@ export default function DashboardPage() {
                     ) : (
                       <tr>
                         <td colSpan={4} className="py-8 text-center bg-white">
-                          <div className="flex flex-col items-center justify-center">
-                            <ShieldCheck className="h-8 w-8 text-[#1FA67A] mb-2 opacity-50" />
-                            <p className="text-xs font-black text-[#98A7AA] uppercase">Tudo em dia</p>
-                          </div>
+                          <EmptyState
+                            icon={ShieldCheck}
+                            title="Tudo em dia"
+                            description="Nao ha certidoes vencidas ou em alerta para os proximos dias."
+                            className="border-none bg-white py-8"
+                          />
                         </td>
                       </tr>
                     )}
@@ -343,8 +346,12 @@ export default function DashboardPage() {
                     </div>
                  )) : (
                    <div className="h-full flex flex-col items-center justify-center py-8">
-                     <CheckCircle2 className="h-8 w-8 text-[#1FA67A] mb-2 opacity-50" />
-                     <p className="text-xs font-black text-[#98A7AA] uppercase text-center">Nenhum processo<br/>em nível crítico.</p>
+                     <EmptyState
+                       icon={CheckCircle2}
+                       title="Nenhum processo critico"
+                       description="Nao ha processos exigindo atencao imediata neste momento."
+                       className="border-none bg-white py-8"
+                     />
                    </div>
                  )}
                </div>

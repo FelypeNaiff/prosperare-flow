@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/empty-state"
 import { 
   Dialog, 
   DialogContent, 
@@ -419,8 +420,12 @@ export default function CertidoesPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-32 text-center text-[#98A7AA] font-bold text-[10px] uppercase">
-                    Nenhuma empresa atende aos critérios da busca.
+                  <TableCell colSpan={8} className="py-10">
+                    <EmptyState
+                      icon={ShieldCheck}
+                      title="Nenhuma empresa encontrada"
+                      description="Ajuste a busca para localizar a matriz de certidoes da carteira."
+                    />
                   </TableCell>
                 </TableRow>
               )}

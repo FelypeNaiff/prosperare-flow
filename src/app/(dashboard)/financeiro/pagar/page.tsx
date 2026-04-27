@@ -312,7 +312,7 @@ export default function ContasAPagarPage() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-[#2C4156]">{item.descricao}</span>
-                        {item.recorrente && <Repeat className="h-3 w-3 text-[#1FA67A]" title={`Recorrência ${item.tipoValor}`} />}
+                        {item.recorrente && <Repeat className="h-3 w-3 text-[#1FA67A]" aria-label={`Recorrencia ${item.tipoValor}`} />}
                       </div>
                     </TableCell>
                     <TableCell className="text-[#39586D] font-medium">{item.entidade}</TableCell>

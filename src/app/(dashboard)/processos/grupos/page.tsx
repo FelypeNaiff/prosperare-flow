@@ -58,6 +58,7 @@ import { collection, doc, query, where, getDocs, setDoc } from "firebase/firesto
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { format, parse, addMonths, lastDayOfMonth, setDate, parseISO } from "date-fns"
+import { ptBR } from "date-fns/locale"
 
 export default function GruposObrigacoesPage() {
   const firestore = useFirestore()

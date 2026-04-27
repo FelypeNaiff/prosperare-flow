@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/empty-state"
 import { 
   Dialog, 
   DialogContent, 
@@ -493,8 +494,14 @@ export default function ClientesPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center text-[#98A7AA] font-bold uppercase text-xs">
-                    Nenhum cliente localizado na base de dados.
+                  <TableCell colSpan={5} className="py-10">
+                    <EmptyState
+                      icon={Building2}
+                      title="Nenhum cliente localizado"
+                      description="Ajuste a busca ou cadastre um novo cliente para iniciar a gestao da carteira."
+                      actionLabel="Novo Cliente"
+                      onAction={() => setIsNewClientOpen(true)}
+                    />
                   </TableCell>
                 </TableRow>
               )}

@@ -4,16 +4,16 @@
 import { useState } from "react"
 import { 
   Search, 
-  Filter, 
   FileSpreadsheet, 
-  User, 
   LayoutGrid, 
   Clock, 
   Monitor,
   Calendar,
-  X
+  X,
+  History
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { 
   Table, 

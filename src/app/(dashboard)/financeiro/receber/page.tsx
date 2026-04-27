@@ -24,7 +24,8 @@ import {
   TrendingUp,
   XCircle,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  AlertTriangle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -76,6 +77,14 @@ export default function ContasAReceberPage() {
   const [activeFilter, setActiveFilter] = useState("Todos")
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [sortConfig, setSortConfig] = useState<{ key: string | null, direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' })
+  const [lastGenerationSummary, setLastGenerationSummary] = useState<{
+    competence: string
+    generated: number
+    skipped: number
+    invalid: number
+    totalValue: number
+    invalidReasons: string[]
+  } | null>(null)
 
   const receivablesQuery = useMemoFirebase(() => {
     const firstDay = format(startOfMonth(selectedCompetence), "yyyy-MM-dd")
@@ -186,6 +195,20 @@ export default function ContasAReceberPage() {
     }))
   }
 
+  const writeFinanceAuditLog = (action: string, payload: Record<string, any>) => {
+    const auditId = Math.random().toString(36).substr(2, 9)
+
+    setDocumentNonBlocking(doc(firestore, "financeAuditLogs", auditId), {
+      id: auditId,
+      module: "receivables",
+      action,
+      actorName: user?.displayName || user?.email || "Operador",
+      actorEmail: user?.email || null,
+      createdAt: new Date().toISOString(),
+      ...payload
+    }, { merge: true })
+  }
+
   const handleCreateAccount = () => {
     if (!newAccount.descricao || !newAccount.clientId || !newAccount.valor) {
       toast({ title: "Erro", description: "Preencha os dados da conta.", variant: "destructive" })
@@ -204,6 +227,14 @@ export default function ContasAReceberPage() {
     }
 
     setDocumentNonBlocking(docRef, accountData, { merge: true })
+    writeFinanceAuditLog("receivable_created", {
+      receivableId: id,
+      clientId: newAccount.clientId,
+      clientName: selectedClient?.corporateName || "Cliente Avulso",
+      value: Number(newAccount.valor) || 0,
+      dueDate: newAccount.data,
+      source: "manual"
+    })
     
     setIsNewAccountOpen(false)
     setNewAccount({ descricao: "", clientId: "", pagamento: "PIX", data: "", valor: 0, situacao: "Pendente", recorrente: false, tipoValor: "Fixo" })
@@ -218,6 +249,12 @@ export default function ContasAReceberPage() {
     }
     
     updateDocumentNonBlocking(doc(firestore, "receivables", id), updateData)
+    writeFinanceAuditLog("receivable_status_updated", {
+      receivableId: id,
+      clientName: cliente,
+      newStatus,
+      paidAt: updateData.dataRecebimento || null
+    })
     
     if (newStatus === "Confirmado") {
       toast({ 
@@ -239,6 +276,9 @@ export default function ContasAReceberPage() {
       responsavelBaixa: null,
       dataRecebimento: null
     })
+    writeFinanceAuditLog("receivable_payment_cancelled", {
+      receivableId: contaId
+    })
     toast({ 
       title: "Recebimento Cancelado", 
       description: "A situação da conta foi revertida para pendente.",
@@ -247,12 +287,19 @@ export default function ContasAReceberPage() {
 
   const handleDelete = (id: string) => {
     deleteDocumentNonBlocking(doc(firestore, "receivables", id))
+    writeFinanceAuditLog("receivable_deleted", {
+      receivableId: id
+    })
     toast({ title: "Honorário removido", variant: "destructive" })
   }
 
   const handleBatchDelete = () => {
     if (confirm(`Deseja excluir permanentemente ${selectedIds.length} honorários?`)) {
       selectedIds.forEach(id => deleteDocumentNonBlocking(doc(firestore, "receivables", id)))
+      writeFinanceAuditLog("receivable_batch_deleted", {
+        receivableIds: selectedIds,
+        count: selectedIds.length
+      })
       toast({ title: "Itens excluídos", variant: "destructive" })
       setSelectedIds([])
     }
@@ -309,17 +356,53 @@ export default function ContasAReceberPage() {
   const handleGenerateMonth = () => {
     const monthPrefix = format(selectedCompetence, "yyyy-MM")
     const competenceEnd = format(endOfMonth(selectedCompetence), "yyyy-MM-dd")
+    const generationId = Math.random().toString(36).substr(2, 9)
+    const invalidContracts: string[] = []
     const activeContracts = (contracts || []).filter((contract: any) => {
+      const contractName = contract.clientName || contract.clientCnpj || contract.id || "Contrato sem identificacao"
+
       if (contract.status !== "Ativo") return false
-      if (!contract.clientId || !contract.value) return false
+
+      if (!contract.clientId) {
+        invalidContracts.push(`${contractName}: sem cliente vinculado`)
+        return false
+      }
+
+      if (!Number(contract.value)) {
+        invalidContracts.push(`${contractName}: sem valor de honorario`)
+        return false
+      }
+
       if (!contract.startDate) return true
+
+      if (contract.startDate > competenceEnd) {
+        invalidContracts.push(`${contractName}: inicio posterior a competencia`)
+        return false
+      }
+
       return contract.startDate <= competenceEnd
     })
 
     if (activeContracts.length === 0) {
+      setLastGenerationSummary({
+        competence: monthPrefix,
+        generated: 0,
+        skipped: 0,
+        invalid: invalidContracts.length,
+        totalValue: 0,
+        invalidReasons: invalidContracts.slice(0, 5)
+      })
+      writeFinanceAuditLog("monthly_generation_without_eligible_contracts", {
+        generationId,
+        competence: monthPrefix,
+        invalidContractsCount: invalidContracts.length,
+        invalidReasons: invalidContracts.slice(0, 20)
+      })
       toast({
         title: "Nenhum contrato ativo encontrado",
-        description: "Nao ha contratos aptos para gerar honorarios nesta competencia.",
+        description: invalidContracts.length > 0
+          ? `${invalidContracts.length} contrato(s) precisam de ajuste antes da geracao.`
+          : "Nao ha contratos aptos para gerar honorarios nesta competencia.",
         variant: "destructive"
       })
       return
@@ -327,6 +410,9 @@ export default function ContasAReceberPage() {
 
     let generatedCount = 0
     let skippedCount = 0
+    let generatedTotal = 0
+    const generatedReceivableIds: string[] = []
+    const skippedContracts: string[] = []
 
     activeContracts.forEach((contract: any) => {
       const dueDay = Math.min(Math.max(Number(contract.dueDay) || 10, 1), 28)
@@ -341,6 +427,7 @@ export default function ContasAReceberPage() {
 
       if (alreadyExists) {
         skippedCount++
+        skippedContracts.push(contract.clientName || contract.clientId || contract.id)
         return
       }
 
@@ -350,24 +437,51 @@ export default function ContasAReceberPage() {
         ? contract.services.join(", ")
         : "HONORARIOS MENSAIS"
 
-      setDocumentNonBlocking(receivableRef, {
+      const receivableValue = Number(contract.value) || 0
+      const receivableData = {
         id: receivableId,
+        generationId,
         contractId: contract.id,
         clientId: contract.clientId,
         cliente: contract.clientName || "CLIENTE AVULSO",
         descricao: `HONORARIO - ${servicesLabel}`.toUpperCase(),
         pagamento: "PIX",
         data: dueDate,
-        valor: Number(contract.value) || 0,
+        valor: receivableValue,
         situacao: "Pendente",
         recorrente: true,
         tipoValor: "Fixo",
         competencia: monthPrefix,
         generatedFromContract: true,
         createdAt: new Date().toISOString()
-      }, { merge: true })
+      }
+
+      setDocumentNonBlocking(receivableRef, receivableData, { merge: true })
 
       generatedCount++
+      generatedTotal += receivableValue
+      generatedReceivableIds.push(receivableId)
+    })
+
+    setLastGenerationSummary({
+      competence: monthPrefix,
+      generated: generatedCount,
+      skipped: skippedCount,
+      invalid: invalidContracts.length,
+      totalValue: generatedTotal,
+      invalidReasons: invalidContracts.slice(0, 5)
+    })
+
+    writeFinanceAuditLog("monthly_receivables_generated", {
+      generationId,
+      competence: monthPrefix,
+      generatedCount,
+      skippedCount,
+      invalidContractsCount: invalidContracts.length,
+      generatedTotal,
+      generatedReceivableIds,
+      skippedContracts: skippedContracts.slice(0, 50),
+      invalidReasons: invalidContracts.slice(0, 50)
     })
 
     if (generatedCount === 0) {
@@ -444,6 +558,63 @@ export default function ContasAReceberPage() {
           </Button>
         )}
       </div>
+
+      {lastGenerationSummary && (
+        <Card className="border-slate-100 bg-white shadow-sm">
+          <CardContent className="p-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4 text-[#1FA67A]" />
+                  <h2 className="text-xs font-black uppercase tracking-widest text-slate-700">
+                    Resumo da ultima geracao
+                  </h2>
+                </div>
+                <p className="mt-1 text-xs font-semibold text-slate-500">
+                  Competencia {lastGenerationSummary.competence} com rastreio salvo em financeAuditLogs.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <div className="rounded-xl bg-slate-50 px-4 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Gerados</p>
+                  <p className="text-xl font-black text-slate-800">{lastGenerationSummary.generated}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 px-4 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ignorados</p>
+                  <p className="text-xl font-black text-slate-800">{lastGenerationSummary.skipped}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 px-4 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ajustes</p>
+                  <p className="text-xl font-black text-amber-600">{lastGenerationSummary.invalid}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 px-4 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Valor novo</p>
+                  <p className="text-xl font-black text-[#1FA67A]">
+                    {lastGenerationSummary.totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {lastGenerationSummary.invalidReasons.length > 0 && (
+              <div className="mt-4 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
+                <div className="mb-2 flex items-center gap-2 text-amber-700">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Contratos para revisar</span>
+                </div>
+                <ul className="space-y-1">
+                  {lastGenerationSummary.invalidReasons.map((reason) => (
+                    <li key={reason} className="text-xs font-semibold text-amber-800">
+                      {reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="space-y-4">
         <div className="relative">
