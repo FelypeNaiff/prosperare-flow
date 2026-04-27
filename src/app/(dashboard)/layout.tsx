@@ -64,7 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="print:hidden">
         <AppSidebar />
       </div>
-      <SidebarInset className="bg-background">
+      <SidebarInset className="bg-slate-50">
         <TaskNotificationSync />
         <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 sticky top-0 z-40 print:hidden">
           <SidebarTrigger className="text-[#2C4156]" />
@@ -115,7 +115,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
         
-        <main className="p-6 md:p-8 flex-1 overflow-x-hidden print:p-0 print:m-0 print:bg-white">
+        <main className="p-6 md:p-8 flex-1 overflow-x-hidden bg-slate-50 print:p-0 print:m-0 print:bg-white">
           {children}
         </main>
 

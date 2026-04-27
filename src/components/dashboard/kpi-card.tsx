@@ -22,11 +22,11 @@ const colorMap = {
 };
 
 const borderMap = {
-  primary: "border-l-[#2C4156]",
-  success: "border-l-[#1FA67A]",
-  destructive: "border-l-[#E74C3C]",
-  warning: "border-l-[#F2B705]",
-  info: "border-l-[#2574A9]",
+  primary: "before:bg-[#2C4156]",
+  success: "before:bg-[#1FA67A]",
+  destructive: "before:bg-[#E74C3C]",
+  warning: "before:bg-[#F2B705]",
+  info: "before:bg-[#2574A9]",
 };
 
 /**
@@ -44,17 +44,17 @@ export const KpiCard = memo(function KpiCard({
   return (
     <Card 
       className={cn(
-        "cursor-pointer hover:shadow-md transition-all duration-200 border-l-4 bg-white",
+        "relative cursor-pointer overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.04)] transition-all duration-300 hover:-translate-y-1 hover:shadow-md before:absolute before:left-0 before:top-0 before:h-full before:w-1",
         borderMap[color],
         className
       )}
       onClick={onClick}
     >
-      <CardContent className="p-6">
+      <CardContent className="p-5 md:p-6">
         <div className="flex justify-between items-start">
-          <div className="space-y-1">
-            <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">{label}</p>
-            <h3 className="text-2xl font-black tracking-tight text-[#2C4156]">{value}</h3>
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</p>
+            <h3 className="text-3xl font-bold tracking-normal text-slate-800">{value}</h3>
             {trend !== undefined && (
               <div className="flex items-center gap-1">
                 {trend > 0 ? (
