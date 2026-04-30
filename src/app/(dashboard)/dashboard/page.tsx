@@ -174,7 +174,7 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">
-            Painel <span className="text-[#1FA67A]">Estratégico</span>
+            Painel
           </h1>
           <p className="text-[#98A7AA] font-bold text-sm uppercase tracking-widest">Monitoramento de produção e conformidade fiscal.</p>
         </div>
