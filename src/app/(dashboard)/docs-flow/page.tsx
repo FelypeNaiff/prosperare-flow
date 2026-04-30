@@ -8,11 +8,13 @@ import {
   TrendingUp, 
   History,
   FileText,
-  Search
+  Search,
+  Stethoscope
 } from "lucide-react"
 import { TerminationTermForm } from "@/components/docs-flow/termination-term-form"
 import { ProlaboreForm } from "@/components/docs-flow/prolabore-form"
 import { RevenueDeclarationForm } from "@/components/docs-flow/revenue-declaration-form"
+import { AsoReferralForm } from "@/components/docs-flow/aso-referral-form"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -61,6 +63,9 @@ export default function DocsFlowPage() {
             <TabsTrigger value="faturamento" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 h-10 px-6 text-[10px] uppercase">
               <TrendingUp className="h-4 w-4" /> Faturamento 12 Meses
             </TabsTrigger>
+            <TabsTrigger value="aso" className="data-[state=active]:bg-[#2C4156] data-[state=active]:text-white font-bold gap-2 h-10 px-6 text-[10px] uppercase">
+              <Stethoscope className="h-4 w-4" /> Encaminhamento ASO
+            </TabsTrigger>
           </TabsList>
           
           <div className="flex items-center gap-2 px-2">
@@ -81,6 +86,10 @@ export default function DocsFlowPage() {
 
         <TabsContent value="faturamento" className="m-0">
           <RevenueDeclarationForm />
+        </TabsContent>
+
+        <TabsContent value="aso" className="m-0">
+          <AsoReferralForm />
         </TabsContent>
       </Tabs>
     </div>
