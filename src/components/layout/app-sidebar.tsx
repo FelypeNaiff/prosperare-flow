@@ -36,7 +36,8 @@ import {
   FileSignature,
   FileStack,
   UsersRound,
-  ShieldCheck
+  ShieldCheck,
+  Landmark
 } from "lucide-react"
 
 import {
@@ -102,6 +103,7 @@ const menuItems = [
       { title: "Agenda de Obrigações", url: "/processos/calendario", icon: Calendar },
       { title: "IRPF 2026", url: "/processos/irpf", icon: ClipboardList },
       { title: "Parcelamentos", url: "/processos/parcelamentos", icon: InstallmentIcon },
+      { title: "Legalizações (CNPJ)", url: "/legalizacoes", icon: Landmark },
       { title: "Alvarás e Licenças", url: "/alvaras", icon: FileSignature },
       { title: "Certidões Negativas", url: "/certidoes", icon: ShieldCheck },
     ]
