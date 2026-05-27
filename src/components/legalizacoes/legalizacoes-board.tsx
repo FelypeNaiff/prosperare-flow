@@ -131,7 +131,7 @@ function ProcessModal({
   process: Process | null
   open: boolean
   onClose: () => void
-  onSave: (p: Process) => void
+  onSave: (p: Process) => Promise<void>
   onClone?: (p: Process) => void
   templates?: Process[]
 }) {
@@ -510,7 +510,14 @@ function ProcessModal({
             Cancelar
           </Button>
           <Button
-            onClick={() => { onSave(form); onClose() }}
+            onClick={async () => {
+              try {
+                await onSave(form)
+                onClose()
+              } catch (error) {
+                console.error("Erro ao salvar no modal:", error)
+              }
+            }}
             className="rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs h-10 px-5 gap-2 shadow-sm"
           >
             <CheckCircle2 className="h-4 w-4" /> Salvar Processo
@@ -700,6 +707,7 @@ export function LegalizacoesBoard() {
     const unsubscribe = onSnapshot(
       collectionRef,
       (snapshot) => {
+        console.debug("onSnapshot legalizacoes carregados:", snapshot.docs.length)
         const loadedProcesses: Process[] = snapshot.docs.map((docSnap) => {
           const data = docSnap.data() as Partial<Process>
           return {
@@ -762,25 +770,50 @@ export function LegalizacoesBoard() {
   }
 
   const handleSave = async (p: Process) => {
+    console.debug("LegalizacoesBoard handleSave init", p)
     try {
       if (!p.id) {
         const docRef = await addDoc(collection(firestore, "legalizacoes"), {
-          ...p,
-          arquivado: p.arquivado,
+          title: p.title,
+          company: p.company,
+          clientId: p.clientId ?? null,
+          type: p.type,
+          priority: p.priority,
+          status: p.status,
+          startDate: p.startDate,
+          deadline: p.deadline,
+          notes: p.notes,
+          tags: p.tags,
+          checklist: p.checklist,
+          responsibleId: p.responsibleId,
           isModelo: p.isModelo,
+          arquivado: p.arquivado,
         })
-        await updateDoc(doc(firestore, "legalizacoes", docRef.id), {
-          id: docRef.id,
-        })
+        console.debug("Documento criado em legalizacoes:", docRef.id)
+        setProcesses((prev) => [...prev, { ...p, id: docRef.id }])
       } else {
         await updateDoc(doc(firestore, "legalizacoes", p.id), {
-          ...p,
-          arquivado: p.arquivado,
+          title: p.title,
+          company: p.company,
+          clientId: p.clientId ?? null,
+          type: p.type,
+          priority: p.priority,
+          status: p.status,
+          startDate: p.startDate,
+          deadline: p.deadline,
+          notes: p.notes,
+          tags: p.tags,
+          checklist: p.checklist,
+          responsibleId: p.responsibleId,
           isModelo: p.isModelo,
+          arquivado: p.arquivado,
         })
+        console.debug("Documento atualizado em legalizacoes:", p.id)
+        setProcesses((prev) => prev.map((x) => (x.id === p.id ? p : x)))
       }
     } catch (error) {
       console.error("Erro ao salvar processo:", error)
+      throw error
     }
   }
 
