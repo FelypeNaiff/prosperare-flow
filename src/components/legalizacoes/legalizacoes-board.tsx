@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react"
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "firebase/firestore"
 import { firestore } from "@/firebase/init"
+import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
@@ -698,6 +699,7 @@ function ProcessCard({
 // ─── Main Board ───────────────────────────────────────────────────────────────
 
 export function LegalizacoesBoard() {
+  const { toast } = useToast()
   const [processes, setProcesses] = useState<Process[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected] = useState<Process | null>(null)
@@ -791,6 +793,10 @@ export function LegalizacoesBoard() {
         })
         console.debug("Documento criado em legalizacoes:", docRef.id)
         setProcesses((prev) => [...prev, { ...p, id: docRef.id }])
+        toast({
+          title: "Processo Criado!",
+          description: `"${p.title}" foi salvo com sucesso.`,
+        })
       } else {
         await updateDoc(doc(firestore, "legalizacoes", p.id), {
           title: p.title,
@@ -810,18 +816,37 @@ export function LegalizacoesBoard() {
         })
         console.debug("Documento atualizado em legalizacoes:", p.id)
         setProcesses((prev) => prev.map((x) => (x.id === p.id ? p : x)))
+        toast({
+          title: "Processo Atualizado!",
+          description: `"${p.title}" foi atualizado com sucesso.`,
+        })
       }
     } catch (error) {
       console.error("Erro ao salvar processo:", error)
+      toast({
+        title: "Erro ao Salvar",
+        description: "Ocorreu um erro ao salvar o processo. Verifique o console.",
+        variant: "destructive",
+      })
       throw error
     }
   }
 
   const handleDelete = async (id: string) => {
+    const process = processes.find((p) => p.id === id)
     try {
       await deleteDoc(doc(firestore, "legalizacoes", id))
+      toast({
+        title: "Processo Removido",
+        description: `"${process?.title}" foi deletado com sucesso.`,
+      })
     } catch (error) {
       console.error("Erro ao deletar processo:", error)
+      toast({
+        title: "Erro ao Deletar",
+        description: "Ocorreu um erro ao deletar o processo.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -840,8 +865,17 @@ export function LegalizacoesBoard() {
 
     try {
       await updateDoc(doc(firestore, "legalizacoes", id), updated)
+      toast({
+        title: allDone ? "Processo Reaberto" : "Processo Concluído",
+        description: `"${process.title}" foi ${allDone ? "reaberto" : "marcado como concluído"}.`,
+      })
     } catch (error) {
       console.error("Erro ao atualizar conclusão do processo:", error)
+      toast({
+        title: "Erro ao Atualizar",
+        description: "Ocorreu um erro ao atualizar o processo.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -854,8 +888,17 @@ export function LegalizacoesBoard() {
 
     try {
       await updateDoc(doc(firestore, "legalizacoes", id), updated)
+      toast({
+        title: process.arquivado ? "Processo Restaurado" : "Processo Arquivado",
+        description: `"${process.title}" foi ${process.arquivado ? "restaurado" : "arquivado"} com sucesso.`,
+      })
     } catch (error) {
       console.error("Erro ao atualizar arquivo do processo:", error)
+      toast({
+        title: "Erro ao Arquivar",
+        description: "Ocorreu um erro ao arquivar o processo.",
+        variant: "destructive",
+      })
     }
   }
 
