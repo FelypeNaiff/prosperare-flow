@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "firebase/firestore"
+import { firestore } from "@/firebase/init"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
@@ -102,92 +104,6 @@ const MOCK_CLIENTS = [
   { id: "c3", name: "Mercado Bom Preço Ltda" },
   { id: "c4", name: "Clínica Nova Vida S.S." },
   { id: "c5", name: "Construções Alvorada Eireli" },
-]
-
-const INITIAL_PROCESSES: Process[] = [
-  {
-    id: "p1",
-    title: "Abertura - Padaria Silva",
-    company: "Padaria Silva Ltda",
-    clientId: "c1",
-    type: "abertura",
-    priority: "Alta",
-    status: "abertura",
-    startDate: "2026-05-01",
-    deadline: "2026-05-30",
-    notes: "Cliente aguardando CNPJ para abertura da conta bancária.",
-    tags: ["Urgente", "Receita Federal"],
-    checklist: [
-      { id: "ch1", label: "Contrato Social assinado", done: true },
-      { id: "ch2", label: "Documentos dos sócios", done: true },
-      { id: "ch3", label: "Consulta de viabilidade", done: false },
-      { id: "ch4", label: "Registro na Junta", done: false },
-      { id: "ch5", label: "CNPJ emitido", done: false },
-    ],
-    responsibleId: "u1",
-    isModelo: false,
-    arquivado: false,
-  },
-  {
-    id: "p2",
-    title: "Alvará - Tech Solutions",
-    company: "Tech Solutions S.A.",
-    clientId: "c2",
-    type: "alvaras",
-    priority: "Média",
-    status: "alvaras",
-    startDate: "2026-04-15",
-    deadline: "2026-05-10",
-    notes: "Aguardando laudo do Corpo de Bombeiros.",
-    tags: ["Bombeiros", "Prefeitura"],
-    checklist: [
-      { id: "ch6", label: "Planta baixa aprovada", done: true },
-      { id: "ch7", label: "Laudo do Bombeiro", done: false },
-      { id: "ch8", label: "Alvará de funcionamento", done: false },
-    ],
-    responsibleId: "u2",
-    isModelo: false,
-    arquivado: false,
-  },
-  {
-    id: "p3",
-    title: "Alteração - Mercado Bom Preço",
-    company: "Mercado Bom Preço Ltda",
-    clientId: "c3",
-    type: "alteracao",
-    priority: "Baixa",
-    status: "alteracao",
-    startDate: "2026-05-10",
-    deadline: "2026-07-01",
-    notes: "Alteração de endereço e inclusão de sócio.",
-    tags: ["Junta Comercial"],
-    checklist: [
-      { id: "ch9", label: "Certidão de casamento do sócio", done: true },
-      { id: "ch10", label: "Alteração contratual redigida", done: false },
-    ],
-    responsibleId: "u3",
-    isModelo: true, // Marked as Template
-    arquivado: false,
-  },
-  {
-    id: "p4",
-    title: "Baixa - Antiga Conveniência",
-    company: "Conveniência Antiga Ltda",
-    type: "baixa",
-    priority: "Média",
-    status: "baixa",
-    startDate: "2026-03-01",
-    deadline: "2026-04-01",
-    notes: "Processo concluído e pronto para arquivamento.",
-    tags: ["Receita Federal", "SEFAZ"],
-    checklist: [
-      { id: "ch11", label: "Distrato Social assinado", done: true },
-      { id: "ch12", label: "Protocolo de Baixa no CNPJ", done: true },
-    ],
-    responsibleId: "u4",
-    isModelo: false,
-    arquivado: true, // Archived
-  },
 ]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -775,9 +691,44 @@ function ProcessCard({
 // ─── Main Board ───────────────────────────────────────────────────────────────
 
 export function LegalizacoesBoard() {
-  const [processes, setProcesses] = useState<Process[]>(INITIAL_PROCESSES)
+  const [processes, setProcesses] = useState<Process[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected] = useState<Process | null>(null)
+
+  useEffect(() => {
+    const collectionRef = collection(firestore, "legalizacoes")
+    const unsubscribe = onSnapshot(
+      collectionRef,
+      (snapshot) => {
+        const loadedProcesses: Process[] = snapshot.docs.map((docSnap) => {
+          const data = docSnap.data() as Partial<Process>
+          return {
+            id: docSnap.id,
+            title: data.title ?? "",
+            company: data.company ?? "",
+            clientId: data.clientId,
+            type: data.type ?? "abertura",
+            priority: data.priority ?? "Média",
+            status: data.status ?? "abertura",
+            startDate: data.startDate ?? "",
+            deadline: data.deadline ?? "",
+            notes: data.notes ?? "",
+            tags: data.tags ?? [],
+            checklist: data.checklist ?? [],
+            responsibleId: data.responsibleId ?? "u1",
+            isModelo: data.isModelo ?? false,
+            arquivado: data.arquivado ?? false,
+          }
+        })
+        setProcesses(loadedProcesses)
+      },
+      (error) => {
+        console.error("Erro ao carregar legalizações:", error)
+      }
+    )
+
+    return () => unsubscribe()
+  }, [])
 
   // Filters State
   const [searchTerm, setSearchTerm] = useState("")
@@ -787,7 +738,7 @@ export function LegalizacoesBoard() {
 
   const openNew = (defaultStatus?: string) => {
     setSelected(defaultStatus ? {
-      id: crypto.randomUUID(),
+      id: "",
       title: "",
       company: "",
       type: defaultStatus,
@@ -810,42 +761,76 @@ export function LegalizacoesBoard() {
     setModalOpen(true)
   }
 
-  const handleSave = (p: Process) => {
-    setProcesses((prev) => {
-      const exists = prev.find((x) => x.id === p.id)
-      return exists ? prev.map((x) => (x.id === p.id ? p : x)) : [...prev, p]
-    })
-  }
-
-  const handleDelete = (id: string) => {
-    setProcesses((prev) => prev.filter((p) => p.id !== id))
-  }
-
-  const handleComplete = (id: string) => {
-    setProcesses((prev) =>
-      prev.map((p) => {
-        if (p.id !== id) return p
-        const progress = calcProgress(p.checklist)
-        const allDone = progress === 100
-        return {
+  const handleSave = async (p: Process) => {
+    try {
+      if (!p.id) {
+        const docRef = await addDoc(collection(firestore, "legalizacoes"), {
           ...p,
-          checklist: p.checklist.map((i) => ({ ...i, done: !allDone })),
-        }
-      })
-    )
+          arquivado: p.arquivado,
+          isModelo: p.isModelo,
+        })
+        await updateDoc(doc(firestore, "legalizacoes", docRef.id), {
+          id: docRef.id,
+        })
+      } else {
+        await updateDoc(doc(firestore, "legalizacoes", p.id), {
+          ...p,
+          arquivado: p.arquivado,
+          isModelo: p.isModelo,
+        })
+      }
+    } catch (error) {
+      console.error("Erro ao salvar processo:", error)
+    }
   }
 
-  const handleToggleArchive = (id: string) => {
-    setProcesses((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, arquivado: !p.arquivado } : p))
-    )
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteDoc(doc(firestore, "legalizacoes", id))
+    } catch (error) {
+      console.error("Erro ao deletar processo:", error)
+    }
+  }
+
+  const handleComplete = async (id: string) => {
+    const process = processes.find((p) => p.id === id)
+    if (!process) return
+
+    const progress = calcProgress(process.checklist)
+    const allDone = progress === 100
+    const updated = {
+      ...process,
+      checklist: process.checklist.map((item) => ({ ...item, done: !allDone })),
+    }
+
+    setProcesses((prev) => prev.map((p) => (p.id === id ? updated : p)))
+
+    try {
+      await updateDoc(doc(firestore, "legalizacoes", id), updated)
+    } catch (error) {
+      console.error("Erro ao atualizar conclusão do processo:", error)
+    }
+  }
+
+  const handleToggleArchive = async (id: string) => {
+    const process = processes.find((p) => p.id === id)
+    if (!process) return
+
+    const updated = { ...process, arquivado: !process.arquivado }
+    setProcesses((prev) => prev.map((p) => (p.id === id ? updated : p)))
+
+    try {
+      await updateDoc(doc(firestore, "legalizacoes", id), updated)
+    } catch (error) {
+      console.error("Erro ao atualizar arquivo do processo:", error)
+    }
   }
 
   const handleCloneFromTemplate = (template: Process) => {
     // Clone process without dates and company names
     const cloned: Process = {
       ...template,
-      id: crypto.randomUUID(),
+      id: "",
       title: `${template.title} (Novo)`,
       company: "",
       clientId: undefined,
