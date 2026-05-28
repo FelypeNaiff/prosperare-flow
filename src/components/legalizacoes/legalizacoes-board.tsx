@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "firebase/firestore"
-import { firestore } from "@/firebase/init"
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, getDocs } from "firebase/firestore"
+import { firestore as db } from "@/firebase/init"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -69,6 +69,11 @@ type Process = {
   arquivado: boolean
 }
 
+type Client = {
+  id: string
+  name: string
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const COLUMNS = [
@@ -98,15 +103,6 @@ const TEAM_MEMBERS = [
   { id: "u4", name: "Rodrigo Santos", initials: "RS", color: "bg-orange-600" },
 ]
 
-// Mock Clients (Existing Companies)
-const MOCK_CLIENTS = [
-  { id: "c1", name: "Padaria Silva Ltda" },
-  { id: "c2", name: "Tech Solutions S.A." },
-  { id: "c3", name: "Mercado Bom Preço Ltda" },
-  { id: "c4", name: "Clínica Nova Vida S.S." },
-  { id: "c5", name: "Construções Alvorada Eireli" },
-]
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function calcProgress(checklist: ChecklistItem[]) {
@@ -128,6 +124,7 @@ function ProcessModal({
   onSave,
   onClone,
   templates = [],
+  clientes,
 }: {
   process: Process | null
   open: boolean
@@ -135,6 +132,7 @@ function ProcessModal({
   onSave: (p: Process) => Promise<void>
   onClone?: (p: Process) => void
   templates?: Process[]
+  clientes: Client[]
 }) {
   const empty: Process = {
     id: crypto.randomUUID(),
@@ -202,7 +200,7 @@ function ProcessModal({
   }
 
   const handleClientSelect = (clientId: string) => {
-    const selected = MOCK_CLIENTS.find((c) => c.id === clientId)
+    const selected = clientes.find((c) => c.id === clientId)
     setForm((f) => ({
       ...f,
       clientId: clientId,
@@ -408,11 +406,17 @@ function ProcessModal({
                   <SelectValue placeholder="Selecione um cliente cadastrado..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {MOCK_CLIENTS.map((c) => (
-                    <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
-                      {c.name}
+                  {clientes.length > 0 ? (
+                    clientes.map((c) => (
+                      <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
+                        {c.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled className="text-xs text-slate-400">
+                      Nenhum cliente cadastrado
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
             )}
@@ -703,9 +707,10 @@ export function LegalizacoesBoard() {
   const [processes, setProcesses] = useState<Process[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected] = useState<Process | null>(null)
+  const [clientes, setClientes] = useState<Client[]>([])
 
   useEffect(() => {
-    const collectionRef = collection(firestore, "legalizacoes")
+    const collectionRef = collection(db, "legalizacoes")
     const unsubscribe = onSnapshot(
       collectionRef,
       (snapshot) => {
@@ -738,6 +743,39 @@ export function LegalizacoesBoard() {
     )
 
     return () => unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    async function loadClientes() {
+      try {
+        const collectionNames = ["clients", "clientes"]
+        for (const collectionName of collectionNames) {
+          const snapshot = await getDocs(collection(db, collectionName))
+          if (!snapshot.empty) {
+            const loadedClients = snapshot.docs.map((docSnap) => {
+              const data = docSnap.data() as Record<string, any>
+              return {
+                id: docSnap.id,
+                name:
+                  data.nomeFantasia ||
+                  data.razaoSocial ||
+                  data.name ||
+                  data.company ||
+                  data.empresa ||
+                  docSnap.id,
+              }
+            })
+            setClientes(loadedClients)
+            return
+          }
+        }
+        setClientes([])
+      } catch (error) {
+        console.error("Erro ao carregar clientes:", error)
+      }
+    }
+
+    loadClientes()
   }, [])
 
   // Filters State
@@ -775,7 +813,7 @@ export function LegalizacoesBoard() {
     console.debug("LegalizacoesBoard handleSave init", p)
     try {
       if (!p.id) {
-        const docRef = await addDoc(collection(firestore, "legalizacoes"), {
+        const docRef = await addDoc(collection(db, "legalizacoes"), {
           title: p.title,
           company: p.company,
           clientId: p.clientId ?? null,
@@ -798,7 +836,7 @@ export function LegalizacoesBoard() {
           description: `"${p.title}" foi salvo com sucesso.`,
         })
       } else {
-        await updateDoc(doc(firestore, "legalizacoes", p.id), {
+        await updateDoc(doc(db, "legalizacoes", p.id), {
           title: p.title,
           company: p.company,
           clientId: p.clientId ?? null,
@@ -823,6 +861,7 @@ export function LegalizacoesBoard() {
       }
     } catch (error) {
       console.error("Erro ao salvar processo:", error)
+      console.error("Erro detalhado do Firebase:", error)
       toast({
         title: "Erro ao Salvar",
         description: "Ocorreu um erro ao salvar o processo. Verifique o console.",
@@ -835,7 +874,7 @@ export function LegalizacoesBoard() {
   const handleDelete = async (id: string) => {
     const process = processes.find((p) => p.id === id)
     try {
-      await deleteDoc(doc(firestore, "legalizacoes", id))
+      await deleteDoc(doc(db, "legalizacoes", id))
       toast({
         title: "Processo Removido",
         description: `"${process?.title}" foi deletado com sucesso.`,
@@ -864,7 +903,7 @@ export function LegalizacoesBoard() {
     setProcesses((prev) => prev.map((p) => (p.id === id ? updated : p)))
 
     try {
-      await updateDoc(doc(firestore, "legalizacoes", id), updated)
+      await updateDoc(doc(db, "legalizacoes", id), updated)
       toast({
         title: allDone ? "Processo Reaberto" : "Processo Concluído",
         description: `"${process.title}" foi ${allDone ? "reaberto" : "marcado como concluído"}.`,
@@ -887,7 +926,7 @@ export function LegalizacoesBoard() {
     setProcesses((prev) => prev.map((p) => (p.id === id ? updated : p)))
 
     try {
-      await updateDoc(doc(firestore, "legalizacoes", id), updated)
+      await updateDoc(doc(db, "legalizacoes", id), updated)
       toast({
         title: process.arquivado ? "Processo Restaurado" : "Processo Arquivado",
         description: `"${process.title}" foi ${process.arquivado ? "restaurado" : "arquivado"} com sucesso.`,
@@ -1205,6 +1244,7 @@ export function LegalizacoesBoard() {
         onSave={handleSave}
         onClone={handleCloneFromTemplate}
         templates={allTemplates}
+        clientes={clientes}
       />
     </div>
   )
