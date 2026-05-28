@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, getDocs } from "firebase/firestore"
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, getDocs, getDoc, setDoc } from "firebase/firestore"
 import { firestore as db } from "@/firebase/init"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
@@ -51,6 +51,8 @@ import { cn } from "@/lib/utils"
 
 type ChecklistItem = { id: string; label: string; done: boolean }
 type Tag = { name: string; color: string }
+type Comment = { id: string; userId: string; userName: string; text: string; createdAt: string }
+type ColumnConfig = { id: string; title: string; color: string }
 type Process = {
   id: string
   title: string
@@ -61,7 +63,7 @@ type Process = {
   status: string // current column
   startDate: string
   deadline: string
-  notes: string
+  comments: Comment[]
   tags: string[]
   checklist: ChecklistItem[]
   responsibleId: string
@@ -76,13 +78,15 @@ type Client = {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const COLUMNS = [
+const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: "abertura", title: "🏢 Abertura de CNPJ", color: "border-t-blue-400" },
   { id: "alteracao", title: "📝 Alteração Contratual", color: "border-t-amber-400" },
   { id: "baixa", title: "🔴 Baixa de CNPJ", color: "border-t-red-400" },
   { id: "inscricao", title: "📋 Inscrição Est./Municipal", color: "border-t-purple-400" },
   { id: "alvaras", title: "🛡️ Alvarás e Licenças", color: "border-t-emerald-400" },
 ]
+
+const BOARD_CONFIG_DOC_PATH = { collection: "board_configs", docId: "legalizacoes" }
 
 const AVAILABLE_TAGS: Tag[] = [
   { name: "Urgente", color: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100" },
@@ -125,6 +129,7 @@ function ProcessModal({
   onClone,
   templates = [],
   clientes,
+  boardColumns,
 }: {
   process: Process | null
   open: boolean
@@ -133,17 +138,19 @@ function ProcessModal({
   onClone?: (p: Process) => void
   templates?: Process[]
   clientes: Client[]
+  boardColumns: ColumnConfig[]
 }) {
+  const firstColumnId = boardColumns[0]?.id ?? "abertura"
   const empty: Process = {
     id: crypto.randomUUID(),
     title: "",
     company: "",
-    type: "abertura",
+    type: firstColumnId,
     priority: "Média",
-    status: "abertura",
+    status: firstColumnId,
     startDate: "",
     deadline: "",
-    notes: "",
+    comments: [],
     tags: [],
     checklist: [],
     responsibleId: "u1",
@@ -153,6 +160,7 @@ function ProcessModal({
 
   const [form, setForm] = useState<Process>(empty)
   const [newItem, setNewItem] = useState("")
+  const [newCommentText, setNewCommentText] = useState("")
   const [isManualCompany, setIsManualCompany] = useState(false)
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("")
 
@@ -163,12 +171,12 @@ function ProcessModal({
         setForm(process)
         setIsManualCompany(!process.clientId)
       } else {
-        setForm(empty)
+        setForm({ ...empty, type: firstColumnId, status: firstColumnId })
         setIsManualCompany(false)
       }
       setSelectedTemplateId("")
     }
-  }, [process, open])
+  }, [process, open, firstColumnId])
 
   const progress = calcProgress(form.checklist)
 
@@ -220,7 +228,7 @@ function ProcessModal({
         priority: t.priority,
         tags: [...t.tags],
         checklist: t.checklist.map((item) => ({ ...item, id: crypto.randomUUID(), done: false })),
-        notes: t.notes,
+        comments: t.comments ?? [],
         // Kept blank as requested
         company: "",
         clientId: undefined,
@@ -228,6 +236,33 @@ function ProcessModal({
         deadline: "",
       }))
     }
+  }
+
+  const mentionQuery = newCommentText.match(/(?:^|\s)@([\wÀ-ú]*)$/)?.[1] ?? ""
+  const mentionCandidates = mentionQuery
+    ? TEAM_MEMBERS.filter((member) => member.name.toLowerCase().includes(mentionQuery.toLowerCase()))
+    : []
+
+  const insertMention = (member: typeof TEAM_MEMBERS[number]) => {
+    setNewCommentText((current) => {
+      return current.replace(/(?:^|\s)@([\wÀ-ú]*)?$/, ` @${member.name} `).trimStart()
+    })
+  }
+
+  const addComment = () => {
+    const trimmed = newCommentText.trim()
+    if (!trimmed) return
+    const currentUser = TEAM_MEMBERS[0]
+    const comment: Comment = {
+      id: crypto.randomUUID(),
+      userId: currentUser.id,
+      userName: currentUser.name,
+      text: trimmed,
+      createdAt: new Date().toISOString(),
+    }
+
+    setForm((f) => ({ ...f, comments: [...f.comments, comment] }))
+    setNewCommentText("")
   }
 
   return (
@@ -339,7 +374,7 @@ function ProcessModal({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {COLUMNS.map((c) => (
+                  {boardColumns.map((c) => (
                     <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">{c.title}</SelectItem>
                   ))}
                 </SelectContent>
@@ -487,15 +522,82 @@ function ProcessModal({
             )}
           </div>
 
-          {/* Notes + Progress */}
+          {/* Comments + Progress */}
           <div className="space-y-3">
             <Label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Anotações e Histórico</Label>
-            <Textarea
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder="Registre observações, histórico e contatos relevantes..."
-              className="border-slate-200 text-xs rounded-xl resize-none h-28 focus-visible:ring-emerald-500"
-            />
+            <div className="space-y-3 bg-slate-50 rounded-3xl p-4 border border-slate-100 max-h-[320px] overflow-hidden">
+              <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2">
+                {form.comments.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-white/80 p-4 text-center text-[11px] text-slate-500">
+                    Nenhum comentário adicionado. Use o campo abaixo para registrar o histórico.
+                  </div>
+                ) : (
+                  form.comments.map((comment) => (
+                    <div key={comment.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-slate-900 text-white text-[11px] font-black flex items-center justify-center">
+                            {comment.userName
+                              .split(" ")
+                              .map((part) => part[0])
+                              .slice(0, 2)
+                              .join("")}
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-800">{comment.userName}</p>
+                            <p className="text-[10px] text-slate-400">{new Date(comment.createdAt).toLocaleString("pt-BR", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="mt-3 text-[12px] leading-6 text-slate-700 whitespace-pre-line">{comment.text}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Textarea
+                  value={newCommentText}
+                  onChange={(e) => setNewCommentText(e.target.value)}
+                  placeholder="Digite @ para mencionar um membro da equipe..."
+                  className="border-slate-200 text-xs rounded-2xl resize-none h-24 focus-visible:ring-emerald-500"
+                />
+
+                {mentionCandidates.length > 0 && (
+                  <div className="rounded-3xl border border-slate-200 bg-white p-2 shadow-sm">
+                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-wide mb-2">
+                      Mencionar
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {mentionCandidates.map((member) => (
+                        <button
+                          key={member.id}
+                          type="button"
+                          onClick={() => insertMention(member)}
+                          className="rounded-2xl border border-slate-200 px-3 py-2 text-left text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+                        >
+                          {member.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[10px] text-slate-400">Pressione Enter ou clique em enviar para salvar o comentário.</span>
+                  <Button onClick={addComment} className="h-10 rounded-2xl text-xs font-bold px-4">
+                    Enviar comentário
+                  </Button>
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-2 bg-slate-50 rounded-xl p-4 border border-slate-100">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Progresso Geral</span>
@@ -708,15 +810,35 @@ export function LegalizacoesBoard() {
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected] = useState<Process | null>(null)
   const [clientes, setClientes] = useState<Client[]>([])
+  const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS)
+  const [editingColumnId, setEditingColumnId] = useState<string | null>(null)
+  const [columnTitleDraft, setColumnTitleDraft] = useState<Record<string, string>>({})
 
   useEffect(() => {
+    async function loadBoardConfig() {
+      try {
+        const configRef = doc(db, BOARD_CONFIG_DOC_PATH.collection, BOARD_CONFIG_DOC_PATH.docId)
+        const configSnap = await getDoc(configRef)
+        if (configSnap.exists()) {
+          const data = configSnap.data() as { columns?: ColumnConfig[] }
+          if (data.columns?.length) {
+            setColumns(data.columns)
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao carregar configuração do board:", error)
+      }
+    }
+
+    loadBoardConfig()
+
     const collectionRef = collection(db, "legalizacoes")
     const unsubscribe = onSnapshot(
       collectionRef,
       (snapshot) => {
         console.debug("onSnapshot legalizacoes carregados:", snapshot.docs.length)
         const loadedProcesses: Process[] = snapshot.docs.map((docSnap) => {
-          const data = docSnap.data() as Partial<Process>
+          const data = docSnap.data() as Partial<Process> & { notes?: string }
           return {
             id: docSnap.id,
             title: data.title ?? "",
@@ -727,7 +849,7 @@ export function LegalizacoesBoard() {
             status: data.status ?? "abertura",
             startDate: data.startDate ?? "",
             deadline: data.deadline ?? "",
-            notes: data.notes ?? "",
+            comments: data.comments ?? (data.notes ? [{ id: crypto.randomUUID(), userId: "system", userName: "Sistema", text: data.notes, createdAt: new Date().toISOString() }] : []),
             tags: data.tags ?? [],
             checklist: data.checklist ?? [],
             responsibleId: data.responsibleId ?? "u1",
@@ -778,6 +900,52 @@ export function LegalizacoesBoard() {
     loadClientes()
   }, [])
 
+  const saveColumnsConfig = async (updatedColumns: ColumnConfig[]) => {
+    setColumns(updatedColumns)
+    try {
+      const configRef = doc(db, BOARD_CONFIG_DOC_PATH.collection, BOARD_CONFIG_DOC_PATH.docId)
+      await setDoc(configRef, { columns: updatedColumns }, { merge: true })
+    } catch (error) {
+      console.error("Erro ao salvar configuração do board:", error)
+    }
+  }
+
+  const columnColors = [
+    "border-t-blue-400",
+    "border-t-amber-400",
+    "border-t-red-400",
+    "border-t-purple-400",
+    "border-t-emerald-400",
+    "border-t-sky-400",
+    "border-t-fuchsia-400",
+  ]
+
+  const addNewColumn = async () => {
+    const newColumns = [
+      ...columns,
+      {
+        id: crypto.randomUUID(),
+        title: "Nova Coluna",
+        color: columnColors[columns.length % columnColors.length],
+      },
+    ]
+    await saveColumnsConfig(newColumns)
+    setEditingColumnId(newColumns[newColumns.length - 1].id)
+    setColumnTitleDraft((prev) => ({ ...prev, [newColumns[newColumns.length - 1].id]: "Nova Coluna" }))
+  }
+
+  const renameColumn = async (columnId: string) => {
+    const newTitle = columnTitleDraft[columnId]?.trim()
+    if (!newTitle) {
+      setEditingColumnId(null)
+      return
+    }
+
+    const updatedColumns = columns.map((col) => (col.id === columnId ? { ...col, title: newTitle } : col))
+    await saveColumnsConfig(updatedColumns)
+    setEditingColumnId(null)
+  }
+
   // Filters State
   const [searchTerm, setSearchTerm] = useState("")
   const [filterResponsible, setFilterResponsible] = useState("todos")
@@ -785,22 +953,23 @@ export function LegalizacoesBoard() {
   const [activeTab, setActiveTab] = useState<"ativos" | "historico" | "arquivados" | "modelos">("ativos")
 
   const openNew = (defaultStatus?: string) => {
-    setSelected(defaultStatus ? {
+    const status = defaultStatus ?? columns[0]?.id ?? DEFAULT_COLUMNS[0].id
+    setSelected({
       id: "",
       title: "",
       company: "",
-      type: defaultStatus,
+      type: status,
       priority: "Média",
-      status: defaultStatus,
+      status,
       startDate: "",
       deadline: "",
-      notes: "",
+      comments: [],
       tags: [],
       checklist: [],
       responsibleId: "u1",
       isModelo: false,
       arquivado: false,
-    } : null)
+    })
     setModalOpen(true)
   }
 
@@ -822,7 +991,7 @@ export function LegalizacoesBoard() {
           status: p.status,
           startDate: p.startDate,
           deadline: p.deadline,
-          notes: p.notes,
+          comments: p.comments,
           tags: p.tags,
           checklist: p.checklist,
           responsibleId: p.responsibleId,
@@ -845,7 +1014,7 @@ export function LegalizacoesBoard() {
           status: p.status,
           startDate: p.startDate,
           deadline: p.deadline,
-          notes: p.notes,
+          comments: p.comments,
           tags: p.tags,
           checklist: p.checklist,
           responsibleId: p.responsibleId,
@@ -1176,8 +1345,9 @@ export function LegalizacoesBoard() {
       {/* Kanban Board Container */}
       <ScrollArea className="w-full whitespace-nowrap rounded-xl pb-4">
         <div className="flex gap-4 p-1">
-          {COLUMNS.map((col) => {
+          {columns.map((col) => {
             const cards = filteredProcesses.filter((p) => p.status === col.id)
+            const isEditing = editingColumnId === col.id
             return (
               <div
                 key={col.id}
@@ -1187,10 +1357,35 @@ export function LegalizacoesBoard() {
                 )}
               >
                 {/* Column header */}
-                <div className="flex items-center justify-between px-1">
-                  <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-wider whitespace-normal leading-snug flex-1">
-                    {col.title}
-                  </h3>
+                <div className="flex items-center justify-between px-1 gap-2">
+                  <div className="flex-1">
+                    {isEditing ? (
+                      <Input
+                        value={columnTitleDraft[col.id] ?? col.title}
+                        onChange={(e) => setColumnTitleDraft((prev) => ({ ...prev, [col.id]: e.target.value }))}
+                        onBlur={() => renameColumn(col.id)}
+                        onKeyDown={(e) => e.key === "Enter" && renameColumn(col.id)}
+                        className="text-[11px] font-black uppercase tracking-wider text-slate-800 rounded-xl border-slate-200 bg-white"
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-wider whitespace-normal leading-snug">
+                          {col.title}
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingColumnId(col.id)
+                            setColumnTitleDraft((prev) => ({ ...prev, [col.id]: col.title }))
+                          }}
+                          className="p-1 rounded-full text-slate-400 hover:text-slate-700 transition-colors"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className="text-[10px] font-black text-slate-500 bg-white rounded-full px-2 py-0.5 border border-slate-200 shadow-sm">
                       {cards.length}
@@ -1232,6 +1427,16 @@ export function LegalizacoesBoard() {
               </div>
             )
           })}
+
+          <div className="w-[290px] flex-shrink-0 flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/80 p-4 min-h-[520px] transition-all hover:bg-slate-50">
+            <Button
+              variant="outline"
+              onClick={addNewColumn}
+              className="text-xs font-black uppercase tracking-wider px-4 py-3 rounded-2xl text-slate-600 border-slate-300 hover:border-emerald-400 hover:text-emerald-600"
+            >
+              + Adicionar Nova Coluna
+            </Button>
+          </div>
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
@@ -1245,6 +1450,7 @@ export function LegalizacoesBoard() {
         onClone={handleCloneFromTemplate}
         templates={allTemplates}
         clientes={clientes}
+        boardColumns={columns}
       />
     </div>
   )
