@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { ShieldCheck, Search, FileSignature, AlertTriangle, FileText, Plus, Edit, Trash2, Loader2, Building2, Calendar, Save, FileDown } from "lucide-react"
+import { ShieldCheck, Search, FileSignature, AlertTriangle, Plus, Edit, Trash2, Loader2, Building2, Calendar, Save, FileDown, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,6 +16,7 @@ import {
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { KpiCard } from "@/components/dashboard/kpi-card"
 import { Badge } from "@/components/ui/badge"
+import { EmptyState } from "@/components/ui/empty-state"
 import { 
   Dialog, 
   DialogContent, 
@@ -37,6 +38,13 @@ import {
 import { collection, doc } from "firebase/firestore"
 import { format, parseISO, isBefore, addDays, isValid, differenceInDays } from "date-fns"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
+
+const ALVARA_TYPES = [
+  "Bombeiro",
+  "Vigilância",
+  "Prefeitura"
+]
 
 export default function AlvarasPage() {
   const firestore = useFirestore()
@@ -45,12 +53,13 @@ export default function AlvarasPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
+  const [activeClientName, setActiveClientName] = useState("")
 
   const alvarasQuery = useMemoFirebase(() => userLoaded ? collection(firestore, "alvaras") : null, [firestore, userLoaded])
   const { data: alvaras = [], isLoading: alvarasLoading } = useCollection(alvarasQuery)
 
   const clientsQuery = useMemoFirebase(() => userLoaded ? collection(firestore, "clients") : null, [firestore, userLoaded])
-  const { data: clients = [] } = useCollection(clientsQuery)
+  const { data: clients = [], isLoading: clientsLoading } = useCollection(clientsQuery)
 
   const [formData, setFormData] = useState({
     id: "",
@@ -64,78 +73,101 @@ export default function AlvarasPage() {
     observacoes: ""
   })
 
-  // Calculations
-  const processedList = useMemo(() => {
+  // Agrupamento por cliente com matriz de alvarás
+  const processedClients = useMemo(() => {
     const searchLower = searchTerm.toLowerCase()
-    
-    return (alvaras || []).map((a: any) => {
-      const client = (clients || []).find((c: any) => c.id === a.clienteId)
-      return { ...a, clientName: client?.corporateName || "Cliente Removido", clientCnpj: client?.cnpj || "" }
-    }).filter((a: any) => {
-       if (!searchTerm) return true;
-       return a.clientName.toLowerCase().includes(searchLower) || 
-              a.tipo?.toLowerCase().includes(searchLower) || 
-              a.numero?.toLowerCase().includes(searchLower)
-    }).sort((a: any, b: any) => {
-      const dateA = a.validade ? new Date(a.validade).getTime() : 0;
-      const dateB = b.validade ? new Date(b.validade).getTime() : 0;
-      return dateA - dateB; 
-    })
-  }, [alvaras, clients, searchTerm])
-
-  const stats = useMemo(() => {
     const today = new Date()
     const warningDate = addDays(today, 30)
 
-    let ativos = 0
-    let vencendo = 0
-    let vencidos = 0
+    return (clients || []).map((client: any) => {
+      const clientAlvaras = (alvaras || []).filter((a: any) => a.clienteId === client.id)
+      
+      const alvarasByType: any = {}
+      let missingCount = 0
+      let vencidosCount = 0
+      let alertaCount = 0
 
-    ;(alvaras || []).forEach((a: any) => {
-      if (a.status === 'VENCIDO') {
-        vencidos++
-      } else if (a.status === 'CASSADO') {
-        // ignora
-      } else {
-        if (a.validade) {
-          const valDate = new Date(a.validade)
-          if (isValid(valDate)) {
+      ALVARA_TYPES.forEach(t => {
+        const alvara = clientAlvaras.find((a: any) => a.tipo === t)
+        alvarasByType[t] = alvara || null
+        
+        if (alvara) {
+          const valDate = alvara.validade ? new Date(alvara.validade) : null
+          let isLate = alvara.status === 'VENCIDO' || alvara.status === 'CASSADO'
+          let isWarning = false
+
+          if (valDate && isValid(valDate)) {
             if (isBefore(valDate, today)) {
-               vencidos++
+              isLate = true
             } else if (isBefore(valDate, warningDate)) {
-               vencendo++
-            } else {
-               ativos++
+              isWarning = true
             }
           }
+
+          if (isLate) vencidosCount++
+          else if (isWarning) alertaCount++
         } else {
-          ativos++
+          missingCount++
         }
-      }
-    })
-
-    return { total: (alvaras || []).length, ativos, vencendo, vencidos }
-  }, [alvaras])
-
-  const handleOpenModal = (item?: any) => {
-    if (item) {
-      setFormData({
-        id: item.id || "",
-        clienteId: item.clienteId || "",
-        tipo: item.tipo || "",
-        numero: item.numero || "",
-        orgaoEmissor: item.orgaoEmissor || "",
-        dataEmissao: item.dataEmissao || "",
-        validade: item.validade || "",
-        status: item.status || "ATIVO",
-        observacoes: item.observacoes || ""
       })
-      setEditingItem(item)
+      
+      let statusGeral = "REGULAR"
+      if (vencidosCount > 0) statusGeral = "IRREGULAR"
+      else if (alertaCount > 0) statusGeral = "ALERTA"
+
+      return {
+        ...client,
+        alvarasByType,
+        statusGeral,
+        vencidosCount,
+        alertaCount
+      }
+    }).filter((c: any) => {
+      if (!searchTerm) return true
+      return c.corporateName?.toLowerCase().includes(searchLower) || c.cnpj?.includes(searchTerm)
+    }).sort((a: any, b: any) => {
+      if (a.statusGeral === "IRREGULAR" && b.statusGeral !== "IRREGULAR") return -1
+      if (b.statusGeral === "IRREGULAR" && a.statusGeral !== "IRREGULAR") return 1
+      return (a.corporateName || "").localeCompare(b.corporateName || "")
+    })
+  }, [clients, alvaras, searchTerm])
+
+  const stats = useMemo(() => {
+    let empresas = 0
+    let regulares = 0
+    let alerta = 0
+    let irregulares = 0
+
+    processedClients.forEach(c => {
+      empresas++
+      if (c.statusGeral === 'REGULAR') regulares++
+      else if (c.statusGeral === 'IRREGULAR') irregulares++
+      else if (c.statusGeral === 'ALERTA') alerta++
+    })
+    
+    return { empresas, regulares, alerta, irregulares }
+  }, [processedClients])
+
+  const handleOpenModal = (client: any, type: string, existingAlvara: any) => {
+    setActiveClientName(client.corporateName)
+    if (existingAlvara) {
+      setFormData({
+        id: existingAlvara.id || "",
+        clienteId: existingAlvara.clienteId || client.id,
+        tipo: existingAlvara.tipo || type,
+        numero: existingAlvara.numero || "",
+        orgaoEmissor: existingAlvara.orgaoEmissor || "",
+        dataEmissao: existingAlvara.dataEmissao || "",
+        validade: existingAlvara.validade || "",
+        status: existingAlvara.status || "ATIVO",
+        observacoes: existingAlvara.observacoes || ""
+      })
+      setEditingItem(existingAlvara)
     } else {
       setFormData({
         id: "",
-        clienteId: "",
-        tipo: "",
+        clienteId: client.id,
+        tipo: type,
         numero: "",
         orgaoEmissor: "",
         dataEmissao: "",
@@ -243,19 +275,19 @@ export default function AlvarasPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] gap-2 font-black uppercase text-xs h-11 px-6 shadow-sm" onClick={handleExportPDF}>
-            <FileDown className="h-4 w-4" /> Exportar Relatório
+            <FileDown className="h-4 w-4" /> Exportar Matriz
           </Button>
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg h-11 px-6" onClick={() => handleOpenModal()}>
-            <Plus className="h-4 w-4" /> Novo Alvará ou Licença
+          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg h-11 px-6">
+            <Plus className="h-4 w-4" /> Novo Lote
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard label="Total de Registros" value={stats.total} icon={FileText} color="info" />
-        <KpiCard label="Regulares / Ativos" value={stats.ativos} icon={ShieldCheck} color="success" />
-        <KpiCard label="Vencendo (30d)" value={stats.vencendo} icon={AlertTriangle} color="warning" />
-        <KpiCard label="Vencidos/Críticos" value={stats.vencidos} icon={AlertTriangle} color="destructive" />
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <KpiCard label="Empresas" value={stats.empresas} icon={Building2} color="info" />
+        <KpiCard label="100% Regulares" value={stats.regulares} icon={ShieldCheck} color="success" />
+        <KpiCard label="Em Alerta (30d)" value={stats.alerta} icon={AlertTriangle} color="warning" />
+        <KpiCard label="C/ Irregularidade" value={stats.irregulares} icon={AlertTriangle} color="destructive" />
       </div>
 
       <div id="pdf-export-content" className="bg-white">
@@ -272,13 +304,13 @@ export default function AlvarasPage() {
           </div>
         </div>
 
-      <Card className="border-[#D2D7DB] shadow-sm overflow-hidden">
+      <Card className="border-[#D2D7DB] shadow-sm overflow-hidden bg-white">
         <CardHeader className="pb-4 bg-[#F7F7F7] border-b pdf-hide">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-3 h-4 w-4 text-[#98A7AA]" />
             <Input
-              placeholder="Buscar por cliente, emissor ou número..."
-              className="pl-10 bg-white border-[#D2D7DB] h-11"
+              placeholder="Buscar empresa ou CNPJ..."
+              className="pl-10 bg-white border-[#D2D7DB] h-11 font-bold text-[#39586D]"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -288,92 +320,110 @@ export default function AlvarasPage() {
           <Table>
             <TableHeader className="bg-[#2C4156]">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px] pl-6 w-1/3">Empresa</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Descrição</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-center w-48">Data Vencimento</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right pr-6 w-24 action-col">Ações</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right pr-6 action-col">Ações</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] pl-6 w-1/4">Empresa</TableHead>
+                {ALVARA_TYPES.map(type => (
+                  <TableHead key={type} className="text-white font-black uppercase text-[10px] text-center w-28">
+                    {type}
+                  </TableHead>
+                ))}
+                <TableHead className="text-white font-black uppercase text-[10px] text-center w-32">Status Geral</TableHead>
+                <TableHead className="text-white font-black uppercase text-[10px] text-right pr-6 w-16 action-col">Ficha</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {alvarasLoading ? (
+              {clientsLoading || alvarasLoading ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-32 text-center text-[#98A7AA]">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-[#1FA67A]" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Carregando Base...</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Montando Matriz...</span>
                   </TableCell>
                 </TableRow>
-              ) : processedList.length > 0 ? (
-                processedList.map((item: any) => {
-                  const valDate = item.validade ? new Date(item.validade) : null;
-                  const today = new Date();
-                  
-                  let isLate = item.status === 'VENCIDO' || item.status === 'CASSADO';
-                  let isWarning = item.status === 'EM_RENOVACAO';
-                  
-                  if (valDate && isValid(valDate)) {
-                    if (isBefore(valDate, today)) {
-                      isLate = true;
-                    } else if (differenceInDays(valDate, today) <= 30) {
-                      isWarning = true;
-                    }
-                  }
+              ) : processedClients.length > 0 ? (
+                processedClients.map((item: any) => (
+                  <TableRow key={item.id} className="hover:bg-[#F7F7F7]/50 transition-colors group">
+                    <TableCell className="pl-6 py-3">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-[#2C4156] text-xs uppercase">{item.corporateName}</span>
+                        <span className="text-[9px] font-mono text-[#98A7AA] font-bold tracking-widest">{item.cnpj}</span>
+                      </div>
+                    </TableCell>
+                    
+                    {ALVARA_TYPES.map(type => {
+                      const alvara = item.alvarasByType[type]
+                      const valDate = alvara?.validade ? parseISO(alvara.validade) : null;
+                      const today = new Date();
+                      
+                      let isLate = alvara?.status === 'VENCIDO' || alvara?.status === 'CASSADO';
+                      let isWarning = false;
+                      
+                      if (valDate && isValid(valDate)) {
+                        if (isBefore(valDate, today)) {
+                          isLate = true;
+                        } else if (differenceInDays(valDate, today) <= 30) {
+                          isWarning = true;
+                        }
+                      }
 
-                  const dateStr = valDate && isValid(valDate) ? format(valDate, 'dd/MM/yyyy') : 'Sem Prazo';
+                      const dateStr = valDate && isValid(valDate) ? format(valDate, 'dd/MM/yyyy') : '---';
 
-                  const statusWord = isLate && item.status !== 'EM_RENOVACAO' ? 'VENCIDO' : isWarning ? 'ALERTA' : 'OK';
+                      const statusWord = !alvara ? 'ND' : isLate ? 'VENCIDO' : isWarning ? 'ALERTA' : 'OK';
 
-                  const wrapperClass = isLate ? "bg-white border hover:bg-[#FEE2E2] border-[#E74C3C]/20 text-[#E74C3C]" :
+                      const wrapperClass = !alvara ? "bg-transparent border-dashed border border-[#D2D7DB]" :
+                                       isLate ? "bg-white border hover:bg-[#FEE2E2] border-[#E74C3C]/20 text-[#E74C3C]" :
                                        isWarning ? "bg-white border hover:bg-[#FFF4E5] border-[#F39C12]/30 text-[#F39C12]" :
                                        "bg-white border hover:bg-[#E6F6F0] border-[#1FA67A]/30 text-[#1FA67A]";
 
-                  const badgeClass = isLate ? "bg-[#E74C3C] text-white" :
-                                     isWarning ? "bg-[#F39C12] text-white" :
-                                     "bg-[#1FA67A] text-white";
+                      const badgeClass = !alvara ? "bg-[#F4F5F7] text-[#98A7AA]" :
+                                         isLate ? "bg-[#E74C3C] text-white" :
+                                         isWarning ? "bg-[#F39C12] text-white" :
+                                         "bg-[#1FA67A] text-white";
 
-                  return (
-                  <TableRow key={item.id} className="hover:bg-[#F7F7F7]/50 group transition-colors pdf-row">
-                    <TableCell className="pl-6 py-3">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-[#2C4156] text-xs uppercase">{item.clientName}</span>
-                        <span className="text-[9px] font-mono text-[#98A7AA] font-bold tracking-widest">{item.clientCnpj || '---'}</span>
-                      </div>
+                      return (
+                        <TableCell key={type} className="text-center p-1.5">
+                           <div 
+                             onClick={() => handleOpenModal(item, type, alvara)}
+                             className={cn(
+                               "w-full flex md:flex-col lg:flex-row items-center justify-between gap-1 p-1.5 rounded-lg cursor-pointer transition-all shadow-sm active:scale-95",
+                               wrapperClass
+                             )}
+                             title={alvara ? `Vencimento: ${dateStr}` : 'Clique para registrar'}
+                           >
+                             <span className="text-[10px] font-bold font-mono tracking-tight">{!alvara ? 'Sem Registro' : dateStr}</span>
+                             <Badge className={cn("text-[8px] font-black uppercase px-1.5 py-0 min-h-0 h-4 border-none shrink-0", badgeClass)}>
+                               {statusWord}
+                             </Badge>
+                           </div>
+                        </TableCell>
+                      )
+                    })}
+                    
+                    <TableCell className="text-center">
+                      <Badge className={cn(
+                        "text-[9px] font-black uppercase border-none px-2 shadow-sm rounded-full",
+                        item.statusGeral === 'REGULAR' ? "bg-[#1FA67A] text-white" :
+                        item.statusGeral === 'IRREGULAR' ? "bg-[#E74C3C] text-white" :
+                        item.statusGeral === 'ALERTA' ? "bg-[#F39C12] text-white" :
+                        "bg-[#D2D7DB] text-[#39586D]"
+                      )}>
+                        {item.statusGeral.replace('_', ' ')}
+                      </Badge>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-bold text-[#39586D] text-[11px] uppercase">{item.tipo}</span>
-                        <span className="text-[9px] text-[#98A7AA] font-bold">{item.orgaoEmissor || '---'} {item.numero ? `| Reg: ${item.numero}` : ''}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center p-1.5 align-middle">
-                       <div 
-                         className={cn(
-                           "w-full max-w-[160px] mx-auto flex items-center justify-between gap-1 p-1.5 rounded-lg shadow-sm border",
-                           wrapperClass
-                         )}
-                       >
-                         <span className="text-[10px] font-bold font-mono tracking-tight">{dateStr}</span>
-                         <Badge className={cn("text-[8px] font-black uppercase px-2 py-0 min-h-0 h-4 border-none", badgeClass)}>
-                           {statusWord}
-                         </Badge>
-                       </div>
-                    </TableCell>
+                    
                     <TableCell className="text-right pr-6 action-col">
-                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-[#39586D]" onClick={() => handleOpenModal(item)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C]" onClick={() => handleDelete(item.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA] hover:text-[#1FA67A] opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Link href={`/clientes/${item.id}`}><Eye className="h-4 w-4" /></Link>
+                      </Button>
                     </TableCell>
                   </TableRow>
-                )})
+                ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-[#98A7AA] font-bold text-[10px] uppercase">
-                    Nenhum alvará ou licença registrado encontrado.
+                  <TableCell colSpan={6} className="py-10">
+                    <EmptyState
+                      icon={ShieldCheck}
+                      title="Nenhuma empresa encontrada"
+                      description="Ajuste a busca para localizar a matriz de alvarás da carteira."
+                    />
                   </TableCell>
                 </TableRow>
               )}
@@ -390,18 +440,17 @@ export default function AlvarasPage() {
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden border-none shadow-2xl flex flex-col">
-          <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
-            <DialogTitle className="text-2xl font-black uppercase tracking-tight">{editingItem ? 'Editar' : 'Novo'} Alvará / Licença</DialogTitle>
-            <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
-              Gerencie a documentação e garanta o compliance da empresa.
+        <DialogContent className="max-w-[450px] p-0 overflow-hidden border-none shadow-2xl flex flex-col">
+          <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0 relative">
+            <Badge variant="outline" className="border-white/30 text-white font-black text-[9px] absolute top-4 right-4 uppercase bg-[#39586D]">{formData.tipo || 'Tipo'}</Badge>
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight">{editingItem ? 'Editar' : 'Cadastrar'} Alvará</DialogTitle>
+            <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest mt-1">
+              Gerencie a documentação — Empresa: {activeClientName || 'Selecione uma empresa'}
             </DialogDescription>
           </DialogHeader>
           
-          <div className="modal-scroll-content">
-            <div className="grid grid-cols-2 gap-5 p-6 bg-white">
-              
-              <div className="col-span-2 space-y-2">
+          <div className="p-6 bg-white space-y-4">
+              <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
                   <Building2 className="h-3 w-3" /> Empresa Vinculada
                 </Label>
@@ -419,29 +468,35 @@ export default function AlvarasPage() {
                 </Select>
               </div>
 
-              <div className="col-span-2 md:col-span-1 space-y-2">
+              <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
-                  <FileSignature className="h-3 w-3" /> Tipo de Documento
+                  <FileSignature className="h-3 w-3" /> Tipo de Alvará / Licença
                 </Label>
-                <Input 
-                  placeholder="Ex: Alvará de Funcionamento" 
-                  value={formData.tipo}
-                  onChange={(e) => setFormData({...formData, tipo: e.target.value.toUpperCase()})}
-                  className="border-[#D2D7DB] font-bold uppercase"
-                />
+                <Select value={formData.tipo} onValueChange={(v) => setFormData({...formData, tipo: v})}>
+                  <SelectTrigger className="border-[#D2D7DB] h-11 font-bold text-xs uppercase text-[#39586D]">
+                    <SelectValue placeholder="Selecione o Tipo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ALVARA_TYPES.map(type => (
+                      <SelectItem key={type} value={type} className="font-bold text-xs uppercase">
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="col-span-2 md:col-span-1 space-y-2">
+              <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Órgão Emissor</Label>
                 <Input 
                   placeholder="Ex: Prefeitura Municipal / Corpo de Bombeiros" 
                   value={formData.orgaoEmissor}
-                  onChange={(e) => setFormData({...formData, orgaoEmissor: e.target.value.toUpperCase()})}
-                  className="border-[#D2D7DB] font-bold uppercase"
+                  onChange={(e) => setFormData({...formData, orgaoEmissor: e.target.value})}
+                  className="border-[#D2D7DB] font-bold"
                 />
               </div>
 
-              <div className="col-span-2 md:col-span-1 space-y-2">
+              <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Nº de Registro / Inscrição</Label>
                 <Input 
                   placeholder="000.000.000-00" 
@@ -451,8 +506,8 @@ export default function AlvarasPage() {
                 />
               </div>
 
-              <div className="col-span-2 md:col-span-1 space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Status de Operação</Label>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Status Atual</Label>
                 <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
                   <SelectTrigger className="border-[#D2D7DB] h-11 font-black text-xs uppercase text-[#2C4156]">
                     <SelectValue />
@@ -466,41 +521,41 @@ export default function AlvarasPage() {
                 </Select>
               </div>
 
-              <div className="col-span-2 md:col-span-1 space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
-                  <Calendar className="h-3 w-3" /> Data de Emissão
-                </Label>
-                <Input 
-                  type="date"
-                  value={formData.dataEmissao}
-                  onChange={(e) => setFormData({...formData, dataEmissao: e.target.value})}
-                  className="border-[#D2D7DB] font-bold text-[#39586D]"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
+                    <Calendar className="h-3 w-3" /> Emissão
+                  </Label>
+                  <Input 
+                    type="date"
+                    value={formData.dataEmissao}
+                    onChange={(e) => setFormData({...formData, dataEmissao: e.target.value})}
+                    className="border-[#D2D7DB] font-bold text-[#39586D] h-11"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#1FA67A] tracking-widest flex items-center gap-2">
+                    <Calendar className="h-3 w-3 text-[#1FA67A]" /> Validade
+                  </Label>
+                  <Input 
+                    type="date"
+                    value={formData.validade}
+                    onChange={(e) => setFormData({...formData, validade: e.target.value})}
+                    className="border-[#1FA67A] focus-visible:ring-[#1FA67A] font-black text-[#2C4156] h-11"
+                  />
+                </div>
               </div>
 
-              <div className="col-span-2 md:col-span-1 space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#1FA67A] tracking-widest flex items-center gap-2">
-                  <Calendar className="h-3 w-3 text-[#1FA67A]" /> Vencimento
-                </Label>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Anotações (Opcional)</Label>
                 <Input 
-                  type="date"
-                  value={formData.validade}
-                  onChange={(e) => setFormData({...formData, validade: e.target.value})}
-                  className="border-[#1FA67A] focus-visible:ring-[#1FA67A] font-black text-[#2C4156]"
-                />
-              </div>
-
-              <div className="col-span-2 space-y-2 pt-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Anotações Internas (Opcional)</Label>
-                <Input 
-                  placeholder="Informações adicionais importantes..." 
+                  placeholder="Informações adicionais..." 
                   value={formData.observacoes}
                   onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
                   className="border-[#D2D7DB]"
                 />
               </div>
-
-            </div>
           </div>
 
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">

@@ -704,7 +704,21 @@ export default function ProcessosPage() {
                                       </TableCell>
                                       <TableCell className="py-2">
                                         <div className="flex flex-col">
-                                          <span className="text-[11px] font-bold text-[#2C4156] uppercase">{client?.corporateName || '---'}</span>
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-[11px] font-bold text-[#2C4156] uppercase">{client?.corporateName || '---'}</span>
+                                            {p.origemCriacao && (
+                                              <Badge className={cn(
+                                                "text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border",
+                                                p.origemCriacao === 'GRUPO' 
+                                                  ? "bg-blue-50 text-blue-700 border-blue-200" 
+                                                  : p.origemCriacao === 'AVULSO'
+                                                  ? "bg-slate-100 text-slate-600 border-slate-200"
+                                                  : "bg-slate-100 text-slate-600 border-slate-200"
+                                              )}>
+                                                {p.origemCriacao === 'GRUPO' ? 'GRP' : 'AVU'}
+                                              </Badge>
+                                            )}
+                                          </div>
                                           <span className="text-[9px] font-mono text-[#98A7AA]">{client?.cnpj || '---'}</span>
                                         </div>
                                       </TableCell>
