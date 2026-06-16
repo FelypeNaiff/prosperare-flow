@@ -111,8 +111,12 @@ export default function AlvarasPage() {
         }
       })
       
+      const hasAnyMovement = clientAlvaras.some((a: any) => a.status !== 'DISPENSADO')
+      const onlyDispensed = clientAlvaras.length > 0 && clientAlvaras.every((a: any) => a.status === 'DISPENSADO')
+
       let statusGeral = "REGULAR"
-      if (vencidosCount > 0) statusGeral = "IRREGULAR"
+      if (onlyDispensed) statusGeral = "DISPENSADO"
+      else if (vencidosCount > 0) statusGeral = "IRREGULAR"
       else if (alertaCount > 0) statusGeral = "ALERTA"
 
       return {
@@ -120,12 +124,17 @@ export default function AlvarasPage() {
         alvarasByType,
         statusGeral,
         vencidosCount,
-        alertaCount
+        alertaCount,
+        hasAnyMovement
       }
     }).filter((c: any) => {
       if (!searchTerm) return true
       return c.corporateName?.toLowerCase().includes(searchLower) || c.cnpj?.includes(searchTerm)
     }).sort((a: any, b: any) => {
+      if (a.statusGeral === "DISPENSADO" && b.statusGeral !== "DISPENSADO") return 1
+      if (b.statusGeral === "DISPENSADO" && a.statusGeral !== "DISPENSADO") return -1
+      if (a.hasAnyMovement && !b.hasAnyMovement) return -1
+      if (b.hasAnyMovement && !a.hasAnyMovement) return 1
       if (a.statusGeral === "IRREGULAR" && b.statusGeral !== "IRREGULAR") return -1
       if (b.statusGeral === "IRREGULAR" && a.statusGeral !== "IRREGULAR") return 1
       return (a.corporateName || "").localeCompare(b.corporateName || "")
@@ -353,6 +362,7 @@ export default function AlvarasPage() {
                       const valDate = alvara?.validade ? parseISO(alvara.validade) : null;
                       const today = new Date();
                       
+                      const isDispensed = alvara?.status === 'DISPENSADO';
                       let isLate = alvara?.status === 'VENCIDO' || alvara?.status === 'CASSADO';
                       let isWarning = false;
                       
@@ -366,14 +376,16 @@ export default function AlvarasPage() {
 
                       const dateStr = valDate && isValid(valDate) ? format(valDate, 'dd/MM/yyyy') : '---';
 
-                      const statusWord = !alvara ? 'ND' : isLate ? 'VENCIDO' : isWarning ? 'ALERTA' : 'OK';
+                      const statusWord = !alvara ? 'ND' : isDispensed ? 'DISPENSADO' : isLate ? 'VENCIDO' : isWarning ? 'ALERTA' : 'OK';
 
                       const wrapperClass = !alvara ? "bg-transparent border-dashed border border-[#D2D7DB]" :
+                                       isDispensed ? "bg-white border hover:bg-[#F4F5F7] border-[#D1D5DB] text-[#6B7280]" :
                                        isLate ? "bg-white border hover:bg-[#FEE2E2] border-[#E74C3C]/20 text-[#E74C3C]" :
                                        isWarning ? "bg-white border hover:bg-[#FFF4E5] border-[#F39C12]/30 text-[#F39C12]" :
                                        "bg-white border hover:bg-[#E6F6F0] border-[#1FA67A]/30 text-[#1FA67A]";
 
                       const badgeClass = !alvara ? "bg-[#F4F5F7] text-[#98A7AA]" :
+                                         isDispensed ? "bg-[#D1D5DB] text-[#4B5563]" :
                                          isLate ? "bg-[#E74C3C] text-white" :
                                          isWarning ? "bg-[#F39C12] text-white" :
                                          "bg-[#1FA67A] text-white";
@@ -517,6 +529,7 @@ export default function AlvarasPage() {
                     <SelectItem value="EM_RENOVACAO" className="font-bold text-xs uppercase">🟡 Em Processo de Renovação</SelectItem>
                     <SelectItem value="VENCIDO" className="font-bold text-xs uppercase">🔴 Vencido</SelectItem>
                     <SelectItem value="CASSADO" className="font-bold text-xs uppercase">⚫ Cassado / Cancelado</SelectItem>
+                    <SelectItem value="DISPENSADO" className="font-bold text-xs uppercase">⚫ Dispensado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
