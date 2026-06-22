@@ -42,7 +42,8 @@ export async function lookupCnpjAction(cnpj: string) {
           phone: data.telefone,
           primaryCnae: data.atividade_principal?.[0]?.code || "",
           taxRegime: "Consultar no Portal",
-          companyContactPerson: principalPartner.toUpperCase()
+          companyContactPerson: principalPartner.toUpperCase(),
+          companyStatus: data.situacao || data.status || ""
         };
       }
     }
@@ -78,7 +79,8 @@ export async function lookupCnpjAction(cnpj: string) {
       phone: bData.ddd_telefone_1,
       primaryCnae: bData.cnae_fiscal.toString(),
       taxRegime: regimeSugerido,
-      companyContactPerson: principalPartnerBapi.toUpperCase()
+      companyContactPerson: principalPartnerBapi.toUpperCase(),
+      companyStatus: bData.status || ""
     };
 
   } catch (error: any) {

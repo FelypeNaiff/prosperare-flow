@@ -92,6 +92,7 @@ export default function ClientesPage() {
     taxRegime: "Simples Nacional",
     accountingContactUserId: "Geral",
     companyContactPerson: "",
+    companyStatus: "",
     status: "ATIVO",
     email: "",
     phone: "",
@@ -160,6 +161,7 @@ export default function ClientesPage() {
       taxRegime: "Simples Nacional", 
       accountingContactUserId: "Geral", 
       companyContactPerson: "",
+      companyStatus: "",
       status: "ATIVO", 
       email: "",
       phone: "",
@@ -553,6 +555,11 @@ export default function ClientesPage() {
                     <SelectItem value="Lucro Real">Lucro Real</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="col-span-2 md:col-span-1 space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Status Receita</Label>
+                <Input value={newClient.companyStatus || "Não consultado"} readOnly className="border-[#D2D7DB] bg-[#F7F7F7] text-[#39586D] font-bold uppercase" />
               </div>
 
               <div className="col-span-2 space-y-2">

@@ -37,6 +37,7 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
     email: "",
     phone: "",
     companyContactPerson: "",
+    companyStatus: "",
     address: "",
     neighborhood: "",
     city: "",
@@ -70,7 +71,8 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
         stateRegistration: client.stateRegistration || "",
         cityRegistration: client.cityRegistration || "",
         honorariumValue: client.honorariumValue || 0,
-        honorariumDueDateDay: client.honorariumDueDateDay || 10
+        honorariumDueDateDay: client.honorariumDueDateDay || 10,
+        companyStatus: client.companyStatus || ""
       })
     }
   }, [client, open])
@@ -89,7 +91,8 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
       setFormData(prev => ({
         ...prev,
         ...data,
-        taxRegime: data.taxRegime !== "Consultar no Portal" ? data.taxRegime : prev.taxRegime
+        taxRegime: data.taxRegime !== "Consultar no Portal" ? data.taxRegime : prev.taxRegime,
+        companyStatus: data.companyStatus || prev.companyStatus
       }))
 
       toast({ title: "Dados Sincronizados!", description: "Informações corporativas e sócios atualizados." })
@@ -125,14 +128,20 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
 
         <div className="modal-scroll-content">
           <div className="p-6 grid grid-cols-2 gap-5 bg-white">
-            <div className="col-span-2 flex items-end gap-3">
-              <div className="flex-1 space-y-2">
+            <div className="col-span-2 flex flex-wrap items-end gap-3">
+              <div className="flex-1 min-w-[220px] space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA]">CNPJ</Label>
                 <Input 
                   value={formData.cnpj}
                   onChange={(e) => setFormData({...formData, cnpj: formatCNPJ(e.target.value)})}
                   className="border-[#D2D7DB] font-mono font-bold"
                 />
+              </div>
+              <div className="min-w-[190px] space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Status Receita</Label>
+                <div className="h-10 flex items-center px-3 rounded border border-[#D2D7DB] bg-[#F7F7F7] text-sm font-bold uppercase text-[#39586D]">
+                  {formData.companyStatus || "Não consultado"}
+                </div>
               </div>
               <Button 
                 variant="outline" 
