@@ -24,6 +24,7 @@ import {
   User
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { 
   Table, 
@@ -79,6 +80,9 @@ export default function ClientesPage() {
   const [isLoadingCnpj, setIsLoadingCnpj] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [statusConsultingId, setStatusConsultingId] = useState<string | null>(null)
+  const [isBatchReceitaChecking, setIsBatchReceitaChecking] = useState(false)
+  const [selectedClientIds, setSelectedClientIds] = useState<string[]>([])
+  const [currentBatchClientId, setCurrentBatchClientId] = useState<string | null>(null)
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('asc')
   
   const clientsQuery = useMemoFirebase(() => 
@@ -217,6 +221,68 @@ export default function ClientesPage() {
   const handleCopyCNPJ = (cnpj: string) => {
     navigator.clipboard.writeText(cnpj)
     toast({ title: "CNPJ Copiado!", description: cnpj })
+  }
+
+  const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+  const handleBatchReceitaCheck = async () => {
+    if (selectedClientIds.length === 0) {
+      toast({ title: "Selecione clientes", description: "Escolha ao menos um cliente para consultar em lote.", variant: "destructive" })
+      return
+    }
+
+    setIsBatchReceitaChecking(true)
+    setCurrentBatchClientId(selectedClientIds[0])
+
+    let successCount = 0
+    let failureCount = 0
+
+    try {
+      for (let index = 0; index < selectedClientIds.length; index++) {
+        const clientId = selectedClientIds[index]
+        const client = clients.find((item: any) => item.id === clientId)
+
+        if (!client) {
+          failureCount++
+          continue
+        }
+
+        const cleanCnpj = String(client.cnpj || "").replace(/\D/g, "")
+        if (cleanCnpj.length !== 14) {
+          failureCount++
+          continue
+        }
+
+        setCurrentBatchClientId(clientId)
+
+        try {
+          const data = await lookupCnpjAction(cleanCnpj)
+          const clientRef = doc(firestore, "clients", clientId)
+          setDocumentNonBlocking(clientRef, {
+            companyStatus: data.companyStatus?.toUpperCase?.() ? data.companyStatus.toUpperCase() : data.companyStatus || "",
+            taxRegime: data.taxRegime !== "Consultar no Portal" ? data.taxRegime : client.taxRegime
+          }, { merge: true })
+          successCount++
+        } catch (error) {
+          failureCount++
+        }
+
+        if (index < selectedClientIds.length - 1) {
+          await wait(20000)
+        }
+      }
+
+      toast({
+        title: "Consulta em lote concluída",
+        description: `${successCount} de ${selectedClientIds.length} clientes atualizados.${failureCount > 0 ? ` ${failureCount} falha(s) ignorada(s).` : ""}`
+      })
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erro na consulta em lote", description: error.message || "Não foi possível concluir a consulta em lote." })
+    } finally {
+      setIsBatchReceitaChecking(false)
+      setCurrentBatchClientId(null)
+      setSelectedClientIds([])
+    }
   }
 
   const handleExportPDF = async () => {
@@ -414,6 +480,32 @@ export default function ClientesPage() {
         <KpiCard label="Procurações OK" value={0} icon={FileSignature} color="success" />
         <KpiCard label="Alertas Críticos" value={0} icon={AlertTriangle} color="destructive" />
       </div>
+      {selectedClientIds.length > 0 && (
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 rounded-xl border border-[#D2D7DB] bg-[#F7F7F7] p-4 print:hidden">
+          <div>
+            <p className="text-sm font-black text-[#2C4156]">{selectedClientIds.length} cliente(s) selecionado(s)</p>
+            <p className="text-xs text-[#98A7AA]">A consulta em lote será executada com intervalo de 20 segundos entre cada CNPJ.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="outline" 
+              className="border-[#D2D7DB] text-[#39586D] font-bold"
+              onClick={() => setSelectedClientIds([])}
+              disabled={isBatchReceitaChecking}
+            >
+              Limpar Seleção
+            </Button>
+            <Button 
+              className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-bold shadow-lg"
+              onClick={handleBatchReceitaCheck}
+              disabled={isBatchReceitaChecking}
+            >
+              {isBatchReceitaChecking ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4" />}
+              Consultar Receita em Lote
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Card className="border-[#D2D7DB] shadow-sm overflow-hidden print:border-none print:shadow-none">
         <CardHeader className="pb-3 border-b bg-[#F7F7F7]/50 print:hidden">
@@ -446,6 +538,19 @@ export default function ClientesPage() {
             <Table className="print:w-full">
               <TableHeader className="bg-[#2C4156] print:bg-[#2C4156]">
                 <TableRow className="hover:bg-transparent">
+                <TableHead className="text-white font-black uppercase text-[10px] print:text-white">
+                  <Checkbox 
+                    checked={selectedClientIds.length === filteredClients.length && filteredClients.length > 0}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedClientIds(filteredClients.map((client) => client.id))
+                      } else {
+                        setSelectedClientIds([])
+                      }
+                    }}
+                    className="border-white text-white"
+                  />
+                </TableHead>
                   <TableHead className="text-white font-black uppercase text-[10px] print:text-white cursor-pointer group" onClick={toggleSort}>
                     <div className="flex items-center gap-2">
                       Empresa / Razão Social
@@ -474,10 +579,22 @@ export default function ClientesPage() {
                       "transition-colors print:border-b print:border-[#D2D7DB]",
                       client.companyStatus?.toUpperCase?.() === 'INAPTO'
                         ? 'bg-[#FEE2E6] text-[#991B1B]'
-                        : 'hover:bg-[#F7F7F7]/50'
+                        : 'hover:bg-[#F7F7F7]/50',
+                      selectedClientIds.includes(client.id) ? 'bg-[#E6FFFA]' : ''
                     )}
                   >
                     <TableCell className="py-4">
+                      <Checkbox 
+                        checked={selectedClientIds.includes(client.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedClientIds((prev) => [...new Set([...prev, client.id])])
+                          } else {
+                            setSelectedClientIds((prev) => prev.filter((id) => id !== client.id))
+                          }
+                        }}
+                        className="mb-2"
+                      />
                       <div className="flex flex-col gap-0.5">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-bold text-[#2C4156] uppercase text-xs">
@@ -530,7 +647,7 @@ export default function ClientesPage() {
                           <DropdownMenuItem 
                             className="flex items-center gap-2 cursor-pointer text-xs font-bold"
                             onSelect={() => handleReceitaCheck(client)}
-                            disabled={statusConsultingId === client.id}
+                            disabled={statusConsultingId === client.id || isBatchReceitaChecking}
                           >
                             {statusConsultingId === client.id ? (
                               <Loader2 className="h-3 w-3 text-[#1FA67A] animate-spin" />
