@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Save,
   Loader2,
+  RefreshCw,
   ShieldCheck,
   Eye,
   Trash2,
@@ -77,6 +78,7 @@ export default function ClientesPage() {
   const [isNewClientOpen, setIsNewClientOpen] = useState(false)
   const [isLoadingCnpj, setIsLoadingCnpj] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
+  const [statusConsultingId, setStatusConsultingId] = useState<string | null>(null)
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('asc')
   
   const clientsQuery = useMemoFirebase(() => 
@@ -180,6 +182,35 @@ export default function ClientesPage() {
     if (confirm("Deseja excluir permanentemente este registro?")) {
       deleteDocumentNonBlocking(doc(firestore, "clients", id))
       toast({ title: "Cliente removido", variant: "destructive" })
+    }
+  }
+
+  const handleReceitaCheck = async (client: any) => {
+    const cleanCnpj = String(client.cnpj || "").replace(/\D/g, "")
+    if (cleanCnpj.length !== 14) {
+      toast({ variant: "destructive", title: "CNPJ inválido", description: "Não é possível consultar a Receita Federal sem um CNPJ válido." })
+      return
+    }
+
+    setStatusConsultingId(client.id)
+    try {
+      const data = await lookupCnpjAction(cleanCnpj)
+      const clientRef = doc(firestore, "clients", client.id)
+      setDocumentNonBlocking(clientRef, {
+        companyStatus: data.companyStatus?.toUpperCase?.() ? data.companyStatus.toUpperCase() : data.companyStatus || "",
+        taxRegime: data.taxRegime !== "Consultar no Portal" ? data.taxRegime : client.taxRegime
+      })
+
+      toast({
+        title: "Consulta Receita Federal concluída",
+        description: data.companyStatus?.toUpperCase?.() === 'INAPTO'
+          ? 'Empresa INAPTO atualizada. Registro destacado em vermelho.'
+          : `Status atualizado: ${data.companyStatus || 'Não informado'}`
+      })
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Falha na consulta", description: error.message || "Não foi possível consultar a Receita Federal." })
+    } finally {
+      setStatusConsultingId(null)
     }
   }
 
@@ -437,12 +468,32 @@ export default function ClientesPage() {
                 </TableRow>
               ) : filteredClients.length > 0 ? (
                 filteredClients.map((client) => (
-                  <TableRow key={client.id} className="hover:bg-[#F7F7F7]/50 transition-colors print:border-b print:border-[#D2D7DB]">
+                  <TableRow
+                    key={client.id}
+                    className={cn(
+                      "transition-colors print:border-b print:border-[#D2D7DB]",
+                      client.companyStatus?.toUpperCase?.() === 'INAPTO'
+                        ? 'bg-[#FEE2E6] text-[#991B1B]'
+                        : 'hover:bg-[#F7F7F7]/50'
+                    )}
+                  >
                     <TableCell className="py-4">
                       <div className="flex flex-col gap-0.5">
-                        <span className="font-bold text-[#2C4156] uppercase text-xs">
-                          {client.corporateName}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-[#2C4156] uppercase text-xs">
+                            {client.corporateName}
+                          </span>
+                          {client.companyStatus && (
+                            <span className={cn(
+                              "inline-flex rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em]",
+                              client.companyStatus.toUpperCase() === 'INAPTO'
+                                ? 'bg-[#FEE2E6] border-[#FECACA] text-[#B91C1C]'
+                                : 'bg-[#E6FFFA] border-[#B7F0DB] text-[#0F766E]'
+                            )}>
+                              {client.companyStatus.toUpperCase()}
+                            </span>
+                          )}
+                        </div>
                         {client.nomeFantasia && client.nomeFantasia !== client.corporateName && (
                           <span className="text-[9px] text-[#98A7AA] font-bold uppercase italic tracking-wider">
                             {client.nomeFantasia}
@@ -476,6 +527,18 @@ export default function ClientesPage() {
                           <Button variant="ghost" size="icon" className="text-[#98A7AA]"><MoreHorizontal className="h-4 w-4" /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem 
+                            className="flex items-center gap-2 cursor-pointer text-xs font-bold"
+                            onSelect={() => handleReceitaCheck(client)}
+                            disabled={statusConsultingId === client.id}
+                          >
+                            {statusConsultingId === client.id ? (
+                              <Loader2 className="h-3 w-3 text-[#1FA67A] animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-3 w-3 text-[#1FA67A]" />
+                            )}
+                            Consulta na Receita Federal
+                          </DropdownMenuItem>
                           <DropdownMenuItem 
                             className="flex items-center gap-2 cursor-pointer text-xs font-bold"
                             onSelect={() => router.push(`/clientes/${client.id}`)}
