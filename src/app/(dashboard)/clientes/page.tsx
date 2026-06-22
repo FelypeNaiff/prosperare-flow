@@ -199,7 +199,7 @@ export default function ClientesPage() {
       setDocumentNonBlocking(clientRef, {
         companyStatus: data.companyStatus?.toUpperCase?.() ? data.companyStatus.toUpperCase() : data.companyStatus || "",
         taxRegime: data.taxRegime !== "Consultar no Portal" ? data.taxRegime : client.taxRegime
-      })
+      }, { merge: true })
 
       toast({
         title: "Consulta Receita Federal concluída",
