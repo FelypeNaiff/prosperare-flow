@@ -88,6 +88,7 @@ const menuItems = [
     subItems: [
       { title: "Gestão de Clientes", url: "/clientes", icon: Users },
       { title: "Demandas Internas", url: "/atendimentos", icon: TicketCheck },
+      { title: "Cofre de Senhas", url: "/cofre-senhas", icon: Lock },
       { title: "Agenda de Demandas", url: "/agenda-demandas", icon: CalendarClock },
     ]
   },
