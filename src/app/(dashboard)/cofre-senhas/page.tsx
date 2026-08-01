@@ -13,21 +13,41 @@ import {
   ExternalLink, 
   Globe, 
   ShieldCheck, 
-  Loader2 
+  Loader2,
+  Plus,
+  Pencil,
+  Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Label } from "@/components/ui/label"
 import { toast } from "@/hooks/use-toast"
 import { 
   useFirestore, 
   useCollection, 
   useMemoFirebase,
-  useUser
+  useUser,
+  setDocumentNonBlocking,
+  deleteDocumentNonBlocking
 } from "@/firebase"
-import { collection } from "firebase/firestore"
+import { collection, doc } from "firebase/firestore"
 import { cn } from "@/lib/utils"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select"
 
 export default function CofreSenhasPage() {
   const { userData, isUserLoading } = useUser()
@@ -36,6 +56,18 @@ export default function CofreSenhasPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({})
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({})
+
+  // Modal / CRUD state
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingAccess, setEditingAccess] = useState<any>(null)
+  const [newPassVisible, setNewPassVisible] = useState(false)
+  const [formData, setFormData] = useState({
+    clientId: "",
+    site: "",
+    url: "",
+    login: "",
+    pass: ""
+  })
 
   // Fetch clients
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
@@ -99,6 +131,97 @@ export default function CofreSenhasPage() {
     window.print()
   }
 
+  // Open Modal for Create Mode
+  const handleNewAccess = () => {
+    if (isRestricted) {
+      toast({
+        title: "Acesso Negado",
+        description: "Assistentes não podem cadastrar novos acessos.",
+        variant: "destructive"
+      })
+      return
+    }
+    setEditingAccess(null)
+    setNewPassVisible(false)
+    setFormData({
+      clientId: "",
+      site: "",
+      url: "",
+      login: "",
+      pass: ""
+    })
+    setIsModalOpen(true)
+  }
+
+  // Open Modal for Edit Mode
+  const handleEditAccess = (access: any) => {
+    if (isRestricted) {
+      toast({
+        title: "Acesso Negado",
+        description: "Assistentes não podem editar acessos.",
+        variant: "destructive"
+      })
+      return
+    }
+    setEditingAccess(access)
+    setNewPassVisible(false)
+    setFormData({
+      clientId: access.clientId || "",
+      site: access.site || "",
+      url: access.url || "",
+      login: access.login || "",
+      pass: access.pass || ""
+    })
+    setIsModalOpen(true)
+  }
+
+  // Firestore Save Action
+  const handleSaveAccess = () => {
+    if (!formData.clientId || !formData.site || !formData.login || !formData.pass) {
+      toast({
+        title: "Erro",
+        description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    const accessId = editingAccess?.id || Math.random().toString(36).substr(2, 9)
+    const docRef = doc(firestore, "clientAccesses", accessId)
+
+    setDocumentNonBlocking(docRef, {
+      ...formData,
+      id: accessId,
+      createdAt: editingAccess?.createdAt || new Date().toISOString()
+    }, { merge: true })
+
+    setIsModalOpen(false)
+    toast({
+      title: editingAccess ? "Acesso Atualizado!" : "Acesso Criado!",
+      description: "As credenciais foram armazenadas de forma segura."
+    })
+  }
+
+  // Firestore Delete Action
+  const handleDeleteAccess = (accessId: string) => {
+    if (isRestricted) {
+      toast({
+        title: "Acesso Negado",
+        description: "Assistentes não podem excluir acessos.",
+        variant: "destructive"
+      })
+      return
+    }
+    if (confirm("Tem certeza que deseja excluir esta credencial do cofre?")) {
+      const docRef = doc(firestore, "clientAccesses", accessId)
+      deleteDocumentNonBlocking(docRef)
+      toast({
+        title: "Acesso Excluído",
+        description: "A credencial foi removida com sucesso."
+      })
+    }
+  }
+
   if (isUserLoading || isClientsLoading || isAccessesLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -148,13 +271,23 @@ export default function CofreSenhasPage() {
           <h1 className="text-3xl font-semibold tracking-tight text-slate-800">Cofre de Senhas</h1>
           <p className="text-slate-500 font-medium text-sm">Gerenciamento seguro e centralizado dos acessos dos clientes.</p>
         </div>
-        <Button 
-          variant="outline" 
-          className="border-slate-300 text-slate-700 hover:bg-slate-100 gap-2 h-11 px-6 shadow-sm font-semibold"
-          onClick={handlePrint}
-        >
-          <Printer className="h-4 w-4" /> Imprimir Relatório
-        </Button>
+        <div className="flex items-center gap-2">
+          {!isRestricted && (
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 text-white gap-2 h-11 px-6 shadow-sm font-semibold transition-colors"
+              onClick={handleNewAccess}
+            >
+              <Plus className="h-4 w-4" /> Novo Acesso
+            </Button>
+          )}
+          <Button 
+            variant="outline" 
+            className="border-slate-300 text-slate-700 hover:bg-slate-100 gap-2 h-11 px-6 shadow-sm font-semibold"
+            onClick={handlePrint}
+          >
+            <Printer className="h-4 w-4" /> Imprimir Relatório
+          </Button>
+        </div>
       </div>
 
       {/* Protocol Banner */}
@@ -319,6 +452,29 @@ export default function CofreSenhasPage() {
                                   </div>
                                 </div>
                               </div>
+
+                              {!isRestricted && (
+                                <div className="flex items-center gap-1.5 no-print shrink-0 border-l border-slate-100 pl-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-9 w-9 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                    title="Editar Acesso"
+                                    onClick={() => handleEditAccess(access)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-9 w-9 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                    title="Excluir Acesso"
+                                    onClick={() => handleDeleteAccess(access.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           )
                         })}
@@ -337,6 +493,109 @@ export default function CofreSenhasPage() {
           </div>
         )}
       </div>
+
+      {/* Modal Dialog for Create/Edit CRUD operations */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[480px] bg-white border border-slate-200 rounded-2xl shadow-xl p-6">
+          <DialogHeader className="pb-4 border-b border-slate-100">
+            <DialogTitle className="text-slate-800 font-semibold text-lg">
+              {editingAccess ? "Editar Acesso Seguro" : "Cadastrar Novo Acesso"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-500">Cliente (Empresa) *</Label>
+              <Select 
+                value={formData.clientId} 
+                onValueChange={(val) => setFormData(prev => ({ ...prev, clientId: val }))}
+                disabled={!!editingAccess}
+              >
+                <SelectTrigger className="w-full bg-white border-slate-200 text-xs text-slate-700 h-10">
+                  <SelectValue placeholder="Selecione o cliente" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border border-slate-200">
+                  {(clients || []).map((client: any) => (
+                    <SelectItem key={client.id} value={client.id} className="text-xs text-slate-700">
+                      {client.corporateName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-500">Nome do Portal / Sistema *</Label>
+              <Input 
+                placeholder="Ex: e-CAC, Calima, Prefeitura..." 
+                value={formData.site} 
+                onChange={(e) => setFormData(prev => ({ ...prev, site: e.target.value }))}
+                className="h-10 text-xs bg-white border-slate-200 focus-visible:ring-blue-600 font-medium text-slate-700"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-500">URL do Portal (Opcional)</Label>
+              <Input 
+                placeholder="https://..." 
+                value={formData.url} 
+                onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                className="h-10 text-xs bg-white border-slate-200 focus-visible:ring-blue-600 font-medium text-slate-700"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-500">Login / Usuário *</Label>
+              <Input 
+                placeholder="Digite o login ou e-mail" 
+                value={formData.login} 
+                onChange={(e) => setFormData(prev => ({ ...prev, login: e.target.value }))}
+                className="h-10 text-xs bg-white border-slate-200 focus-visible:ring-blue-600 font-medium text-slate-700"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-500">Senha *</Label>
+              <div className="relative">
+                <Input 
+                  type={newPassVisible ? "text" : "password"} 
+                  placeholder="Digite a senha" 
+                  value={formData.pass} 
+                  onChange={(e) => setFormData(prev => ({ ...prev, pass: e.target.value }))}
+                  className="h-10 text-xs pr-10 bg-white border-slate-200 focus-visible:ring-blue-600 font-mono text-slate-700"
+                />
+                <button 
+                  type="button"
+                  onClick={() => setNewPassVisible(!newPassVisible)}
+                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                >
+                  {newPassVisible ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="pt-4 border-t border-slate-100 gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsModalOpen(false)}
+              className="border-slate-300 text-slate-700 hover:bg-slate-100 font-semibold h-10"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleSaveAccess}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold h-10 px-6 transition-colors"
+            >
+              Salvar Acesso
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
