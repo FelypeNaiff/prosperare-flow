@@ -36,8 +36,8 @@ export default function DreGerencialPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">DRE Gerencial</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Demonstrativo de Resultados do Exercício do Escritório.</p>
+          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">DRE Gerencial</h1>
+          <p className="text-[#98A7AA] font-medium text-sm">Demonstrativo de Resultados do Exercício do Escritório.</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center bg-white border border-[#D2D7DB] rounded-lg px-3 py-1 text-xs font-black text-[#2C4156]">
@@ -59,11 +59,11 @@ export default function DreGerencialPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 border-[#D2D7DB] bg-white">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-black text-[#2C4156] uppercase flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold text-[#2C4156] flex items-center gap-2">
               <PieChart className="h-4 w-4 text-[#2563EB]" />
               Evolução de Resultados
             </CardTitle>
-            <CardDescription className="text-xs font-bold text-[#98A7AA]">Histórico de faturamento vs custos operacionais.</CardDescription>
+            <CardDescription className="text-xs font-medium text-[#98A7AA]">Histórico de faturamento vs custos operacionais.</CardDescription>
           </CardHeader>
           <CardContent className="h-[350px] pt-4">
             <ChartContainer config={chartConfig} className="h-full w-full">
@@ -107,16 +107,16 @@ export default function DreGerencialPage() {
 
       <Card className="border-[#D2D7DB] bg-white">
         <CardHeader className="bg-[#F7F7F7]/50 border-b">
-          <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Detalhamento Analítico</CardTitle>
-          <CardDescription className="text-xs font-bold text-[#98A7AA]">Visão por categoria de receita e despesa.</CardDescription>
+          <CardTitle className="text-sm font-semibold text-[#2C4156]">Detalhamento Analítico</CardTitle>
+          <CardDescription className="text-xs font-medium text-[#98A7AA]">Visão por categoria de receita e despesa.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-[#2C4156]">
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px] w-[400px]">Categoria / Lançamento</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Valor (R$)</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">% Receita</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm w-[400px]">Categoria / Lançamento</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right">Valor (R$)</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right">% Receita</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

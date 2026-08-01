@@ -228,18 +228,18 @@ export default function AtendimentosPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Demandas Internas</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Gestão de solicitações entre departamentos.</p>
+          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Demandas Internas</h1>
+          <p className="text-[#98A7AA] font-medium text-sm">Gestão de solicitações entre departamentos.</p>
         </div>
         <div className="flex gap-2">
           <Button 
             variant={isHistoryView ? "default" : "outline"}
-            className={cn("gap-2 font-black uppercase text-xs", isHistoryView ? "bg-[#2C4156] text-white" : "border-[#D2D7DB] text-[#5E6C84]")}
+            className={cn("gap-2 font-semibold text-xs", isHistoryView ? "bg-[#2C4156] text-white" : "border-[#D2D7DB] text-[#5E6C84]")}
             onClick={() => setIsHistoryView(!isHistoryView)}
           >
             <Clock className="h-4 w-4" /> {isHistoryView ? "Ver Kanban Ativo" : "Histórico/Arquivados"}
           </Button>
-          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-black uppercase text-xs shadow-lg" onClick={() => setIsNewTicketOpen(true)}>
+          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-semibold text-xs shadow-lg" onClick={() => setIsNewTicketOpen(true)}>
             <Plus className="h-4 w-4" /> Novo Atendimento
           </Button>
         </div>
@@ -247,13 +247,13 @@ export default function AtendimentosPage() {
 
       <div className="flex flex-col gap-3 border-b border-[#D2D7DB] pb-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-black uppercase text-[#98A7AA]">Filtrar por Responsável:</span>
+          <span className="text-[10px] font-semibold text-[#98A7AA]">Filtrar por Responsável:</span>
           <Button 
             variant={filtroResponsavel === "todas" ? "default" : "outline"} 
             onClick={() => setFiltroResponsavel("todas")}
             className={cn(
-              "h-8 text-xs font-bold rounded-full transition-all",
-              filtroResponsavel === "todas" ? "bg-[#2C4156] text-white hover:bg-[#2C4156]/90 shadow-md" : "text-[#39586D] border-[#D2D7DB] hover:bg-[#F7F7F7]"
+              "h-8 text-xs font-medium rounded-full transition-all border shadow-none",
+              filtroResponsavel === "todas" ? "bg-blue-50 text-blue-700 hover:bg-blue-100 border-none" : "bg-slate-100 text-slate-600 hover:bg-slate-200 border-none"
             )}
           >
             Todas as Demandas
@@ -264,8 +264,8 @@ export default function AtendimentosPage() {
               variant={filtroResponsavel === assignee.id ? "default" : "outline"}
               onClick={() => setFiltroResponsavel(assignee.id)}
               className={cn(
-                "h-8 text-xs font-bold rounded-full transition-all",
-                filtroResponsavel === assignee.id ? "bg-[#2C4156] text-white hover:bg-[#2C4156]/90 shadow-md" : "text-[#39586D] border-[#D2D7DB] hover:bg-[#F7F7F7]"
+                "h-8 text-xs font-medium rounded-full transition-all border shadow-none",
+                filtroResponsavel === assignee.id ? "bg-blue-50 text-blue-700 hover:bg-blue-100 border-none" : "bg-slate-100 text-slate-600 hover:bg-slate-200 border-none"
               )}
             >
               {assignee.name}
@@ -273,15 +273,15 @@ export default function AtendimentosPage() {
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-black uppercase text-[#98A7AA]">Filtrar por Prazo:</span>
+          <span className="text-[10px] font-semibold text-[#98A7AA]">Filtrar por Prazo:</span>
           {['Todos', 'Vencidos', 'Vence Hoje', 'No Prazo'].map(p => (
             <Button 
               key={p}
               variant={filtroPrazo === p ? "default" : "outline"} 
               onClick={() => setFiltroPrazo(p)}
               className={cn(
-                "h-8 text-xs font-bold rounded-full transition-all",
-                filtroPrazo === p ? "bg-[#2C4156] text-white hover:bg-[#2C4156]/90 shadow-md" : "text-[#39586D] border-[#D2D7DB] hover:bg-[#F7F7F7]"
+                "h-8 text-xs font-medium rounded-full transition-all border shadow-none",
+                filtroPrazo === p ? "bg-blue-50 text-blue-700 hover:bg-blue-100 border-none" : "bg-slate-100 text-slate-600 hover:bg-slate-200 border-none"
               )}
             >
               {p}
@@ -316,9 +316,9 @@ export default function AtendimentosPage() {
               onDragOver={handleDragOver}
             >
               <div className="flex items-center justify-between px-2 pt-1">
-                <h3 className="font-black text-[#2C4156] text-[11px] uppercase tracking-widest flex items-center gap-2">
+                <h3 className="font-semibold text-[#2C4156] text-sm flex items-center gap-2">
                   {col.title}
-                  <Badge variant="secondary" className="rounded-full px-1.5 h-5 min-w-5 text-[10px] bg-white border">
+                  <Badge variant="secondary" className="rounded-full px-1.5 h-5 min-w-5 text-[10px] bg-white border font-medium">
                     {filteredTickets.filter(t => t.status === col.id).length}
                   </Badge>
                 </h3>
@@ -343,8 +343,8 @@ export default function AtendimentosPage() {
                       <CardContent className="p-4 space-y-3">
                         <div className="flex justify-between items-start">
                           <div className="space-y-1">
-                            <p className="text-[9px] font-black text-[#2563EB] uppercase truncate">{ticket.clientName}</p>
-                            <h4 className="text-xs font-black text-[#2C4156] leading-tight uppercase">{ticket.title}</h4>
+                            <p className="text-[9px] font-medium text-[#2563EB] truncate">{ticket.clientName}</p>
+                            <h4 className="text-xs font-semibold text-[#2C4156] leading-tight">{ticket.title}</h4>
                           </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -352,11 +352,11 @@ export default function AtendimentosPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               {COLUMNS.filter(c => c.id !== ticket.status).map(c => (
-                                <DropdownMenuItem key={c.id} onClick={() => updateStatus(ticket.id, c.id)} className="text-xs font-bold uppercase">
+                                <DropdownMenuItem key={c.id} onClick={() => updateStatus(ticket.id, c.id)} className="text-xs font-medium">
                                   Mover para {c.title}
                                 </DropdownMenuItem>
                               ))}
-                              <DropdownMenuItem onClick={() => handleDelete(ticket.id)} className="text-xs font-bold uppercase text-[#E74C3C]">
+                              <DropdownMenuItem onClick={() => handleDelete(ticket.id)} className="text-xs font-medium text-[#E74C3C]">
                                 Excluir
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -366,20 +366,20 @@ export default function AtendimentosPage() {
                           <div className="flex items-center gap-2 pt-2 border-t justify-between">
                             <div className="flex items-center gap-2">
                               <Avatar className="h-6 w-6 border">
-                                <AvatarFallback className="text-[8px] font-black bg-[#2C4156] text-white">
+                                <AvatarFallback className="text-[8px] font-semibold bg-slate-200 text-slate-700">
                                   {ticket.responsibleName?.charAt(0)}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="flex flex-col">
-                                <span className="text-[10px] font-black text-[#39586D] uppercase">{ticket.responsibleName}</span>
-                                <span className="text-[8px] text-[#98A7AA] font-bold">{new Date(ticket.createdAt).toLocaleDateString('pt-BR')}</span>
+                                <span className="text-[10px] font-medium text-[#39586D]">{ticket.responsibleName}</span>
+                                <span className="text-[8px] text-[#98A7AA] font-medium">{new Date(ticket.createdAt).toLocaleDateString('pt-BR')}</span>
                               </div>
                             </div>
                             {ticket.dueDate && (
                                <div className="flex items-center gap-1">
                                  {ticket.dueDate < (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0')) && <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />}
                                  <div className={cn(
-                                   "text-[9px] font-black px-2 py-0.5 rounded uppercase border",
+                                   "text-[9px] font-medium px-2 py-0.5 rounded border",
                                    ticket.dueDate < (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0')) 
                                      ? "bg-red-50 text-red-700 border-red-200" 
                                      : "bg-gray-50 text-[#98A7AA] border-gray-200"
@@ -405,29 +405,29 @@ export default function AtendimentosPage() {
       ) : (
         <div className="bg-white rounded-xl border border-[#D2D7DB] shadow-sm overflow-hidden min-h-[500px]">
           <div className="p-4 border-b bg-[#F4F5F7] flex justify-between items-center">
-             <h3 className="font-black text-[#2C4156] text-[11px] uppercase tracking-widest flex items-center gap-2">
+             <h3 className="font-semibold text-[#2C4156] text-sm flex items-center gap-2">
                 Tarefas Concluídas
-                <Badge variant="secondary" className="rounded-full px-1.5 h-5 min-w-5 text-[10px] bg-white border">
+                <Badge variant="secondary" className="rounded-full px-1.5 h-5 min-w-5 text-[10px] bg-white border font-medium">
                   {filteredTickets.length}
                 </Badge>
               </h3>
           </div>
           <ScrollArea className="h-[500px]">
              {filteredTickets.length === 0 ? (
-                <div className="py-12 flex justify-center text-[10px] font-black uppercase text-[#98A7AA]">Nenhum histórico encontrado.</div>
+                <div className="py-12 flex justify-center text-[10px] font-medium uppercase text-[#98A7AA]">Nenhum histórico encontrado.</div>
              ) : (
                 <div className="divide-y">
                    {filteredTickets.map(ticket => (
                       <div key={ticket.id} className="p-4 hover:bg-[#F9FAFB] cursor-pointer flex justify-between items-center transition-colors" onClick={() => setSelectedTicket(ticket)}>
                          <div className="flex flex-col gap-1">
-                            <p className="text-[9px] font-black text-[#2563EB] uppercase">{ticket.clientName}</p>
-                            <h4 className="text-xs font-black text-[#2C4156] leading-tight uppercase">{ticket.title}</h4>
-                            <div className="flex gap-4 mt-1 text-[10px] font-bold text-[#98A7AA]">
+                            <p className="text-[9px] font-medium text-[#2563EB]">{ticket.clientName}</p>
+                            <h4 className="text-xs font-semibold text-[#2C4156] leading-tight">{ticket.title}</h4>
+                            <div className="flex gap-4 mt-1 text-[10px] font-medium text-[#98A7AA]">
                                <span>Concluído em: {new Date(ticket.updatedAt).toLocaleDateString('pt-BR')}</span>
                                <span>Responsável: {ticket.responsibleName}</span>
                             </div>
                          </div>
-                         <Button variant="outline" size="sm" className="h-8 text-[10px] font-black uppercase" onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'novo') }}>Reabrir</Button>
+                         <Button variant="outline" size="sm" className="h-8 text-[10px] font-medium" onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'novo') }}>Reabrir</Button>
                       </div>
                    ))}
                 </div>

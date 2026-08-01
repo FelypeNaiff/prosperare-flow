@@ -229,8 +229,8 @@ export default function EquipePage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão da Equipe</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Gerencie as identidades operacionais do escritório.</p>
+          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Gestão da Equipe</h1>
+          <p className="text-[#98A7AA] font-medium text-sm">Gerencie as identidades operacionais do escritório.</p>
         </div>
         <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-bold shadow-lg h-11" onClick={() => setIsInviteOpen(true)}>
           <UserPlus className="h-4 w-4" /> Novo Colaborador
@@ -251,14 +251,14 @@ export default function EquipePage() {
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-[#2C4156]">
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px]">Identidade</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">E-mail</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Departamentos</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Perfil</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Status</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Ações</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Identidade</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">E-mail</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Departamentos</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Perfil</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Status</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -279,38 +279,38 @@ export default function EquipePage() {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col">
-                          <span className="font-bold text-sm text-[#2C4156] uppercase">{member.fullName}</span>
-                          <span className="text-[9px] text-[#98A7AA] flex items-center gap-1 font-bold">
+                          <span className="font-semibold text-sm text-[#2C4156]">{member.fullName}</span>
+                          <span className="text-[9px] text-[#98A7AA] flex items-center gap-1 font-medium">
                             <Lock className="h-2 w-2" /> PIN: {member.pin || "----"}
                           </span>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs font-bold text-[#39586D] lowercase">
+                    <TableCell className="text-xs font-semibold text-[#39586D] lowercase">
                       {member.email || "sem e-mail"}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {member.departmentIds?.map((dept: string) => (
-                          <Badge key={dept} variant="secondary" className="text-[8px] font-black uppercase bg-[#F7F7F7] border-[#D2D7DB] text-[#39586D]">
+                          <Badge key={dept} variant="secondary" className="text-[8px] font-medium bg-[#F7F7F7] border-[#D2D7DB] text-[#39586D]">
                             {dept}
                           </Badge>
                         ))}
                         {(!member.departmentIds || member.departmentIds.length === 0) && (
-                          <span className="text-[9px] text-[#98A7AA] font-bold italic">Sem Alocação</span>
+                          <span className="text-[9px] text-[#98A7AA] font-medium italic">Sem Alocação</span>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge className={cn(
-                        "border-none text-[9px] font-black uppercase",
-                        member.profile === 'ADMINISTRADOR' ? "bg-amber-100 text-amber-700" : "bg-[#E3F0F9] text-[#2574A9]"
+                        "border-none text-[9px] font-medium",
+                        member.profile === 'ADMINISTRADOR' ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-700"
                       )}>
                         {member.profile}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge className="bg-[#7ED6B5] text-[#2563EB] border-none text-[9px] font-black uppercase">
+                      <Badge className="bg-emerald-50 text-emerald-700 border-none text-[9px] font-medium">
                         {member.status || 'ATIVO'}
                       </Badge>
                     </TableCell>

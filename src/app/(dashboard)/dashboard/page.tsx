@@ -173,10 +173,10 @@ export default function DashboardPage() {
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">
+          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">
             Painel
           </h1>
-          <p className="text-[#98A7AA] font-bold text-sm uppercase tracking-widest">Monitoramento de produção e conformidade fiscal.</p>
+          <p className="text-[#98A7AA] font-medium text-sm">Monitoramento de produção e conformidade fiscal.</p>
         </div>
         <div className="flex gap-2">
           <div className="bg-white border rounded-xl px-4 py-2 shadow-sm flex items-center gap-3">
@@ -233,7 +233,7 @@ export default function DashboardPage() {
             <CardContent className="p-6">
               <div className="mb-6 flex justify-between items-center border-b pb-4">
                 <div>
-                  <h2 className="text-lg font-black text-[#2C4156] uppercase tracking-tight">Visão Geral de Desempenho</h2>
+                  <h2 className="text-lg font-semibold text-[#2C4156] tracking-tight">Visão Geral de Desempenho</h2>
                   <p className="text-[#98A7AA] font-bold text-xs">Processos por Status e Evolução Mensal</p>
                 </div>
               </div>
@@ -261,19 +261,19 @@ export default function DashboardPage() {
           <Card className="bg-white rounded-xl shadow-sm border-[#D2D7DB]">
             <CardContent className="p-6">
               <div className="mb-4 pb-4 border-b">
-                <h2 className="text-lg font-black text-[#2C4156] uppercase tracking-tight flex items-center gap-2">
-                  ⚠️ ALERTA DE CERTIDÕES
+                <h2 className="text-lg font-semibold text-[#2C4156] tracking-tight flex items-center gap-2">
+                  ⚠️ Alerta de Certidões
                 </h2>
                 <p className="text-[#98A7AA] font-bold text-xs uppercase pt-1">Gestão de Vencimentos (Vencidas e A Vencer em até 30 dias)</p>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
-                  <thead>
+                  <thead className="bg-slate-50 border-b border-slate-200">
                     <tr className="border-b">
-                      <th className="pb-3 text-[10px] font-black uppercase text-[#98A7AA]">Cliente / Documento</th>
-                      <th className="pb-3 text-[10px] font-black uppercase text-[#98A7AA]">Tipo</th>
-                      <th className="pb-3 text-[10px] font-black uppercase text-[#98A7AA] text-center">Vencimento</th>
-                      <th className="pb-3 text-[10px] font-black uppercase text-[#98A7AA] text-right">Status</th>
+                      <th className="pb-3 pt-3 pl-4 text-sm font-medium text-slate-500">Cliente / Documento</th>
+                      <th className="pb-3 pt-3 text-sm font-medium text-slate-500">Tipo</th>
+                      <th className="pb-3 pt-3 text-sm font-medium text-slate-500 text-center">Vencimento</th>
+                      <th className="pb-3 pt-3 pr-4 text-sm font-medium text-slate-500 text-right">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -320,7 +320,7 @@ export default function DashboardPage() {
           <Card className="border-[#D2D7DB] shadow-sm bg-white border-t-4 border-t-[#E74C3C] h-full flex flex-col">
             <CardContent className="p-6 flex flex-col h-full">
                <div className="mb-4">
-                  <h2 className="text-sm font-black text-[#2C4156] uppercase tracking-tight flex items-center gap-2">
+                  <h2 className="text-sm font-semibold text-[#2C4156] tracking-tight flex items-center gap-2">
                     <FlameKindling className="h-4 w-4 text-[#E74C3C]" />
                     Alertas Críticos
                   </h2>

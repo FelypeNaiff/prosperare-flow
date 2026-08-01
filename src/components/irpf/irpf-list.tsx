@@ -79,14 +79,14 @@ export function IrpfList({
   return (
     <div className="bg-white rounded-lg border border-[#D2D7DB] overflow-hidden shadow-sm">
       <Table>
-        <TableHeader className="bg-[#2C4156]">
+        <TableHeader className="bg-slate-50 border-b border-slate-200">
           <TableRow className="hover:bg-transparent">
-            <TableHead className="text-white font-bold uppercase text-[10px]">Contribuinte</TableHead>
-            <TableHead className="text-white font-bold uppercase text-[10px]">Etapa</TableHead>
-            <TableHead className="text-white font-bold uppercase text-[10px]">Progresso</TableHead>
-            <TableHead className="text-white font-bold uppercase text-[10px] text-right">Honorários</TableHead>
-            <TableHead className="text-white font-bold uppercase text-[10px] text-center">Pagamento</TableHead>
-            <TableHead className="text-white font-bold uppercase text-[10px] text-right">Ações</TableHead>
+            <TableHead className="text-slate-500 font-medium text-sm">Contribuinte</TableHead>
+            <TableHead className="text-slate-500 font-medium text-sm">Etapa</TableHead>
+            <TableHead className="text-slate-500 font-medium text-sm">Progresso</TableHead>
+            <TableHead className="text-slate-500 font-medium text-sm text-right">Honorários</TableHead>
+            <TableHead className="text-slate-500 font-medium text-sm text-center">Pagamento</TableHead>
+            <TableHead className="text-slate-500 font-medium text-sm text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -94,7 +94,7 @@ export function IrpfList({
             <TableRow key={item.id} className="hover:bg-[#F7F7F7]">
               <TableCell>
                 <div className="flex flex-col">
-                  <span className="font-bold text-[#2C4156]">{item.name}</span>
+                  <span className="font-semibold text-[#2C4156]">{item.name}</span>
                   <div className="flex items-center gap-1">
                     <span className="text-[10px] text-[#98A7AA] font-mono">{item.cpf}</span>
                     <button onClick={() => copyToClipboard(item.cpf, "CPF")} className="text-[#98A7AA] hover:text-[#2563EB]">
@@ -104,7 +104,7 @@ export function IrpfList({
                 </div>
               </TableCell>
               <TableCell>
-                <Badge className="bg-[#E3F0F9] text-[#2574A9] border-none text-[9px] font-black uppercase">
+                <Badge className="bg-blue-50 text-blue-700 border-none text-[10px] font-medium">
                   {columns.find(c => c.id === item.status)?.title || item.status?.replace('_', ' ') || 'DESCONHECIDO'}
                 </Badge>
               </TableCell>
@@ -121,9 +121,9 @@ export function IrpfList({
               </TableCell>
               <TableCell className="text-center">
                 {item.isPaid ? (
-                  <Badge className="bg-[#7ED6B5] text-[#2563EB] border-none text-[9px] font-black uppercase">Pago</Badge>
+                  <Badge className="bg-emerald-50 text-emerald-700 border-none text-[10px] font-medium">Pago</Badge>
                 ) : (
-                  <Badge className="bg-[#FEE2E2] text-[#E74C3C] border-none text-[9px] font-black uppercase">Pendente</Badge>
+                  <Badge className="bg-red-50 text-red-700 border-none text-[10px] font-medium">Pendente</Badge>
                 )}
               </TableCell>
               <TableCell className="text-right">

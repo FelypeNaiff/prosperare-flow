@@ -159,13 +159,13 @@ export default function ParcelamentosPage() {
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight flex items-center gap-3">
+          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight flex items-center gap-3">
             <CreditCard className="h-8 w-8 text-[#2563EB]" />
             Controle de Parcelamentos
           </h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Gestão consolidada de acordos e dívidas parceladas.</p>
+          <p className="text-[#98A7AA] font-medium text-sm">Gestão consolidada de acordos e dívidas parceladas.</p>
         </div>
-        <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-black uppercase text-xs shadow-lg h-11 px-6" onClick={() => setIsModalOpen(true)}>
+        <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-semibold text-xs shadow-lg h-11 px-6" onClick={() => setIsModalOpen(true)}>
           <Plus className="h-4 w-4" /> Novo Parcelamento
         </Button>
       </div>
@@ -173,8 +173,8 @@ export default function ParcelamentosPage() {
       {hasCriticalRisk && (
         <Alert className="bg-[#FEE2E2] border-[#E74C3C]/20 text-[#E74C3C] shadow-lg">
           <ShieldAlert className="h-5 w-5" />
-          <AlertTitle className="font-black uppercase text-xs tracking-widest">Atenção: Risco de Exclusão do Simples</AlertTitle>
-          <AlertDescription className="text-xs font-bold mt-1">
+          <AlertTitle className="font-semibold text-xs tracking-wide">Atenção: Risco de Exclusão do Simples</AlertTitle>
+          <AlertDescription className="text-xs font-medium mt-1">
             Existem parcelamentos do Simples Nacional cancelados. Verifique os clientes afetados para evitar a exclusão de ofício do regime.
           </AlertDescription>
         </Alert>
@@ -256,12 +256,12 @@ export default function ParcelamentosPage() {
       <Card className="border-[#D2D7DB] shadow-sm overflow-hidden bg-white">
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-[#2C4156]">
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-10"></TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Empresa</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-center">Acordos Vigentes</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Valor Total Agregado</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Empresa</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-center">Acordos Vigentes</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right">Valor Total Agregado</TableHead>
                 <TableHead className="w-32"></TableHead>
               </TableRow>
             </TableHeader>
@@ -289,7 +289,7 @@ export default function ParcelamentosPage() {
                            </Button>
                         </TableCell>
                         <TableCell className="py-4">
-                          <span className="font-black text-[#2C4156] uppercase text-xs">{group.clientName}</span>
+                          <span className="font-semibold text-[#2C4156] text-xs">{group.clientName}</span>
                         </TableCell>
                         <TableCell className="text-center font-bold text-xs text-[#39586D]">
                            {isActiveCount} {isActiveCount === 1 ? 'Acordo' : 'Acordos'}
@@ -305,7 +305,7 @@ export default function ParcelamentosPage() {
                         <TableRow className="bg-[#F7F7F7]/50 hover:bg-[#F7F7F7]/50 border-none">
                           <TableCell colSpan={5} className="p-0">
                             <div className="px-14 py-4 space-y-2">
-                               <h4 className="text-[9px] font-black uppercase text-[#98A7AA] tracking-widest border-b pb-2 mb-2">Desdobramento dos Parcelamentos</h4>
+                               <h4 className="text-[10px] font-semibold text-[#98A7AA] border-b pb-2 mb-2">Desdobramento dos Parcelamentos</h4>
                                <Table>
                                   <TableBody>
                                     {group.items.map((item) => (
@@ -316,19 +316,19 @@ export default function ParcelamentosPage() {
                                         <TableCell className="w-1/3 p-4 rounded-l-xl">
                                           <div className="flex flex-col">
                                             <div className="flex items-center gap-2 mb-0.5">
-                                              <span className="text-[11px] font-black text-[#39586D] uppercase">{item.tipo}</span>
+                                              <span className="text-[11px] font-semibold text-[#39586D]">{item.tipo}</span>
                                               {item.tipo?.includes('Simples') && item.status?.includes('Cancelado') && (
                                                 <ShieldAlert className="h-3.5 w-3.5 text-[#E74C3C]" />
                                               )}
                                             </div>
-                                            <span className="text-[9px] text-[#98A7AA] uppercase font-bold">{item.descricao || 'Sem descrição particular'}</span>
+                                            <span className="text-[9px] text-[#98A7AA] font-medium">{item.descricao || 'Sem descrição particular'}</span>
                                           </div>
                                         </TableCell>
                                         <TableCell className="w-1/4 p-4">
                                           <div className="flex flex-col gap-1">
-                                            <span className="text-[9px] uppercase font-black text-[#98A7AA]">Evolução / Pagamento</span>
+                                            <span className="text-[9px] font-semibold text-[#98A7AA]">Evolução / Pagamento</span>
                                             <div className="flex items-center gap-2">
-                                              <span className="text-xs font-black text-[#2C4156]">{item.currentParcel || 0} / {item.totalParcels || 0}</span>
+                                              <span className="text-xs font-semibold text-[#2C4156]">{item.currentParcel || 0} / {item.totalParcels || 0}</span>
                                               <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                                 <div 
                                                   className="h-full bg-[#2563EB]" 
@@ -339,11 +339,11 @@ export default function ParcelamentosPage() {
                                           </div>
                                         </TableCell>
                                         <TableCell className="p-4">
-                                           <div className="flex flex-col gap-1">
-                                             <span className="text-[9px] uppercase font-black text-[#98A7AA]">Valor & Dia</span>
-                                             <div className="flex items-center gap-2">
-                                                <span className="font-black text-[#2563EB] text-xs">R$ {Number(item.value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                                                <span className="text-[10px] text-[#2C4156] font-bold">Dia {item.dueDay}</span>
+                                             <div className="flex flex-col gap-1">
+                                               <span className="text-[9px] font-semibold text-[#98A7AA]">Valor & Dia</span>
+                                               <div className="flex items-center gap-2">
+                                                  <span className="font-semibold text-[#2563EB] text-xs">R$ {Number(item.value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                                  <span className="text-[10px] text-[#2C4156] font-medium">Dia {item.dueDay}</span>
                                              </div>
                                            </div>
                                         </TableCell>

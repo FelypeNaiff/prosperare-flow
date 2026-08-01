@@ -511,14 +511,14 @@ export default function ContasAReceberPage() {
       />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h1 className="text-3xl font-black text-[#2C4156] tracking-tight">Contas a Receber</h1>
+        <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Contas a Receber</h1>
         
         <div className="flex items-center gap-3 bg-white border border-[#D2D7DB] rounded-xl px-2 py-1 shadow-sm">
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => changeMonth('prev')}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <div className="px-4 min-w-[140px] text-center">
-            <span className="text-sm font-black text-[#2C4156] uppercase">
+            <span className="text-sm font-medium text-[#2C4156]">
               {format(selectedCompetence, "MMMM yyyy", { locale: ptBR })}
             </span>
           </div>
@@ -530,7 +530,7 @@ export default function ContasAReceberPage() {
 
       <div className="flex flex-wrap gap-2">
         <Button 
-          className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-black uppercase text-xs h-11 px-6 shadow-lg shadow-emerald-500/10" 
+          className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-semibold text-xs h-11 px-6 shadow-lg shadow-emerald-500/10" 
           onClick={() => setIsNewAccountOpen(true)}
         >
           <Plus className="h-4 w-4" /> Nova Conta
@@ -538,13 +538,13 @@ export default function ContasAReceberPage() {
         
         <Button 
           variant="outline" 
-          className="h-11 border-[#D2D7DB] gap-2 font-bold text-[#39586D] text-xs uppercase px-5"
+          className="h-11 border-[#D2D7DB] gap-2 font-semibold text-[#39586D] text-xs px-5"
           onClick={() => fileInputRef.current?.click()}
         >
           <Upload className="h-4 w-4" /> Importar Honorários
         </Button>
         
-        <Button variant="outline" className="h-11 border-[#D2D7DB] gap-2 font-bold text-[#39586D] text-xs uppercase px-5" onClick={handleGenerateMonth}>
+        <Button variant="outline" className="h-11 border-[#D2D7DB] gap-2 font-semibold text-[#39586D] text-xs px-5" onClick={handleGenerateMonth}>
           <RefreshCw className="h-4 w-4" /> Gerar Mês
         </Button>
 
@@ -635,9 +635,9 @@ export default function ContasAReceberPage() {
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "h-8 px-4 text-[10px] font-black uppercase tracking-wider rounded-md transition-all",
+                  "h-8 px-4 text-[11px] font-medium rounded-md transition-all",
                   activeFilter === filter 
-                    ? "bg-[#2563EB] text-white shadow-md" 
+                    ? "bg-[#2563EB] text-white shadow-sm" 
                     : "text-[#98A7AA] hover:bg-white/50"
                 )}
                 onClick={() => setActiveFilter(filter)}
@@ -648,8 +648,8 @@ export default function ContasAReceberPage() {
           </div>
 
           <div className="bg-white border border-[#D2D7DB] rounded-lg px-6 py-2 shadow-sm">
-            <span className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest mr-2">Total Filtrado:</span>
-            <span className="text-sm font-black text-[#2563EB]">
+            <span className="text-[10px] font-semibold text-[#98A7AA] mr-2">Total Filtrado:</span>
+            <span className="text-sm font-semibold text-[#2563EB]">
               {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </span>
           </div>
@@ -659,7 +659,7 @@ export default function ContasAReceberPage() {
       <Card className="border-[#D2D7DB] shadow-sm bg-white overflow-hidden">
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-[#2C4156]">
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-12 text-center pl-4">
                   <Checkbox 
@@ -668,21 +668,21 @@ export default function ContasAReceberPage() {
                       if (checked) setSelectedIds(filteredItems.map(i => i.id))
                       else setSelectedIds([])
                     }}
-                    className="border-white/30 data-[state=checked]:bg-[#2563EB] data-[state=checked]:border-[#2563EB]"
+                    className="border-slate-200 data-[state=checked]:bg-[#2563EB] data-[state=checked]:border-[#2563EB]"
                   />
                 </TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Descrição</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Descrição</TableHead>
                 <TableHead 
-                  className="text-white font-black uppercase text-[10px] cursor-pointer hover:bg-white/10 transition-colors select-none"
+                  className="text-slate-500 font-medium text-sm cursor-pointer hover:bg-slate-100 transition-colors select-none"
                   onClick={() => handleSort('cliente')}
                 >
                   <div className="flex items-center gap-1">
                     Cliente {sortConfig.key === 'cliente' && (sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
                   </div>
                 </TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Pagamento</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Pagamento</TableHead>
                 <TableHead 
-                  className="text-white font-black uppercase text-[10px] cursor-pointer hover:bg-white/10 transition-colors select-none"
+                  className="text-slate-500 font-medium text-sm cursor-pointer hover:bg-slate-100 transition-colors select-none"
                   onClick={() => handleSort('data')}
                 >
                   <div className="flex items-center gap-1">
@@ -690,7 +690,7 @@ export default function ContasAReceberPage() {
                   </div>
                 </TableHead>
                 <TableHead 
-                  className="text-white font-black uppercase text-[10px] cursor-pointer hover:bg-white/10 transition-colors select-none"
+                  className="text-slate-500 font-medium text-sm cursor-pointer hover:bg-slate-100 transition-colors select-none"
                   onClick={() => handleSort('situacao')}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -698,7 +698,7 @@ export default function ContasAReceberPage() {
                   </div>
                 </TableHead>
                 <TableHead 
-                  className="text-white font-black uppercase text-[10px] cursor-pointer hover:bg-white/10 transition-colors select-none"
+                  className="text-slate-500 font-medium text-sm cursor-pointer hover:bg-slate-100 transition-colors select-none"
                   onClick={() => handleSort('responsavelBaixa')}
                 >
                   <div className="flex items-center gap-1">
@@ -706,14 +706,14 @@ export default function ContasAReceberPage() {
                   </div>
                 </TableHead>
                 <TableHead 
-                  className="text-white font-black uppercase text-[10px] cursor-pointer hover:bg-white/10 transition-colors select-none"
+                  className="text-slate-500 font-medium text-sm cursor-pointer hover:bg-slate-100 transition-colors select-none"
                   onClick={() => handleSort('valor')}
                 >
                   <div className="flex items-center justify-end gap-1">
                     Valor {sortConfig.key === 'valor' && (sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
                   </div>
                 </TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right pr-4">Ações</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right pr-4">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -738,11 +738,11 @@ export default function ContasAReceberPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-[#2C4156]">{item.descricao}</span>
+                        <span className="font-semibold text-[#2C4156]">{item.descricao}</span>
                         {item.recorrente && <Repeat className="h-3 w-3 text-[#2563EB]" aria-label={`Recorrencia ${item.tipoValor || "Fixo"}`} />}
                       </div>
                     </TableCell>
-                    <TableCell className="text-[#39586D] font-medium uppercase text-xs">{item.cliente}</TableCell>
+                    <TableCell className="text-[#39586D] font-medium text-xs">{item.cliente}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-[9px] font-bold uppercase border-[#D2D7DB] text-[#98A7AA]">
                         {item.pagamento}
@@ -753,10 +753,10 @@ export default function ContasAReceberPage() {
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge className={cn(
-                        "text-[9px] font-black uppercase border-none px-3 py-1",
-                        (item.situacao === 'Confirmado' || item.situacao === 'Pago') ? "bg-[#7ED6B5] text-[#2563EB]" :
-                        item.situacao === 'Atrasado' ? "bg-[#FEE2E2] text-[#E74C3C]" :
-                        "bg-[#FEF3C7] text-[#F2B705]"
+                        "text-[10px] font-medium border-none px-3 py-1",
+                        (item.situacao === 'Confirmado' || item.situacao === 'Pago') ? "bg-emerald-50 text-emerald-700" :
+                        item.situacao === 'Atrasado' ? "bg-red-50 text-red-700" :
+                        "bg-amber-50 text-amber-700"
                       )}>
                         {(item.situacao === 'Confirmado' || item.situacao === 'Pago') && item.dataRecebimento 
                           ? format(new Date(item.dataRecebimento), "dd/MM/yyyy") 

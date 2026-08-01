@@ -600,17 +600,17 @@ export default function ProcessosPage() {
                     className="border-slate-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                   />
                 </TableHead>
-                <TableHead className="text-slate-500 font-medium uppercase text-xs tracking-wider cursor-pointer" onClick={() => handleSort('name')}>
+                <TableHead className="text-slate-500 font-medium text-sm cursor-pointer" onClick={() => handleSort('name')}>
                   <div className="flex items-center">Processos <SortIcon columnKey="name" /></div>
                 </TableHead>
-                <TableHead className="text-slate-500 font-medium uppercase text-xs tracking-wider text-center cursor-pointer" onClick={() => handleSort('clientsCount')}>
+                <TableHead className="text-slate-500 font-medium text-sm text-center cursor-pointer" onClick={() => handleSort('clientsCount')}>
                   <div className="flex items-center justify-center">Nº de Clientes <SortIcon columnKey="clientsCount" /></div>
                 </TableHead>
-                <TableHead className="text-slate-500 font-medium uppercase text-xs tracking-wider text-center cursor-pointer" onClick={() => handleSort('processesCount')}>
+                <TableHead className="text-slate-500 font-medium text-sm text-center cursor-pointer" onClick={() => handleSort('processesCount')}>
                   <div className="flex items-center justify-center">Nº de Processos <SortIcon columnKey="processesCount" /></div>
                 </TableHead>
-                <TableHead className="text-slate-500 font-medium uppercase text-xs tracking-wider">Departamentos</TableHead>
-                <TableHead className="text-slate-500 font-medium uppercase text-xs tracking-wider">Responsáveis</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Departamentos</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Responsáveis</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
@@ -700,11 +700,11 @@ export default function ProcessosPage() {
                                       className="h-4 w-4 border-slate-200 data-[state=checked]:bg-blue-600"
                                     />
                                   </TableHead>
-                                  <TableHead className="text-xs font-medium uppercase text-slate-400 h-8 tracking-wider py-2">Cliente / CNPJ</TableHead>
-                                  <TableHead className="text-xs font-medium uppercase text-slate-400 h-8 text-center p-0 tracking-wider py-2">
+                                  <TableHead className="text-sm font-medium text-slate-400 h-8 py-2">Cliente / CNPJ</TableHead>
+                                  <TableHead className="text-sm font-medium text-slate-400 h-8 text-center p-0 py-2">
                                     <div className="flex justify-center">
                                       <Select value={localSubStatus} onValueChange={setLocalSubStatus}>
-                                        <SelectTrigger className="h-6 border-none bg-transparent text-xs font-medium uppercase shadow-none ring-0 w-max mx-auto text-slate-400">
+                                        <SelectTrigger className="h-6 border-none bg-transparent text-sm font-medium shadow-none ring-0 w-max mx-auto text-slate-400">
                                           <SelectValue placeholder="Status" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -718,8 +718,8 @@ export default function ProcessosPage() {
                                       </Select>
                                     </div>
                                   </TableHead>
-                                  <TableHead className="text-xs font-medium uppercase text-slate-400 h-8 text-center tracking-wider py-2">Vencimento</TableHead>
-                                  <TableHead className="text-xs font-medium uppercase text-slate-400 h-8 tracking-wider py-2">Responsável</TableHead>
+                                  <TableHead className="text-sm font-medium text-slate-400 h-8 text-center py-2">Vencimento</TableHead>
+                                  <TableHead className="text-sm font-medium text-slate-400 h-8 py-2">Responsável</TableHead>
                                   <TableHead className="w-12 py-2"></TableHead>
                                 </TableRow>
                               </TableHeader>

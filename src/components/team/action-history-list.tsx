@@ -59,7 +59,7 @@ export function ActionHistoryList() {
       <Card className="border-[#D2D7DB]">
         <CardHeader className="pb-3 border-b bg-[#F7F7F7]/50">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <CardTitle className="text-sm font-bold text-[#2C4156] uppercase tracking-tight flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold text-[#2C4156] tracking-tight flex items-center gap-2">
               <History className="h-4 w-4 text-[#2563EB]" />
               Auditoria do Sistema
             </CardTitle>
@@ -111,14 +111,14 @@ export function ActionHistoryList() {
           </div>
           
           <Table>
-            <TableHeader className="bg-[#2C4156]">
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-bold uppercase text-[9px] w-[180px]">Usuário</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[9px] text-center w-[100px]">Ação</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[9px] w-[120px]">Módulo</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[9px]">Descrição Detalhada</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[9px] w-[150px]">Data e Hora</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[9px] w-[120px]">IP Acesso</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm w-[180px]">Usuário</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-center w-[100px]">Ação</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm w-[120px]">Módulo</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Descrição Detalhada</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm w-[150px]">Data e Hora</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm w-[120px]">IP Acesso</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

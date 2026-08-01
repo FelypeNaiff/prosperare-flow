@@ -468,8 +468,8 @@ export default function ClientesPage() {
           </Button>
         </div>
         <div className="order-1 md:order-2 md:text-right">
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão de Clientes</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Administre sua base de empresas e acompanhe a regularidade.</p>
+          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Gestão de Clientes</h1>
+          <p className="text-[#98A7AA] font-medium text-sm">Administre sua base de empresas e acompanhe a regularidade.</p>
         </div>
       </div>
 
@@ -536,9 +536,9 @@ export default function ClientesPage() {
 
           <CardContent className="p-0">
             <Table className="print:w-full">
-              <TableHeader className="bg-[#2C4156] print:bg-[#2C4156]">
+              <TableHeader className="bg-slate-50 border-b border-slate-200">
                 <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px] print:text-white">
+                <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500">
                   <Checkbox 
                     checked={selectedClientIds.length === filteredClients.length && filteredClients.length > 0}
                     onCheckedChange={(checked) => {
@@ -548,19 +548,19 @@ export default function ClientesPage() {
                         setSelectedClientIds([])
                       }
                     }}
-                    className="border-white text-white"
+                    className="border-slate-300 data-[state=checked]:bg-blue-600"
                   />
                 </TableHead>
-                  <TableHead className="text-white font-black uppercase text-[10px] print:text-white cursor-pointer group" onClick={toggleSort}>
+                  <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500 cursor-pointer group" onClick={toggleSort}>
                     <div className="flex items-center gap-2">
                       Empresa / Razão Social
-                      {sortOrder === 'asc' ? <SortAsc className="h-3 w-3 text-[#2563EB]" /> : <SortDesc className="h-3 w-3 text-[#2563EB]" />}
+                      {sortOrder === 'asc' ? <SortAsc className="h-3 w-3 text-blue-600" /> : <SortDesc className="h-3 w-3 text-blue-600" />}
                     </div>
                 </TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] print:text-white">CNPJ</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] print:text-white">Regime Tributário</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] print:text-white">Responsável</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right action-col">Ações</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500">CNPJ</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500">Regime Tributário</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500">Responsável</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right action-col">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -597,12 +597,12 @@ export default function ClientesPage() {
                       />
                       <div className="flex flex-col gap-0.5">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-bold text-[#2C4156] uppercase text-xs">
+                          <span className="font-semibold text-[#2C4156] text-xs">
                             {client.corporateName}
                           </span>
                           {client.companyStatus && (
                             <span className={cn(
-                              "inline-flex rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em]",
+                              "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wide",
                               client.companyStatus.toUpperCase() === 'INAPTO'
                                 ? 'bg-[#FEE2E6] border-[#FECACA] text-[#B91C1C]'
                                 : 'bg-[#E6FFFA] border-[#B7F0DB] text-[#0F766E]'
@@ -612,7 +612,7 @@ export default function ClientesPage() {
                           )}
                         </div>
                         {client.nomeFantasia && client.nomeFantasia !== client.corporateName && (
-                          <span className="text-[9px] text-[#98A7AA] font-bold uppercase italic tracking-wider">
+                          <span className="text-[9px] text-[#98A7AA] font-medium italic tracking-wider">
                             {client.nomeFantasia}
                           </span>
                         )}
@@ -631,11 +631,11 @@ export default function ClientesPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="font-black text-[9px] uppercase border-[#D2D7DB] text-[#39586D] print:border-[#D2D7DB]">
+                      <Badge variant="outline" className="font-medium text-[10px] border-slate-200 text-slate-600 print:border-slate-200">
                         {client.taxRegime}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-[10px] font-bold text-[#39586D] uppercase">
+                    <TableCell className="text-[11px] font-medium text-[#39586D]">
                       {client.accountingContactUserId || "Geral"}
                     </TableCell>
                     <TableCell className="text-right action-col">

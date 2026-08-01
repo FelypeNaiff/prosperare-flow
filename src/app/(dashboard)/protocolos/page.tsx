@@ -53,8 +53,8 @@ export default function ProtocolosPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">Protocolos Digitais</h1>
-          <p className="text-[#98A7AA] font-medium">Gestão e rastreabilidade de documentos enviados por e-mail.</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-[#2C4156]">Protocolos Digitais</h1>
+          <p className="text-[#98A7AA] font-medium text-sm">Gestão e rastreabilidade de documentos enviados por e-mail.</p>
         </div>
         <div className="flex gap-2">
           <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2" onClick={handleCopyLink}>
@@ -109,15 +109,15 @@ export default function ProtocolosPage() {
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-[#2C4156]">
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-bold uppercase text-[10px]">Protocolo</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[10px]">Cliente</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[10px]">Documento</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[10px]">Enviado em</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[10px] text-center">Status</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[10px]">Visualizado em</TableHead>
-                <TableHead className="text-white font-bold uppercase text-[10px] text-right">Ações</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Protocolo</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Cliente</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Documento</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Enviado em</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-center">Status</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Visualizado em</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -129,9 +129,9 @@ export default function ProtocolosPage() {
                   <TableCell className="text-xs text-[#98A7AA]">{protocol.sentAt}</TableCell>
                   <TableCell className="text-center">
                     <Badge className={cn(
-                      "text-[9px] font-black uppercase border-none",
-                      protocol.status === 'Visualizado' ? "bg-[#7ED6B5] text-[#2563EB]" : 
-                      protocol.status === 'Enviado' ? "bg-[#E3F0F9] text-[#2574A9]" : "bg-[#FEF3C7] text-[#F2B705]"
+                      "text-[10px] font-medium border-none",
+                      protocol.status === 'Visualizado' ? "bg-emerald-50 text-emerald-700" : 
+                      protocol.status === 'Enviado' ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"
                     )}>
                       {protocol.status}
                     </Badge>

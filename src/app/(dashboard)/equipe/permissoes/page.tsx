@@ -102,15 +102,15 @@ export default function PermissoesPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão de Permissões</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Configuração granular de privilégios por colaborador.</p>
+          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Gestão de Permissões</h1>
+          <p className="text-[#98A7AA] font-medium text-sm">Configuração granular de privilégios por colaborador.</p>
         </div>
       </div>
 
       <Card className="border-[#D2D7DB] shadow-sm">
         <CardHeader className="bg-[#F7F7F7]/50 border-b">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <CardTitle className="text-lg font-black text-[#2C4156] uppercase flex items-center gap-2">
+            <CardTitle className="text-lg font-semibold text-[#2C4156] flex items-center gap-2">
               <Lock className="h-5 w-5 text-[#2563EB]" />
               Colaboradores Autorizados
             </CardTitle>
@@ -127,12 +127,12 @@ export default function PermissoesPage() {
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-[#2C4156]">
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px]">Colaborador</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Perfil de Acesso</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">E-mail</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Ações</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Colaborador</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Perfil de Acesso</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">E-mail</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -145,13 +145,13 @@ export default function PermissoesPage() {
               ) : filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
                   <TableRow key={user.id} className="hover:bg-[#F7F7F7]">
-                    <TableCell className="font-bold text-[#2C4156]">{user.fullName}</TableCell>
+                    <TableCell className="font-semibold text-[#2C4156]">{user.fullName}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-[10px] font-black uppercase border-[#D2D7DB] text-[#39586D]">{user.profile}</Badge>
+                      <Badge variant="outline" className="text-[10px] font-medium border-[#D2D7DB] text-[#39586D]">{user.profile}</Badge>
                     </TableCell>
-                    <TableCell className="text-xs font-bold text-[#98A7AA]">{user.email}</TableCell>
+                    <TableCell className="text-xs font-medium text-[#98A7AA]">{user.email}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="outline" size="sm" className="gap-2 border-[#D2D7DB] text-[#2C4156] font-bold" onClick={() => handleOpenPerms(user)}>
+                      <Button variant="outline" size="sm" className="gap-2 border-[#D2D7DB] text-[#2C4156] font-semibold" onClick={() => handleOpenPerms(user)}>
                         <ShieldCheck className="h-4 w-4 text-[#2563EB]" /> Ajustar Privilégios
                       </Button>
                     </TableCell>

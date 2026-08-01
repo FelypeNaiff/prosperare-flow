@@ -37,8 +37,8 @@ export default function FluxoDeCaixaPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Fluxo de Caixa</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Monitoramento cronológico de entradas e saídas do escritório.</p>
+          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Fluxo de Caixa</h1>
+          <p className="text-[#98A7AA] font-medium text-sm">Monitoramento cronológico de entradas e saídas do escritório.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="gap-2 border-[#D2D7DB] text-[#39586D] font-bold">
@@ -71,8 +71,8 @@ export default function FluxoDeCaixaPage() {
 
       <Card className="border-[#D2D7DB]">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Visualização de Liquidez</CardTitle>
-          <CardDescription className="text-xs font-bold text-[#98A7AA]">Saldo acumulado vs. volume diário de transações.</CardDescription>
+          <CardTitle className="text-sm font-semibold text-[#2C4156]">Visualização de Liquidez</CardTitle>
+          <CardDescription className="text-xs font-medium text-[#98A7AA]">Saldo acumulado vs. volume diário de transações.</CardDescription>
         </CardHeader>
         <CardContent className="h-[400px] pt-4">
           <ChartContainer config={chartConfig} className="h-full w-full">
@@ -98,17 +98,17 @@ export default function FluxoDeCaixaPage() {
 
       <Card className="border-[#D2D7DB]">
         <CardHeader className="bg-[#F7F7F7]/50 border-b">
-          <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Histórico de Movimentações</CardTitle>
+          <CardTitle className="text-sm font-semibold text-[#2C4156]">Histórico de Movimentações</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-[#2C4156]">
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px]">Data</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Descrição do Lançamento</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Tipo</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Valor</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Saldo do Dia</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Data</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Descrição do Lançamento</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Tipo</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right">Valor</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right">Saldo do Dia</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

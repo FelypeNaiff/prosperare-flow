@@ -204,14 +204,15 @@ export default function ContatosPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Inversão: Botão para a esquerda */}
-        <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-bold shadow-lg shadow-blue-500/20 h-11 px-6 order-2 md:order-1" onClick={handleOpenNew}>
+        {/* Inversão: Botão para a esquerda */}
+        <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-semibold shadow-lg shadow-blue-500/20 h-11 px-6 order-2 md:order-1" onClick={handleOpenNew}>
           <Plus className="h-4 w-4" /> Novo Contrato
         </Button>
 
         {/* Inversão: Título para a direita com alinhamento adequado */}
         <div className="text-left md:text-right order-1 md:order-2">
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão de Contratos</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Controle jurídico e faturamento recorrente.</p>
+          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Gestão de Contratos</h1>
+          <p className="text-[#98A7AA] font-medium text-sm">Controle jurídico e faturamento recorrente.</p>
         </div>
       </div>
 
@@ -225,8 +226,8 @@ export default function ContatosPage() {
       <Card className="border-[#D2D7DB]">
         <CardHeader className="bg-[#F7F7F7]/50 border-b flex flex-row items-center justify-between space-y-0">
           <div>
-            <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Contratos Vigentes</CardTitle>
-            <CardDescription className="text-xs font-bold text-[#98A7AA]">Listagem completa de honorários recorrentes.</CardDescription>
+            <CardTitle className="text-sm font-semibold text-[#2C4156]">Contratos Vigentes</CardTitle>
+            <CardDescription className="text-xs font-medium text-[#98A7AA]">Listagem completa de honorários recorrentes.</CardDescription>
           </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
@@ -240,14 +241,14 @@ export default function ContatosPage() {
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-[#2C4156]">
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px]">Empresa / CNPJ</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Serviços Contratados</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Início</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Honorário</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-center">Status</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Ações</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Empresa / CNPJ</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Serviços Contratados</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Início</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right">Honorário</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-center">Status</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -262,25 +263,25 @@ export default function ContatosPage() {
                   <TableRow key={item.id} className="hover:bg-[#F7F7F7]/50">
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-bold text-[#2C4156]">{item.clientName}</span>
+                        <span className="font-semibold text-[#2C4156]">{item.clientName}</span>
                         <span className="text-[10px] text-[#98A7AA] font-mono">{item.clientCnpj}</span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1 max-w-[300px]">
                         {(item.services || []).map((s: string) => (
-                          <Badge key={s} variant="secondary" className="text-[8px] font-black uppercase bg-white border">
+                          <Badge key={s} variant="secondary" className="text-[8px] font-medium bg-white border">
                             {s}
                           </Badge>
                         ))}
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs font-bold text-[#39586D]">{item.startDate}</TableCell>
-                    <TableCell className="text-right font-black text-[#2563EB]">R$ {Number(item.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-xs font-semibold text-[#39586D]">{item.startDate}</TableCell>
+                    <TableCell className="text-right font-semibold text-[#2563EB]">R$ {Number(item.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                     <TableCell className="text-center">
                       <Badge className={cn(
-                        "text-[9px] font-black uppercase border-none",
-                        item.status === 'Ativo' ? 'bg-[#7ED6B5] text-[#2563EB]' : 'bg-[#F3F4F6] text-[#98A7AA]'
+                        "text-[9px] font-medium border-none",
+                        item.status === 'Ativo' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'
                       )}>{item.status}</Badge>
                     </TableCell>
                     <TableCell className="text-right">

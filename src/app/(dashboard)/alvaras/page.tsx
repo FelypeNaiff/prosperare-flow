@@ -279,14 +279,14 @@ export default function AlvarasPage() {
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-[#2C4156] uppercase">Gestão de Alvarás e Licenças</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Controle centralizado e global de licenciamentos da sua carteira.</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-[#2C4156]">Gestão de Alvarás e Licenças</h1>
+          <p className="text-[#98A7AA] font-medium text-sm">Controle centralizado e global de licenciamentos da sua carteira.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] gap-2 font-black uppercase text-xs h-11 px-6 shadow-sm" onClick={handleExportPDF}>
+          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] gap-2 font-semibold text-xs h-11 px-6 shadow-sm" onClick={handleExportPDF}>
             <FileDown className="h-4 w-4" /> Exportar Matriz
           </Button>
-          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-black uppercase text-xs shadow-lg h-11 px-6">
+          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-semibold text-xs shadow-lg h-11 px-6">
             <Plus className="h-4 w-4" /> Novo Lote
           </Button>
         </div>
@@ -327,16 +327,16 @@ export default function AlvarasPage() {
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-[#2C4156]">
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px] pl-6 w-1/4">Empresa</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm pl-6 w-1/4">Empresa</TableHead>
                 {ALVARA_TYPES.map(type => (
-                  <TableHead key={type} className="text-white font-black uppercase text-[10px] text-center w-28">
+                  <TableHead key={type} className="text-slate-500 font-medium text-sm text-center w-28">
                     {type}
                   </TableHead>
                 ))}
-                <TableHead className="text-white font-black uppercase text-[10px] text-center w-32">Status Geral</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right pr-6 w-16 action-col">Ficha</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-center w-32">Status Geral</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right pr-6 w-16 action-col">Ficha</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -352,8 +352,8 @@ export default function AlvarasPage() {
                   <TableRow key={item.id} className="hover:bg-[#F7F7F7]/50 transition-colors group">
                     <TableCell className="pl-6 py-3">
                       <div className="flex flex-col">
-                        <span className="font-bold text-[#2C4156] text-xs uppercase">{item.corporateName}</span>
-                        <span className="text-[9px] font-mono text-[#98A7AA] font-bold tracking-widest">{item.cnpj}</span>
+                        <span className="font-semibold text-[#2C4156] text-xs">{item.corporateName}</span>
+                        <span className="text-[9px] font-mono text-[#98A7AA] font-medium tracking-wide">{item.cnpj}</span>
                       </div>
                     </TableCell>
                     
@@ -400,8 +400,8 @@ export default function AlvarasPage() {
                              )}
                              title={alvara ? `Vencimento: ${dateStr}` : 'Clique para registrar'}
                            >
-                             <span className="text-[10px] font-bold font-mono tracking-tight">{!alvara ? 'Sem Registro' : dateStr}</span>
-                             <Badge className={cn("text-[8px] font-black uppercase px-1.5 py-0 min-h-0 h-4 border-none shrink-0", badgeClass)}>
+                             <span className="text-[10px] font-semibold font-mono tracking-tight">{!alvara ? 'Sem Registro' : dateStr}</span>
+                             <Badge className={cn("text-[8px] font-medium px-1.5 py-0 min-h-0 h-4 border-none shrink-0", badgeClass)}>
                                {statusWord}
                              </Badge>
                            </div>
@@ -411,7 +411,7 @@ export default function AlvarasPage() {
                     
                     <TableCell className="text-center">
                       <Badge className={cn(
-                        "text-[9px] font-black uppercase border-none px-2 shadow-sm rounded-full",
+                        "text-[9px] font-medium border-none px-2 shadow-sm rounded-full",
                         item.statusGeral === 'REGULAR' ? "bg-[#2563EB] text-white" :
                         item.statusGeral === 'IRREGULAR' ? "bg-[#E74C3C] text-white" :
                         item.statusGeral === 'ALERTA' ? "bg-[#F39C12] text-white" :

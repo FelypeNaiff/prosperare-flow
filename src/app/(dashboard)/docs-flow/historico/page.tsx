@@ -78,8 +78,8 @@ export default function DocsFlowHistoricoPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Histórico de Documentos</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Rastreabilidade completa de todos os documentos avulsos gerados.</p>
+          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Histórico de Documentos</h1>
+          <p className="text-[#98A7AA] font-medium text-sm">Rastreabilidade completa de todos os documentos avulsos gerados.</p>
         </div>
       </div>
 
@@ -137,13 +137,13 @@ export default function DocsFlowHistoricoPage() {
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-[#2C4156]">
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px]">Data de Emissão</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Empresa</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Documento</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Tipo</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Ações</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Data de Emissão</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Empresa</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Documento</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Tipo</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -164,10 +164,10 @@ export default function DocsFlowHistoricoPage() {
                         <span className="text-[10px] text-[#98A7AA]">{format(new Date(item.createdAt), 'HH:mm')}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-bold text-[#2C4156] uppercase text-xs">{item.clientName}</TableCell>
-                    <TableCell className="text-xs font-medium text-[#39586D] uppercase">{item.title}</TableCell>
+                    <TableCell className="font-semibold text-[#2C4156] text-xs">{item.clientName}</TableCell>
+                    <TableCell className="text-xs font-medium text-[#39586D]">{item.title}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-[9px] font-black uppercase border-[#D2D7DB] text-[#39586D]">
+                      <Badge variant="outline" className="text-[9px] font-medium border-[#D2D7DB] text-[#39586D]">
                         {item.type}
                       </Badge>
                     </TableCell>
