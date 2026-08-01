@@ -70,17 +70,6 @@ import { doc } from "firebase/firestore"
 
 const menuItems = [
   {
-    title: "Painel Estratégico",
-    url: "/dashboard",
-    icon: LayoutDashboard,
-    profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
-    subItems: [
-      { title: "Dashboard Geral", url: "/dashboard", icon: LayoutDashboard },
-      { title: "Inteligência (BI)", url: "/inteligencia", icon: BrainCircuit },
-      { title: "Agenda de Reuniões", url: "/agenda", icon: Calendar },
-    ]
-  },
-  {
     title: "Relacionamento",
     url: "/clientes",
     icon: Users,
