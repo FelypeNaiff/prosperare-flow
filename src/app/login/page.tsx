@@ -47,7 +47,7 @@ export default function LoginPage() {
   if (isUserLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F7F7F7]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" />
       </div>
     )
   }
@@ -57,11 +57,11 @@ export default function LoginPage() {
       <div className="w-full max-w-[440px] space-y-8 animate-in fade-in duration-700">
         
         <div className="flex flex-col items-center text-center space-y-2">
-          <div className="p-3 bg-[#1FA67A] rounded-2xl shadow-lg mb-2">
+          <div className="p-3 bg-[#2563EB] rounded-2xl shadow-lg mb-2">
             <TrendingUp className="h-10 w-10 text-white" />
           </div>
           <h1 className="text-3xl font-black tracking-tighter text-[#2C4156] uppercase">
-            PROSPERARE <span className="text-[#1FA67A]">FLOW</span>
+            PROSPERARE <span className="text-[#2563EB]">FLOW</span>
           </h1>
           <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.3em]">Ambiente Seguro de Acesso</p>
         </div>
@@ -74,7 +74,7 @@ export default function LoginPage() {
             className="w-full h-14 bg-white hover:bg-slate-50 text-[#2C4156] border-2 border-[#D2D7DB]/50 font-black text-[11px] uppercase tracking-[0.15em] shadow-xl rounded-[1.5rem] transition-all flex items-center justify-center gap-3"
           >
             {isGoogleLoggingIn ? (
-              <Loader2 className="h-5 w-5 animate-spin text-[#1FA67A]" />
+              <Loader2 className="h-5 w-5 animate-spin text-[#2563EB]" />
             ) : (
               <>
                 <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" aria-hidden="true">
@@ -93,14 +93,14 @@ export default function LoginPage() {
         <div className="bg-[#2C4156] p-4 rounded-2xl flex items-center justify-between shadow-xl">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/10 rounded-lg">
-              <MessageSquare className="h-5 w-5 text-[#1FA67A]" />
+              <MessageSquare className="h-5 w-5 text-[#2563EB]" />
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-white uppercase leading-none mb-1">Suporte Técnico</span>
               <span className="text-[9px] font-bold text-white/60 uppercase tracking-tighter">Central Prosperare</span>
             </div>
           </div>
-          <Button variant="ghost" className="text-[10px] font-black text-[#1FA67A] uppercase h-8 hover:bg-white/5">
+          <Button variant="ghost" className="text-[10px] font-black text-[#2563EB] uppercase h-8 hover:bg-white/5">
             Suporte On-line
           </Button>
         </div>

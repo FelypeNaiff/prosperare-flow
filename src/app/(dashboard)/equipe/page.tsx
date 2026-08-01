@@ -232,7 +232,7 @@ export default function EquipePage() {
           <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão da Equipe</h1>
           <p className="text-[#98A7AA] font-bold text-sm">Gerencie as identidades operacionais do escritório.</p>
         </div>
-        <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-bold shadow-lg h-11" onClick={() => setIsInviteOpen(true)}>
+        <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-bold shadow-lg h-11" onClick={() => setIsInviteOpen(true)}>
           <UserPlus className="h-4 w-4" /> Novo Colaborador
         </Button>
       </div>
@@ -265,7 +265,7 @@ export default function EquipePage() {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-32 text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#2563EB]" />
                   </TableCell>
                 </TableRow>
               ) : filteredTeam.length > 0 ? (
@@ -310,7 +310,7 @@ export default function EquipePage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge className="bg-[#7ED6B5] text-[#1FA67A] border-none text-[9px] font-black uppercase">
+                      <Badge className="bg-[#7ED6B5] text-[#2563EB] border-none text-[9px] font-black uppercase">
                         {member.status || 'ATIVO'}
                       </Badge>
                     </TableCell>
@@ -321,7 +321,7 @@ export default function EquipePage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem className="gap-2 text-xs font-bold uppercase cursor-pointer" onClick={() => handleOpenEdit(member)}>
-                            <Edit2 className="h-3.5 w-3.5 text-[#1FA67A]" /> Editar Regras
+                            <Edit2 className="h-3.5 w-3.5 text-[#2563EB]" /> Editar Regras
                           </DropdownMenuItem>
                           <DropdownMenuItem className="gap-2 text-xs font-bold uppercase cursor-pointer" onClick={() => router.push('/equipe/permissoes')}>
                             <ShieldCheck className="h-3.5 w-3.5 text-[#2574A9]" /> Permissões Avançadas
@@ -431,7 +431,7 @@ export default function EquipePage() {
 
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => setIsInviteOpen(false)} className="font-bold text-xs uppercase h-11">Cancelar</Button>
-            <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-8 shadow-lg h-11" onClick={handleRegister}>
+            <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-8 shadow-lg h-11" onClick={handleRegister}>
               <Save className="h-4 w-4 mr-2" /> Salvar Identidade
             </Button>
           </DialogFooter>

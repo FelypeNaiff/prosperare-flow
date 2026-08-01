@@ -192,7 +192,7 @@ export default function UnifiedCalendarPage() {
 
       {isLoading ? (
          <div className="h-96 flex flex-col items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A] mb-4" />
+            <Loader2 className="h-8 w-8 animate-spin text-[#2563EB] mb-4" />
             <span className="text-xs font-black uppercase tracking-widest text-[#98A7AA]">Montando Calendário...</span>
          </div>
       ) : (
@@ -222,7 +222,7 @@ export default function UnifiedCalendarPage() {
                   <div className="flex justify-between items-start mb-1 h-5 shrink-0">
                      <span className={cn(
                        "text-xs font-black p-1 min-w-[24px] text-center rounded-full flex items-center justify-center transition-all",
-                       isToday(day) ? "bg-[#1FA67A] text-white" : "text-[#39586D]"
+                       isToday(day) ? "bg-[#2563EB] text-white" : "text-[#39586D]"
                      )}>
                        {format(day, 'd')}
                      </span>
@@ -294,7 +294,7 @@ export default function UnifiedCalendarPage() {
                      <Button variant="outline" onClick={() => setSelectedEvent(null)} className="font-bold text-xs uppercase text-[#98A7AA]">
                         Fechar
                      </Button>
-                     <Button asChild className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 text-white font-black uppercase text-xs shadow-lg">
+                     <Button asChild className="bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-black uppercase text-xs shadow-lg">
                         <Link href={selectedEvent.link}>
                            Acessar Módulo Original <ExternalLink className="h-3 w-3 ml-2" />
                         </Link>

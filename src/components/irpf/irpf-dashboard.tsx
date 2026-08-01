@@ -53,7 +53,7 @@ export function IrpfDashboard() {
 function KpiCard({ label, value, subValue, icon: Icon, color }: any) {
   const colors = {
     primary: "border-l-[#2C4156] bg-white",
-    success: "border-l-[#1FA67A] bg-white",
+    success: "border-l-[#2563EB] bg-white",
     destructive: "border-l-[#E74C3C] bg-white",
     warning: "border-l-[#F2B705] bg-white",
     info: "border-l-[#2574A9] bg-white",
@@ -61,7 +61,7 @@ function KpiCard({ label, value, subValue, icon: Icon, color }: any) {
 
   const iconColors = {
     primary: "bg-[#2C4156]/10 text-[#2C4156]",
-    success: "bg-[#1FA67A]/10 text-[#1FA67A]",
+    success: "bg-[#2563EB]/10 text-[#2563EB]",
     destructive: "bg-[#E74C3C]/10 text-[#E74C3C]",
     warning: "bg-[#F2B705]/10 text-[#F2B705]",
     info: "bg-[#2574A9]/10 text-[#2574A9]",
@@ -74,7 +74,7 @@ function KpiCard({ label, value, subValue, icon: Icon, color }: any) {
           <div className={cn("p-1.5 rounded-lg", iconColors[color as keyof typeof iconColors])}>
             <Icon className="h-4 w-4" />
           </div>
-          {subValue && <span className="text-[10px] font-bold text-[#1FA67A]">{subValue}</span>}
+          {subValue && <span className="text-[10px] font-bold text-[#2563EB]">{subValue}</span>}
         </div>
         <div>
           <p className="text-[10px] font-extrabold text-[#98A7AA] uppercase tracking-widest truncate">{label}</p>

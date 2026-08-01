@@ -99,7 +99,7 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
         <div className="modal-scroll-content">
           <div className="grid grid-cols-2 gap-6 p-6">
             <div className="col-span-2 space-y-4">
-              <h4 className="text-[10px] font-black text-[#1FA67A] uppercase tracking-[0.2em] border-b border-[#1FA67A]/20 pb-1">Dados do Contribuinte</h4>
+              <h4 className="text-[10px] font-black text-[#2563EB] uppercase tracking-[0.2em] border-b border-[#2563EB]/20 pb-1">Dados do Contribuinte</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Nome Completo</Label>
@@ -191,7 +191,7 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
                     placeholder="0,00" 
                     value={formData.value}
                     onChange={(e) => setFormData({...formData, value: Number(e.target.value)})}
-                    className="border-[#D2D7DB] font-black text-[#1FA67A]"
+                    className="border-[#D2D7DB] font-black text-[#2563EB]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -215,7 +215,7 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
 
         <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="font-bold uppercase text-xs">Cancelar</Button>
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-10 shadow-lg shadow-emerald-500/20" onClick={handleSave}>
+          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-10 shadow-lg shadow-blue-500/20" onClick={handleSave}>
             Confirmar e Iniciar Fluxo
           </Button>
         </DialogFooter>

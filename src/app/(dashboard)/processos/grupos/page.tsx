@@ -88,7 +88,7 @@ export default function GruposObrigacoesPage() {
     name: "",
     dept: "Fiscal",
     icon: "📋",
-    color: "#1FA67A",
+    color: "#2563EB",
     active: true,
     processes: [] as any[],
     clientesVinculados: [] as string[],
@@ -128,7 +128,7 @@ export default function GruposObrigacoesPage() {
         name: group.name || "",
         dept: group.dept || "Fiscal",
         icon: group.icon || "📋",
-        color: group.color || "#1FA67A",
+        color: group.color || "#2563EB",
         active: group.active !== false,
         processes: group.processes || [],
         clientesVinculados: group.clientesVinculados || [],
@@ -140,7 +140,7 @@ export default function GruposObrigacoesPage() {
         name: "",
         dept: "Fiscal",
         icon: "📋",
-        color: "#1FA67A",
+        color: "#2563EB",
         active: true,
         processes: [],
         clientesVinculados: [],
@@ -309,7 +309,7 @@ export default function GruposObrigacoesPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="order-2 md:order-1">
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg" onClick={() => handleOpenModal()}>
+          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-black uppercase text-xs shadow-lg" onClick={() => handleOpenModal()}>
             <Plus className="h-4 w-4" /> Novo Grupo
           </Button>
         </div>
@@ -321,7 +321,7 @@ export default function GruposObrigacoesPage() {
 
       {isLoading ? (
         <div className="h-64 flex flex-col items-center justify-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" />
           <p className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Sincronizando Grupos...</p>
         </div>
       ) : (groups || []).length > 0 ? (
@@ -388,7 +388,7 @@ export default function GruposObrigacoesPage() {
         <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed rounded-3xl bg-white/50 text-center p-12">
           <Layers className="h-12 w-12 text-[#D2D7DB] mb-4" />
           <h3 className="text-lg font-black text-[#2C4156] uppercase">Nenhum Grupo Definido</h3>
-          <Button className="mt-6 bg-[#1FA67A] font-black uppercase text-xs shadow-lg" onClick={() => handleOpenModal()}>Criar Primeiro Grupo</Button>
+          <Button className="mt-6 bg-[#2563EB] font-black uppercase text-xs shadow-lg" onClick={() => handleOpenModal()}>Criar Primeiro Grupo</Button>
         </div>
       )}
 
@@ -406,7 +406,7 @@ export default function GruposObrigacoesPage() {
                 </DialogDescription>
               </div>
               <div className="bg-white/10 px-4 py-2 rounded-xl flex items-center gap-3">
-                <Users className="h-5 w-5 text-[#1FA67A]" />
+                <Users className="h-5 w-5 text-[#2563EB]" />
                 <div className="flex flex-col">
                   <span className="text-xs font-black leading-none">{formData.clientesVinculados?.length || 0}</span>
                   <span className="text-[8px] font-bold uppercase text-white/60">Ativas</span>
@@ -418,13 +418,13 @@ export default function GruposObrigacoesPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
             <div className="px-6 bg-[#F7F7F7] border-b">
               <TabsList className="bg-transparent h-14 p-0 gap-8">
-                <TabsTrigger value="config" className="data-[state=active]:bg-transparent data-[state=active]:text-[#1FA67A] data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none px-0 font-black uppercase text-[10px] tracking-widest">
+                <TabsTrigger value="config" className="data-[state=active]:bg-transparent data-[state=active]:text-[#2563EB] data-[state=active]:border-b-2 data-[state=active]:border-[#2563EB] rounded-none px-0 font-black uppercase text-[10px] tracking-widest">
                   Configurações
                 </TabsTrigger>
-                <TabsTrigger value="processos" className="data-[state=active]:bg-transparent data-[state=active]:text-[#1FA67A] data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none px-0 font-black uppercase text-[10px] tracking-widest">
+                <TabsTrigger value="processos" className="data-[state=active]:bg-transparent data-[state=active]:text-[#2563EB] data-[state=active]:border-b-2 data-[state=active]:border-[#2563EB] rounded-none px-0 font-black uppercase text-[10px] tracking-widest">
                   Modelos de Tarefas
                 </TabsTrigger>
-                <TabsTrigger value="clientes" className="data-[state=active]:bg-transparent data-[state=active]:text-[#1FA67A] data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none px-0 font-black uppercase text-[10px] tracking-widest">
+                <TabsTrigger value="clientes" className="data-[state=active]:bg-transparent data-[state=active]:text-[#2563EB] data-[state=active]:border-b-2 data-[state=active]:border-[#2563EB] rounded-none px-0 font-black uppercase text-[10px] tracking-widest">
                   Clientes e Exceções
                 </TabsTrigger>
               </TabsList>
@@ -493,7 +493,7 @@ export default function GruposObrigacoesPage() {
                       {(formData.processes || []).map((proc: any, i: number) => (
                         <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white border border-[#D2D7DB]">
                           <div className="flex items-center gap-3">
-                            <FileText className="h-4 w-4 text-[#1FA67A]" />
+                            <FileText className="h-4 w-4 text-[#2563EB]" />
                             <div>
                               <span className="text-xs font-black text-[#2C4156] uppercase">{proc.title}</span>
                               <p className="text-[9px] font-bold text-[#98A7AA] uppercase">Dia {proc.dueDay}</p>
@@ -545,7 +545,7 @@ export default function GruposObrigacoesPage() {
 
                     <div className="lg:col-span-5 space-y-4">
                       <div className="bg-[#F7F7F7] p-6 rounded-2xl border border-[#D2D7DB] space-y-4">
-                        <Label className="text-[10px] font-black uppercase text-[#1FA67A]">Incluir Nova Empresa</Label>
+                        <Label className="text-[10px] font-black uppercase text-[#2563EB]">Incluir Nova Empresa</Label>
                         <div className="relative">
                           <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
                           <Input 
@@ -578,7 +578,7 @@ export default function GruposObrigacoesPage() {
 
             <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
               <Button variant="outline" onClick={() => setIsModalOpen(false)} className="font-bold uppercase text-xs">Cancelar</Button>
-              <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-8 shadow-lg" onClick={handleSaveGroup}>
+              <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-8 shadow-lg" onClick={handleSaveGroup}>
                 <Save className="h-4 w-4 mr-2" /> Salvar Alterações do Grupo
               </Button>
             </DialogFooter>
@@ -591,7 +591,7 @@ export default function GruposObrigacoesPage() {
         <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl flex flex-col">
           <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
             <div className="flex items-center gap-3">
-              <RefreshCcw className="h-6 w-6 text-[#1FA67A]" />
+              <RefreshCcw className="h-6 w-6 text-[#2563EB]" />
               <DialogTitle className="text-2xl font-black uppercase tracking-tight">Gerar Processos do Mês</DialogTitle>
             </div>
             <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
@@ -631,7 +631,7 @@ export default function GruposObrigacoesPage() {
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => setIsGenModalOpen(false)} className="font-bold uppercase text-xs">Cancelar</Button>
             <Button 
-              className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-8 shadow-lg" 
+              className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-8 shadow-lg" 
               onClick={handleGenerateProcessos}
               disabled={isGenerating}
             >
@@ -649,7 +649,7 @@ function TabTrigger({ value, label }: { value: string, label: string }) {
   return (
     <TabsTrigger 
       value={value} 
-      className="data-[state=active]:bg-transparent data-[state=active]:text-[#1FA67A] data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none px-0 font-black uppercase text-[10px] tracking-widest shrink-0"
+      className="data-[state=active]:bg-transparent data-[state=active]:text-[#2563EB] data-[state=active]:border-b-2 data-[state=active]:border-[#2563EB] rounded-none px-0 font-black uppercase text-[10px] tracking-widest shrink-0"
     >
       {label}
     </TabsTrigger>

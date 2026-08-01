@@ -58,7 +58,7 @@ const AVAILABLE_TAGS = [
   { name: 'FINALIZADO!', color: 'bg-[#3498DB] text-white' },
   { name: 'PAGO', color: 'bg-[#2E86C1] text-white' },
   { name: '2 FATORES', color: 'bg-[#5DADE2] text-white' },
-  { name: 'EM PROCESSAMENTO', color: 'bg-[#1FA67A] text-white' },
+  { name: 'EM PROCESSAMENTO', color: 'bg-[#2563EB] text-white' },
   { name: 'GOV', color: 'bg-[#566573] text-white' },
 ]
 
@@ -279,7 +279,7 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
               <div className="space-y-3">
                 <Label className="text-[11px] font-black text-[#5E6C84] uppercase tracking-wider">Pagamento</Label>
                 <div className="flex items-center justify-between bg-white p-2.5 rounded-lg border border-[#D2D7DB]">
-                  <span className={cn("text-xs font-black uppercase", isPaid ? "text-[#1FA67A]" : "text-[#E74C3C]")}>
+                  <span className={cn("text-xs font-black uppercase", isPaid ? "text-[#2563EB]" : "text-[#E74C3C]")}>
                     {isPaid ? "PAGO" : "PENDENTE"}
                   </span>
                   <Switch checked={isPaid} onCheckedChange={(v) => { setIsPaid(v); handleUpdate({ isPaid: v }); }} />
@@ -316,7 +316,7 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
               <span className="text-xs font-bold text-[#172B4D]">Você</span>
             </div>
           </div>
-          <Button className="h-9 bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black text-[10px] uppercase gap-2 shadow-lg" onClick={handleSaveChanges}>
+          <Button className="h-9 bg-[#2563EB] hover:bg-[#2563EB]/90 font-black text-[10px] uppercase gap-2 shadow-lg" onClick={handleSaveChanges}>
             <Save className="h-3.5 w-3.5" /> Salvar Alterações
           </Button>
         </div>

@@ -126,7 +126,7 @@ export function InstallmentFormModal({ open, onOpenChange, clientId: initialClie
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl p-0 overflow-hidden flex flex-col">
         <DialogHeader className="p-6 bg-white border-b shrink-0">
-          <div className="flex items-center gap-2 text-[#1FA67A] mb-2">
+          <div className="flex items-center gap-2 text-[#2563EB] mb-2">
             <CreditCard className="h-6 w-6" />
             <DialogTitle className="text-2xl font-black text-[#2C4156]">Novo Parcelamento</DialogTitle>
           </div>
@@ -234,7 +234,7 @@ export function InstallmentFormModal({ open, onOpenChange, clientId: initialClie
 
         <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button className="bg-[#1FA67A] font-bold px-8 shadow-lg" onClick={handleSave}>
+          <Button className="bg-[#2563EB] font-bold px-8 shadow-lg" onClick={handleSave}>
             <Save className="h-4 w-4 mr-2" /> Salvar Parcelamento
           </Button>
         </DialogFooter>

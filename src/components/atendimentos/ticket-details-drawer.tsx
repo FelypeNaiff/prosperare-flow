@@ -180,7 +180,7 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
     return parts.map((part: string, i: number) => {
       const match = part.match(/@\[([^\]]+)\]\(([^)]+)\)/);
       if (match) {
-        return <span key={i} className="font-bold text-[#1FA67A]">{`@${match[1]}`}</span>;
+        return <span key={i} className="font-bold text-[#2563EB]">{`@${match[1]}`}</span>;
       }
       return <span key={i}>{part}</span>;
     });
@@ -345,7 +345,7 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
                         <div key={comment.id} className={cn("flex flex-col gap-1", isMe ? "items-end" : "items-start")}>
                           <div className={cn(
                             "max-w-[85%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap",
-                            isMe ? "bg-[#1FA67A] text-white rounded-br-sm" : "bg-[#F4F5F7] text-[#2C4156] rounded-bl-sm"
+                            isMe ? "bg-[#2563EB] text-white rounded-br-sm" : "bg-[#F4F5F7] text-[#2C4156] rounded-bl-sm"
                           )}>
                             {renderCommentText(comment.text)}
                           </div>
@@ -380,7 +380,7 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
                     {filteredTeam.map((u: any) => (
                       <div 
                         key={u.id}
-                        className="px-4 py-2 hover:bg-[#1FA67A] hover:text-white cursor-pointer text-xs font-bold text-[#2C4156] transition-colors uppercase border-b last:border-b-0 flex items-center gap-2"
+                        className="px-4 py-2 hover:bg-[#2563EB] hover:text-white cursor-pointer text-xs font-bold text-[#2C4156] transition-colors uppercase border-b last:border-b-0 flex items-center gap-2"
                         onClick={() => handleMentionSelect(u)}
                       >
                         <div className="h-5 w-5 bg-[#F7F7F7] text-[#2C4156] rounded-full flex items-center justify-center text-[8px] border">

@@ -21,7 +21,7 @@ export default function CertificadoEscritorioPage() {
       </div>
 
       {certValido ? (
-        <Alert className="bg-[#7ED6B5]/20 border-[#1FA67A]/20 text-[#1FA67A]">
+        <Alert className="bg-[#7ED6B5]/20 border-[#2563EB]/20 text-[#2563EB]">
           <CheckCircle2 className="h-5 w-5" />
           <AlertTitle className="font-bold">Certificado digital verificado</AlertTitle>
           <AlertDescription>
@@ -41,7 +41,7 @@ export default function CertificadoEscritorioPage() {
       <Card className="border-[#D2D7DB]">
         <CardHeader>
           <CardTitle className="text-[#2C4156] flex items-center gap-2">
-            <Key className="h-5 w-5 text-[#1FA67A]" />
+            <Key className="h-5 w-5 text-[#2563EB]" />
             Dados do Certificado
           </CardTitle>
           <CardDescription>
@@ -54,14 +54,14 @@ export default function CertificadoEscritorioPage() {
               <Label className="text-[10px] uppercase font-bold text-[#98A7AA]">Data de Vencimento</Label>
               <div className="flex gap-2">
                 <Input readOnly defaultValue="15/05/2025" className="bg-[#F7F7F7] border-[#D2D7DB]" />
-                <Badge className="bg-[#7ED6B5] text-[#1FA67A] whitespace-nowrap flex items-center px-3 border-none">
+                <Badge className="bg-[#7ED6B5] text-[#2563EB] whitespace-nowrap flex items-center px-3 border-none">
                   Vence em {diasParaVencer} dias
                 </Badge>
               </div>
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] uppercase font-bold text-[#98A7AA]">Ações Disponíveis</Label>
-              <Button className="w-full bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-bold">
+              <Button className="w-full bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-bold">
                 <RefreshCw className="h-4 w-4" /> Atualizar Certificado Digital
               </Button>
             </div>

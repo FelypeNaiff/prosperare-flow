@@ -145,7 +145,7 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
               </div>
               <Button 
                 variant="outline" 
-                className="h-10 border-[#1FA67A] text-[#1FA67A] font-bold gap-2"
+                className="h-10 border-[#2563EB] text-[#2563EB] font-bold gap-2"
                 onClick={syncWithReceita}
                 disabled={isSyncing}
               >
@@ -236,7 +236,7 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
             </div>
 
             <div className="col-span-2 border-t pt-4">
-              <h4 className="text-[10px] font-black text-[#1FA67A] uppercase tracking-widest mb-4">Endereço e Sede</h4>
+              <h4 className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest mb-4">Endereço e Sede</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 space-y-2">
                   <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Logradouro / Rua</Label>
@@ -289,7 +289,7 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
 
         <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button className="bg-[#1FA67A] font-black uppercase text-xs px-10 shadow-lg" onClick={handleSave}>
+          <Button className="bg-[#2563EB] font-black uppercase text-xs px-10 shadow-lg" onClick={handleSave}>
             <Save className="h-4 w-4 mr-2" /> Salvar Alterações
           </Button>
         </DialogFooter>

@@ -182,7 +182,7 @@ export default function DashboardPage() {
           <div className="bg-white border rounded-xl px-4 py-2 shadow-sm flex items-center gap-3">
             <div className={cn(
               "w-2 h-2 rounded-full",
-              isDataLoading ? "bg-amber-400 animate-pulse" : "bg-[#1FA67A]"
+              isDataLoading ? "bg-amber-400 animate-pulse" : "bg-[#2563EB]"
             )} />
             <div className="flex flex-col">
               <span className="text-[9px] font-black uppercase text-[#98A7AA] leading-none mb-0.5">Sincronização</span>
@@ -248,7 +248,7 @@ export default function DashboardPage() {
                        itemStyle={{ fontWeight: 'bold', fontSize: '12px' }}
                      />
                      <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
-                     <Bar dataKey="concluido" stackId="a" fill="#1FA67A" name="Concluídos" radius={[0, 0, 4, 4]} />
+                     <Bar dataKey="concluido" stackId="a" fill="#2563EB" name="Concluídos" radius={[0, 0, 4, 4]} />
                      <Bar dataKey="em_progresso" stackId="a" fill="#2574A9" name="Em Progresso" />
                      <Bar dataKey="a_fazer" stackId="a" fill="#F2B705" name="Pendente" radius={[4, 4, 0, 0]} />
                      <Line type="monotone" dataKey="total" stroke="#2C4156" name="Total Demandado" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />

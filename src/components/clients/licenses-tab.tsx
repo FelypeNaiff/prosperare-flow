@@ -163,7 +163,7 @@ export function LicensesTab({ clientId }: LicensesTabProps) {
     }
     
     if (!validade) {
-       return { label: statusText.replace('_', ' '), color: 'text-[#1FA67A]', bg: 'bg-[#7ED6B5]/10', border: 'border-[#1FA67A]/20', icon: CheckCircle2, days: 0 }
+       return { label: statusText.replace('_', ' '), color: 'text-[#2563EB]', bg: 'bg-[#7ED6B5]/10', border: 'border-[#2563EB]/20', icon: CheckCircle2, days: 0 }
     }
     
     const today = new Date()
@@ -180,7 +180,7 @@ export function LicensesTab({ clientId }: LicensesTabProps) {
       return { label: 'RENOVAÇÃO NECESSÁRIA', color: 'text-[#F2B705]', bg: 'bg-[#FEF3C7]/50', border: 'border-[#F2B705]/20', icon: ShieldAlert, days: daysLeft, critical: true }
     }
 
-    return { label: 'REGULAR', color: 'text-[#1FA67A]', bg: 'bg-[#7ED6B5]/10', border: 'border-[#1FA67A]/20', icon: CheckCircle2, days: daysLeft }
+    return { label: 'REGULAR', color: 'text-[#2563EB]', bg: 'bg-[#7ED6B5]/10', border: 'border-[#2563EB]/20', icon: CheckCircle2, days: daysLeft }
   }
 
   return (
@@ -195,14 +195,14 @@ export function LicensesTab({ clientId }: LicensesTabProps) {
             <p className="text-[10px] font-bold text-[#98A7AA] uppercase">Monitoramento da base global vinculado a este cliente.</p>
           </div>
         </div>
-        <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold shadow-lg uppercase text-[10px]" onClick={() => setIsModalOpen(true)}>
+        <Button size="sm" className="bg-[#2563EB] gap-2 font-bold shadow-lg uppercase text-[10px]" onClick={() => setIsModalOpen(true)}>
           <Plus className="h-4 w-4" /> Registrar Alvará
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoading ? (
-          <div className="col-span-full py-12 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" /></div>
+          <div className="col-span-full py-12 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" /></div>
         ) : (alvaras || []).length > 0 ? (
           (alvaras || []).map((alvara: any) => {
             const status = getStatusInfo(alvara.validade, alvara.status)
@@ -270,7 +270,7 @@ export function LicensesTab({ clientId }: LicensesTabProps) {
             <FlameKindling className="h-12 w-12 text-[#D2D7DB] mx-auto mb-4" />
             <h4 className="text-sm font-black text-[#2C4156] uppercase">Sem Alvarás na Base Global</h4>
             <p className="text-xs text-[#98A7AA] font-bold mt-1">Nenhum licenciamento localizado para esta empresa.</p>
-            <Button className="mt-6 bg-[#1FA67A] font-bold uppercase text-[10px] shadow-lg" onClick={() => setIsModalOpen(true)}>Vincular Novo Alvará</Button>
+            <Button className="mt-6 bg-[#2563EB] font-bold uppercase text-[10px] shadow-lg" onClick={() => setIsModalOpen(true)}>Vincular Novo Alvará</Button>
           </div>
         )}
       </div>
@@ -302,8 +302,8 @@ export function LicensesTab({ clientId }: LicensesTabProps) {
                 <Input type="date" value={formData.dataEmissao} onChange={(e) => setFormData({...formData, dataEmissao: e.target.value})} className="border-[#D2D7DB]" />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#1FA67A]">Validade</Label>
-                <Input type="date" value={formData.validade} onChange={(e) => setFormData({...formData, validade: e.target.value})} className="border-[#1FA67A] focus-visible:ring-[#1FA67A] font-black" />
+                <Label className="text-[10px] font-black uppercase text-[#2563EB]">Validade</Label>
+                <Input type="date" value={formData.validade} onChange={(e) => setFormData({...formData, validade: e.target.value})} className="border-[#2563EB] focus-visible:ring-[#2563EB] font-black" />
               </div>
             </div>
             <div className="space-y-2">
@@ -311,7 +311,7 @@ export function LicensesTab({ clientId }: LicensesTabProps) {
               <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
                 <SelectTrigger className="border-[#D2D7DB] font-bold uppercase text-[10px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ATIVO" className="uppercase text-[10px] font-bold text-[#1FA67A]">Ativo / Regular</SelectItem>
+                  <SelectItem value="ATIVO" className="uppercase text-[10px] font-bold text-[#2563EB]">Ativo / Regular</SelectItem>
                   <SelectItem value="EM_RENOVACAO" className="uppercase text-[10px] font-bold text-[#F39C12]">Em Renovação</SelectItem>
                   <SelectItem value="VENCIDO" className="uppercase text-[10px] font-bold text-[#E74C3C]">Vencido</SelectItem>
                   <SelectItem value="CASSADO" className="uppercase text-[10px] font-bold">Cassado</SelectItem>
@@ -321,7 +321,7 @@ export function LicensesTab({ clientId }: LicensesTabProps) {
           </div>
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t flex justify-between w-full">
             <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="font-bold uppercase text-[10px] text-[#98A7AA]">Cancelar</Button>
-            <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-[10px] px-8 shadow-lg shadow-emerald-500/20" onClick={handleSave} disabled={isSaving}>
+            <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-[10px] px-8 shadow-lg shadow-blue-500/20" onClick={handleSave} disabled={isSaving}>
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Salvar na Base Global
             </Button>

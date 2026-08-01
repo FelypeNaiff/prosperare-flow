@@ -144,7 +144,7 @@ export default function ParcelamentosPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Ativo':
-        return <Badge className="bg-[#7ED6B5] text-[#1FA67A] border-none font-bold text-[10px] uppercase h-6">Ativo</Badge>
+        return <Badge className="bg-[#7ED6B5] text-[#2563EB] border-none font-bold text-[10px] uppercase h-6">Ativo</Badge>
       case 'Cancelado':
       case 'Cancelado por não pagamento':
         return <Badge className="bg-[#FEE2E2] text-[#E74C3C] border-none font-bold text-[10px] uppercase h-6">Cancelado</Badge>
@@ -160,12 +160,12 @@ export default function ParcelamentosPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight flex items-center gap-3">
-            <CreditCard className="h-8 w-8 text-[#1FA67A]" />
+            <CreditCard className="h-8 w-8 text-[#2563EB]" />
             Controle de Parcelamentos
           </h1>
           <p className="text-[#98A7AA] font-bold text-sm">Gestão consolidada de acordos e dívidas parceladas.</p>
         </div>
-        <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg h-11 px-6" onClick={() => setIsModalOpen(true)}>
+        <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-black uppercase text-xs shadow-lg h-11 px-6" onClick={() => setIsModalOpen(true)}>
           <Plus className="h-4 w-4" /> Novo Parcelamento
         </Button>
       </div>
@@ -219,7 +219,7 @@ export default function ParcelamentosPage() {
                    </SelectTrigger>
                    <SelectContent>
                      <SelectItem value="Todos" className="text-xs font-bold uppercase">Todos os Status</SelectItem>
-                     <SelectItem value="Ativo" className="text-xs font-bold uppercase text-[#1FA67A]">Ativo</SelectItem>
+                     <SelectItem value="Ativo" className="text-xs font-bold uppercase text-[#2563EB]">Ativo</SelectItem>
                      <SelectItem value="Cancelado" className="text-xs font-bold uppercase text-[#E74C3C]">Cancelado</SelectItem>
                      <SelectItem value="Quitado" className="text-xs font-bold uppercase text-[#2574A9]">Quitado</SelectItem>
                    </SelectContent>
@@ -269,7 +269,7 @@ export default function ParcelamentosPage() {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-32 text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#2563EB]" />
                     <p className="text-[10px] font-black text-[#98A7AA] uppercase mt-2">Sincronizando Acordos...</p>
                   </TableCell>
                 </TableRow>
@@ -294,7 +294,7 @@ export default function ParcelamentosPage() {
                         <TableCell className="text-center font-bold text-xs text-[#39586D]">
                            {isActiveCount} {isActiveCount === 1 ? 'Acordo' : 'Acordos'}
                         </TableCell>
-                        <TableCell className="text-right font-black text-[#1FA67A] text-xs">
+                        <TableCell className="text-right font-black text-[#2563EB] text-xs">
                           R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / Mês
                         </TableCell>
                         <TableCell className="text-right pr-4">
@@ -310,7 +310,7 @@ export default function ParcelamentosPage() {
                                   <TableBody>
                                     {group.items.map((item) => (
                                       <TableRow key={item.id} className={cn(
-                                        "bg-white border border-[#E9ECEF] hover:border-[#1FA67A] transition-colors rounded-xl shadow-sm mb-2 relative",
+                                        "bg-white border border-[#E9ECEF] hover:border-[#2563EB] transition-colors rounded-xl shadow-sm mb-2 relative",
                                         (item.status?.includes('Cancelado')) && "bg-slate-50 border-slate-200 grayscale opacity-70 hover:border-slate-300"
                                       )}>
                                         <TableCell className="w-1/3 p-4 rounded-l-xl">
@@ -331,7 +331,7 @@ export default function ParcelamentosPage() {
                                               <span className="text-xs font-black text-[#2C4156]">{item.currentParcel || 0} / {item.totalParcels || 0}</span>
                                               <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                                 <div 
-                                                  className="h-full bg-[#1FA67A]" 
+                                                  className="h-full bg-[#2563EB]" 
                                                   style={{ width: `${(Number(item.currentParcel) / Number(item.totalParcels)) * 100}%` }} 
                                                 />
                                               </div>
@@ -342,7 +342,7 @@ export default function ParcelamentosPage() {
                                            <div className="flex flex-col gap-1">
                                              <span className="text-[9px] uppercase font-black text-[#98A7AA]">Valor & Dia</span>
                                              <div className="flex items-center gap-2">
-                                                <span className="font-black text-[#1FA67A] text-xs">R$ {Number(item.value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                                <span className="font-black text-[#2563EB] text-xs">R$ {Number(item.value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                                                 <span className="text-[10px] text-[#2C4156] font-bold">Dia {item.dueDay}</span>
                                              </div>
                                            </div>
@@ -453,7 +453,7 @@ export default function ParcelamentosPage() {
 
 function KpiMini({ label, value, icon: Icon, color }: any) {
   const colors = {
-    success: "bg-[#7ED6B5]/20 text-[#1FA67A]",
+    success: "bg-[#7ED6B5]/20 text-[#2563EB]",
     info: "bg-[#E3F0F9]/20 text-[#2574A9]",
     destructive: "bg-[#FEE2E2]/20 text-[#E74C3C]",
     warning: "bg-[#FEF3C7]/20 text-[#F2B705]",

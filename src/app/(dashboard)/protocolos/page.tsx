@@ -57,7 +57,7 @@ export default function ProtocolosPage() {
           <p className="text-[#98A7AA] font-medium">Gestão e rastreabilidade de documentos enviados por e-mail.</p>
         </div>
         <div className="flex gap-2">
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2" onClick={handleCopyLink}>
+          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2" onClick={handleCopyLink}>
             <Plus className="h-4 w-4" /> Novo Registro de Protocolo
           </Button>
         </div>
@@ -72,12 +72,12 @@ export default function ProtocolosPage() {
             <p className="text-3xl font-black text-[#2C4156]">142</p>
           </CardContent>
         </Card>
-        <Card className="bg-[#7ED6B5]/20 border-[#1FA67A]/20">
+        <Card className="bg-[#7ED6B5]/20 border-[#2563EB]/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold text-[#1FA67A] uppercase">Visualizados</CardTitle>
+            <CardTitle className="text-sm font-bold text-[#2563EB] uppercase">Visualizados</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-black text-[#1FA67A]">128 <span className="text-xs font-bold opacity-60">(90%)</span></p>
+            <p className="text-3xl font-black text-[#2563EB]">128 <span className="text-xs font-bold opacity-60">(90%)</span></p>
           </CardContent>
         </Card>
         <Card className="bg-[#FEE2E2]/30 border-[#E74C3C]/20">
@@ -130,7 +130,7 @@ export default function ProtocolosPage() {
                   <TableCell className="text-center">
                     <Badge className={cn(
                       "text-[9px] font-black uppercase border-none",
-                      protocol.status === 'Visualizado' ? "bg-[#7ED6B5] text-[#1FA67A]" : 
+                      protocol.status === 'Visualizado' ? "bg-[#7ED6B5] text-[#2563EB]" : 
                       protocol.status === 'Enviado' ? "bg-[#E3F0F9] text-[#2574A9]" : "bg-[#FEF3C7] text-[#F2B705]"
                     )}>
                       {protocol.status}
@@ -140,7 +140,7 @@ export default function ProtocolosPage() {
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" title="Ver Comprovante" className="h-8 w-8 text-[#98A7AA]"><Eye className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" title="Copia link do protocolo" className="h-8 w-8 text-[#1FA67A]" onClick={handleCopyLink}><Copy className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" title="Copia link do protocolo" className="h-8 w-8 text-[#2563EB]" onClick={handleCopyLink}><Copy className="h-4 w-4" /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -154,7 +154,7 @@ export default function ProtocolosPage() {
         <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-white/10 rounded-full">
-              <Mail className="h-6 w-6 text-[#1FA67A]" />
+              <Mail className="h-6 w-6 text-[#2563EB]" />
             </div>
             <div>
               <h4 className="font-bold text-lg">Envio Manual via E-mail</h4>

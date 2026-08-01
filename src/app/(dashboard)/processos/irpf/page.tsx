@@ -53,7 +53,7 @@ export default function IrpfPage() {
   if (isUserLoading) {
     return (
       <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" />
       </div>
     )
   }
@@ -82,13 +82,13 @@ export default function IrpfPage() {
               <Settings className="h-4 w-4" /> Etiquetas
             </Link>
           </Button>
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2" onClick={() => setIsModalOpen(true)}>
+          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2" onClick={() => setIsModalOpen(true)}>
             <Plus className="h-4 w-4" /> Nova Declaração
           </Button>
         </div>
         <div className="order-1 md:order-2 md:text-right">
           <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">
-            Gestão <span className="text-[#1FA67A]">IRPF 2026</span>
+            Gestão <span className="text-[#2563EB]">IRPF 2026</span>
           </h1>
           <p className="text-[#98A7AA] font-medium">Fluxo de declarações de Imposto de Renda Pessoa Física.</p>
         </div>

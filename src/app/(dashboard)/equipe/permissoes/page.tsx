@@ -86,7 +86,7 @@ export default function PermissoesPage() {
     toast({ 
       title: "Permissões atualizadas!", 
       description: `As novas regras para ${selectedUser.fullName} foram salvas na nuvem.`,
-      className: "bg-[#1FA67A] text-white border-none"
+      className: "bg-[#2563EB] text-white border-none"
     })
   }
 
@@ -111,7 +111,7 @@ export default function PermissoesPage() {
         <CardHeader className="bg-[#F7F7F7]/50 border-b">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <CardTitle className="text-lg font-black text-[#2C4156] uppercase flex items-center gap-2">
-              <Lock className="h-5 w-5 text-[#1FA67A]" />
+              <Lock className="h-5 w-5 text-[#2563EB]" />
               Colaboradores Autorizados
             </CardTitle>
             <div className="relative w-full md:w-80">
@@ -139,7 +139,7 @@ export default function PermissoesPage() {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={4} className="h-32 text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#2563EB]" />
                   </TableCell>
                 </TableRow>
               ) : filteredUsers.length > 0 ? (
@@ -152,7 +152,7 @@ export default function PermissoesPage() {
                     <TableCell className="text-xs font-bold text-[#98A7AA]">{user.email}</TableCell>
                     <TableCell className="text-right">
                       <Button variant="outline" size="sm" className="gap-2 border-[#D2D7DB] text-[#2C4156] font-bold" onClick={() => handleOpenPerms(user)}>
-                        <ShieldCheck className="h-4 w-4 text-[#1FA67A]" /> Ajustar Privilégios
+                        <ShieldCheck className="h-4 w-4 text-[#2563EB]" /> Ajustar Privilégios
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -174,7 +174,7 @@ export default function PermissoesPage() {
           <DialogHeader className="p-6 bg-[#2C4156] text-white">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-white/10 rounded-xl">
-                <ShieldCheck className="h-8 w-8 text-[#1FA67A]" />
+                <ShieldCheck className="h-8 w-8 text-[#2563EB]" />
               </div>
               <div>
                 <DialogTitle className="text-xl font-black uppercase">Permissões Detalhadas</DialogTitle>
@@ -216,7 +216,7 @@ export default function PermissoesPage() {
                           <Checkbox 
                             id={perm.id} 
                             defaultChecked={selectedUser?.profile === 'SÓCIO' || selectedUser?.profile === 'ADMINISTRADOR'}
-                            className="h-5 w-5 border-[#D2D7DB] data-[state=checked]:bg-[#1FA67A] data-[state=checked]:border-[#1FA67A]" 
+                            className="h-5 w-5 border-[#D2D7DB] data-[state=checked]:bg-[#2563EB] data-[state=checked]:border-[#2563EB]" 
                           />
                         </div>
                       ))}
@@ -229,7 +229,7 @@ export default function PermissoesPage() {
 
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t">
             <Button variant="outline" onClick={() => setIsModalOpen(false)} className="border-[#D2D7DB] font-bold">Cancelar</Button>
-            <Button className="bg-[#1FA67A] font-black uppercase text-xs px-10 shadow-lg" onClick={handleSave}>Salvar Configurações</Button>
+            <Button className="bg-[#2563EB] font-black uppercase text-xs px-10 shadow-lg" onClick={handleSave}>Salvar Configurações</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

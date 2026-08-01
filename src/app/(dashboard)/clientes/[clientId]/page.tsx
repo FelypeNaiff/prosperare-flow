@@ -166,7 +166,7 @@ export default function DetalhesClientePage() {
   if (loadingClient) {
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-[#1FA67A]" />
+        <Loader2 className="h-10 w-10 animate-spin text-[#2563EB]" />
         <p className="text-xs font-black uppercase text-[#98A7AA] tracking-widest animate-pulse">Sincronizando Ficha 360º...</p>
       </div>
     )
@@ -192,7 +192,7 @@ export default function DetalhesClientePage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-black text-[#2C4156]">{client.corporateName}</h1>
-              <Badge className={cn("border-none font-bold text-[10px] uppercase", client.status === 'Inativa' ? "bg-[#F3F4F6] text-[#98A7AA]" : "bg-[#7ED6B5] text-[#1FA67A]")}>
+              <Badge className={cn("border-none font-bold text-[10px] uppercase", client.status === 'Inativa' ? "bg-[#F3F4F6] text-[#98A7AA]" : "bg-[#7ED6B5] text-[#2563EB]")}>
                 {client.status || 'Ativa'}
               </Badge>
             </div>
@@ -200,7 +200,7 @@ export default function DetalhesClientePage() {
               <p className="text-sm text-[#98A7AA] font-bold uppercase tracking-widest">{client.cnpj} • {client.taxRegime}</p>
               <button 
                 onClick={() => handleCopyCNPJ(client.cnpj)}
-                className="p-1 rounded hover:bg-[#EBEDF0] text-[#98A7AA] hover:text-[#1FA67A] transition-all"
+                className="p-1 rounded hover:bg-[#EBEDF0] text-[#98A7AA] hover:text-[#2563EB] transition-all"
                 title="Copiar CNPJ"
               >
                 <Copy className="h-3 w-3" />
@@ -225,7 +225,7 @@ export default function DetalhesClientePage() {
               </Button>
             }
           />
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 shadow-lg shadow-emerald-500/20 font-black uppercase text-xs" onClick={handleGenerateTasks} disabled={isGenerating}>
+          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 shadow-lg shadow-blue-500/20 font-black uppercase text-xs" onClick={handleGenerateTasks} disabled={isGenerating}>
             {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
             GERAR TAREFAS DO MÊS
           </Button>
@@ -233,12 +233,12 @@ export default function DetalhesClientePage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="border-[#D2D7DB] border-l-4 border-l-[#1FA67A]">
+        <Card className="border-[#D2D7DB] border-l-4 border-l-[#2563EB]">
           <CardContent className="p-4 space-y-2">
             <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Saúde Fiscal</p>
             <div className="flex items-end gap-2">
               <span className="text-3xl font-black text-[#2C4156]">{client.healthScore || 0}%</span>
-              <TrendingUp className="h-5 w-5 text-[#1FA67A] mb-1" />
+              <TrendingUp className="h-5 w-5 text-[#2563EB] mb-1" />
             </div>
             <Progress value={client.healthScore || 0} className="h-1.5 bg-[#F7F7F7]" />
           </CardContent>
@@ -255,7 +255,7 @@ export default function DetalhesClientePage() {
         <Card className="border-[#D2D7DB]">
           <CardContent className="p-4 space-y-1">
             <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Honorário</p>
-            <p className="text-lg font-black text-[#1FA67A]">
+            <p className="text-lg font-black text-[#2563EB]">
               R$ {(Number(client.honorariumValue) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
             <p className="text-[10px] font-bold text-[#39586D] uppercase">Vencimento dia {client.honorariumDueDateDay || 10}</p>
@@ -331,7 +331,7 @@ export default function DetalhesClientePage() {
                   <div className="col-span-2 space-y-2 border-t pt-4">
                     <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Endereço Completo</Label>
                     <div className="flex items-center gap-2 text-sm font-bold text-[#39586D]">
-                      <MapPin className="h-4 w-4 text-[#1FA67A]" /> {client.address}, {client.neighborhood} - {client.city}/{client.state}
+                      <MapPin className="h-4 w-4 text-[#2563EB]" /> {client.address}, {client.neighborhood} - {client.city}/{client.state}
                     </div>
                   </div>
                 </CardContent>
@@ -340,14 +340,14 @@ export default function DetalhesClientePage() {
               <Card className="border-[#D2D7DB]">
                 <CardHeader className="bg-[#F7F7F7]/50 border-b flex flex-row items-center justify-between">
                   <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Vincular Grupos de Obrigações</CardTitle>
-                  <Layers className="h-4 w-4 text-[#1FA67A]" />
+                  <Layers className="h-4 w-4 text-[#2563EB]" />
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {dbGroups && dbGroups.length > 0 ? dbGroups.map((group: any) => (
                       <div key={group.id} className={cn(
                         "flex items-center space-x-3 p-3 rounded-xl border bg-white hover:bg-[#F7F7F7] transition-colors cursor-pointer",
-                        client.obligationGroups?.includes(group.id) && "border-[#1FA67A] bg-[#1FA67A]/5"
+                        client.obligationGroups?.includes(group.id) && "border-[#2563EB] bg-[#2563EB]/5"
                       )} onClick={() => handleToggleGroup(group.id)}>
                         <Checkbox 
                           id={group.id} 
@@ -385,7 +385,7 @@ export default function DetalhesClientePage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-[#F7F7F7] border">
-                    <Phone className="h-5 w-5 text-[#1FA67A]" />
+                    <Phone className="h-5 w-5 text-[#2563EB]" />
                     <div className="flex flex-col">
                       <span className="text-[9px] font-black text-[#98A7AA] uppercase">Telefone / WhatsApp</span>
                       <span className="text-xs font-bold text-[#2C4156]">{client.phone}</span>
@@ -408,7 +408,7 @@ export default function DetalhesClientePage() {
                 <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Obrigações e Tarefas do Cliente</CardTitle>
                 <CardDescription className="text-xs font-bold text-[#98A7AA]">Fluxo de trabalho específico para {client.corporateName}.</CardDescription>
               </div>
-              <Button className="bg-[#1FA67A] gap-2 h-8 text-xs font-black uppercase" onClick={handleGenerateTasks} disabled={isGenerating}>
+              <Button className="bg-[#2563EB] gap-2 h-8 text-xs font-black uppercase" onClick={handleGenerateTasks} disabled={isGenerating}>
                 <Plus className="h-3.5 w-3.5" /> Adicionar Tarefa
               </Button>
             </CardHeader>
@@ -469,7 +469,7 @@ function ClientTasksList({ clientId }: { clientId: string }) {
   )
   const { data: tasks, isLoading } = useCollection(tasksQuery)
 
-  if (isLoading) return <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#1FA67A]" /></div>
+  if (isLoading) return <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#2563EB]" /></div>
 
   if (!tasks || tasks.length === 0) {
     return (
@@ -486,7 +486,7 @@ function ClientTasksList({ clientId }: { clientId: string }) {
           <div className="flex items-center gap-4">
             <div className={cn(
               "w-2 h-2 rounded-full",
-              task.status === 'done' ? 'bg-[#1FA67A]' : task.status === 'cancelled' ? 'bg-[#98A7AA]' : 'bg-[#F2B705]'
+              task.status === 'done' ? 'bg-[#2563EB]' : task.status === 'cancelled' ? 'bg-[#98A7AA]' : 'bg-[#F2B705]'
             )} />
             <div>
               <div className="flex items-center gap-2">
@@ -498,7 +498,7 @@ function ClientTasksList({ clientId }: { clientId: string }) {
           </div>
           <Badge className={cn(
             "text-[9px] font-black uppercase border-none",
-            task.status === 'done' ? 'bg-[#7ED6B5] text-[#1FA67A]' : task.status === 'cancelled' ? 'bg-[#EBEDF0] text-[#98A7AA]' : 'bg-[#FEF3C7] text-[#F2B705]'
+            task.status === 'done' ? 'bg-[#7ED6B5] text-[#2563EB]' : task.status === 'cancelled' ? 'bg-[#EBEDF0] text-[#98A7AA]' : 'bg-[#FEF3C7] text-[#F2B705]'
           )}>
             {task.status === 'done' ? 'Concluído' : task.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
           </Badge>

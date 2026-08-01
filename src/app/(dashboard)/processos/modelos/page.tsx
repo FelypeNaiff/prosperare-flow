@@ -62,7 +62,7 @@ export default function ModelosProcessosPage() {
           <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Modelos de Processos</h1>
           <p className="text-[#98A7AA] font-bold text-sm">Estruture checklists inteligentes para automação do escritório.</p>
         </div>
-        <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg" onClick={() => { setEditingModel(null); setIsModalOpen(true); }}>
+        <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-black uppercase text-xs shadow-lg" onClick={() => { setEditingModel(null); setIsModalOpen(true); }}>
           <Plus className="h-4 w-4" /> Novo Modelo
         </Button>
       </div>
@@ -79,7 +79,7 @@ export default function ModelosProcessosPage() {
 
       {isLoading ? (
         <div className="h-64 flex flex-col items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" />
           <p className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest mt-4">Sincronizando Inteligência...</p>
         </div>
       ) : filteredModels.length > 0 ? (
@@ -120,7 +120,7 @@ export default function ModelosProcessosPage() {
 
                 <div className="flex gap-2 pt-2">
                   <Button variant="outline" size="sm" className="flex-1 text-[10px] font-black uppercase h-8 border-[#D2D7DB]" onClick={() => handleEdit(model)}>
-                    <Edit className="h-3 w-3 mr-2 text-[#1FA67A]" /> Editar
+                    <Edit className="h-3 w-3 mr-2 text-[#2563EB]" /> Editar
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -141,7 +141,7 @@ export default function ModelosProcessosPage() {
           <Layers className="h-12 w-12 text-[#D2D7DB] mb-4" />
           <h3 className="text-lg font-black text-[#2C4156] uppercase">Nenhum Modelo Definido</h3>
           <p className="text-sm text-[#98A7AA] font-bold max-w-sm">Crie a inteligência por trás dos seus processos para automatizar a geração de tarefas.</p>
-          <Button className="mt-6 bg-[#1FA67A] font-black uppercase text-xs" onClick={() => setIsModalOpen(true)}>Criar Primeiro Modelo</Button>
+          <Button className="mt-6 bg-[#2563EB] font-black uppercase text-xs" onClick={() => setIsModalOpen(true)}>Criar Primeiro Modelo</Button>
         </div>
       )}
 

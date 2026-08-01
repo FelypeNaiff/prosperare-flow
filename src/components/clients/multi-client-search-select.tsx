@@ -66,7 +66,7 @@ export function MultiClientSearchSelect({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between h-11 border-[#D2D7DB] hover:border-[#1FA67A] transition-colors font-bold uppercase text-[11px] px-4 bg-white"
+            className="w-full justify-between h-11 border-[#D2D7DB] hover:border-[#2563EB] transition-colors font-bold uppercase text-[11px] px-4 bg-white"
           >
             <span className="truncate">
               {value.length > 0 ? `${value.length} EMPRESAS SELECIONADAS` : placeholder}
@@ -99,7 +99,7 @@ export function MultiClientSearchSelect({
                     type="button"
                     className={cn(
                       "relative flex w-full cursor-pointer select-none items-center rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none hover:bg-[#F7F7F7] transition-all text-left mb-1",
-                      value.includes(client.id) && "bg-[#1FA67A]/5 text-[#1FA67A]"
+                      value.includes(client.id) && "bg-[#2563EB]/5 text-[#2563EB]"
                     )}
                     onClick={(e) => {
                       e.preventDefault()
@@ -115,7 +115,7 @@ export function MultiClientSearchSelect({
                       <span className="text-[8px] font-mono opacity-60">{client.cnpj}</span>
                     </div>
                     {value.includes(client.id) && (
-                      <Check className="ml-2 h-4 w-4 shrink-0 text-[#1FA67A]" />
+                      <Check className="ml-2 h-4 w-4 shrink-0 text-[#2563EB]" />
                     )}
                   </button>
                 ))}

@@ -86,7 +86,7 @@ export default function DocsFlowHistoricoPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-[#D2D7DB] bg-white">
           <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-3 bg-[#1FA67A]/10 rounded-xl text-[#1FA67A]">
+            <div className="p-3 bg-[#2563EB]/10 rounded-xl text-[#2563EB]">
               <FileText className="h-6 w-6" />
             </div>
             <div>
@@ -150,7 +150,7 @@ export default function DocsFlowHistoricoPage() {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-32 text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#2563EB]" />
                   </TableCell>
                 </TableRow>
               ) : filteredDocs.length > 0 ? (
@@ -176,7 +176,7 @@ export default function DocsFlowHistoricoPage() {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8 text-[#1FA67A]" 
+                          className="h-8 w-8 text-[#2563EB]" 
                           title="Reutilizar Dados"
                           onClick={() => handleReuse(item)}
                         >

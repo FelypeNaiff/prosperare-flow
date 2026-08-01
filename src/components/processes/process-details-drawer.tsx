@@ -187,7 +187,7 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
     return parts.map((part, i) => {
       const match = part.match(/@\[([^\]]+)\]\(([^)]+)\)/);
       if (match) {
-        return <span key={i} className="font-bold text-[#1FA67A]">{`@${match[1]}`}</span>;
+        return <span key={i} className="font-bold text-[#2563EB]">{`@${match[1]}`}</span>;
       }
       return <span key={i}>{part}</span>;
     });
@@ -286,7 +286,7 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
                 </div>
 
                 <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-[#D2D7DB]/50 shadow-sm min-w-[160px]">
-                  <div className="p-1.5 bg-[#F7F7F7] rounded-lg text-[#1FA67A]">
+                  <div className="p-1.5 bg-[#F7F7F7] rounded-lg text-[#2563EB]">
                     <UserPlus className="h-3.5 w-3.5" />
                   </div>
                   <div className="flex flex-col flex-1">
@@ -314,7 +314,7 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
                 <div className="space-y-3">
                   <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Observações do Processo</Label>
                   <Textarea 
-                    className="h-32 border-[#D2D7DB] text-sm focus:ring-[#1FA67A]" 
+                    className="h-32 border-[#D2D7DB] text-sm focus:ring-[#2563EB]" 
                     defaultValue={process.descricao}
                     onBlur={(e) => handleUpdate('descricao', e.target.value)}
                     placeholder="Adicione informações relevantes..."
@@ -344,7 +344,7 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
                             {filteredTeam.map((u: any) => (
                               <div 
                                 key={u.id}
-                                className="px-4 py-2 hover:bg-[#1FA67A] hover:text-white cursor-pointer text-xs font-bold text-[#2C4156] transition-colors uppercase border-b last:border-b-0 flex items-center gap-2"
+                                className="px-4 py-2 hover:bg-[#2563EB] hover:text-white cursor-pointer text-xs font-bold text-[#2C4156] transition-colors uppercase border-b last:border-b-0 flex items-center gap-2"
                                 onClick={() => handleMentionSelect(u)}
                               >
                                 <div className="h-5 w-5 bg-[#F7F7F7] text-[#2C4156] rounded-full flex items-center justify-center text-[8px] border">
@@ -356,7 +356,7 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
                           </div>
                         )}
                         <Button 
-                          className="absolute bottom-2 right-2 h-8 bg-[#1FA67A] text-[10px] font-black uppercase gap-2"
+                          className="absolute bottom-2 right-2 h-8 bg-[#2563EB] text-[10px] font-black uppercase gap-2"
                           onClick={handleAddComment}
                         >
                           <Send className="h-3 w-3" /> Enviar
@@ -395,7 +395,7 @@ export function ProcessDetailsDrawer({ open, onOpenChange, process }: any) {
           <div className="flex-[3] bg-[#F4F5F7] flex flex-col overflow-hidden">
             <header className="p-6 border-b space-y-4">
               <h3 className="font-black text-[#2C4156] uppercase text-xs tracking-widest flex items-center gap-2">
-                <ClipboardList className="h-4 w-4 text-[#1FA67A]" /> Tarefas do Processo
+                <ClipboardList className="h-4 w-4 text-[#2563EB]" /> Tarefas do Processo
               </h3>
               <div className="space-y-1.5">
                 <div className="flex justify-between text-[10px] font-black text-[#98A7AA] uppercase">

@@ -24,7 +24,7 @@ const AVAILABLE_TAGS = [
   { name: 'FINALIZADO!', color: 'bg-[#3498DB] text-white' },
   { name: 'PAGO', color: 'bg-[#2E86C1] text-white' },
   { name: '2 FATORES', color: 'bg-[#5DADE2] text-white' },
-  { name: 'EM PROCESSAMENTO', color: 'bg-[#1FA67A] text-white' },
+  { name: 'EM PROCESSAMENTO', color: 'bg-[#2563EB] text-white' },
   { name: 'GOV', color: 'bg-[#566573] text-white' },
 ]
 
@@ -107,7 +107,7 @@ export function IrpfKanban({ searchTerm, filtroPagamento = "Todos" }: { searchTe
   if (loadingStages || loadingDecls) {
     return (
       <div className="h-64 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" />
       </div>
     )
   }
@@ -173,7 +173,7 @@ export function IrpfKanban({ searchTerm, filtroPagamento = "Todos" }: { searchTe
                           <div className="flex items-center gap-1">
                             <span className="text-[9px] font-black text-[#98A7AA]">{card.progress || 0}%</span>
                             <div className="w-10 h-1 bg-slate-100 rounded-full">
-                              <div className="h-full bg-[#1FA67A]" style={{ width: `${card.progress || 0}%` }} />
+                              <div className="h-full bg-[#2563EB]" style={{ width: `${card.progress || 0}%` }} />
                             </div>
                           </div>
                         </div>

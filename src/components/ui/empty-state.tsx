@@ -27,7 +27,7 @@ export function EmptyState({
         className
       )}
     >
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#1FA67A] shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#2563EB] shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
         <Icon className="h-6 w-6" />
       </div>
       <h3 className="text-sm font-black uppercase tracking-wide text-slate-700">
@@ -42,7 +42,7 @@ export function EmptyState({
         <Button
           type="button"
           onClick={onAction}
-          className="mt-5 bg-[#1FA67A] font-bold hover:bg-[#1FA67A]/90"
+          className="mt-5 bg-[#2563EB] font-bold hover:bg-[#2563EB]/90"
         >
           {actionLabel}
         </Button>

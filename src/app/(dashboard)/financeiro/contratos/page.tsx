@@ -204,7 +204,7 @@ export default function ContatosPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Inversão: Botão para a esquerda */}
-        <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-bold shadow-lg shadow-emerald-500/20 h-11 px-6 order-2 md:order-1" onClick={handleOpenNew}>
+        <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-bold shadow-lg shadow-blue-500/20 h-11 px-6 order-2 md:order-1" onClick={handleOpenNew}>
           <Plus className="h-4 w-4" /> Novo Contrato
         </Button>
 
@@ -217,7 +217,7 @@ export default function ContatosPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <MetricCard label="Contratos Ativos" value={stats.active} icon={FileText} color="#2C4156" />
-        <MetricCard label="Receita Recorrente" value={`R$ ${stats.revenue.toLocaleString('pt-BR')}`} icon={FileCheck} color="#1FA67A" />
+        <MetricCard label="Receita Recorrente" value={`R$ ${stats.revenue.toLocaleString('pt-BR')}`} icon={FileCheck} color="#2563EB" />
         <MetricCard label="A Renovar (30d)" value="0" icon={History} color="#F2B705" />
         <MetricCard label="Suspensos" value="0" icon={AlertTriangle} color="#E74C3C" />
       </div>
@@ -254,7 +254,7 @@ export default function ContatosPage() {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-32 text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#2563EB]" />
                   </TableCell>
                 </TableRow>
               ) : filteredContracts.length > 0 ? (
@@ -276,11 +276,11 @@ export default function ContatosPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-xs font-bold text-[#39586D]">{item.startDate}</TableCell>
-                    <TableCell className="text-right font-black text-[#1FA67A]">R$ {Number(item.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-right font-black text-[#2563EB]">R$ {Number(item.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                     <TableCell className="text-center">
                       <Badge className={cn(
                         "text-[9px] font-black uppercase border-none",
-                        item.status === 'Ativo' ? 'bg-[#7ED6B5] text-[#1FA67A]' : 'bg-[#F3F4F6] text-[#98A7AA]'
+                        item.status === 'Ativo' ? 'bg-[#7ED6B5] text-[#2563EB]' : 'bg-[#F3F4F6] text-[#98A7AA]'
                       )}>{item.status}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -393,7 +393,7 @@ export default function ContatosPage() {
           </div>
           <DialogFooter className="bg-[#F7F7F7] -mx-6 -mb-6 p-6 border-t mt-4">
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-            <Button className="bg-[#1FA67A] font-bold px-8" onClick={handleSaveContract}>
+            <Button className="bg-[#2563EB] font-bold px-8" onClick={handleSaveContract}>
               <Save className="h-4 w-4 mr-2" /> {editingId ? "Salvar Alterações" : "Ativar Contrato"}
             </Button>
           </DialogFooter>
@@ -410,7 +410,7 @@ export default function ContatosPage() {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setIsPreviewOpen(false)}>Fechar</Button>
-                <Button className="bg-[#1FA67A] gap-2 font-bold" onClick={() => window.print()}>
+                <Button className="bg-[#2563EB] gap-2 font-bold" onClick={() => window.print()}>
                   <Printer className="h-4 w-4" /> Imprimir / PDF
                 </Button>
               </div>
@@ -493,7 +493,7 @@ export default function ContatosPage() {
 
 function MetricCard({ label, value, icon: Icon, color }: any) {
   return (
-    <Card className="border-[#D2D7DB] hover:border-[#1FA67A] transition-colors group bg-white">
+    <Card className="border-[#D2D7DB] hover:border-[#2563EB] transition-colors group bg-white">
       <CardContent className="p-4 flex items-center gap-4">
         <div className="p-3 rounded-xl group-hover:bg-[#F7F7F7] transition-colors" style={{ color }}>
           <Icon className="h-6 w-6" />

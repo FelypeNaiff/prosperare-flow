@@ -35,8 +35,8 @@ export default function DocsFlowPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight flex items-center gap-3">
-            <FileStack className="h-8 w-8 text-[#1FA67A]" />
-            Docs <span className="text-[#1FA67A]">Flow</span>
+            <FileStack className="h-8 w-8 text-[#2563EB]" />
+            Docs <span className="text-[#2563EB]">Flow</span>
           </h1>
           <p className="text-[#98A7AA] font-bold text-sm">Central de geração de documentos avulsos e inteligentes.</p>
         </div>

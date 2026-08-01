@@ -122,7 +122,7 @@ export function NotificationBell() {
           <Button 
             variant="ghost" 
             size="sm" 
-            className="h-7 text-[10px] font-bold text-[#1FA67A] uppercase"
+            className="h-7 text-[10px] font-bold text-[#2563EB] uppercase"
             onClick={markAllAsRead}
           >
             Limpar tudo
@@ -144,7 +144,7 @@ export function NotificationBell() {
                       key={notif.id} 
                       className={cn(
                         "p-4 flex gap-4 cursor-pointer focus:bg-[#F7F7F7] border-b last:border-0 items-start",
-                        !notif.read && "bg-[#1FA67A]/5"
+                        !notif.read && "bg-[#2563EB]/5"
                       )}
                       onSelect={() => markAsRead(notif.id)}
                     >
@@ -156,7 +156,7 @@ export function NotificationBell() {
                         <p className="text-[10px] text-[#39586D] leading-relaxed">{notif.message}</p>
                         <p className="text-[9px] text-[#98A7AA] font-medium">{new Date(notif.createdAt).toLocaleString('pt-BR')}</p>
                       </div>
-                      {!notif.read && <div className="w-2 h-2 rounded-full bg-[#1FA67A] mt-2" />}
+                      {!notif.read && <div className="w-2 h-2 rounded-full bg-[#2563EB] mt-2" />}
                     </DropdownMenuItem>
                   )
                 })()

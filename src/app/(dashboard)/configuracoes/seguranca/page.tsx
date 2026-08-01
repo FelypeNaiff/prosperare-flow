@@ -57,7 +57,7 @@ export default function SegurancaLogsPage() {
                       <TableCell>{acc.time}</TableCell>
                       <TableCell className="text-[#98A7AA]">{acc.ip} <br/> {acc.device}</TableCell>
                       <TableCell className="text-center">
-                        <Badge className={acc.status === 'Sucesso' ? "bg-[#7ED6B5] text-[#1FA67A] border-none" : "bg-[#FEE2E2] text-[#E74C3C] border-none"}>
+                        <Badge className={acc.status === 'Sucesso' ? "bg-[#7ED6B5] text-[#2563EB] border-none" : "bg-[#FEE2E2] text-[#E74C3C] border-none"}>
                           {acc.status}
                         </Badge>
                       </TableCell>
@@ -71,7 +71,7 @@ export default function SegurancaLogsPage() {
           <Card className="border-[#D2D7DB]">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <History className="h-5 w-5 text-[#1FA67A]" />
+                <History className="h-5 w-5 text-[#2563EB]" />
                 Histórico de Alterações
               </CardTitle>
               <CardDescription>Log de quem alterou o quê nas configurações.</CardDescription>

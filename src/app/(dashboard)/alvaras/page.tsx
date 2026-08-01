@@ -286,7 +286,7 @@ export default function AlvarasPage() {
           <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] gap-2 font-black uppercase text-xs h-11 px-6 shadow-sm" onClick={handleExportPDF}>
             <FileDown className="h-4 w-4" /> Exportar Matriz
           </Button>
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg h-11 px-6">
+          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-black uppercase text-xs shadow-lg h-11 px-6">
             <Plus className="h-4 w-4" /> Novo Lote
           </Button>
         </div>
@@ -303,7 +303,7 @@ export default function AlvarasPage() {
         <div id="pdf-header" className="hidden p-8 border-b-2 border-[#2C4156] mb-6">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-3xl font-black text-[#2C4156] uppercase tracking-tighter">PROSPERARE <span className="text-[#1FA67A]">FLOW</span></h2>
+              <h2 className="text-3xl font-black text-[#2C4156] uppercase tracking-tighter">PROSPERARE <span className="text-[#2563EB]">FLOW</span></h2>
               <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.4em] mt-1">Relatório Oficial de Alvarás e Licenças</p>
             </div>
             <div className="text-right">
@@ -343,7 +343,7 @@ export default function AlvarasPage() {
               {clientsLoading || alvarasLoading ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-32 text-center text-[#98A7AA]">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-[#1FA67A]" />
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-[#2563EB]" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Montando Matriz...</span>
                   </TableCell>
                 </TableRow>
@@ -382,13 +382,13 @@ export default function AlvarasPage() {
                                        isDispensed ? "bg-white border hover:bg-[#F4F5F7] border-[#D1D5DB] text-[#6B7280]" :
                                        isLate ? "bg-white border hover:bg-[#FEE2E2] border-[#E74C3C]/20 text-[#E74C3C]" :
                                        isWarning ? "bg-white border hover:bg-[#FFF4E5] border-[#F39C12]/30 text-[#F39C12]" :
-                                       "bg-white border hover:bg-[#E6F6F0] border-[#1FA67A]/30 text-[#1FA67A]";
+                                       "bg-white border hover:bg-[#E6F6F0] border-[#2563EB]/30 text-[#2563EB]";
 
                       const badgeClass = !alvara ? "bg-[#F4F5F7] text-[#98A7AA]" :
                                          isDispensed ? "bg-[#D1D5DB] text-[#4B5563]" :
                                          isLate ? "bg-[#E74C3C] text-white" :
                                          isWarning ? "bg-[#F39C12] text-white" :
-                                         "bg-[#1FA67A] text-white";
+                                         "bg-[#2563EB] text-white";
 
                       return (
                         <TableCell key={type} className="text-center p-1.5">
@@ -412,7 +412,7 @@ export default function AlvarasPage() {
                     <TableCell className="text-center">
                       <Badge className={cn(
                         "text-[9px] font-black uppercase border-none px-2 shadow-sm rounded-full",
-                        item.statusGeral === 'REGULAR' ? "bg-[#1FA67A] text-white" :
+                        item.statusGeral === 'REGULAR' ? "bg-[#2563EB] text-white" :
                         item.statusGeral === 'IRREGULAR' ? "bg-[#E74C3C] text-white" :
                         item.statusGeral === 'ALERTA' ? "bg-[#F39C12] text-white" :
                         "bg-[#D2D7DB] text-[#39586D]"
@@ -422,7 +422,7 @@ export default function AlvarasPage() {
                     </TableCell>
                     
                     <TableCell className="text-right pr-6 action-col">
-                      <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA] hover:text-[#1FA67A] opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA] hover:text-[#2563EB] opacity-0 group-hover:opacity-100 transition-opacity">
                         <Link href={`/clientes/${item.id}`}><Eye className="h-4 w-4" /></Link>
                       </Button>
                     </TableCell>
@@ -548,14 +548,14 @@ export default function AlvarasPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase text-[#1FA67A] tracking-widest flex items-center gap-2">
-                    <Calendar className="h-3 w-3 text-[#1FA67A]" /> Validade
+                  <Label className="text-[10px] font-black uppercase text-[#2563EB] tracking-widest flex items-center gap-2">
+                    <Calendar className="h-3 w-3 text-[#2563EB]" /> Validade
                   </Label>
                   <Input 
                     type="date"
                     value={formData.validade}
                     onChange={(e) => setFormData({...formData, validade: e.target.value})}
-                    className="border-[#1FA67A] focus-visible:ring-[#1FA67A] font-black text-[#2C4156] h-11"
+                    className="border-[#2563EB] focus-visible:ring-[#2563EB] font-black text-[#2C4156] h-11"
                   />
                 </div>
               </div>
@@ -574,7 +574,7 @@ export default function AlvarasPage() {
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => setIsModalOpen(false)} className="font-bold text-xs uppercase border-[#D2D7DB]">Cancelar</Button>
             <Button 
-              className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-10 shadow-lg" 
+              className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-10 shadow-lg" 
               onClick={handleSave}
               disabled={isSaving}
             >

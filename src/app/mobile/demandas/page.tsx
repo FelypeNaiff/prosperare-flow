@@ -140,7 +140,7 @@ export default function MobileDemandasPage() {
       <div className="bg-[#2C4156] text-white px-5 pt-8 pb-5 shadow-lg flex justify-between items-center shrink-0 z-10 w-full relative">
         <div className="flex flex-col">
            <h1 className="text-xl font-black uppercase tracking-tighter flex items-center gap-2">
-              <MessageCircle className="h-5 w-5 text-[#1FA67A]" />  
+              <MessageCircle className="h-5 w-5 text-[#2563EB]" />  
               Minhas Demandas
            </h1>
            <span className="text-[10px] text-white/60 font-bold uppercase tracking-widest mt-0.5">
@@ -157,7 +157,7 @@ export default function MobileDemandasPage() {
             onClick={() => setFiltroPrazo(p)}
             className={cn(
               "rounded-full text-[10px] px-3 py-1.5 font-black uppercase transition-all border shrink-0 outline-none",
-              filtroPrazo === p ? "bg-[#1FA67A] text-white border-[#1FA67A] shadow-md" : "bg-gray-100 text-[#5E6C84] border-transparent"
+              filtroPrazo === p ? "bg-[#2563EB] text-white border-[#2563EB] shadow-md" : "bg-gray-100 text-[#5E6C84] border-transparent"
             )}
           >
             {p}
@@ -197,7 +197,7 @@ export default function MobileDemandasPage() {
                  )}
                >
                   <div className="flex flex-col gap-1.5 flex-1 min-w-0 pr-4">
-                     <p className="text-[9px] font-black text-[#1FA67A] uppercase truncate leading-none">
+                     <p className="text-[9px] font-black text-[#2563EB] uppercase truncate leading-none">
                        {ticket.clientName}
                      </p>
                      <h3 className="text-sm font-black text-[#2C4156] leading-tight line-clamp-2">
@@ -229,7 +229,7 @@ export default function MobileDemandasPage() {
       {/* Botão FAB Flutuante Mobile */}
       <button 
         onClick={() => setIsNewOpen(true)}
-        className="absolute bottom-6 right-6 w-14 h-14 bg-[#1FA67A] rounded-full shadow-xl shadow-[#1FA67A]/40 flex items-center justify-center text-white active:scale-90 transition-transform z-20 focus:outline-none"
+        className="absolute bottom-6 right-6 w-14 h-14 bg-[#2563EB] rounded-full shadow-xl shadow-[#2563EB]/40 flex items-center justify-center text-white active:scale-90 transition-transform z-20 focus:outline-none"
       >
          <Plus className="h-6 w-6 stroke-[3px]" />
       </button>
@@ -329,7 +329,7 @@ export default function MobileDemandasPage() {
 
           <div className="p-4 bg-white border-t shrink-0 flex gap-3 pb-8 w-full">
             <Button variant="outline" className="flex-1 h-12" onClick={() => setIsNewOpen(false)}>Cancelar</Button>
-            <Button className="bg-[#1FA67A] flex-[2] h-12 text-sm uppercase font-black" onClick={handleCreateTicket}>Salvar</Button>
+            <Button className="bg-[#2563EB] flex-[2] h-12 text-sm uppercase font-black" onClick={handleCreateTicket}>Salvar</Button>
           </div>
         </DialogContent>
       </Dialog>

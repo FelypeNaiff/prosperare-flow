@@ -10,34 +10,34 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 210 32% 25%; /* #2C4156 - Azul Institucional */
+    --primary: 221.2 83.2% 53.3%; /* #2563eb - Azul Vibrante (blue-600) */
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96.1%; /* Fundo sutil para secundários */
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%; 
     --muted-foreground: 215.4 16.3% 46.9%; /* text-gray-500 */
-    --accent: 161 68% 39%; /* #1FA67A - Verde Flow */
+    --accent: 221.2 83.2% 53.3%; /* #2563eb - Azul Vibrante como realce principal */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%; /* Vermelho Alerta */
     --destructive-foreground: 0 0% 100%;
     --border: 214.3 31.8% 91.4%; /* gray-200 bordas super finas/claras */
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%; /* blue-600 para foco */
-    --chart-1: 161 68% 39%; /* Verde Flow */
+    --chart-1: 221.2 83.2% 53.3%; /* Azul Vibrante */
     --chart-2: 203 31% 33%; /* Azul Petróleo */
     --chart-3: 45 96% 48%;  /* Amarelo Alerta */
     --chart-4: 6 78% 57%;   /* Vermelho Alerta */
     --chart-5: 204 64% 41%; /* Azul Info */
     --radius: 0.75rem; /* rounded-xl by default */
     
-    --sidebar-background: 210 32% 25%; /* #2C4156 */
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 161 68% 39%; /* #1FA67A */
+    --sidebar-background: 0 0% 100%; /* #ffffff - Fundo totalmente branco */
+    --sidebar-foreground: 215.4 16.3% 46.9%; /* text-slate-500 - Links inativos cinza médio */
+    --sidebar-primary: 221.2 83.2% 53.3%; /* blue-600 - Cor destaque */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 203 31% 33%; /* #39586D */
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 210 32% 20%;
-    --sidebar-ring: 161 68% 39%;
+    --sidebar-accent: 210 40% 96.1%; /* bg-slate-100 - Fundo hover sutil */
+    --sidebar-accent-foreground: 222.2 47.4% 11.2%; /* text-slate-900 */
+    --sidebar-border: 220 13% 91%; /* border-slate-200 - Borda direita fina */
+    --sidebar-ring: 221.2 83.2% 53.3%;
   }
 }
 

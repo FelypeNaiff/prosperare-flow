@@ -312,7 +312,7 @@ export default function ContasAPagarPage() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-[#2C4156]">{item.descricao}</span>
-                        {item.recorrente && <Repeat className="h-3 w-3 text-[#1FA67A]" aria-label={`Recorrencia ${item.tipoValor}`} />}
+                        {item.recorrente && <Repeat className="h-3 w-3 text-[#2563EB]" aria-label={`Recorrencia ${item.tipoValor}`} />}
                       </div>
                     </TableCell>
                     <TableCell className="text-[#39586D] font-medium">{item.entidade}</TableCell>
@@ -327,7 +327,7 @@ export default function ContasAPagarPage() {
                     <TableCell className="text-center">
                       <Badge className={cn(
                         "text-[9px] font-black uppercase border-none px-3 py-1",
-                        item.situacao === 'Pago' ? "bg-[#7ED6B5] text-[#1FA67A]" :
+                        item.situacao === 'Pago' ? "bg-[#7ED6B5] text-[#2563EB]" :
                         item.situacao === 'Vencido' ? "bg-[#FEE2E2] text-[#E74C3C]" :
                         "bg-[#FEF3C7] text-[#F2B705]"
                       )}>
@@ -336,7 +336,7 @@ export default function ContasAPagarPage() {
                     </TableCell>
                     <TableCell className={cn(
                       "text-right font-black",
-                      item.situacao === 'Pago' ? "text-[#1FA67A]" : "text-[#E74C3C]"
+                      item.situacao === 'Pago' ? "text-[#2563EB]" : "text-[#E74C3C]"
                     )}>
                       {Number(item.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </TableCell>
@@ -349,7 +349,7 @@ export default function ContasAPagarPage() {
                             "h-8 w-8 transition-colors rounded-full",
                             item.situacao === 'Pago' 
                               ? "hover:bg-gray-100 text-gray-400 hover:text-gray-600" 
-                              : "hover:bg-green-50 text-[#1FA67A]/60 hover:text-[#1FA67A]"
+                              : "hover:bg-green-50 text-[#2563EB]/60 hover:text-[#2563EB]"
                           )}
                           onClick={() => handleTogglePaymentStatus(item.id, item.situacao)}
                           title={item.situacao === 'Pago' ? "Retornar para Pendente" : "Marcar como Pago"}

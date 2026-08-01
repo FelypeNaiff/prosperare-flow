@@ -60,7 +60,7 @@ const COLUMNS = [
   { id: 'novo', title: 'Novos', color: 'border-t-[#2C4156]', bg: 'bg-[#2C4156]/5' },
   { id: 'atendimento', title: 'Em Atendimento', color: 'border-t-[#2574A9]', bg: 'bg-[#2574A9]/5' },
   { id: 'pendente', title: 'Pendente Cliente', color: 'border-t-[#F2B705]', bg: 'bg-[#F2B705]/5' },
-  { id: 'concluido', title: 'Concluído', color: 'border-t-[#1FA67A]', bg: 'bg-[#1FA67A]/5' },
+  { id: 'concluido', title: 'Concluído', color: 'border-t-[#2563EB]', bg: 'bg-[#2563EB]/5' },
 ]
 
 export default function AtendimentosPage() {
@@ -239,7 +239,7 @@ export default function AtendimentosPage() {
           >
             <Clock className="h-4 w-4" /> {isHistoryView ? "Ver Kanban Ativo" : "Histórico/Arquivados"}
           </Button>
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg" onClick={() => setIsNewTicketOpen(true)}>
+          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-black uppercase text-xs shadow-lg" onClick={() => setIsNewTicketOpen(true)}>
             <Plus className="h-4 w-4" /> Novo Atendimento
           </Button>
         </div>
@@ -327,13 +327,13 @@ export default function AtendimentosPage() {
               <ScrollArea className="h-[calc(100vh-350px)]">
                 <div className="flex flex-col gap-3 pr-2 pb-4">
                   {loadingTickets ? (
-                    <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#1FA67A]" /></div>
+                    <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#2563EB]" /></div>
                   ) : filteredTickets.filter(t => t.status === col.id).length > 0 ? (
                     filteredTickets.filter(t => t.status === col.id).map((ticket) => (
                       <Card 
                         key={ticket.id} 
                         className={cn(
-                          "bg-white border-[#D2D7DB] shadow-sm hover:shadow-md transition-all group cursor-pointer active:cursor-grabbing hover:border-[#1FA67A]/40",
+                          "bg-white border-[#D2D7DB] shadow-sm hover:shadow-md transition-all group cursor-pointer active:cursor-grabbing hover:border-[#2563EB]/40",
                           ticket.dueDate && ticket.dueDate < (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0')) && "animate-pulse border-2 border-red-600 bg-red-50 shadow-md shadow-red-200"
                         )}
                         draggable
@@ -343,7 +343,7 @@ export default function AtendimentosPage() {
                       <CardContent className="p-4 space-y-3">
                         <div className="flex justify-between items-start">
                           <div className="space-y-1">
-                            <p className="text-[9px] font-black text-[#1FA67A] uppercase truncate">{ticket.clientName}</p>
+                            <p className="text-[9px] font-black text-[#2563EB] uppercase truncate">{ticket.clientName}</p>
                             <h4 className="text-xs font-black text-[#2C4156] leading-tight uppercase">{ticket.title}</h4>
                           </div>
                           <DropdownMenu>
@@ -420,7 +420,7 @@ export default function AtendimentosPage() {
                    {filteredTickets.map(ticket => (
                       <div key={ticket.id} className="p-4 hover:bg-[#F9FAFB] cursor-pointer flex justify-between items-center transition-colors" onClick={() => setSelectedTicket(ticket)}>
                          <div className="flex flex-col gap-1">
-                            <p className="text-[9px] font-black text-[#1FA67A] uppercase">{ticket.clientName}</p>
+                            <p className="text-[9px] font-black text-[#2563EB] uppercase">{ticket.clientName}</p>
                             <h4 className="text-xs font-black text-[#2C4156] leading-tight uppercase">{ticket.title}</h4>
                             <div className="flex gap-4 mt-1 text-[10px] font-bold text-[#98A7AA]">
                                <span>Concluído em: {new Date(ticket.updatedAt).toLocaleDateString('pt-BR')}</span>
@@ -514,7 +514,7 @@ export default function AtendimentosPage() {
           </div>
           <DialogFooter className="p-6 bg-[#F7F7F7] border-t shrink-0">
             <Button variant="outline" onClick={() => setIsNewTicketOpen(false)}>Cancelar</Button>
-            <Button className="bg-[#1FA67A]" onClick={handleCreateTicket}>Enviar Demanda</Button>
+            <Button className="bg-[#2563EB]" onClick={handleCreateTicket}>Enviar Demanda</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -535,7 +535,7 @@ function KpiMiniCard({ label, value, icon: Icon, color }: any) {
   const colors = {
     info: "border-l-[#2574A9] bg-[#2574A9]/5",
     warning: "border-l-[#F2B705] bg-[#F2B705]/5",
-    success: "border-l-[#1FA67A] bg-[#1FA67A]/5",
+    success: "border-l-[#2563EB] bg-[#2563EB]/5",
   }
   return (
     <Card className={cn("border-none border-l-4 shadow-sm bg-white h-20", colors[color as keyof typeof colors])}>

@@ -15,7 +15,7 @@ interface KpiCardProps {
 
 const colorMap = {
   primary: "bg-[#2C4156]/10 text-[#2C4156] border-[#2C4156]/20",
-  success: "bg-[#1FA67A]/10 text-[#1FA67A] border-[#1FA67A]/20",
+  success: "bg-[#2563EB]/10 text-[#2563EB] border-[#2563EB]/20",
   destructive: "bg-[#E74C3C]/10 text-[#E74C3C] border-[#E74C3C]/20",
   warning: "bg-[#F2B705]/10 text-[#F2B705] border-[#F2B705]/20",
   info: "bg-[#2574A9]/10 text-[#2574A9] border-[#2574A9]/20",
@@ -23,7 +23,7 @@ const colorMap = {
 
 const borderMap = {
   primary: "before:bg-[#2C4156]",
-  success: "before:bg-[#1FA67A]",
+  success: "before:bg-[#2563EB]",
   destructive: "before:bg-[#E74C3C]",
   warning: "before:bg-[#F2B705]",
   info: "before:bg-[#2574A9]",
@@ -58,11 +58,11 @@ export const KpiCard = memo(function KpiCard({
             {trend !== undefined && (
               <div className="flex items-center gap-1">
                 {trend > 0 ? (
-                  <TrendingUp className="h-3 w-3 text-[#1FA67A]" />
+                  <TrendingUp className="h-3 w-3 text-[#2563EB]" />
                 ) : (
                   <TrendingDown className="h-3 w-3 text-[#E74C3C]" />
                 )}
-                <span className={cn("text-[9px] font-black uppercase", trend > 0 ? "text-[#1FA67A]" : "text-[#E74C3C]")}>
+                <span className={cn("text-[9px] font-black uppercase", trend > 0 ? "text-[#2563EB]" : "text-[#E74C3C]")}>
                   {Math.abs(trend)}% vs mês anterior
                 </span>
               </div>

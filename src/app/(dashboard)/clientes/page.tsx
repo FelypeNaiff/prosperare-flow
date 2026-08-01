@@ -240,7 +240,7 @@ export default function ClientesPage() {
     try {
       for (let index = 0; index < selectedClientIds.length; index++) {
         const clientId = selectedClientIds[index]
-        const client = clients.find((item: any) => item.id === clientId)
+        const client = (clients || []).find((item: any) => item.id === clientId)
 
         if (!client) {
           failureCount++
@@ -449,7 +449,7 @@ export default function ClientesPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div className="flex flex-wrap gap-2 order-2 md:order-1">
           <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={handleDownloadModel}>
-            <FileSpreadsheet className="h-4 w-4 text-[#1FA67A]" /> Modelo Excel
+            <FileSpreadsheet className="h-4 w-4 text-[#2563EB]" /> Modelo Excel
           </Button>
           <Button 
             variant="outline" 
@@ -463,7 +463,7 @@ export default function ClientesPage() {
           <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={handleExportPDF}>
             <FileDown className="h-4 w-4" /> Exportar PDF
           </Button>
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-bold shadow-lg" onClick={() => setIsNewClientOpen(true)}>
+          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-bold shadow-lg" onClick={() => setIsNewClientOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Novo Cliente
           </Button>
         </div>
@@ -496,7 +496,7 @@ export default function ClientesPage() {
               Limpar Seleção
             </Button>
             <Button 
-              className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-bold shadow-lg"
+              className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-bold shadow-lg"
               onClick={handleBatchReceitaCheck}
               disabled={isBatchReceitaChecking}
             >
@@ -524,7 +524,7 @@ export default function ClientesPage() {
           <div id="pdf-header" className="hidden p-8 border-b-2 border-[#2C4156] mb-6">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-3xl font-black text-[#2C4156] uppercase tracking-tighter">PROSPERARE <span className="text-[#1FA67A]">FLOW</span></h2>
+                <h2 className="text-3xl font-black text-[#2C4156] uppercase tracking-tighter">PROSPERARE <span className="text-[#2563EB]">FLOW</span></h2>
                 <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.4em] mt-1">Relatório Oficial de Clientes Cadastrados</p>
               </div>
               <div className="text-right">
@@ -554,7 +554,7 @@ export default function ClientesPage() {
                   <TableHead className="text-white font-black uppercase text-[10px] print:text-white cursor-pointer group" onClick={toggleSort}>
                     <div className="flex items-center gap-2">
                       Empresa / Razão Social
-                      {sortOrder === 'asc' ? <SortAsc className="h-3 w-3 text-[#1FA67A]" /> : <SortDesc className="h-3 w-3 text-[#1FA67A]" />}
+                      {sortOrder === 'asc' ? <SortAsc className="h-3 w-3 text-[#2563EB]" /> : <SortDesc className="h-3 w-3 text-[#2563EB]" />}
                     </div>
                 </TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px] print:text-white">CNPJ</TableHead>
@@ -567,7 +567,7 @@ export default function ClientesPage() {
               {isLoading ? (
                 <TableRow className="print:hidden">
                   <TableCell colSpan={5} className="h-32 text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#2563EB]" />
                     <p className="text-[10px] font-black text-[#98A7AA] uppercase mt-2">Sincronizando Base...</p>
                   </TableCell>
                 </TableRow>
@@ -623,7 +623,7 @@ export default function ClientesPage() {
                         {client.cnpj}
                         <button 
                           onClick={() => handleCopyCNPJ(client.cnpj)}
-                          className="p-1 rounded hover:bg-[#EBEDF0] text-[#98A7AA] hover:text-[#1FA67A] opacity-0 group-hover/cnpj:opacity-100 transition-all action-col"
+                          className="p-1 rounded hover:bg-[#EBEDF0] text-[#98A7AA] hover:text-[#2563EB] opacity-0 group-hover/cnpj:opacity-100 transition-all action-col"
                           title="Copiar CNPJ"
                         >
                           <Copy className="h-3 w-3" />
@@ -650,9 +650,9 @@ export default function ClientesPage() {
                             disabled={statusConsultingId === client.id || isBatchReceitaChecking}
                           >
                             {statusConsultingId === client.id ? (
-                              <Loader2 className="h-3 w-3 text-[#1FA67A] animate-spin" />
+                              <Loader2 className="h-3 w-3 text-[#2563EB] animate-spin" />
                             ) : (
-                              <RefreshCw className="h-3 w-3 text-[#1FA67A]" />
+                              <RefreshCw className="h-3 w-3 text-[#2563EB]" />
                             )}
                             Consulta na Receita Federal
                           </DropdownMenuItem>
@@ -660,7 +660,7 @@ export default function ClientesPage() {
                             className="flex items-center gap-2 cursor-pointer text-xs font-bold"
                             onSelect={() => router.push(`/clientes/${client.id}`)}
                           >
-                            <Eye className="h-3 w-3 text-[#1FA67A]" /> Ver Ficha 360º
+                            <Eye className="h-3 w-3 text-[#2563EB]" /> Ver Ficha 360º
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
@@ -720,7 +720,7 @@ export default function ClientesPage() {
                     onBlur={(e) => lookupCnpj(e.target.value)}
                     className="font-mono font-bold border-[#D2D7DB] pr-10"
                   />
-                  {isLoadingCnpj && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-[#1FA67A]" />}
+                  {isLoadingCnpj && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-[#2563EB]" />}
                 </div>
               </div>
 
@@ -807,7 +807,7 @@ export default function ClientesPage() {
               </div>
 
               <div className="col-span-2 pt-2 border-t mt-2">
-                <h4 className="text-[10px] font-black text-[#1FA67A] uppercase tracking-widest mb-4">Localização e Sede</h4>
+                <h4 className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest mb-4">Localização e Sede</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2 space-y-2">
                     <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Endereço</Label>
@@ -842,7 +842,7 @@ export default function ClientesPage() {
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => setIsNewClientOpen(false)} className="font-bold text-xs uppercase">Cancelar</Button>
             <Button 
-              className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-10 shadow-lg" 
+              className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-10 shadow-lg" 
               onClick={handleCreateClient}
               disabled={isLoadingCnpj}
             >

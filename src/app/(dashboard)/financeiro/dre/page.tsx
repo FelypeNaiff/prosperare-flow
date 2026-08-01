@@ -27,7 +27,7 @@ const DRE_DATA: any[] = []
 const chartData: any[] = []
 
 const chartConfig = {
-  receitas: { label: "Receitas", color: "#1FA67A" },
+  receitas: { label: "Receitas", color: "#2563EB" },
   despesas: { label: "Despesas", color: "#E74C3C" },
 } satisfies ChartConfig
 
@@ -60,7 +60,7 @@ export default function DreGerencialPage() {
         <Card className="lg:col-span-2 border-[#D2D7DB] bg-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-black text-[#2C4156] uppercase flex items-center gap-2">
-              <PieChart className="h-4 w-4 text-[#1FA67A]" />
+              <PieChart className="h-4 w-4 text-[#2563EB]" />
               Evolução de Resultados
             </CardTitle>
             <CardDescription className="text-xs font-bold text-[#98A7AA]">Histórico de faturamento vs custos operacionais.</CardDescription>
@@ -90,10 +90,10 @@ export default function DreGerencialPage() {
             <div className="space-y-3">
               <div className="flex justify-between items-end">
                 <p className="text-[10px] font-black uppercase text-white/60">Margem de Lucro</p>
-                <p className="text-lg font-black text-[#1FA67A]">0.0%</p>
+                <p className="text-lg font-black text-[#2563EB]">0.0%</p>
               </div>
               <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-[#1FA67A] w-0 shadow-[0_0_10px_rgba(31,166,122,0.5)]" />
+                <div className="h-full bg-[#2563EB] w-0 shadow-[0_0_10px_rgba(31,166,122,0.5)]" />
               </div>
             </div>
             <div className="p-4 bg-white/5 rounded-xl border border-white/10">
@@ -125,18 +125,18 @@ export default function DreGerencialPage() {
                   <TableRow key={i} className={cn(
                     "hover:bg-[#F7F7F7]/50 transition-colors",
                     item.subtotal ? "bg-[#F7F7F7]/30 font-black" : "",
-                    item.highlight ? "text-lg bg-[#1FA67A]/5" : ""
+                    item.highlight ? "text-lg bg-[#2563EB]/5" : ""
                   )}>
                     <TableCell className={cn(
                       "py-4",
-                      item.highlight ? "text-[#1FA67A]" : "text-[#39586D]",
+                      item.highlight ? "text-[#2563EB]" : "text-[#39586D]",
                       !item.subtotal ? "pl-8 text-xs opacity-80" : "text-sm"
                     )}>
                       {item.categoria}
                     </TableCell>
                     <TableCell className={cn(
                       "text-right font-mono font-bold",
-                      item.valor < 0 ? "text-[#E74C3C]" : (item.positive ? "text-[#1FA67A]" : "")
+                      item.valor < 0 ? "text-[#E74C3C]" : (item.positive ? "text-[#2563EB]" : "")
                     )}>
                       {item.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </TableCell>

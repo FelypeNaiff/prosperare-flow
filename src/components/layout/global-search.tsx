@@ -120,9 +120,9 @@ export function GlobalSearch() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="group flex w-64 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-left text-xs font-semibold text-slate-500 transition-all hover:border-[#1FA67A] hover:bg-white hover:shadow-sm"
+        className="group flex w-64 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-left text-xs font-semibold text-slate-500 transition-all hover:border-blue-500 hover:bg-white hover:shadow-sm"
       >
-        <Search className="h-3.5 w-3.5 group-hover:text-[#1FA67A]" />
+        <Search className="h-3.5 w-3.5 group-hover:text-blue-600" />
         <span>Busca rapida...</span>
         <kbd className="pointer-events-none ml-auto inline-flex h-5 select-none items-center gap-1 rounded border border-slate-200 bg-white px-1.5 font-mono text-[10px] font-medium text-slate-500">
           Ctrl K
@@ -137,7 +137,7 @@ export function GlobalSearch() {
               <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Busque por paginas, acoes ou pendencias..."
-                className="h-11 border-slate-200 bg-white pl-10 font-medium focus-visible:ring-[#1FA67A]"
+                className="h-11 border-slate-200 bg-white pl-10 font-medium focus-visible:ring-blue-600"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 autoFocus
@@ -178,9 +178,9 @@ export function GlobalSearch() {
                         <button
                           key={action.title}
                           onClick={() => handleSelect(action)}
-                          className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 text-left shadow-[0_2px_10px_rgba(0,0,0,0.04)] transition-all hover:-translate-y-0.5 hover:border-[#1FA67A] hover:bg-[#1FA67A]/5"
+                          className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 text-left shadow-[0_2px_10px_rgba(0,0,0,0.04)] transition-all hover:-translate-y-0.5 hover:border-blue-500 hover:bg-blue-50"
                         >
-                          <action.icon className="h-4 w-4 text-[#1FA67A]" />
+                          <action.icon className="h-4 w-4 text-blue-600" />
                           <span className="text-xs font-black uppercase text-slate-700">{action.title}</span>
                         </button>
                       ))}
@@ -204,16 +204,16 @@ export function GlobalSearch() {
                           <button
                             key={action.title}
                             onClick={() => handleSelect(action)}
-                            className="group flex w-full items-center justify-between rounded-lg p-3 transition-all hover:bg-[#1FA67A]/5"
+                            className="group flex w-full items-center justify-between rounded-lg p-3 transition-all hover:bg-blue-50"
                           >
                             <div className="flex items-center gap-3 text-left">
-                              <action.icon className="h-4 w-4 text-[#1FA67A]" />
+                              <action.icon className="h-4 w-4 text-blue-600" />
                               <div className="flex flex-col">
-                                <span className="text-sm font-bold text-slate-700 group-hover:text-[#1FA67A]">{action.title}</span>
+                                <span className="text-sm font-bold text-slate-700 group-hover:text-blue-700">{action.title}</span>
                                 <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{action.category}</span>
                               </div>
                             </div>
-                            <ArrowRight className="h-4 w-4 -translate-x-2 text-slate-300 opacity-0 transition-all group-hover:translate-x-0 group-hover:text-[#1FA67A] group-hover:opacity-100" />
+                            <ArrowRight className="h-4 w-4 -translate-x-2 text-slate-300 opacity-0 transition-all group-hover:translate-x-0 group-hover:text-blue-600 group-hover:opacity-100" />
                           </button>
                         ))}
 
@@ -221,11 +221,11 @@ export function GlobalSearch() {
                           <button
                             key={page.url}
                             onClick={() => handleSelect(page)}
-                            className="group flex w-full items-center justify-between rounded-lg p-3 transition-all hover:bg-[#1FA67A]/5"
+                            className="group flex w-full items-center justify-between rounded-lg p-3 transition-all hover:bg-blue-50"
                           >
                             <div className="flex flex-col text-left">
                               <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold text-slate-700 group-hover:text-[#1FA67A]">{page.title}</span>
+                                <span className="text-sm font-bold text-slate-700 group-hover:text-blue-700">{page.title}</span>
                                 {page.status && (
                                   <Badge className="h-4 border-none bg-red-50 px-1.5 text-[8px] font-black uppercase text-red-600">
                                     {page.status}
@@ -239,7 +239,7 @@ export function GlobalSearch() {
                               </div>
                               <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{page.category}</span>
                             </div>
-                            <ArrowRight className="h-4 w-4 -translate-x-2 text-slate-300 opacity-0 transition-all group-hover:translate-x-0 group-hover:text-[#1FA67A] group-hover:opacity-100" />
+                            <ArrowRight className="h-4 w-4 -translate-x-2 text-slate-300 opacity-0 transition-all group-hover:translate-x-0 group-hover:text-blue-600 group-hover:opacity-100" />
                           </button>
                         ))}
                       </>

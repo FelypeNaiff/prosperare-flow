@@ -124,17 +124,17 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
 
     if (isWarning) return { label: 'P. EFEITO NEGATIVA', color: 'bg-[#FFF4E5] text-[#F39C12]' }
     if (isLate) return { label: cert.status === 'POSITIVA' ? 'POSITIVA' : 'VENCIDA', color: 'bg-[#FEE2E2] text-[#E74C3C]' }
-    return { label: 'REGULAR', color: 'bg-[#E6F6F0] text-[#1FA67A]' }
+    return { label: 'REGULAR', color: 'bg-[#E6F6F0] text-[#2563EB]' }
   }
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
-          <FileSearch className="h-4 w-4 text-[#1FA67A]" /> 
+          <FileSearch className="h-4 w-4 text-[#2563EB]" /> 
           Histórico de Regularidade Fiscal
         </h3>
-        <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold shadow-lg uppercase text-[10px]" onClick={() => setIsModalOpen(true)}>
+        <Button size="sm" className="bg-[#2563EB] gap-2 font-bold shadow-lg uppercase text-[10px]" onClick={() => setIsModalOpen(true)}>
           <PlusCircle className="h-3.5 w-3.5" /> Registrar CND
         </Button>
       </div>
@@ -154,7 +154,7 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1FA67A]" />
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-[#2563EB]" />
                 </TableCell>
               </TableRow>
             ) : certidoes && certidoes.length > 0 ? (
@@ -227,7 +227,7 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
                 <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
                   <SelectTrigger className="border-[#D2D7DB] font-bold uppercase text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="REGULAR" className="font-bold text-[10px] uppercase text-[#1FA67A]">Regular (Negativa)</SelectItem>
+                    <SelectItem value="REGULAR" className="font-bold text-[10px] uppercase text-[#2563EB]">Regular (Negativa)</SelectItem>
                     <SelectItem value="POSITIVA_EFEITO_NEGATIVA" className="font-bold text-[10px] uppercase text-[#F39C12]">Positiva c/ Efeito Negativa</SelectItem>
                     <SelectItem value="VENCIDA" className="font-bold text-[10px] uppercase text-[#E74C3C]">Vencido</SelectItem>
                     <SelectItem value="POSITIVA" className="font-bold text-[10px] uppercase text-[#000000]">Positiva (Irregular)</SelectItem>
@@ -250,14 +250,14 @@ export function ClientCertificatesTable({ clientId }: { clientId: string }) {
                   <Input type="date" value={formData.emissao} onChange={(e) => setFormData({...formData, emissao: e.target.value})} className="border-[#D2D7DB] font-bold" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase text-[#1FA67A]">Validade</Label>
-                  <Input type="date" value={formData.validade} onChange={(e) => setFormData({...formData, validade: e.target.value})} className="border-[#1FA67A] focus-visible:ring-[#1FA67A] font-black text-[#2C4156]" />
+                  <Label className="text-[10px] font-black uppercase text-[#2563EB]">Validade</Label>
+                  <Input type="date" value={formData.validade} onChange={(e) => setFormData({...formData, validade: e.target.value})} className="border-[#2563EB] focus-visible:ring-[#2563EB] font-black text-[#2C4156]" />
                 </div>
              </div>
           </div>
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t flex justify-between w-full">
             <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="font-bold uppercase text-[10px] text-[#98A7AA]">Cancelar</Button>
-            <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-[10px] px-8 shadow-lg shadow-emerald-500/20" onClick={handleSave} disabled={isSaving}>
+            <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-[10px] px-8 shadow-lg shadow-blue-500/20" onClick={handleSave} disabled={isSaving}>
               Salvar na Base Global
             </Button>
           </DialogFooter>

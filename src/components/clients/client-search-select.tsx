@@ -67,8 +67,8 @@ export function ClientSearchSelect({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "w-full justify-between h-11 border-[#D2D7DB] hover:border-[#1FA67A] transition-colors font-bold uppercase text-[11px] px-4 bg-white",
-            open && "border-[#1FA67A] ring-1 ring-[#1FA67A]/20",
+            "w-full justify-between h-11 border-[#D2D7DB] hover:border-[#2563EB] transition-colors font-bold uppercase text-[11px] px-4 bg-white",
+            open && "border-[#2563EB] ring-1 ring-[#2563EB]/20",
             className
           )}
         >
@@ -113,8 +113,8 @@ export function ClientSearchSelect({
                     key={client.id}
                     type="button"
                     className={cn(
-                      "relative flex w-full cursor-pointer select-none items-center rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none hover:bg-[#1FA67A] hover:text-white transition-all text-left mb-1 last:mb-0",
-                      value === client.id ? "bg-[#1FA67A] text-white" : "text-[#2C4156]"
+                      "relative flex w-full cursor-pointer select-none items-center rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none hover:bg-[#2563EB] hover:text-white transition-all text-left mb-1 last:mb-0",
+                      value === client.id ? "bg-[#2563EB] text-white" : "text-[#2C4156]"
                     )}
                     onClick={(e) => {
                       e.preventDefault()

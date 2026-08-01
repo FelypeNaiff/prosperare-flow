@@ -27,7 +27,7 @@ const FLOW_DATA: any[] = []
 const MOCK_TRANSACTIONS: any[] = []
 
 const chartConfig = {
-  entradas: { label: "Entradas", color: "#1FA67A" },
+  entradas: { label: "Entradas", color: "#2563EB" },
   saidas: { label: "Saídas", color: "#E74C3C" },
   saldo: { label: "Saldo Acumulado", color: "#2C4156" },
 } satisfies ChartConfig
@@ -47,7 +47,7 @@ export default function FluxoDeCaixaPage() {
           <Button variant="outline" className="gap-2 border-[#D2D7DB] text-[#39586D] font-bold">
             <Filter className="h-4 w-4" /> Filtros
           </Button>
-          <Button variant="outline" className="gap-2 border-[#D2D7DB] text-[#1FA67A] font-bold">
+          <Button variant="outline" className="gap-2 border-[#D2D7DB] text-[#2563EB] font-bold">
             <Download className="h-4 w-4" /> Exportar
           </Button>
         </div>
@@ -55,7 +55,7 @@ export default function FluxoDeCaixaPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <SummaryCard label="Saldo Inicial" value="R$ 0,00" color="#39586D" icon={Landmark} />
-        <SummaryCard label="Movimentação Líquida" value="R$ 0,00" color="#1FA67A" icon={TrendingUp} />
+        <SummaryCard label="Movimentação Líquida" value="R$ 0,00" color="#2563EB" icon={TrendingUp} />
         <Card className="bg-[#2C4156] text-white border-none shadow-lg">
           <CardContent className="p-6 flex justify-between items-center h-full">
             <div>
@@ -63,7 +63,7 @@ export default function FluxoDeCaixaPage() {
               <p className="text-2xl font-black">R$ 0,00</p>
             </div>
             <div className="p-3 bg-white/10 rounded-xl">
-              <TrendingUp className="h-6 w-6 text-[#1FA67A]" />
+              <TrendingUp className="h-6 w-6 text-[#2563EB]" />
             </div>
           </CardContent>
         </Card>
@@ -89,7 +89,7 @@ export default function FluxoDeCaixaPage() {
               <ChartTooltip content={<ChartTooltipContent />} />
               <Legend iconType="circle" />
               <Area type="monotone" dataKey="saldo" stroke="#2C4156" fillOpacity={1} fill="url(#colorSaldo)" strokeWidth={3} />
-              <Area type="monotone" dataKey="entradas" stroke="#1FA67A" fill="transparent" strokeWidth={2} dot={true} />
+              <Area type="monotone" dataKey="entradas" stroke="#2563EB" fill="transparent" strokeWidth={2} dot={true} />
               <Area type="monotone" dataKey="saidas" stroke="#E74C3C" fill="transparent" strokeWidth={2} dot={true} />
             </AreaChart>
           </ChartContainer>
@@ -120,13 +120,13 @@ export default function FluxoDeCaixaPage() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {item.tipo === 'Entrada' ? (
-                          <TrendingUp className="h-3 w-3 text-[#1FA67A]" />
+                          <TrendingUp className="h-3 w-3 text-[#2563EB]" />
                         ) : (
                           <TrendingDown className="h-3 w-3 text-[#E74C3C]" />
                         )}
                         <span className={cn(
                           "text-[10px] font-black uppercase",
-                          item.tipo === 'Entrada' ? 'text-[#1FA67A]' : 'text-[#E74C3C]'
+                          item.tipo === 'Entrada' ? 'text-[#2563EB]' : 'text-[#E74C3C]'
                         )}>
                           {item.tipo}
                         </span>
@@ -134,7 +134,7 @@ export default function FluxoDeCaixaPage() {
                     </TableCell>
                     <TableCell className={cn(
                       "text-right font-black",
-                      item.tipo === 'Entrada' ? "text-[#1FA67A]" : "text-[#E74C3C]"
+                      item.tipo === 'Entrada' ? "text-[#2563EB]" : "text-[#E74C3C]"
                     )}>
                       {item.tipo === 'Entrada' ? '+' : '-'} R$ {item.valor.toFixed(2)}
                     </TableCell>

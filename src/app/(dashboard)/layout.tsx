@@ -46,10 +46,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!mounted || !userLoaded || isUserLoading || isAuthChecking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F7F7F7]">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-[#1FA67A]" />
-          <p className="text-xs font-black uppercase text-[#98A7AA] tracking-widest animate-pulse">Sincronizando Sessão...</p>
+          <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+          <p className="text-xs font-black uppercase text-slate-400 tracking-widest animate-pulse">Sincronizando Sessão...</p>
         </div>
       </div>
     )
@@ -66,8 +66,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
       <SidebarInset className="bg-slate-50">
         <TaskNotificationSync />
-        <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 sticky top-0 z-40 print:hidden">
-          <SidebarTrigger className="text-[#2C4156]" />
+        <header className="flex h-16 shrink-0 items-center gap-4 border-b border-slate-200 bg-white px-6 sticky top-0 z-40 print:hidden">
+          <SidebarTrigger className="text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors" />
           
           <div className="flex-1 flex items-center gap-4 overflow-hidden">
             <div className="hidden md:flex items-center gap-2 text-xs font-medium text-gray-400">

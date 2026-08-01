@@ -191,18 +191,18 @@ export function AppSidebar() {
   const officeName = officeData?.nomeFantasia || officeData?.razaoSocial || "PROSPERARE"
 
   return (
-    <Sidebar className="border-r-0 bg-[#2C4156] text-white">
-      <SidebarHeader className="h-24 flex flex-col items-start px-6 justify-center">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-[#1FA67A] rounded-lg shadow-lg relative w-10 h-10 flex items-center justify-center">
-            <TrendingUp className="h-6 w-6 text-white z-10" />
+    <Sidebar className="border-r border-slate-200 bg-white text-slate-800">
+      <SidebarHeader className="h-24 flex flex-col items-start px-6 justify-center border-b border-slate-100">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 bg-gradient-to-tr from-blue-600 to-sky-500 rounded-xl shadow-md shadow-blue-500/10 relative w-10 h-10 flex items-center justify-center">
+            <TrendingUp className="h-5 w-5 text-white" />
           </div>
           <div className="flex flex-col">
-            <div className="flex items-center gap-1.5">
-              <span className="text-white font-bold text-lg leading-none tracking-tight uppercase">{officeName.split(' ')[0]}</span>
-              <span className="text-[#1FA67A] font-bold text-lg leading-none tracking-tight">FLOW</span>
+            <div className="flex items-center gap-1">
+              <span className="text-slate-900 font-extrabold text-lg leading-none tracking-tight uppercase">{officeName.split(' ')[0]}</span>
+              <span className="text-blue-600 font-extrabold text-lg leading-none tracking-tight">FLOW</span>
             </div>
-            <span className="text-[#98A7AA] text-[10px] uppercase font-bold tracking-[0.2em] mt-1">Gestão Team</span>
+            <span className="text-slate-400 text-[9px] uppercase font-bold tracking-[0.2em] mt-1.5">Gestão Team</span>
           </div>
         </div>
       </SidebarHeader>
@@ -223,28 +223,40 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton className={cn(
-                          "hover:bg-[#39586D] transition-all py-6 text-white group-data-[state=open]/collapsible:bg-[#39586D]/50",
-                          isActive && "bg-[#39586D] border-l-[3px] border-[#1FA67A]"
+                          "transition-all py-6 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg",
+                          isActive && "bg-blue-50/30 text-blue-700 font-semibold"
                         )}>
-                          <item.icon className={cn("h-5 w-5", isActive && "text-[#1FA67A]")} />
-                          <span className={cn("text-sm font-medium", isActive && "font-bold")}>{item.title}</span>
+                          <item.icon className={cn("h-5 w-5 transition-colors", isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600")} />
+                          <span className="text-sm font-medium">{item.title}</span>
                           <div className="ml-auto flex items-center gap-2">
-                            <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                            <ChevronDown className={cn("h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180", isActive ? "text-blue-600" : "text-slate-400")} />
                           </div>
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent className="animate-in slide-in-from-top-1 duration-200">
-                        <SidebarMenuSub className="border-l border-white/10 ml-4 space-y-1 py-1">
-                          {item.subItems?.map((sub) => (
-                            <SidebarMenuSubItem key={sub.title}>
-                              <SidebarMenuSubButton asChild isActive={pathname === sub.url} className="text-white/70 hover:text-white h-9">
-                                <Link href={sub.url} className="flex items-center gap-2">
-                                  <sub.icon className={cn("h-4 w-4 opacity-70", pathname === sub.url && "text-[#1FA67A] opacity-100")} />
-                                  <span className={cn(pathname === sub.url && "text-[#1FA67A] font-semibold")}>{sub.title}</span>
-                                </Link>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
+                        <SidebarMenuSub className="border-l border-slate-200 ml-4 space-y-1 py-1">
+                          {item.subItems?.map((sub) => {
+                            const isSubActive = pathname === sub.url;
+                            return (
+                              <SidebarMenuSubItem key={sub.title}>
+                                <SidebarMenuSubButton 
+                                  asChild 
+                                  isActive={isSubActive} 
+                                  className={cn(
+                                    "h-9 transition-all duration-200 flex items-center px-4",
+                                    isSubActive 
+                                      ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600 rounded-r-xl rounded-l-none" 
+                                      : "text-slate-500 hover:text-slate-700 hover:bg-slate-50/60 rounded-lg"
+                                  )}
+                                >
+                                  <Link href={sub.url}>
+                                    <sub.icon className={cn("h-4 w-4 shrink-0 transition-colors", isSubActive ? "text-blue-600 opacity-100" : "text-slate-400 opacity-70")} />
+                                    <span>{sub.title}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            );
+                          })}
                         </SidebarMenuSub>
                       </CollapsibleContent>
                     </SidebarMenuItem>
@@ -256,30 +268,30 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 bg-[#39586D]/30 border-t border-white/10">
+      <SidebarFooter className="p-4 bg-slate-50/50 border-t border-slate-100">
         {selectedUser && (
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative w-9 h-9">
-                <Avatar className="h-9 w-9 border-2 border-[#1FA67A]/50">
-                  <AvatarFallback className="bg-white text-[#2C4156] font-black text-xs">
+                <Avatar className="h-9 w-9 border border-slate-200">
+                  <AvatarFallback className="bg-blue-50 text-blue-700 font-bold text-xs">
                     {selectedUser.fullName?.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#1FA67A] border-2 border-[#39586D] rounded-full" />
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-blue-500 border-2 border-white rounded-full" />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-xs font-bold text-white truncate">{selectedUser.fullName?.split(' ')[0]}</span>
-                <span className="text-[8px] text-[#98A7AA] font-black uppercase tracking-wider truncate">
+                <span className="text-xs font-bold text-slate-700 truncate">{selectedUser.fullName?.split(' ')[0]}</span>
+                <span className="text-[8px] text-slate-400 font-black uppercase tracking-wider truncate">
                   {selectedUser.profile}
                 </span>
               </div>
             </div>
             <div className="flex gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/50 hover:text-[#2574A9]" onClick={() => router.push("/escolha-usuario")}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-slate-100" onClick={() => router.push("/escolha-usuario")}>
                 <UsersRound className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/50 hover:text-[#E74C3C]" onClick={() => initiateLogout(auth)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => initiateLogout(auth)}>
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>

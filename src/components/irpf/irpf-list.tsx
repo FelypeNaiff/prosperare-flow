@@ -71,7 +71,7 @@ export function IrpfList({
   if (isLoading) {
     return (
       <div className="h-32 flex items-center justify-center bg-white border rounded-lg">
-        <Loader2 className="h-6 w-6 animate-spin text-[#1FA67A]" />
+        <Loader2 className="h-6 w-6 animate-spin text-[#2563EB]" />
       </div>
     )
   }
@@ -97,7 +97,7 @@ export function IrpfList({
                   <span className="font-bold text-[#2C4156]">{item.name}</span>
                   <div className="flex items-center gap-1">
                     <span className="text-[10px] text-[#98A7AA] font-mono">{item.cpf}</span>
-                    <button onClick={() => copyToClipboard(item.cpf, "CPF")} className="text-[#98A7AA] hover:text-[#1FA67A]">
+                    <button onClick={() => copyToClipboard(item.cpf, "CPF")} className="text-[#98A7AA] hover:text-[#2563EB]">
                       <Copy className="h-2.5 w-2.5" />
                     </button>
                   </div>
@@ -121,7 +121,7 @@ export function IrpfList({
               </TableCell>
               <TableCell className="text-center">
                 {item.isPaid ? (
-                  <Badge className="bg-[#7ED6B5] text-[#1FA67A] border-none text-[9px] font-black uppercase">Pago</Badge>
+                  <Badge className="bg-[#7ED6B5] text-[#2563EB] border-none text-[9px] font-black uppercase">Pago</Badge>
                 ) : (
                   <Badge className="bg-[#FEE2E2] text-[#E74C3C] border-none text-[9px] font-black uppercase">Pendente</Badge>
                 )}

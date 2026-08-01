@@ -260,7 +260,7 @@ export default function ContasAReceberPage() {
       toast({ 
         title: "Recebimento Confirmado!", 
         description: `Enviando recibo por e-mail para ${cliente}...`,
-        className: "bg-[#1FA67A] text-white border-none"
+        className: "bg-[#2563EB] text-white border-none"
       })
       setTimeout(() => {
         toast({ title: "Recibo Enviado!", description: "O cliente recebeu o comprovante de quitação." })
@@ -530,7 +530,7 @@ export default function ContasAReceberPage() {
 
       <div className="flex flex-wrap gap-2">
         <Button 
-          className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs h-11 px-6 shadow-lg shadow-emerald-500/10" 
+          className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-black uppercase text-xs h-11 px-6 shadow-lg shadow-emerald-500/10" 
           onClick={() => setIsNewAccountOpen(true)}
         >
           <Plus className="h-4 w-4" /> Nova Conta
@@ -565,7 +565,7 @@ export default function ContasAReceberPage() {
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <RefreshCw className="h-4 w-4 text-[#1FA67A]" />
+                  <RefreshCw className="h-4 w-4 text-[#2563EB]" />
                   <h2 className="text-xs font-black uppercase tracking-widest text-slate-700">
                     Resumo da ultima geracao
                   </h2>
@@ -590,7 +590,7 @@ export default function ContasAReceberPage() {
                 </div>
                 <div className="rounded-xl bg-slate-50 px-4 py-3">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Valor novo</p>
-                  <p className="text-xl font-black text-[#1FA67A]">
+                  <p className="text-xl font-black text-[#2563EB]">
                     {lastGenerationSummary.totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </p>
                 </div>
@@ -621,7 +621,7 @@ export default function ContasAReceberPage() {
           <Search className="absolute left-3 top-3.5 h-4 w-4 text-[#98A7AA]" />
           <Input 
             placeholder="Buscar por cliente ou descrição..." 
-            className="pl-10 h-12 bg-[#F7F7F7] border-[#D2D7DB] focus-visible:ring-[#1FA67A]" 
+            className="pl-10 h-12 bg-[#F7F7F7] border-[#D2D7DB] focus-visible:ring-[#2563EB]" 
             value={searchTerm} 
             onChange={(e) => setSearchTerm(e.target.value)} 
           />
@@ -637,7 +637,7 @@ export default function ContasAReceberPage() {
                 className={cn(
                   "h-8 px-4 text-[10px] font-black uppercase tracking-wider rounded-md transition-all",
                   activeFilter === filter 
-                    ? "bg-[#1FA67A] text-white shadow-md" 
+                    ? "bg-[#2563EB] text-white shadow-md" 
                     : "text-[#98A7AA] hover:bg-white/50"
                 )}
                 onClick={() => setActiveFilter(filter)}
@@ -649,7 +649,7 @@ export default function ContasAReceberPage() {
 
           <div className="bg-white border border-[#D2D7DB] rounded-lg px-6 py-2 shadow-sm">
             <span className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest mr-2">Total Filtrado:</span>
-            <span className="text-sm font-black text-[#1FA67A]">
+            <span className="text-sm font-black text-[#2563EB]">
               {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </span>
           </div>
@@ -668,7 +668,7 @@ export default function ContasAReceberPage() {
                       if (checked) setSelectedIds(filteredItems.map(i => i.id))
                       else setSelectedIds([])
                     }}
-                    className="border-white/30 data-[state=checked]:bg-[#1FA67A] data-[state=checked]:border-[#1FA67A]"
+                    className="border-white/30 data-[state=checked]:bg-[#2563EB] data-[state=checked]:border-[#2563EB]"
                   />
                 </TableHead>
                 <TableHead className="text-white font-black uppercase text-[10px]">Descrição</TableHead>
@@ -720,7 +720,7 @@ export default function ContasAReceberPage() {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={9} className="h-32 text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#2563EB]" />
                   </TableCell>
                 </TableRow>
               ) : filteredItems.length > 0 ? (
@@ -733,13 +733,13 @@ export default function ContasAReceberPage() {
                       <Checkbox 
                         checked={selectedIds.includes(item.id)}
                         onCheckedChange={() => toggleSelect(item.id)}
-                        className="data-[state=checked]:bg-[#1FA67A]"
+                        className="data-[state=checked]:bg-[#2563EB]"
                       />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-[#2C4156]">{item.descricao}</span>
-                        {item.recorrente && <Repeat className="h-3 w-3 text-[#1FA67A]" aria-label={`Recorrencia ${item.tipoValor || "Fixo"}`} />}
+                        {item.recorrente && <Repeat className="h-3 w-3 text-[#2563EB]" aria-label={`Recorrencia ${item.tipoValor || "Fixo"}`} />}
                       </div>
                     </TableCell>
                     <TableCell className="text-[#39586D] font-medium uppercase text-xs">{item.cliente}</TableCell>
@@ -754,7 +754,7 @@ export default function ContasAReceberPage() {
                     <TableCell className="text-center">
                       <Badge className={cn(
                         "text-[9px] font-black uppercase border-none px-3 py-1",
-                        (item.situacao === 'Confirmado' || item.situacao === 'Pago') ? "bg-[#7ED6B5] text-[#1FA67A]" :
+                        (item.situacao === 'Confirmado' || item.situacao === 'Pago') ? "bg-[#7ED6B5] text-[#2563EB]" :
                         item.situacao === 'Atrasado' ? "bg-[#FEE2E2] text-[#E74C3C]" :
                         "bg-[#FEF3C7] text-[#F2B705]"
                       )}>
@@ -768,7 +768,7 @@ export default function ContasAReceberPage() {
                     </TableCell>
                     <TableCell className={cn(
                       "text-right font-black",
-                      item.situacao === 'Confirmado' ? "text-[#1FA67A]" : "text-[#2C4156]"
+                      item.situacao === 'Confirmado' ? "text-[#2563EB]" : "text-[#2C4156]"
                     )}>
                       {Number(item.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </TableCell>
@@ -780,7 +780,7 @@ export default function ContasAReceberPage() {
                         <DropdownMenuContent align="end" className="w-48">
                           {item.situacao !== 'Confirmado' && (
                             <DropdownMenuItem 
-                              className="gap-2 text-xs font-bold text-[#1FA67A] uppercase"
+                              className="gap-2 text-xs font-bold text-[#2563EB] uppercase"
                               onClick={() => handleUpdateStatus(item.id, "Confirmado", item.cliente)}
                             >
                               <CheckCircle2 className="h-4 w-4" /> Confirmar Recebimento
@@ -848,7 +848,7 @@ export default function ContasAReceberPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Valor (R$)</Label>
-                  <Input type="number" placeholder="0,00" value={newAccount.valor} onChange={(e) => setNewAccount({...newAccount, valor: Number(e.target.value)})} className="border-[#D2D7DB] font-black text-[#1FA67A]" />
+                  <Input type="number" placeholder="0,00" value={newAccount.valor} onChange={(e) => setNewAccount({...newAccount, valor: Number(e.target.value)})} className="border-[#D2D7DB] font-black text-[#2563EB]" />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Data de Vencimento</Label>
@@ -900,7 +900,7 @@ export default function ContasAReceberPage() {
           </ScrollArea>
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => setIsNewAccountOpen(false)} className="font-bold uppercase text-xs">Cancelar</Button>
-            <Button className="bg-[#1FA67A] text-white font-black uppercase text-xs px-8 shadow-lg" onClick={handleCreateAccount}>
+            <Button className="bg-[#2563EB] text-white font-black uppercase text-xs px-8 shadow-lg" onClick={handleCreateAccount}>
               <Save className="h-4 w-4 mr-2" /> Salvar Honorário
             </Button>
           </DialogFooter>
