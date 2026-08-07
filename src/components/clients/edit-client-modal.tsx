@@ -22,7 +22,7 @@ import {
 import { useFirestore, updateDocumentNonBlocking } from "@/firebase"
 import { doc } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
-import { Save, Loader2, RefreshCw, User } from "lucide-react"
+import { Save, Loader2, RefreshCw, User, Plus, Trash2 } from "lucide-react"
 import { formatCNPJ, validateCNPJ } from "@/lib/utils"
 import { lookupCnpjAction } from "@/app/actions/cnpj-lookup"
 
@@ -48,7 +48,12 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
     stateRegistration: "",
     cityRegistration: "",
     honorariumValue: 0,
-    honorariumDueDateDay: 10
+    honorariumDueDateDay: 10,
+    capitalSocial: 0,
+    dataInicioAtividade: "",
+    nire: "",
+    naturezaJuridica: "",
+    qsa: [] as any[]
   })
 
   useEffect(() => {
@@ -72,10 +77,70 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
         cityRegistration: client.cityRegistration || "",
         honorariumValue: client.honorariumValue || 0,
         honorariumDueDateDay: client.honorariumDueDateDay || 10,
-        companyStatus: client.companyStatus || ""
+        companyStatus: client.companyStatus || "",
+        capitalSocial: client.capitalSocial || 0,
+        dataInicioAtividade: client.dataInicioAtividade || "",
+        nire: client.nire || "",
+        naturezaJuridica: client.naturezaJuridica || "",
+        qsa: client.qsa || []
       })
     }
   }, [client, open])
+
+  const fetchCnpjData = async (cnpj: string) => {
+    const cleanCnpj = cnpj.replace(/\D/g, "")
+    const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`)
+    if (!response.ok) {
+      throw new Error("Erro ao consultar a BrasilAPI")
+    }
+    return response.json()
+  }
+
+  const handleAddPartner = () => {
+    setFormData(prev => ({
+      ...prev,
+      qsa: [
+        ...(prev.qsa || []),
+        {
+          nome: "",
+          cpfCnpj: "",
+          qualificacao: "",
+          dataIngresso: "",
+          participacao: 0,
+          rg: "",
+          rgOrgaoEmissor: "",
+          rgUf: "",
+          dataNascimento: "",
+          estadoCivil: "Solteiro(a)",
+          regimeBens: "",
+          profissao: "",
+          nacionalidade: "Brasileira",
+          email: ""
+        }
+      ]
+    }))
+  }
+
+  const handleRemovePartner = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      qsa: (prev.qsa || []).filter((_: any, idx: number) => idx !== index)
+    }))
+  }
+
+  const handlePartnerChange = (index: number, field: string, value: any) => {
+    setFormData(prev => {
+      const newQsa = [...(prev.qsa || [])]
+      newQsa[index] = {
+        ...newQsa[index],
+        [field]: value
+      }
+      return {
+        ...prev,
+        qsa: newQsa
+      }
+    })
+  }
 
   const syncWithReceita = async () => {
     const cleanCnpj = formData.cnpj.replace(/\D/g, "")
@@ -86,13 +151,58 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
 
     setIsSyncing(true)
     try {
-      const data = await lookupCnpjAction(cleanCnpj);
+      // 1. Core data from ReceitaWS/BrasilAPI lookup action
+      const coreData = await lookupCnpjAction(cleanCnpj)
+
+      // 2. Additional sociological data from BrasilAPI
+      let sociologicalData: any = {}
+      try {
+        const bapiData = await fetchCnpjData(cleanCnpj)
+        sociologicalData = {
+          capitalSocial: bapiData.capital_social || 0,
+          dataInicioAtividade: bapiData.data_inicio_atividade || "",
+          naturezaJuridica: bapiData.natureza_juridica || "",
+          qsa: bapiData.qsa?.map((socio: any) => ({
+            nome: socio.nome_socio?.toUpperCase() || "",
+            cpfCnpj: socio.cnpj_cpf_do_socio || "",
+            qualificacao: socio.qualificacao_socio || "",
+            dataIngresso: socio.data_entrada_sociedade || "",
+            participacao: 0,
+            rg: "",
+            rgOrgaoEmissor: "",
+            rgUf: "",
+            dataNascimento: "",
+            estadoCivil: "Solteiro(a)",
+            regimeBens: "",
+            profissao: "",
+            nacionalidade: "Brasileira",
+            email: ""
+          })) || []
+        }
+      } catch (err) {
+        console.warn("BrasilAPI fetch failed or returned error, using fallback logic", err)
+      }
+
+      // Merge current QSA fields if they exist to avoid losing manually entered data
+      const mergedQsa = sociologicalData.qsa ? sociologicalData.qsa.map((newPartner: any) => {
+        const existing = (formData.qsa || []).find(
+          (p: any) => p.cpfCnpj === newPartner.cpfCnpj || p.nome === newPartner.nome
+        )
+        if (existing) {
+          return { ...newPartner, ...existing } // Keep manual fields
+        }
+        return newPartner
+      }) : (formData.qsa || [])
 
       setFormData(prev => ({
         ...prev,
-        ...data,
-        taxRegime: data.taxRegime !== "Consultar no Portal" ? data.taxRegime : prev.taxRegime,
-        companyStatus: data.companyStatus || prev.companyStatus
+        ...coreData,
+        taxRegime: coreData.taxRegime !== "Consultar no Portal" ? coreData.taxRegime : prev.taxRegime,
+        companyStatus: coreData.companyStatus || prev.companyStatus,
+        capitalSocial: sociologicalData.capitalSocial ?? prev.capitalSocial,
+        dataInicioAtividade: sociologicalData.dataInicioAtividade ?? prev.dataInicioAtividade,
+        naturezaJuridica: sociologicalData.naturezaJuridica ?? prev.naturezaJuridica,
+        qsa: mergedQsa
       }))
 
       toast({ title: "Dados Sincronizados!", description: "Informações corporativas e sócios atualizados." })
@@ -258,6 +368,234 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
                   <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Estado (UF)</Label>
                   <Input value={formData.state} onChange={(e) => setFormData({...formData, state: e.target.value.toUpperCase()})} maxLength={2} />
                 </div>
+              </div>
+            </div>
+
+            {/* Seção Dados Societários */}
+            <div className="col-span-2 border-t pt-4">
+              <h4 className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest mb-4">Informações Societárias</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Capital Social (R$)</Label>
+                  <Input 
+                    type="number"
+                    value={formData.capitalSocial || 0}
+                    onChange={(e) => setFormData({...formData, capitalSocial: Number(e.target.value)})}
+                    className="border-[#D2D7DB] font-bold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Início de Atividades</Label>
+                  <Input 
+                    type="date"
+                    value={formData.dataInicioAtividade || ""}
+                    onChange={(e) => setFormData({...formData, dataInicioAtividade: e.target.value})}
+                    className="border-[#D2D7DB]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">NIRE</Label>
+                  <Input 
+                    value={formData.nire || ""}
+                    onChange={(e) => setFormData({...formData, nire: e.target.value})}
+                    className="border-[#D2D7DB] font-mono text-xs font-bold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Natureza Jurídica</Label>
+                  <Input 
+                    value={formData.naturezaJuridica || ""}
+                    onChange={(e) => setFormData({...formData, naturezaJuridica: e.target.value})}
+                    className="border-[#D2D7DB]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Seção Quadro de Sócios (QSA) */}
+            <div className="col-span-2 border-t pt-4">
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest">
+                  Quadro de Sócios e Administradores (QSA)
+                </h4>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="h-8 border-[#2563EB] text-[#2563EB] hover:bg-blue-50 text-xs font-bold gap-1"
+                  onClick={handleAddPartner}
+                >
+                  <Plus className="h-3.5 w-3.5" /> Adicionar Sócio
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                {formData.qsa && formData.qsa.length > 0 ? (
+                  formData.qsa.map((partner: any, index: number) => (
+                    <div key={index} className="border border-slate-200 rounded-lg p-4 bg-slate-50/50 space-y-4 relative">
+                      <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                        <h5 className="font-semibold text-slate-800 text-xs uppercase tracking-wider">
+                          Sócio #{index + 1}: {partner.nome || "Novo Sócio"}
+                        </h5>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 px-2 text-xs"
+                          onClick={() => handleRemovePartner(index)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" /> Remover
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-[9px] text-[#98A7AA] font-black uppercase">Nome do Sócio</Label>
+                          <Input 
+                            value={partner.nome || ""} 
+                            onChange={(e) => handlePartnerChange(index, "nome", e.target.value.toUpperCase())} 
+                            className="bg-white border-slate-200 text-xs font-bold" 
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[9px] text-[#98A7AA] font-black uppercase">CPF / CNPJ</Label>
+                          <Input 
+                            value={partner.cpfCnpj || ""} 
+                            onChange={(e) => handlePartnerChange(index, "cpfCnpj", e.target.value)} 
+                            className="bg-white border-slate-200 text-xs" 
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[9px] text-[#98A7AA] font-black uppercase">Qualificação</Label>
+                          <Input 
+                            value={partner.qualificacao || ""} 
+                            onChange={(e) => handlePartnerChange(index, "qualificacao", e.target.value)} 
+                            className="bg-white border-slate-200 text-xs" 
+                            placeholder="Ex: Sócio-Administrador"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[9px] text-[#98A7AA] font-black uppercase">Data de Ingresso</Label>
+                          <Input 
+                            type="date"
+                            value={partner.dataIngresso || ""} 
+                            onChange={(e) => handlePartnerChange(index, "dataIngresso", e.target.value)} 
+                            className="bg-white border-slate-200 text-xs" 
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[9px] text-[#98A7AA] font-black uppercase">Valor Participação (R$)</Label>
+                          <Input 
+                            type="number"
+                            value={partner.participacao || 0} 
+                            onChange={(e) => handlePartnerChange(index, "participacao", Number(e.target.value))} 
+                            className="bg-white border-slate-200 text-xs" 
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[9px] text-[#98A7AA] font-black uppercase">E-mail</Label>
+                          <Input 
+                            type="email"
+                            value={partner.email || ""} 
+                            onChange={(e) => handlePartnerChange(index, "email", e.target.value)} 
+                            className="bg-white border-slate-200 text-xs" 
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[9px] text-[#98A7AA] font-black uppercase">RG</Label>
+                          <Input 
+                            value={partner.rg || ""} 
+                            onChange={(e) => handlePartnerChange(index, "rg", e.target.value)} 
+                            className="bg-white border-slate-200 text-xs" 
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[9px] text-[#98A7AA] font-black uppercase">Órgão Emissor</Label>
+                          <Input 
+                            value={partner.rgOrgaoEmissor || ""} 
+                            onChange={(e) => handlePartnerChange(index, "rgOrgaoEmissor", e.target.value.toUpperCase())} 
+                            className="bg-white border-slate-200 text-xs" 
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[9px] text-[#98A7AA] font-black uppercase">Estado do RG (UF)</Label>
+                          <Input 
+                            value={partner.rgUf || ""} 
+                            onChange={(e) => handlePartnerChange(index, "rgUf", e.target.value.toUpperCase())} 
+                            className="bg-white border-slate-200 text-xs" 
+                            maxLength={2}
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[9px] text-[#98A7AA] font-black uppercase">Data Nascimento</Label>
+                          <Input 
+                            type="date"
+                            value={partner.dataNascimento || ""} 
+                            onChange={(e) => handlePartnerChange(index, "dataNascimento", e.target.value)} 
+                            className="bg-white border-slate-200 text-xs" 
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[9px] text-[#98A7AA] font-black uppercase">Estado Civil</Label>
+                          <Select 
+                            value={partner.estadoCivil || "Solteiro(a)"} 
+                            onValueChange={(v) => handlePartnerChange(index, "estadoCivil", v)}
+                          >
+                            <SelectTrigger className="bg-white border-slate-200 text-xs h-9">
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Solteiro(a)">Solteiro(a)</SelectItem>
+                              <SelectItem value="Casado(a)">Casado(a)</SelectItem>
+                              <SelectItem value="Divorciado(a)">Divorciado(a)</SelectItem>
+                              <SelectItem value="Viúvo(a)">Viúvo(a)</SelectItem>
+                              <SelectItem value="União Estável">União Estável</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[9px] text-[#98A7AA] font-black uppercase">Regime de Bens</Label>
+                          <Input 
+                            value={partner.regimeBens || ""} 
+                            onChange={(e) => handlePartnerChange(index, "regimeBens", e.target.value)} 
+                            className="bg-white border-slate-200 text-xs" 
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[9px] text-[#98A7AA] font-black uppercase">Profissão</Label>
+                          <Input 
+                            value={partner.profissao || ""} 
+                            onChange={(e) => handlePartnerChange(index, "profissao", e.target.value)} 
+                            className="bg-white border-slate-200 text-xs" 
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[9px] text-[#98A7AA] font-black uppercase">Nacionalidade</Label>
+                          <Input 
+                            value={partner.nacionalidade || "Brasileira"} 
+                            onChange={(e) => handlePartnerChange(index, "nacionalidade", e.target.value)} 
+                            className="bg-white border-slate-200 text-xs" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center py-6 border border-dashed border-slate-200 rounded-lg text-[10px] font-bold text-[#98A7AA] uppercase italic">
+                    Nenhum sócio vinculado. Use a sincronização ou adicione um sócio manualmente.
+                  </p>
+                )}
               </div>
             </div>
 

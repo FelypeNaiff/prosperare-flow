@@ -37,7 +37,8 @@ import {
   FileStack,
   UsersRound,
   ShieldCheck,
-  Landmark
+  Landmark,
+  Scale
 } from "lucide-react"
 
 import {
@@ -96,6 +97,17 @@ const menuItems = [
       { title: "Legalizações (CNPJ)", url: "/legalizacoes", icon: Landmark },
       { title: "Alvarás e Licenças", url: "/alvaras", icon: FileSignature },
       { title: "Certidões Negativas", url: "/certidoes", icon: ShieldCheck },
+    ]
+  },
+  {
+    title: "Societário",
+    url: "/societario",
+    icon: Scale,
+    profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
+    subItems: [
+      { title: "Abertura", url: "/societario/abertura", icon: Building },
+      { title: "Alteração", url: "/societario/alteracao", icon: FileSignature },
+      { title: "Baixa", url: "/societario/baixa", icon: Landmark },
     ]
   },
   {

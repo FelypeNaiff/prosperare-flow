@@ -337,6 +337,130 @@ export default function DetalhesClientePage() {
                 </CardContent>
               </Card>
 
+              {/* Informações Societárias */}
+              <div className="bg-white border border-slate-200 rounded-lg p-5 space-y-4">
+                <h3 className="text-sm font-semibold text-slate-800">Informações Societárias</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-xs text-slate-500 font-medium">Capital Social</p>
+                    <p className="text-sm text-slate-800 font-semibold mt-1">
+                      {formatBRL(client.capitalSocial)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 font-medium">Início das Atividades</p>
+                    <p className="text-sm text-slate-800 font-semibold mt-1">
+                      {client.dataInicioAtividade ? formatDate(client.dataInicioAtividade) : "--"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 font-medium">Número do NIRE</p>
+                    <p className="text-sm text-slate-800 font-semibold mt-1">
+                      {client.nire || "--"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 font-medium">Natureza Jurídica</p>
+                    <p className="text-sm text-slate-800 font-semibold mt-1 truncate" title={client.naturezaJuridica}>
+                      {client.naturezaJuridica || "--"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quadro de Sócios e Administradores (QSA) */}
+              <div className="bg-white border border-slate-200 rounded-lg p-5 space-y-4">
+                <h3 className="text-sm font-semibold text-slate-800">Quadro de Sócios e Administradores (QSA)</h3>
+                
+                {client.qsa && client.qsa.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-4">
+                    {client.qsa.map((partner: any, idx: number) => (
+                      <div key={idx} className="border border-slate-100 rounded-lg p-4 bg-slate-50/30 hover:bg-slate-50/50 transition-colors">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-2 mb-3 gap-2">
+                          <div>
+                            <h4 className="text-sm font-semibold text-slate-800">{partner.nome || "--"}</h4>
+                            <p className="text-xs text-slate-500 font-medium">{partner.qualificacao || "Sócio"}</p>
+                          </div>
+                          {partner.participacao !== undefined && partner.participacao !== null && (
+                            <div className="text-right sm:text-right">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                                Part.: {formatBRL(partner.participacao)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-3 gap-x-4 text-xs">
+                          <div>
+                            <p className="text-slate-500 font-medium">CPF/CNPJ</p>
+                            <p className="text-slate-800 font-semibold">{partner.cpfCnpj || "--"}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 font-medium">Data de Ingresso</p>
+                            <p className="text-slate-800 font-semibold">{formatDate(partner.dataIngresso)}</p>
+                          </div>
+                          
+                          {partner.rg && (
+                            <div>
+                              <p className="text-slate-500 font-medium">RG</p>
+                              <p className="text-slate-800 font-semibold">
+                                {partner.rg}
+                                {partner.rgOrgaoEmissor ? ` / ${partner.rgOrgaoEmissor}` : ""}
+                                {partner.rgUf ? `-${partner.rgUf}` : ""}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {partner.dataNascimento && (
+                            <div>
+                              <p className="text-slate-500 font-medium">Data de Nascimento</p>
+                              <p className="text-slate-800 font-semibold">{formatDate(partner.dataNascimento)}</p>
+                            </div>
+                          )}
+                          
+                          {partner.estadoCivil && (
+                            <div>
+                              <p className="text-slate-500 font-medium">Estado Civil</p>
+                              <p className="text-slate-800 font-semibold">{partner.estadoCivil}</p>
+                            </div>
+                          )}
+
+                          {partner.regimeBens && (
+                            <div>
+                              <p className="text-slate-500 font-medium">Regime de Bens</p>
+                              <p className="text-slate-800 font-semibold">{partner.regimeBens}</p>
+                            </div>
+                          )}
+
+                          {partner.profissao && (
+                            <div>
+                              <p className="text-slate-500 font-medium">Profissão</p>
+                              <p className="text-slate-800 font-semibold">{partner.profissao}</p>
+                            </div>
+                          )}
+
+                          {partner.nacionalidade && (
+                            <div>
+                              <p className="text-slate-500 font-medium">Nacionalidade</p>
+                              <p className="text-slate-800 font-semibold">{partner.nacionalidade}</p>
+                            </div>
+                          )}
+
+                          {partner.email && (
+                            <div className="col-span-2">
+                              <p className="text-slate-500 font-medium">E-mail</p>
+                              <p className="text-slate-800 font-semibold truncate" title={partner.email}>{partner.email}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 italic text-center py-4">Nenhum sócio cadastrado.</p>
+                )}
+              </div>
+
               <Card className="border-[#D2D7DB]">
                 <CardHeader className="bg-[#F7F7F7]/50 border-b flex flex-row items-center justify-between">
                   <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Vincular Grupos de Obrigações</CardTitle>
@@ -506,4 +630,21 @@ function ClientTasksList({ clientId }: { clientId: string }) {
       ))}
     </div>
   )
+}
+
+function formatDate(dateStr: string) {
+  if (!dateStr) return "--"
+  const regex = /^\d{4}-\d{2}-\d{2}$/
+  if (regex.test(dateStr)) {
+    const [year, month, day] = dateStr.split("-")
+    return `${day}/${month}/${year}`
+  }
+  return dateStr
+}
+
+function formatBRL(value: any) {
+  if (value === undefined || value === null) return "--"
+  const valNum = Number(value)
+  if (isNaN(valNum)) return String(value)
+  return valNum.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
 }
