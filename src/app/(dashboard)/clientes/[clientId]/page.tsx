@@ -39,6 +39,7 @@ import { ProcurationTab } from "@/components/clients/procuration-tab"
 import { ClientInstallmentsTab } from "@/components/installments/client-installments-tab"
 import { LicensesTab } from "@/components/clients/licenses-tab"
 import { ClientCommunicationTool } from "@/components/clients/client-communication-tool"
+import { CndFederalCard } from "@/components/clients/cnd-federal-card"
 import { Label } from "@/components/ui/label"
 import { useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase"
 import { doc, collection, query, where, orderBy, getDocs } from "firebase/firestore"
@@ -495,33 +496,42 @@ export default function DetalhesClientePage() {
               </Card>
             </div>
 
-            <Card className="border-[#D2D7DB] h-fit">
-              <CardHeader className="bg-[#F7F7F7]/50 border-b">
-                <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Contatos Principais</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-[#F7F7F7] border">
-                    <Mail className="h-5 w-5 text-[#2574A9]" />
-                    <div className="flex flex-col">
-                      <span className="text-[9px] font-black text-[#98A7AA] uppercase">E-mail</span>
-                      <span className="text-xs font-bold text-[#2C4156]">{client.email}</span>
+            <div className="space-y-6">
+              <Card className="border-[#D2D7DB] h-fit">
+                <CardHeader className="bg-[#F7F7F7]/50 border-b">
+                  <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Contatos Principais</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-[#F7F7F7] border">
+                      <Mail className="h-5 w-5 text-[#2574A9]" />
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-[#98A7AA] uppercase">E-mail</span>
+                        <span className="text-xs font-bold text-[#2C4156]">{client.email}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-[#F7F7F7] border">
+                      <Phone className="h-5 w-5 text-[#2563EB]" />
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-[#98A7AA] uppercase">Telefone / WhatsApp</span>
+                        <span className="text-xs font-bold text-[#2C4156]">{client.phone}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-[#F7F7F7] border">
-                    <Phone className="h-5 w-5 text-[#2563EB]" />
-                    <div className="flex flex-col">
-                      <span className="text-[9px] font-black text-[#98A7AA] uppercase">Telefone / WhatsApp</span>
-                      <span className="text-xs font-bold text-[#2C4156]">{client.phone}</span>
-                    </div>
+                  <div className="pt-4 border-t">
+                    <p className="text-[10px] font-black text-[#98A7AA] uppercase mb-2">Pessoa de Contato</p>
+                    <p className="text-sm font-bold text-[#2C4156]">{client.companyContactPerson || "Não informado"}</p>
                   </div>
-                </div>
-                <div className="pt-4 border-t">
-                  <p className="text-[10px] font-black text-[#98A7AA] uppercase mb-2">Pessoa de Contato</p>
-                  <p className="text-sm font-bold text-[#2C4156]">{client.companyContactPerson || "Não informado"}</p>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              <CndFederalCard 
+                clientId={clientId}
+                clientRef={clientRef}
+                cnpj={client.cnpj}
+                initialCnd={client.cndFederal}
+              />
+            </div>
           </div>
         </TabsContent>
 
