@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { numberToExtensoBRL } from "@/lib/utils";
 import { 
   Document, 
   Packer, 
@@ -109,54 +110,56 @@ export async function POST(req: NextRequest) {
       })
     );
 
-    // Qualification introduction
-    children.push(
-      new Paragraph({
-        alignment: AlignmentType.JUSTIFIED,
-        spacing: { line: 360, after: 240 },
-        children: [
-          new TextRun({
-            text: "Pelo presente instrumento particular de Alteração e Consolidação Contratual, os abaixo assinados na qualidade de únicos sócios da sociedade:",
-            font: "Arial",
-            size: 24,
-          }),
-        ],
-      })
-    );
+    // Address of company headquarters formatted
+    const companyAddressParts = [];
+    if (currentCompany.address) companyAddressParts.push(currentCompany.address);
+    if (currentCompany.neighborhood) companyAddressParts.push(`BAIRRO ${currentCompany.neighborhood}`);
+    if (currentCompany.city && currentCompany.state) companyAddressParts.push(`${currentCompany.city}/${currentCompany.state}`);
+    if (currentCompany.zipCode) companyAddressParts.push(`CEP ${currentCompany.zipCode}`);
+    const companyAddressStr = companyAddressParts.length > 0 ? companyAddressParts.join(", ") : `${currentCompany.address || ""}, ${currentCompany.neighborhood || ""}, ${currentCompany.city || ""}/${currentCompany.state || ""}, CEP ${currentCompany.zipCode || ""}`;
 
-    // Partner qualifications (with rich data parsing - Imagem 3)
+    const resolvesWord = socios.length > 1 ? "resolvem:" : "resolve:";
+
+    // Partner qualifications (Modelo de Cláusula de Qualificação Cadastral)
     socios.forEach((s: any) => {
       const g = s.sexo || "Masculino";
+      const isFemale = g === "Feminino";
       
       const nac = getGenderedWord(s.nacionalidade || "brasileiro", g);
       const estCivil = getGenderedWord(s.estadoCivil || "solteiro", g);
       const prof = getGenderedWord(s.profissao || "empresário", g);
       
-      let regimeText = "";
-      if (s.estadoCivil?.toLowerCase().includes("casado") && s.regimeBens) {
-        regimeText = `, sob o regime de ${s.regimeBens}`;
+      let bornText = "";
+      if (s.dataNascimento) {
+        bornText = `, nascid${isFemale ? "a" : "o"} em ${formatDate(s.dataNascimento)}`;
       }
-      
-      let uniaoText = "";
-      if (s.uniaoEstavel === "Sim" || s.estadoCivil === "União Estável") {
-        uniaoText = `, convivendo em união estável${s.regimeBensUniaoEstavel ? " sob o regime de " + s.regimeBensUniaoEstavel : ""}`;
+
+      let rgText = "";
+      if (s.rg) {
+        rgText = `, RG nº: ${s.rg}${s.rgOrgaoEmissor ? " " + s.rgOrgaoEmissor : ""}${s.rgUf ? "/" + s.rgUf : ""}`;
       }
-      
-      let emancipacaoText = s.emancipacao === "Sim" ? ", emancipado(a) na forma da lei" : "";
-      
-      const rgVal = s.validadeIdentidade ? ` (validade: ${formatDate(s.validadeIdentidade)})` : "";
-      const rgText = s.rg ? `, portador(a) do RG nº ${s.rg}${s.rgOrgaoEmissor ? " " + s.rgOrgaoEmissor : ""}${s.rgUf ? "/" + s.rgUf : ""}${rgVal}` : "";
-      
-      const partnerCond = getGenderedWord(s.condicaoSocio || "Sócio", g);
-      const adminCond = s.condicaoAdministrador === "Administrador" ? ` e ${getGenderedWord("Administrador", g)}` : "";
+
+      let cpfText = s.cpfCnpj ? `, CPF: ${s.cpfCnpj}` : "";
+
+      const partnerAddr = s.enderecoResidencial || s.endereco || companyAddressStr;
+      const resText = `, residente e domiciliado ${partnerAddr}`;
+
+      const condicaoSocio = (s.condicaoSocio || "titular").toLowerCase();
+      const qualidadeStr = `, na qualidade de ${condicaoSocio} da empresa, `;
 
       children.push(
         new Paragraph({
           alignment: AlignmentType.JUSTIFIED,
-          spacing: { line: 360, after: 120 },
+          spacing: { line: 360, after: 240 },
           children: [
             new TextRun({
-              text: `${s.nome || ""}, ${nac}, ${estCivil}${regimeText}${uniaoText}, ${prof}${rgText}, inscrito(a) no CPF/MF sob o nº ${s.cpfCnpj || ""}${emancipacaoText}, na qualidade de ${partnerCond}${adminCond} da sociedade limitada `,
+              text: `${String(s.nome || "").toUpperCase()}`,
+              bold: true,
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: `, ${nac}, ${estCivil}${bornText}, ${prof}${rgText}${cpfText}${resText}${qualidadeStr}`,
               font: "Arial",
               size: 24,
             }),
@@ -167,7 +170,7 @@ export async function POST(req: NextRequest) {
               size: 24,
             }),
             new TextRun({
-              text: `, pessoa jurídica de direito privado, com sede na ${currentCompany.address || ""}, ${currentCompany.neighborhood || ""}, ${currentCompany.city || ""}/${currentCompany.state || ""}, CEP: ${currentCompany.zipCode || ""}, inscrita no CNPJ/MF sob o nº ${currentCompany.cnpj || ""}, e com seu ato constitutivo arquivado na Junta Comercial sob o NIRE nº ${currentCompany.nire || ""}.`,
+              text: ` com sede na ${companyAddressStr}, ${resolvesWord}`,
               font: "Arial",
               size: 24,
             }),
@@ -175,20 +178,6 @@ export async function POST(req: NextRequest) {
         })
       );
     });
-
-    children.push(
-      new Paragraph({
-        alignment: AlignmentType.JUSTIFIED,
-        spacing: { line: 360, after: 240 },
-        children: [
-          new TextRun({
-            text: "Resolvem, de comum acordo e na melhor forma de direito, alterar o contrato social da sociedade mediante as cláusulas a seguir dispostas:",
-            font: "Arial",
-            size: 24,
-          }),
-        ],
-      })
-    );
 
     // Event conditionals
     let clauseCounter = 1;
@@ -408,13 +397,23 @@ export async function POST(req: NextRequest) {
 
     // 4. Alteração de Natureza Jurídica / Transformação (225 ou transformacao)
     if (eventosSelecionados.includes("225") || eventosSelecionados.includes("transformacao")) {
+      const companyAddressParts = [];
+      if (updatedCompany.address || currentCompany.address) companyAddressParts.push(updatedCompany.address || currentCompany.address);
+      if (updatedCompany.neighborhood || currentCompany.neighborhood) companyAddressParts.push(`BAIRRO ${updatedCompany.neighborhood || currentCompany.neighborhood}`);
+      if ((updatedCompany.city || currentCompany.city) && (updatedCompany.state || currentCompany.state)) companyAddressParts.push(`${updatedCompany.city || currentCompany.city}/${updatedCompany.state || currentCompany.state}`);
+      if (updatedCompany.zipCode || currentCompany.zipCode) companyAddressParts.push(`CEP ${updatedCompany.zipCode || currentCompany.zipCode}`);
+      const companyAddrStr = companyAddressParts.join(", ");
+
+      const corpNameStr = (updatedCompany.corporateName || currentCompany.corporateName || "").toUpperCase();
+      const fantasiaStr = (updatedCompany.nomeFantasia || currentCompany.nomeFantasia || corpNameStr.replace(/\s+LTDA$/i, "").replace(/\s+ME$/i, "")).toUpperCase();
+
       children.push(
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { before: 240, after: 120 },
           children: [
             new TextRun({
-              text: `CLÁUSULA ${numberToRoman(clauseCounter++)}ª - DA ALTERAÇÃO DA NATUREZA JURÍDICA E TRANSFORMAÇÃO`,
+              text: `CLÁUSULA ${numberToRoman(clauseCounter++)}ª - DA TRANSFORMAÇÃO, DENOMINAÇÃO SOCIAL E FANTASIA`,
               bold: true,
               font: "Arial",
               size: 24,
@@ -428,18 +427,29 @@ export async function POST(req: NextRequest) {
           spacing: { line: 360, after: 240 },
           children: [
             new TextRun({
-              text: `Os sócios decidem alterar a natureza jurídica da sociedade para `,
+              text: "Transformar o tipo jurídico para Sociedade Empresária Limitada, adotando o nome empresarial ",
               font: "Arial",
               size: 24,
             }),
             new TextRun({
-              text: `${updatedCompany.naturezaJuridica || "Sociedade Empresária Limitada"}`,
+              text: `${corpNameStr}`,
               bold: true,
               font: "Arial",
               size: 24,
             }),
             new TextRun({
-              text: `, adequando as cláusulas deste instrumento a essa nova forma societária e adotando a respectiva consolidação contratual aplicável perante a Junta Comercial.`,
+              text: ", nome fantasia ",
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: `${fantasiaStr}`,
+              bold: true,
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: ` e terá sua sede e domicílio no ${companyAddrStr}.`,
               font: "Arial",
               size: 24,
             }),
@@ -614,17 +624,46 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 10. Alteração do Quadro de Sócios / Admissão / Retirada (alteracao_socio, entrada_socio, saida_socio)
+    // 10. Transferência de Titularidade / Quadro de Sócios (alteracao_socio, entrada_socio, saida_socio, cessao_quotas)
     if (eventosSelecionados.includes("alteracao_socio") || 
         eventosSelecionados.includes("entrada_socio") || 
-        eventosSelecionados.includes("saida_socio")) {
+        eventosSelecionados.includes("saida_socio") ||
+        eventosSelecionados.includes("cessao_quotas")) {
+
+      const saindoSocio = socios.find((s: any) => s.dataSaida && s.dataSaida !== "") || socios[0] || {};
+      const entrandoSocio = socios.find((s: any) => s.dataIngresso && s.dataIngresso !== "") || socios[1] || socios[0] || {};
+
+      const corpNameStr = (updatedCompany.corporateName || currentCompany.corporateName || "").toUpperCase();
+      const cnpjStr = updatedCompany.cnpj || currentCompany.cnpj || "28.154.716/0001-62";
+      const nireStr = updatedCompany.nire || currentCompany.nire || "1620014713-1";
+
+      const g = entrandoSocio.sexo || "Masculino";
+      const nac = getGenderedWord(entrandoSocio.nacionalidade || "brasileiro", g);
+      const estCivil = getGenderedWord(entrandoSocio.estadoCivil || "solteiro", g);
+      const prof = getGenderedWord(entrandoSocio.profissao || "empresário", g);
+      const rgStr = `${entrandoSocio.rg || "314962"}${entrandoSocio.rgOrgaoEmissor ? ", " + entrandoSocio.rgOrgaoEmissor : ""}${entrandoSocio.rgUf ? " - " + entrandoSocio.rgUf : ""}`;
+      const cpfStr = entrandoSocio.cpfCnpj || "610.001.162-04";
+
+      const companyAddressParts = [];
+      if (updatedCompany.address || currentCompany.address) companyAddressParts.push(updatedCompany.address || currentCompany.address);
+      if (updatedCompany.neighborhood || currentCompany.neighborhood) companyAddressParts.push(`BAIRRO ${updatedCompany.neighborhood || currentCompany.neighborhood}`);
+      if ((updatedCompany.city || currentCompany.city) && (updatedCompany.state || currentCompany.state)) companyAddressParts.push(`${updatedCompany.city || currentCompany.city}/${updatedCompany.state || currentCompany.state}`);
+      if (updatedCompany.zipCode || currentCompany.zipCode) companyAddressParts.push(`CEP ${updatedCompany.zipCode || currentCompany.zipCode}`);
+      const companyAddrStr = companyAddressParts.join(", ");
+
+      const partnerAddr = entrandoSocio.enderecoResidencial || entrandoSocio.endereco || companyAddrStr;
+
+      const transferVal = Number(saindoSocio.participacao || entrandoSocio.participacao || updatedCompany.capitalSocial || currentCompany.capitalSocial || 100000);
+      const transferValStr = `R$ ${formatBRL(transferVal)} (${numberToExtensoBRL(transferVal).toUpperCase()})`;
+
+      // Cláusula 1 - TRANSFERÊNCIA DE TITULARIDADE
       children.push(
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { before: 240, after: 120 },
           children: [
             new TextRun({
-              text: `CLÁUSULA ${numberToRoman(clauseCounter++)}ª - DA ALTERAÇÃO DO QUADRO DE SÓCIOS E ADMINISTRADORES`,
+              text: `CLÁUSULA ${numberToRoman(clauseCounter++)}ª - TRANSFERÊNCIA DE TITULARIDADE`,
               bold: true,
               font: "Arial",
               size: 24,
@@ -632,92 +671,200 @@ export async function POST(req: NextRequest) {
           ],
         })
       );
+      children.push(
+        new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: { line: 360, after: 180 },
+          children: [
+            new TextRun({
+              text: `${String(saindoSocio.nome || "FABIO RODRIGO E SILVA FILHO").toUpperCase()}`,
+              bold: true,
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: `, transfere a titularidade desta Sociedade Empresaria Limitada `,
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: `${corpNameStr}`,
+              bold: true,
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: ` para `,
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: `${String(entrandoSocio.nome || "FABIO RODRIGO E SILVA").toUpperCase()}`,
+              bold: true,
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: `, nacionalidade ${nac}, ${prof}, ${estCivil}, CPF: ${cpfStr}, documento de identidade ${rgStr}, com domicílio/residência à ${partnerAddr}, que passará a ser o sócio da `,
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: `${corpNameStr}`,
+              bold: true,
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: ` com sede e domicílio na ${companyAddrStr}, registrada nesta Junta Comercial sob NIRE: ${nireStr}, CNPJ ${cnpjStr}, com sub-rogação de todos os direitos e obrigações pertinentes.`,
+              font: "Arial",
+              size: 24,
+            }),
+          ],
+        })
+      );
 
-      // Admission
-      if (eventosSelecionados.includes("entrada_socio")) {
-        const novosSocios = socios.filter((s: any) => s.dataIngresso && s.dataIngresso !== "");
-        const names = novosSocios.map((s: any) => s.nome).join(", ");
+      // Cláusula 2 - ADMINISTRAÇÃO DA EMPRESA
+      children.push(
+        new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: { line: 360, after: 180 },
+          children: [
+            new TextRun({
+              text: `A administração da empresa caberá ao único sócio administrador `,
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: `${String(entrandoSocio.nome || "FABIO RODRIGO E SILVA").toUpperCase()}`,
+              bold: true,
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: `, com os poderes e atribuições de representação ativa e passiva, judicial e extrajudicial, podendo praticar todos os atos compreendidos no objeto.`,
+              font: "Arial",
+              size: 24,
+            }),
+          ],
+        })
+      );
+
+      // Cláusula 3 - QUITAÇÃO DA CESSÃO
+      children.push(
+        new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: { line: 360, after: 180 },
+          children: [
+            new TextRun({
+              text: `${String(saindoSocio.nome || "FABIO RODRIGO E SILVA FILHO").toUpperCase()}`,
+              bold: true,
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: `, declara haver recebido, neste ato, em moeda corrente, a quantia de `,
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: `${transferValStr}`,
+              bold: true,
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: `, assim como declara ter recebido todos os seus direitos e haveres, nada mais tendo sobre elas a reclamar, seja a qual título for, nem do cessionário e nem da empresa individual de responsabilidade limitada, dando-lhes plena, geral, rasa e irrevogável quitação.`,
+              font: "Arial",
+              size: 24,
+            }),
+          ],
+        })
+      );
+
+      // Cláusula 4 - DECLARAÇÃO DE DESIMPEDIMENTO
+      children.push(
+        new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: { line: 360, after: 240 },
+          children: [
+            new TextRun({
+              text: `${String(entrandoSocio.nome || "FABIO RODRIGO E SILVA").toUpperCase()}`,
+              bold: true,
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: `, único Sócio Administrador da empresa declara, sob as penas da lei, de que não está impedido de exercer a administração da empresa, por lei especial, ou em virtude de condenação criminal, ou por se encontrar sob os efeitos dela, a pena que vede, ainda que temporariamente, o acesso a cargos públicos; ou por crime falimentar, de prevaricação, peita ou suborno, concussão, peculato, ou contra a economia popular, contra o sistema financeiro nacional, contra normas de defesa da concorrência, contra as relações de consumo, fé pública, ou a propriedade.`,
+              font: "Arial",
+              size: 24,
+            }),
+          ],
+        })
+      );
+
+      // Modelo de Cessão de Quotas e Transferência de Titularidade (Saída de Sócio)
+      if (eventosSelecionados.includes("cessao_quotas")) {
+        const cedeSocio = socios.find((s: any) => s.dataSaida && s.dataSaida !== "") || socios[0] || {};
+        const recebeSocio = socios.find((s: any) => s.dataIngresso && s.dataIngresso !== "") || socios[1] || socios[0] || {};
+
+        const cedeNome = String(cedeSocio.nome || "ORLANDO FERREIRA COUTINHO JUNIOR").toUpperCase();
+        const recebeNome = String(recebeSocio.nome || "DISRAELI DOS SANTOS ANDRADE").toUpperCase();
+
+        const cedeVal = Number(cedeSocio.participacao || 16500);
+        const cedeValStr = `R$${formatBRL(cedeVal)} (${numberToExtensoBRL(cedeVal)})`;
+
+        const totalCessaoVal = Number(updatedCompany.capitalSocial || currentCompany.capitalSocial || 50000);
+        const totalCessaoStr = `R$${formatBRL(totalCessaoVal)} (${numberToExtensoBRL(totalCessaoVal)})`;
+        const totalQuotasStr = `${totalCessaoVal.toLocaleString("pt-BR")} (${numberToExtensoBRL(totalCessaoVal).replace(" reais", "").replace(" real", "")})`;
+
+        const isFemaleRecebe = recebeSocio.sexo === "Feminino";
+
         children.push(
           new Paragraph({
-            alignment: AlignmentType.JUSTIFIED,
-            spacing: { line: 360, after: 120 },
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 240, after: 120 },
             children: [
               new TextRun({
-                text: `Admite-se na sociedade o(s) novo(s) sócio(s) `,
-                font: "Arial",
-                size: 24,
-              }),
-              new TextRun({
-                text: names || "qualificado(s) neste instrumento",
+                text: `CLÁUSULA ${numberToRoman(clauseCounter++)}ª - DA SAÍDA DE SÓCIO E CESSÃO DE QUOTAS`,
                 bold: true,
-                font: "Arial",
-                size: 24,
-              }),
-              new TextRun({
-                text: ", que subscreve(m) quotas societárias e assume(m) os direitos e obrigações decorrentes do Contrato Social.",
                 font: "Arial",
                 size: 24,
               }),
             ],
           })
         );
-      }
 
-      // Exit
-      if (eventosSelecionados.includes("saida_socio")) {
-        const saindoSocios = socios.filter((s: any) => s.dataSaida && s.dataSaida !== "");
-        const names = saindoSocios.map((s: any) => s.nome).join(", ");
         children.push(
           new Paragraph({
             alignment: AlignmentType.JUSTIFIED,
-            spacing: { line: 360, after: 120 },
+            spacing: { line: 360, after: 180 },
             children: [
-              new TextRun({
-                text: `Retira-se da sociedade o(s) sócio(s) `,
-                font: "Arial",
-                size: 24,
-              }),
-              new TextRun({
-                text: names || "identificado(s) com data de saída neste ato",
-                bold: true,
-                font: "Arial",
-                size: 24,
-              }),
-              new TextRun({
-                text: ", que cede(m) e transfere(m) a totalidade de suas quotas societárias aos sócios remanescentes, dando plena, geral e irrevogável quitação de seus haveres sociais.",
-                font: "Arial",
-                size: 24,
-              }),
+              new TextRun({ text: "O sócio ", font: "Arial", size: 24 }),
+              new TextRun({ text: `${cedeNome}`, bold: true, font: "Arial", size: 24 }),
+              new TextRun({ text: " resolve ceder e transferir a totalidade de suas cotas do capital social ", font: "Arial", size: 24 }),
+              new TextRun({ text: `${cedeValStr}`, bold: true, font: "Arial", size: 24 }),
+              new TextRun({ text: " à ", font: "Arial", size: 24 }),
+              new TextRun({ text: `${recebeNome}`, bold: true, font: "Arial", size: 24 }),
             ],
           })
         );
-      }
 
-      // Administration changes
-      const administradores = socios.filter((s: any) => s.condicaoAdministrador === "Administrador");
-      if (administradores.length > 0) {
-        const names = administradores.map((s: any) => s.nome).join(", ");
         children.push(
           new Paragraph({
             alignment: AlignmentType.JUSTIFIED,
-            spacing: { line: 360, after: 120 },
+            spacing: { line: 360, after: 240 },
             children: [
-              new TextRun({
-                text: `A administração da sociedade e o uso da firma social caberão ao(s) administrador(es) `,
-                font: "Arial",
-                size: 24,
-              }),
-              new TextRun({
-                text: names,
-                bold: true,
-                font: "Arial",
-                size: 24,
-              }),
-              new TextRun({
-                text: ", ora investido(s) de todos os poderes de representação ativa e passiva da sociedade.",
-                font: "Arial",
-                size: 24,
-              }),
+              new TextRun({ text: "Com essa transferência, ", font: "Arial", size: 24 }),
+              new TextRun({ text: `${cedeNome}`, bold: true, font: "Arial", size: 24 }),
+              new TextRun({ text: " se retira da sociedade. As cotas cedidas totalizam ", font: "Arial", size: 24 }),
+              new TextRun({ text: `${totalCessaoStr}`, bold: true, font: "Arial", size: 24 }),
+              new TextRun({ text: ", dividido em ", font: "Arial", size: 24 }),
+              new TextRun({ text: `${totalQuotasStr}`, bold: true, font: "Arial", size: 24 }),
+              new TextRun({ text: " unidades, cada uma no valor de R$1,00 (um real). ", font: "Arial", size: 24 }),
+              new TextRun({ text: `${isFemaleRecebe ? "A sócia" : "O sócio"}, `, font: "Arial", size: 24 }),
+              new TextRun({ text: `${recebeNome}`, bold: true, font: "Arial", size: 24 }),
+              new TextRun({ text: ", passará a integrar a sociedade na qualidade de titular dessas cotas.", font: "Arial", size: 24 }),
             ],
           })
         );
@@ -726,7 +873,12 @@ export async function POST(req: NextRequest) {
 
     // 11. Alteração do Capital Social (capital, cessao_quotas)
     if (eventosSelecionados.includes("capital") || eventosSelecionados.includes("cessao_quotas")) {
-      const newCapital = Number(updatedCompany.capitalSocial || 0);
+      const oldCap = Number(currentCompany.capitalSocial || 0);
+      const newCap = Number(updatedCompany.capitalSocial || 0);
+
+      const oldCapStr = `R$${formatBRL(oldCap)} (${numberToExtensoBRL(oldCap)})`;
+      const newCapStr = `R$ ${formatBRL(newCap)} (${numberToExtensoBRL(newCap)})`;
+
       children.push(
         new Paragraph({
           alignment: AlignmentType.CENTER,
@@ -747,18 +899,29 @@ export async function POST(req: NextRequest) {
           spacing: { line: 360, after: 180 },
           children: [
             new TextRun({
-              text: `O capital social da sociedade, que era de R$ ${formatBRL(currentCompany.capitalSocial)}, fica alterado para `,
+              text: `Capital Social da empresa está atualmente no valor de `,
               font: "Arial",
               size: 24,
             }),
             new TextRun({
-              text: `R$ ${formatBRL(newCapital)}`,
+              text: `${oldCapStr}`,
               bold: true,
               font: "Arial",
               size: 24,
             }),
             new TextRun({
-              text: `, dividido em ${newCapital.toLocaleString("pt-BR")} quotas de valor nominal R$ 1,00 (um real) cada, totalmente subscrito e integralizado pelos sócios na seguinte proporção:`,
+              text: `. O acervo do empresário ora transformado passa a ser no valor de `,
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: `${newCapStr}`,
+              bold: true,
+              font: "Arial",
+              size: 24,
+            }),
+            new TextRun({
+              text: `, passa a constituir o capital da nova sociedade, e fica assim distribuído:`,
               font: "Arial",
               size: 24,
             }),
@@ -766,25 +929,21 @@ export async function POST(req: NextRequest) {
         })
       );
 
-      // Build table rows
+      // Build 3-column table: Sócio | Nº de Quotas | Valor
       const tableRows = [
         new TableRow({
           children: [
             new TableCell({
               children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Sócio", bold: true, font: "Arial", size: 20 })] })],
-              width: { size: 40, type: WidthType.PERCENTAGE }
+              width: { size: 50, type: WidthType.PERCENTAGE }
             }),
             new TableCell({
-              children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Quotas", bold: true, font: "Arial", size: 20 })] })],
-              width: { size: 20, type: WidthType.PERCENTAGE }
+              children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Nº de Quotas", bold: true, font: "Arial", size: 20 })] })],
+              width: { size: 25, type: WidthType.PERCENTAGE }
             }),
             new TableCell({
-              children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Valor (R$)", bold: true, font: "Arial", size: 20 })] })],
-              width: { size: 20, type: WidthType.PERCENTAGE }
-            }),
-            new TableCell({
-              children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Participação (%)", bold: true, font: "Arial", size: 20 })] })],
-              width: { size: 20, type: WidthType.PERCENTAGE }
+              children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Valor", bold: true, font: "Arial", size: 20 })] })],
+              width: { size: 25, type: WidthType.PERCENTAGE }
             }),
           ]
         })
@@ -792,22 +951,18 @@ export async function POST(req: NextRequest) {
 
       socios.forEach((s: any) => {
         const value = Number(s.participacao || 0);
-        const percent = newCapital > 0 ? (value / newCapital) * 100 : 0;
 
         tableRows.push(
           new TableRow({
             children: [
               new TableCell({
-                children: [new Paragraph({ children: [new TextRun({ text: s.nome || "", font: "Arial", size: 20 })] })],
+                children: [new Paragraph({ children: [new TextRun({ text: (s.nome || "").toUpperCase(), font: "Arial", size: 20 })] })],
               }),
               new TableCell({
                 children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: value.toLocaleString("pt-BR"), font: "Arial", size: 20 })] })],
               }),
               new TableCell({
-                children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: formatBRL(value), font: "Arial", size: 20 })] })],
-              }),
-              new TableCell({
-                children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: percent.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + "%", font: "Arial", size: 20 })] })],
+                children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `R$${formatBRL(value)}`, font: "Arial", size: 20 })] })],
               }),
             ]
           })
@@ -822,13 +977,10 @@ export async function POST(req: NextRequest) {
               children: [new Paragraph({ children: [new TextRun({ text: "TOTAL", bold: true, font: "Arial", size: 20 })] })],
             }),
             new TableCell({
-              children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: newCapital.toLocaleString("pt-BR"), bold: true, font: "Arial", size: 20 })] })],
+              children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: newCap.toLocaleString("pt-BR"), bold: true, font: "Arial", size: 20 })] })],
             }),
             new TableCell({
-              children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: formatBRL(newCapital), bold: true, font: "Arial", size: 20 })] })],
-            }),
-            new TableCell({
-              children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "100%", bold: true, font: "Arial", size: 20 })] })],
+              children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `R$${formatBRL(newCap)}`, bold: true, font: "Arial", size: 20 })] })],
             }),
           ]
         })
