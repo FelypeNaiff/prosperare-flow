@@ -18,6 +18,7 @@ export interface Partner {
   qualificacao: string;
   dataIngresso: string;
   participacao: number;
+  percentualQuota?: number;
   rg?: string;
   rgOrgaoEmissor?: string;
   rgUf?: string;

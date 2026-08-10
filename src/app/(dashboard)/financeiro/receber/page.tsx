@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useRef } from "react"
@@ -9,23 +8,20 @@ import {
   Search, 
   MoreVertical,
   Repeat,
-  ArrowUpRight,
-  FileSpreadsheet,
-  Loader2,
-  Save,
   Upload,
   RefreshCw,
   Trash2,
   CheckCircle2,
-  Clock,
   Mail,
-  Filter,
   Download,
-  TrendingUp,
   XCircle,
   ChevronDown,
   ChevronUp,
-  AlertTriangle
+  AlertTriangle,
+  Loader2,
+  Save,
+  Printer,
+  FileText
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -58,7 +54,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
-import { cn } from "@/lib/utils"
+import { cn, numberToExtensoBRL } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { useFirestore, useCollection, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase"
 import { collection, doc, query, where } from "firebase/firestore"
@@ -77,6 +73,11 @@ export default function ContasAReceberPage() {
   const [activeFilter, setActiveFilter] = useState("Todos")
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [sortConfig, setSortConfig] = useState<{ key: string | null, direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' })
+
+  // State for Receipt Modal
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false)
+  const [selectedReceiptItem, setSelectedReceiptItem] = useState<any>(null)
+
   const [lastGenerationSummary, setLastGenerationSummary] = useState<{
     competence: string
     generated: number
@@ -259,12 +260,9 @@ export default function ContasAReceberPage() {
     if (newStatus === "Confirmado") {
       toast({ 
         title: "Recebimento Confirmado!", 
-        description: `Enviando recibo por e-mail para ${cliente}...`,
+        description: `Recebimento confirmado para ${cliente}.`,
         className: "bg-[#2563EB] text-white border-none"
       })
-      setTimeout(() => {
-        toast({ title: "Recibo Enviado!", description: "O cliente recebeu o comprovante de quitação." })
-      }, 2000)
     } else {
       toast({ title: "Status Atualizado" })
     }
@@ -499,6 +497,65 @@ export default function ContasAReceberPage() {
       description: `${generatedCount} honorario(s) criado(s) para ${format(selectedCompetence, "MMMM yyyy", { locale: ptBR })}${skippedCount > 0 ? ` e ${skippedCount} ja existente(s) foram ignorado(s)` : ""}.`
     })
   }
+
+  // Derived properties for Receipt Modal (Imagem 2)
+  const receiptClient = useMemo(() => {
+    if (!selectedReceiptItem) return null
+    return (clients || []).find((c: any) => 
+      c.id === selectedReceiptItem.clientId || 
+      c.corporateName?.toUpperCase() === selectedReceiptItem.cliente?.toUpperCase()
+    )
+  }, [selectedReceiptItem, clients])
+
+  const receiptClientCnpj = useMemo(() => {
+    if (!selectedReceiptItem) return "00.000.000/0000-00"
+    return receiptClient?.cnpj || receiptClient?.cpfCnpj || selectedReceiptItem.clientCnpj || "00.000.000/0000-00"
+  }, [selectedReceiptItem, receiptClient])
+
+  const receiptValue = Number(selectedReceiptItem?.valor || 0)
+  const receiptValueFormatted = receiptValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const receiptValueExtenso = numberToExtensoBRL(receiptValue)
+
+  const receiptMonth = useMemo(() => {
+    if (!selectedReceiptItem?.data) return format(selectedCompetence, "MMMM 'de' yyyy", { locale: ptBR })
+    try {
+      const parts = selectedReceiptItem.data.split("-")
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
+        return format(d, "MMMM 'de' yyyy", { locale: ptBR })
+      }
+      return format(new Date(selectedReceiptItem.data), "MMMM 'de' yyyy", { locale: ptBR })
+    } catch {
+      return format(selectedCompetence, "MMMM 'de' yyyy", { locale: ptBR })
+    }
+  }, [selectedReceiptItem, selectedCompetence])
+
+  const receiptDateStr = useMemo(() => {
+    if (!selectedReceiptItem) return format(new Date(), "dd / MM / yyyy")
+    const targetDateStr = selectedReceiptItem.dataRecebimento || selectedReceiptItem.data
+    if (!targetDateStr) return format(new Date(), "dd / MM / yyyy")
+    try {
+      if (targetDateStr.includes("T")) {
+        return format(new Date(targetDateStr), "dd / MM / yyyy")
+      }
+      const parts = targetDateStr.split("-")
+      if (parts.length === 3) {
+        return `${parts[2].padStart(2, "0")} / ${parts[1].padStart(2, "0")} / ${parts[0]}`
+      }
+      return format(new Date(targetDateStr), "dd / MM / yyyy")
+    } catch {
+      return format(new Date(), "dd / MM / yyyy")
+    }
+  }, [selectedReceiptItem])
+
+  const receiptNumber = selectedReceiptItem?.id ? selectedReceiptItem.id.substring(0, 8).toUpperCase() : "00000001"
+
+  const pagamentoUpper = (selectedReceiptItem?.pagamento || "PIX").toUpperCase()
+  const isPix = pagamentoUpper.includes("PIX")
+  const isDinheiro = pagamentoUpper.includes("DINHEIRO")
+  const isTransferencia = pagamentoUpper.includes("TRANSFER") || pagamentoUpper.includes("TED") || pagamentoUpper.includes("DOC")
+  const isBoleto = pagamentoUpper.includes("BOLETO")
+  const isOutro = !isPix && !isDinheiro && !isTransferencia && !isBoleto
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
@@ -777,10 +834,10 @@ export default function ContasAReceberPage() {
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]"><MoreVertical className="h-4 w-4" /></Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuContent align="end" className="w-52">
                           {item.situacao !== 'Confirmado' && (
                             <DropdownMenuItem 
-                              className="gap-2 text-xs font-bold text-[#2563EB] uppercase"
+                              className="gap-2 text-xs font-bold text-[#2563EB] uppercase cursor-pointer"
                               onClick={() => handleUpdateStatus(item.id, "Confirmado", item.cliente)}
                             >
                               <CheckCircle2 className="h-4 w-4" /> Confirmar Recebimento
@@ -788,21 +845,42 @@ export default function ContasAReceberPage() {
                           )}
                           {(item.situacao === 'Confirmado' || item.situacao === 'Pago') && (
                             <DropdownMenuItem 
-                              className="gap-2 text-xs font-bold text-[#E74C3C] uppercase"
+                              className="gap-2 text-xs font-bold text-[#E74C3C] uppercase cursor-pointer"
                               onClick={() => handleCancelReceipt(item.id)}
                             >
                               <XCircle className="h-4 w-4" /> Cancelar Recebimento
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem className="gap-2 text-xs font-bold uppercase">
-                            <Download className="h-4 w-4" /> Gerar Recibo PDF
+                          
+                          {/* GERAR RECIBO PDF (SEGUNDO SOLICITAÇÃO E IMAGENS 1 E 2) */}
+                          <DropdownMenuItem 
+                            className="gap-2 text-xs font-bold text-[#2563EB] uppercase cursor-pointer bg-blue-50/50 hover:bg-blue-100"
+                            onClick={() => {
+                              setSelectedReceiptItem(item)
+                              setIsReceiptModalOpen(true)
+                            }}
+                          >
+                            <Download className="h-4 w-4 text-[#2563EB]" /> Gerar Recibo PDF
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2 text-xs font-bold uppercase">
+
+                          <DropdownMenuItem 
+                            className="gap-2 text-xs font-bold uppercase cursor-pointer"
+                            onClick={() => {
+                              setSelectedReceiptItem(item)
+                              setIsReceiptModalOpen(true)
+                              toast({ 
+                                title: "Recibo Pronto para Envio", 
+                                description: `Comprovante gerado para ${item.cliente}.` 
+                              })
+                            }}
+                          >
                             <Mail className="h-4 w-4" /> Reenviar Recibo
                           </DropdownMenuItem>
+
                           <DropdownMenuSeparator />
+
                           <DropdownMenuItem 
-                            className="gap-2 text-xs font-bold text-[#E74C3C] uppercase"
+                            className="gap-2 text-xs font-bold text-[#E74C3C] uppercase cursor-pointer"
                             onClick={() => handleDelete(item.id)}
                           >
                             <Trash2 className="h-4 w-4" /> Excluir Registro
@@ -824,6 +902,7 @@ export default function ContasAReceberPage() {
         </CardContent>
       </Card>
 
+      {/* MODAL DE LANÇAMENTO DE HONORÁRIO */}
       <Dialog open={isNewAccountOpen} onOpenChange={setIsNewAccountOpen}>
         <DialogContent className="max-w-md border-none shadow-2xl p-0 overflow-hidden flex flex-col max-h-[90vh]">
           <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
@@ -904,6 +983,198 @@ export default function ContasAReceberPage() {
               <Save className="h-4 w-4 mr-2" /> Salvar Honorário
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DO RECIBO DE PAGAMENTO DOS HONORÁRIOS CONTÁBEIS (IMAGEM 2) */}
+      <Dialog open={isReceiptModalOpen} onOpenChange={setIsReceiptModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto bg-slate-100 p-0 border-none">
+          <DialogHeader className="p-4 bg-white border-b sticky top-0 z-10 shadow-sm flex flex-row items-center justify-between no-print">
+            <div>
+              <DialogTitle className="text-lg font-bold text-[#003366]">
+                Recibo de Pagamento de Honorários Contábeis
+              </DialogTitle>
+              <DialogDescription className="text-xs font-medium text-slate-500">
+                Cliente: <strong className="text-slate-800">{selectedReceiptItem?.cliente}</strong> | Valor: R$ {receiptValueFormatted}
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="font-bold text-xs" 
+                onClick={() => setIsReceiptModalOpen(false)}
+              >
+                Fechar
+              </Button>
+              <Button 
+                size="sm" 
+                className="bg-[#003366] hover:bg-[#002244] text-white font-bold text-xs gap-1.5 shadow"
+                onClick={() => window.print()}
+              >
+                <Printer className="h-3.5 w-3.5" /> Imprimir / PDF
+              </Button>
+            </div>
+          </DialogHeader>
+
+          {/* FOLHA DO RECIBO FORMATADA IDENTICAMENTE À IMAGEM 2 */}
+          <div className="p-6 md:p-10 bg-white">
+            <div 
+              id="receipt-print-area" 
+              className="bg-white p-8 border border-slate-300 rounded-lg max-w-[850px] mx-auto text-slate-800 font-sans shadow-lg relative overflow-hidden print-container"
+            >
+              
+              {/* TOP HEADER */}
+              <div className="flex flex-row items-center justify-between pb-6 mb-6 border-b border-slate-300 gap-4">
+                {/* LOGO PROSPERARE */}
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-[#003366] text-white flex flex-col items-center justify-center rounded font-serif italic text-2xl font-bold shadow-md">
+                    Psc
+                  </div>
+                  <div className="flex flex-col border-l-2 border-slate-300 pl-4">
+                    <span className="text-3xl font-serif italic text-[#003366] font-bold tracking-tight">Prosperare</span>
+                    <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">SERVIÇOS CONTÁBEIS</span>
+                  </div>
+                </div>
+
+                {/* TITLE CENTER */}
+                <div className="text-center px-4">
+                  <h2 className="text-3xl font-serif font-black text-[#003366] tracking-wider leading-none">RECIBO</h2>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mt-1">DE PAGAMENTO DOS</p>
+                  <div className="mt-1 border-b-2 border-[#003366] pb-0.5">
+                    <span className="text-sm font-black uppercase text-[#003366] tracking-wider">HONORÁRIOS CONTÁBEIS</span>
+                  </div>
+                </div>
+
+                {/* RECEIPT NUMBER & DATE */}
+                <div className="flex flex-col items-end gap-3">
+                  <div className="bg-[#003366] text-white px-6 py-2 rounded-xl font-mono text-sm font-bold shadow">
+                    Nº {receiptNumber}
+                  </div>
+                  <div className="text-xs font-bold text-slate-600 font-mono tracking-widest">
+                    DATA: <span className="underline">{receiptDateStr}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* RECEIPT BODY TEXT */}
+              <div className="space-y-4 text-sm font-sans leading-relaxed text-slate-800 my-6">
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <span className="font-serif italic text-base">Recebi(emos) de</span>
+                  <span className="font-bold text-slate-900 border-b border-slate-400 flex-1 px-2 uppercase min-w-[200px]">
+                    {selectedReceiptItem?.cliente || "CLIENTE NÃO IDENTIFICADO"}
+                  </span>
+                  <span className="font-bold text-slate-700">CNPJ/CPF:</span>
+                  <span className="font-mono font-bold text-slate-900 border-b border-slate-400 w-52 text-center">
+                    {receiptClientCnpj}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <span className="font-serif italic text-base">a importância de R$</span>
+                  <span className="font-bold text-slate-900 border-b border-slate-400 px-3 min-w-[100px] text-center">
+                    {receiptValueFormatted}
+                  </span>
+                  <span className="font-serif italic text-base">(</span>
+                  <span className="font-bold text-slate-800 border-b border-slate-400 flex-1 px-2 text-center capitalize">
+                    {receiptValueExtenso}
+                  </span>
+                  <span className="font-serif italic text-base">)</span>
+                </div>
+
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <span className="font-serif italic text-base">referente aos honorários contábeis dos serviços prestados no mês de</span>
+                  <span className="font-bold text-slate-900 border-b border-slate-400 flex-1 text-center capitalize">
+                    {receiptMonth}
+                  </span>
+                  <span className="font-bold">.</span>
+                </div>
+              </div>
+
+              {/* FORMA DE PAGAMENTO BOX */}
+              <div className="my-6">
+                <div className="inline-block bg-[#003366] text-white text-[11px] font-black uppercase px-4 py-1 rounded-t-md tracking-wider">
+                  FORMA DE PAGAMENTO
+                </div>
+                <div className="border border-slate-300 rounded-b-md rounded-tr-md p-3.5 bg-slate-50 flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-slate-700">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={isDinheiro} readOnly className="w-4 h-4 accent-[#003366]" />
+                    <span>Dinheiro</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={isTransferencia} readOnly className="w-4 h-4 accent-[#003366]" />
+                    <span>Transferência</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={isPix} readOnly className="w-4 h-4 accent-[#003366]" />
+                    <span>PIX</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={isBoleto} readOnly className="w-4 h-4 accent-[#003366]" />
+                    <span>Boleto</span>
+                  </label>
+                  <div className="flex items-center gap-2 flex-1 max-w-[220px] ml-2">
+                    <span>Outro:</span>
+                    <span className="border-b border-slate-400 flex-1 font-mono text-[11px] px-1">
+                      {isOutro ? selectedReceiptItem?.pagamento : ""}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* DESCRIÇÃO & VALOR RECEBIDO GRID */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
+                {/* DESCRIÇÃO BOX */}
+                <div className="md:col-span-2 border border-slate-300 rounded-md p-3.5 bg-white">
+                  <div className="text-[11px] font-black uppercase text-[#003366] tracking-wider mb-1">
+                    DESCRIÇÃO
+                  </div>
+                  <p className="text-xs text-slate-700 font-medium">
+                    {selectedReceiptItem?.descricao || "Honorários contábeis conforme contrato de prestação de serviços."}
+                  </p>
+                </div>
+
+                {/* VALOR RECEBIDO BOX */}
+                <div className="border border-[#003366] rounded-md overflow-hidden bg-white shadow-sm flex flex-col justify-between">
+                  <div className="bg-[#003366] text-white text-[11px] font-black uppercase tracking-wider text-center py-1.5">
+                    VALOR RECEBIDO
+                  </div>
+                  <div className="p-3.5 text-center">
+                    <span className="text-2xl font-black text-slate-900">R$ {receiptValueFormatted}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* FOOTER SECTION */}
+              <div className="mt-8 pt-4 border-t border-slate-300 text-center space-y-0.5">
+                <p className="font-bold text-sm text-[#003366]">Prosperare Serviços Contábeis</p>
+                <p className="text-xs font-mono text-slate-500">CNPJ: 23.077.213/0001-17</p>
+              </div>
+
+              {/* DARK BLUE BOTTOM BANNER */}
+              <div className="mt-6 -mx-8 -mb-8 bg-[#003366] text-white p-4 rounded-b-lg relative overflow-hidden">
+                <div className="flex flex-col sm:flex-row justify-between items-center text-xs font-medium px-4 relative z-10 gap-2">
+                  <div className="flex items-center gap-3">
+                    <span>📞 (96) 98129-6544</span>
+                    <span>|</span>
+                    <span>📱 (96) 98133-4568</span>
+                  </div>
+                  <div>
+                    <span>✉️ pscsucesso@gmail.com</span>
+                  </div>
+                </div>
+                <div className="text-center text-[11px] italic font-serif text-slate-300 mt-2 border-t border-white/20 pt-2 relative z-10">
+                  Contabilidade com excelência, para o crescimento do seu negócio.
+                </div>
+
+                {/* Decorative Watermark 'P' */}
+                <div className="absolute right-2 bottom-[-10px] opacity-10 text-white font-serif italic text-8xl font-black pointer-events-none select-none">
+                  P
+                </div>
+              </div>
+
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

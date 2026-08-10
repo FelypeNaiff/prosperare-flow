@@ -1,7 +1,23 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { ShieldCheck, Search, RefreshCw, Eye, Building2, AlertTriangle, Plus, Loader2, Save, FileStack, Calendar, CheckCircle2, FileSignature, Trash2, FileDown } from "lucide-react"
+import { 
+  ShieldCheck, 
+  Search, 
+  RefreshCw, 
+  Eye, 
+  Building2, 
+  AlertTriangle, 
+  Plus, 
+  Loader2, 
+  Save, 
+  FileStack, 
+  Calendar, 
+  FileSignature, 
+  Trash2, 
+  FileDown,
+  Globe
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -62,7 +78,11 @@ export default function CertidoesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
+  const [activeClient, setActiveClient] = useState<any>(null)
   
+  const [isSyncingAll, setIsSyncingAll] = useState(false)
+  const [isSyncingSingle, setIsSyncingSingle] = useState(false)
+
   const [formData, setFormData] = useState({
     id: "",
     clienteId: "",
@@ -74,8 +94,6 @@ export default function CertidoesPage() {
     status: "REGULAR",
     observacoes: ""
   })
-  
-  const [activeClientName, setActiveClientName] = useState("")
 
   const processedClients = useMemo(() => {
     const searchLower = searchTerm.toLowerCase()
@@ -144,14 +162,14 @@ export default function CertidoesPage() {
        if (c.statusGeral === 'REGULAR') regulares++;
        else if (c.statusGeral === 'IRREGULAR') irregulares++;
        else if (c.statusGeral === 'ALERTA') aVencer++;
-       else pendentes++; // SEM_DADOS ou PENDENTE
+       else pendentes++;
     })
     
     return { empresas: processedClients.length, regulares, aVencer, irregulares, pendentes }
   }, [processedClients])
 
   const handleOpenModal = (client: any, type: string, existingCert: any) => {
-    setActiveClientName(client.corporateName)
+    setActiveClient(client)
     if (existingCert) {
       setFormData({
         id: existingCert.id || "",
@@ -180,6 +198,115 @@ export default function CertidoesPage() {
       setEditingItem(null)
     }
     setIsModalOpen(true)
+  }
+
+  // Sincronização individual via API Receita Federal / ConectaGov Serpro
+  const handleSyncFederalApi = async (client: any, existingCert?: any) => {
+    if (!client?.cnpj) {
+      toast({ variant: "destructive", title: "CNPJ ausente", description: "A empresa selecionada não possui CNPJ cadastrado." })
+      return
+    }
+
+    setIsSyncingSingle(true)
+    try {
+      const res = await fetch("/api/cnd/federal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cnpj: client.cnpj })
+      })
+
+      if (!res.ok) throw new Error("Erro na comunicação com a API da Receita Federal")
+
+      const data = await res.json()
+      const id = existingCert?.id || Math.random().toString(36).substr(2, 9)
+      const ref = doc(firestore, "certidoes", id)
+
+      const payload = {
+        id,
+        clienteId: client.id,
+        tipo: "Federal",
+        emissao: data.dataEmissao || "",
+        validade: data.dataValidade || "",
+        status: data.status || "REGULAR",
+        codigoAutenticacao: data.codigoAutenticacao || "",
+        numero: data.numeroCertidao || "",
+        observacoes: `Sincronizado automaticamente via API Receita Federal (${data.origem || "ConectaGov/Serpro"})`,
+        updatedAt: new Date().toISOString(),
+        createdAt: existingCert?.createdAt || new Date().toISOString()
+      }
+
+      setDocumentNonBlocking(ref, payload, { merge: true })
+
+      setFormData(prev => ({
+        ...prev,
+        emissao: data.dataEmissao || prev.emissao,
+        validade: data.dataValidade || prev.validade,
+        status: data.status || prev.status,
+        codigoAutenticacao: data.codigoAutenticacao || prev.codigoAutenticacao,
+        numero: data.numeroCertidao || prev.numero
+      }))
+
+      toast({
+        title: "CND Federal Sincronizada!",
+        description: `Certidão da empresa ${client.corporateName} foi atualizada automaticamente.`,
+        className: "bg-[#2563EB] text-white border-none"
+      })
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Falha na API", description: err.message })
+    } finally {
+      setIsSyncingSingle(false)
+    }
+  }
+
+  // Sincronização em Lote de CNDs Federais para todas as empresas
+  const handleSyncAllFederal = async () => {
+    if (processedClients.length === 0) return
+    setIsSyncingAll(true)
+    toast({ title: "Iniciando Lote CND Federal", description: `Sincronizando ${processedClients.length} empresas via API ConectaGov / Serpro...` })
+
+    let updatedCount = 0
+    for (const client of processedClients) {
+      if (!client.cnpj) continue
+      try {
+        const res = await fetch("/api/cnd/federal", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cnpj: client.cnpj })
+        })
+
+        if (res.ok) {
+          const data = await res.json()
+          const existingCert = client.certsByType?.["Federal"]
+          const id = existingCert?.id || Math.random().toString(36).substr(2, 9)
+          const ref = doc(firestore, "certidoes", id)
+
+          const payload = {
+            id,
+            clienteId: client.id,
+            tipo: "Federal",
+            emissao: data.dataEmissao || "",
+            validade: data.dataValidade || "",
+            status: data.status || "REGULAR",
+            codigoAutenticacao: data.codigoAutenticacao || "",
+            numero: data.numeroCertidao || "",
+            observacoes: "Atualizado via Lote Automático (ConectaGov/Serpro)",
+            updatedAt: new Date().toISOString(),
+            createdAt: existingCert?.createdAt || new Date().toISOString()
+          }
+
+          setDocumentNonBlocking(ref, payload, { merge: true })
+          updatedCount++
+        }
+      } catch (err) {
+        console.error(`Erro ao atualizar ${client.corporateName}:`, err)
+      }
+    }
+
+    setIsSyncingAll(false)
+    toast({
+      title: "Sincronização em Lote Concluída!",
+      description: `${updatedCount} certidões federais atualizadas com a Receita Federal.`
+    })
   }
 
   const handleSave = async () => {
@@ -274,12 +401,19 @@ export default function CertidoesPage() {
           <h1 className="text-3xl font-semibold tracking-tight text-[#2C4156]">Gestão de Certidões (CNDs)</h1>
           <p className="text-[#98A7AA] font-medium text-sm">Monitoramento consolidado de regularidade fiscal da sua carteira.</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] gap-2 font-semibold text-xs h-11 px-6 shadow-sm" onClick={handleExportPDF}>
-            <FileDown className="h-4 w-4" /> Exportar Matriz
+        <div className="flex flex-wrap gap-2">
+          {/* BOTÃO PARA ATUALIZAR CERTIDÕES FEDERAIS EM LOTE VIA API RECEITA FEDERAL */}
+          <Button 
+            className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-bold text-xs h-11 px-5 shadow-lg"
+            onClick={handleSyncAllFederal}
+            disabled={isSyncingAll}
+          >
+            {isSyncingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Atualizar CNDs Federais (API Receita)
           </Button>
-          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-semibold text-xs h-11 px-6 shadow-lg">
-            <Plus className="h-4 w-4" /> Novo Lote
+          
+          <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] gap-2 font-semibold text-xs h-11 px-5 shadow-sm" onClick={handleExportPDF}>
+            <FileDown className="h-4 w-4" /> Exportar Matriz
           </Button>
         </div>
       </div>
@@ -324,7 +458,7 @@ export default function CertidoesPage() {
               <TableRow className="hover:bg-transparent">
                 <TableHead className="text-slate-500 font-medium text-sm pl-6 w-1/3">Empresa</TableHead>
                 {CND_TYPES.map(type => (
-                  <TableHead key={type} className="text-slate-500 font-medium text-sm text-center w-24">
+                  <TableHead key={type} className="text-slate-500 font-medium text-sm text-center w-28">
                     {type}
                   </TableHead>
                 ))}
@@ -382,18 +516,37 @@ export default function CertidoesPage() {
 
                       return (
                         <TableCell key={type} className="text-center p-1.5">
-                           <div 
-                             onClick={() => handleOpenModal(item, type, cert)}
-                             className={cn(
-                               "w-full flex md:flex-col lg:flex-row items-center justify-between gap-1 p-1.5 rounded-lg cursor-pointer transition-all shadow-sm active:scale-95",
-                               wrapperClass
+                           <div className="flex items-center gap-1">
+                             <div 
+                               onClick={() => handleOpenModal(item, type, cert)}
+                               className={cn(
+                                 "flex-1 flex flex-col lg:flex-row items-center justify-between gap-1 p-1.5 rounded-lg cursor-pointer transition-all shadow-sm active:scale-95",
+                                 wrapperClass
+                               )}
+                               title={cert ? `Vencimento: ${dateStr}` : 'Clique para registrar'}
+                             >
+                               <span className="text-[10px] font-bold font-mono tracking-tight">{!cert ? 'Sem Registro' : dateStr}</span>
+                               <Badge className={cn("text-[8px] font-medium px-1.5 py-0 min-h-0 h-4 border-none shrink-0", badgeClass)}>
+                                 {statusWord}
+                               </Badge>
+                             </div>
+                             
+                             {/* BOTÃO RÁPIDO DE ATUALIZAÇÃO VIA API RECEITA FEDERAL PARA COLUNA FEDERAL */}
+                             {type === "Federal" && (
+                               <Button
+                                 type="button"
+                                 variant="ghost"
+                                 size="icon"
+                                 className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-50 shrink-0"
+                                 onClick={(e) => {
+                                   e.stopPropagation()
+                                   handleSyncFederalApi(item, cert)
+                                 }}
+                                 title="Atualizar CND Federal via API Receita Federal (ConectaGov/Serpro)"
+                               >
+                                 <RefreshCw className="h-3.5 w-3.5" />
+                               </Button>
                              )}
-                             title={cert ? `Vencimento: ${dateStr}` : 'Clique para registar'}
-                           >
-                             <span className="text-[10px] font-bold font-mono tracking-tight">{!cert ? 'Sem Registro' : dateStr}</span>
-                             <Badge className={cn("text-[8px] font-medium px-1.5 py-0 min-h-0 h-4 border-none shrink-0", badgeClass)}>
-                               {statusWord}
-                             </Badge>
                            </div>
                         </TableCell>
                       )
@@ -405,7 +558,7 @@ export default function CertidoesPage() {
                         item.statusGeral === 'REGULAR' ? "bg-[#2563EB] text-white" :
                         item.statusGeral === 'IRREGULAR' ? "bg-[#E74C3C] text-white" :
                         item.statusGeral === 'ALERTA' ? "bg-[#F39C12] text-white" :
-                        "bg-[#D2D7DB] text-[#39586D]" // SEM DADOS ou PENDENTE
+                        "bg-[#D2D7DB] text-[#39586D]"
                       )}>
                         {item.statusGeral.replace('_', ' ')}
                       </Badge>
@@ -424,7 +577,7 @@ export default function CertidoesPage() {
                     <EmptyState
                       icon={ShieldCheck}
                       title="Nenhuma empresa encontrada"
-                      description="Ajuste a busca para localizar a matriz de certidoes da carteira."
+                      description="Ajuste a busca para localizar a matriz de certidões da carteira."
                     />
                   </TableCell>
                 </TableRow>
@@ -441,17 +594,41 @@ export default function CertidoesPage() {
       </Card>
       </div>
 
+      {/* MODAL DE REGISTRO/EDIÇÃO E ATUALIZAÇÃO AUTOMÁTICA DA CERTIDÃO */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-[450px] p-0 overflow-hidden border-none shadow-2xl flex flex-col">
+        <DialogContent className="max-w-[480px] p-0 overflow-hidden border-none shadow-2xl flex flex-col">
           <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0 relative">
             <Badge variant="outline" className="border-white/30 text-white font-black text-[9px] absolute top-4 right-4 uppercase bg-[#39586D]">{formData.tipo}</Badge>
             <DialogTitle className="text-2xl font-black uppercase tracking-tight">{editingItem ? 'Dados da' : 'Cadastrar'} Certidão</DialogTitle>
             <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest mt-1">
-              Registro CND — Empresa: {activeClientName}
+              Registro CND — Empresa: {activeClient?.corporateName || "Cliente"}
             </DialogDescription>
           </DialogHeader>
           
           <div className="p-6 bg-white space-y-4">
+              {/* BOTÃO DE SINCRONIZAÇÃO DA API RECEITA FEDERAL SE FOR CERTIDÃO FEDERAL */}
+              {formData.tipo === "Federal" && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-blue-600" />
+                    <div>
+                      <p className="text-xs font-bold text-blue-900">API Receita Federal</p>
+                      <p className="text-[10px] text-blue-700">ConsultaCnd ConectaGov / Serpro</p>
+                    </div>
+                  </div>
+                  <Button 
+                    type="button" 
+                    size="sm" 
+                    className="bg-[#2563EB] hover:bg-blue-700 text-white font-bold text-xs gap-1.5 shadow"
+                    onClick={() => handleSyncFederalApi(activeClient, editingItem)}
+                    disabled={isSyncingSingle}
+                  >
+                    {isSyncingSingle ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                    Atualizar Automática
+                  </Button>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
                   <FileSignature className="h-3 w-3" /> Situação Atual da CND

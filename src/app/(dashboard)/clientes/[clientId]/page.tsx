@@ -382,13 +382,18 @@ export default function DetalhesClientePage() {
                             <h4 className="text-sm font-semibold text-slate-800">{partner.nome || "--"}</h4>
                             <p className="text-xs text-slate-500 font-medium">{partner.qualificacao || "Sócio"}</p>
                           </div>
-                          {partner.participacao !== undefined && partner.participacao !== null && (
-                            <div className="text-right sm:text-right">
+                          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                            {partner.participacao !== undefined && partner.participacao !== null && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
                                 Part.: {formatBRL(partner.participacao)}
                               </span>
-                            </div>
-                          )}
+                            )}
+                            {((partner.percentualQuota !== undefined && partner.percentualQuota !== null && partner.percentualQuota > 0) || (client.capitalSocial > 0 && partner.participacao > 0)) && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                Quota: {partner.percentualQuota ?? Number(((partner.participacao / client.capitalSocial) * 100).toFixed(2))}%
+                              </span>
+                            )}
+                          </div>
                         </div>
                         
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-3 gap-x-4 text-xs">

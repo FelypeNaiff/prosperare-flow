@@ -28,6 +28,9 @@ export async function lookupCnpjAction(cnpj: string) {
           p.qual?.toLowerCase().includes("sócio")
         )?.nome || "";
 
+        const primCnae = data.atividade_principal?.[0];
+        const primaryCnaeFormatted = primCnae ? (primCnae.text ? `${primCnae.code} - ${primCnae.text.toUpperCase()}` : primCnae.code) : "";
+
         return {
           corporateName: data.nome,
           nomeFantasia: data.fantasia || data.nome,
@@ -40,7 +43,7 @@ export async function lookupCnpjAction(cnpj: string) {
           zipCode: data.cep.replace(/\D/g, ""),
           email: data.email,
           phone: data.telefone,
-          primaryCnae: data.atividade_principal?.[0]?.code || "",
+          primaryCnae: primaryCnaeFormatted,
           taxRegime: "Consultar no Portal",
           companyContactPerson: principalPartner.toUpperCase(),
           companyStatus: data.situacao || data.status || ""
@@ -65,6 +68,10 @@ export async function lookupCnpjAction(cnpj: string) {
       p.codigo_qualificacao_socio === 5
     )?.nome_socio || bData.qsa?.[0]?.nome_socio || "";
 
+    const primCnaeBapi = bData.cnae_fiscal ? bData.cnae_fiscal.toString() : "";
+    const primCnaeDescBapi = bData.cnae_fiscal_descricao || "";
+    const primaryCnaeBapiFormatted = primCnaeBapi ? (primCnaeDescBapi ? `${primCnaeBapi} - ${primCnaeDescBapi.toUpperCase()}` : primCnaeBapi) : "";
+
     return {
       corporateName: bData.razao_social,
       nomeFantasia: bData.nome_fantasia || bData.razao_social,
@@ -77,7 +84,7 @@ export async function lookupCnpjAction(cnpj: string) {
       zipCode: bData.cep,
       email: bData.email,
       phone: bData.ddd_telefone_1,
-      primaryCnae: bData.cnae_fiscal.toString(),
+      primaryCnae: primaryCnaeBapiFormatted,
       taxRegime: regimeSugerido,
       companyContactPerson: principalPartnerBapi.toUpperCase(),
       companyStatus: bData.status || ""

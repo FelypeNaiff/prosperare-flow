@@ -48,6 +48,7 @@ interface Socio {
   qualificacao: string;
   dataIngresso: string;
   participacao: number;
+  percentualQuota?: number;
   rg: string;
   rgOrgaoEmissor: string;
   rgUf: string;
@@ -241,6 +242,7 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
           qualificacao: "",
           dataIngresso: "",
           participacao: 0,
+          percentualQuota: 0,
           rg: "",
           rgOrgaoEmissor: "",
           rgUf: "",
@@ -844,8 +846,38 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
                             <Input 
                               type="number"
                               value={partner.participacao || 0} 
-                              onChange={(e) => handlePartnerChange(index, "participacao", Number(e.target.value))} 
+                              onChange={(e) => {
+                                const val = Number(e.target.value)
+                                const cap = Number(formData.capitalSocial || 0)
+                                handlePartnerChange(index, "participacao", val)
+                                if (cap > 0) {
+                                  const perc = Number(((val / cap) * 100).toFixed(2))
+                                  handlePartnerChange(index, "percentualQuota", perc)
+                                }
+                              }} 
                               className="bg-white border-slate-200 text-xs font-bold" 
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-[9px] text-blue-600 font-black uppercase">% Quota do Sócio (%)</Label>
+                            <Input 
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              max="100"
+                              placeholder="Ex: 50%"
+                              value={partner.percentualQuota ?? (formData.capitalSocial > 0 && partner.participacao > 0 ? Number(((partner.participacao / formData.capitalSocial) * 100).toFixed(2)) : 0)} 
+                              onChange={(e) => {
+                                const perc = Number(e.target.value)
+                                const cap = Number(formData.capitalSocial || 0)
+                                handlePartnerChange(index, "percentualQuota", perc)
+                                if (cap > 0) {
+                                  const val = Number(((perc / 100) * cap).toFixed(2))
+                                  handlePartnerChange(index, "participacao", val)
+                                }
+                              }} 
+                              className="bg-white border-blue-200 text-xs font-bold text-blue-700" 
                             />
                           </div>
 
@@ -1025,9 +1057,10 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
                         size="sm"
                         className="h-8 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg"
                         onClick={() => {
-                          setFormData(prev => ({ ...prev, primaryCnae: selectedCnae.id }))
+                          const fullCnae = `${selectedCnae.id} - ${selectedCnae.descricao.toUpperCase()}`
+                          setFormData(prev => ({ ...prev, primaryCnae: fullCnae }))
                           setSelectedCnae(null)
-                          toast({ title: "CNAE Principal Definido", description: `Código: ${selectedCnae.id}` })
+                          toast({ title: "CNAE Principal Definido", description: fullCnae })
                         }}
                       >
                         Definir como Principal
