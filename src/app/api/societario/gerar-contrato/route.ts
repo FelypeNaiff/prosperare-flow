@@ -254,7 +254,7 @@ export async function POST(req: NextRequest) {
           spacing: { before: 240, after: 120 },
           children: [
             new TextRun({
-              text: `CLÁUSULA ${numberToRoman(clauseCounter++)}ª - DA ALTERAÇÃO DO OBJETO SOCIAL`,
+              text: `CLÁUSULA ${numberToRoman(clauseCounter++)}ª - DA ALTERAÇÃO DE ATIVIDADES E OBJETO SOCIAL`,
               bold: true,
               font: "Arial",
               size: 24,
@@ -262,25 +262,95 @@ export async function POST(req: NextRequest) {
           ],
         })
       );
-      children.push(
-        new Paragraph({
-          alignment: AlignmentType.JUSTIFIED,
-          spacing: { line: 360, after: 240 },
-          children: [
-            new TextRun({
-              text: `A sociedade altera seu objeto social, que passará a contemplar a exploração das seguintes atividades: `,
-              font: "Arial",
-              size: 24,
-            }),
-            new TextRun({
-              text: `${updatedCompany.objetoSocial || updatedCompany.naturezaJuridica || "Prestação de serviços contábeis e assessoria empresarial."}`,
-              bold: true,
-              font: "Arial",
-              size: 24,
-            }),
-          ],
-        })
-      );
+
+      const cnaesList = updatedCompany.cnaes || [];
+
+      if (cnaesList.length > 0) {
+        children.push(
+          new Paragraph({
+            alignment: AlignmentType.JUSTIFIED,
+            spacing: { line: 360, after: 120 },
+            children: [
+              new TextRun({
+                text: "A sociedade terá por objeto o exercício das seguintes atividades econômicas:",
+                font: "Arial",
+                size: 24,
+              }),
+            ],
+          })
+        );
+
+        cnaesList.forEach((cnae: any) => {
+          const codePart = cnae.code ? `${cnae.code} – ` : "";
+          const descPart = (cnae.description || "").toUpperCase();
+          children.push(
+            new Paragraph({
+              alignment: AlignmentType.JUSTIFIED,
+              spacing: { line: 360, after: 60 },
+              children: [
+                new TextRun({
+                  text: `${codePart}${descPart}`,
+                  bold: true,
+                  font: "Arial",
+                  size: 24,
+                }),
+              ],
+            })
+          );
+        });
+
+        const descriptions = cnaesList
+          .map((c: any) => (c.description || "").toUpperCase().trim())
+          .filter(Boolean);
+
+        if (descriptions.length > 0) {
+          children.push(
+            new Paragraph({
+              alignment: AlignmentType.JUSTIFIED,
+              spacing: { line: 360, before: 120, after: 240 },
+              children: [
+                new TextRun({
+                  text: "Parágrafo único. ",
+                  bold: true,
+                  font: "Arial",
+                  size: 24,
+                }),
+                new TextRun({
+                  text: "Em estabelecimento eleito como Sede (Matriz) será(ão) exercida(s) a(s) atividade(s) de: ",
+                  font: "Arial",
+                  size: 24,
+                }),
+                new TextRun({
+                  text: `${descriptions.join(", ")}.`,
+                  bold: true,
+                  font: "Arial",
+                  size: 24,
+                }),
+              ],
+            })
+          );
+        }
+      } else {
+        children.push(
+          new Paragraph({
+            alignment: AlignmentType.JUSTIFIED,
+            spacing: { line: 360, after: 240 },
+            children: [
+              new TextRun({
+                text: `A sociedade altera seu objeto social, que passará a contemplar a exploração das seguintes atividades: `,
+                font: "Arial",
+                size: 24,
+              }),
+              new TextRun({
+                text: `${updatedCompany.objetoSocial || updatedCompany.naturezaJuridica || "Prestação de serviços contábeis e assessoria empresarial."}`,
+                bold: true,
+                font: "Arial",
+                size: 24,
+              }),
+            ],
+          })
+        );
+      }
     }
 
     // 3. Alteração de Endereço (endereco, 211, 209, 210)
@@ -809,30 +879,37 @@ export async function POST(req: NextRequest) {
     // Constitutive Clauses
     const defaultClauses = [
       {
+        id: "denominacao",
         title: "CLÁUSULA PRIMEIRA - DA DENOMINAÇÃO E SEDE",
         content: `A sociedade limitada gira sob o nome empresarial "${updatedCompany.corporateName || currentCompany.corporateName || ""}" e tem sede e domicílio na ${updatedCompany.address || currentCompany.address || ""}, ${updatedCompany.neighborhood || currentCompany.neighborhood || ""}, ${updatedCompany.city || currentCompany.city || ""}/${updatedCompany.state || currentCompany.state || ""}, CEP: ${updatedCompany.zipCode || currentCompany.zipCode || ""}.`
       },
       {
+        id: "objeto_social",
         title: "CLÁUSULA SEGUNDA - DO OBJETO SOCIAL",
         content: `A sociedade tem por objeto social a exploração e prestação de serviços nas áreas de: ${updatedCompany.objetoSocial || updatedCompany.naturezaJuridica || currentCompany.naturezaJuridica || "serviços de assessoria, consultoria administrativa e contabilidade."}`
       },
       {
+        id: "capital",
         title: "CLÁUSULA TERCEIRA - DO CAPITAL SOCIAL",
         content: `O capital social é de R$ ${formatBRL(updatedCompany.capitalSocial || currentCompany.capitalSocial)}, dividido em quotas no valor unitário de R$ 1,00 (um real) cada, integralizadas e distribuídas entre os sócios de acordo com a listagem consolidada descrita neste ato.`
       },
       {
+        id: "administracao",
         title: "CLÁUSULA QUARTA - DA ADMINISTRAÇÃO",
         content: "A administração da sociedade e o uso de seu nome empresarial caberão ao(s) administrador(es) devidamente designados neste ato, com plenos poderes para assinar e representar a empresa em todos os atos judiciais, extrajudiciais e administrativos de seu interesse, vedado o uso em avais ou finalidades estranhas ao objeto social."
       },
       {
+        id: "balanco",
         title: "CLÁUSULA QUINTA - DO BALANÇO E RESULTADOS",
         content: "Ao fim de cada exercício social, em 31 de dezembro, a administração procederá à elaboração das demonstrações contábeis e do balanço patrimonial. Os lucros ou prejuízos apurados serão distribuídos ou suportados pelos sócios na proporção de suas quotas."
       },
       {
+        id: "desimpedimento",
         title: "CLÁUSULA SEXTA - DA DECLARAÇÃO DE DESIMPEDIMENTO",
         content: "O(s) Administrador(es) declara(m), sob as penas da lei, que não está(ão) impedido(s) de exercer a administração da sociedade por lei especial ou em virtude de condenação criminal."
       },
       {
+        id: "foro",
         title: "CLÁUSULA SÉTIMA - DO FORO",
         content: `Para dirimir quaisquer controvérsias decorrentes deste contrato, os sócios elegem o foro da Comarca de ${updatedCompany.city || currentCompany.city || "Macapá"}, com exclusão de qualquer outro por mais privilegiado que seja.`
       }
@@ -853,19 +930,87 @@ export async function POST(req: NextRequest) {
           ],
         })
       );
-      children.push(
-        new Paragraph({
-          alignment: AlignmentType.JUSTIFIED,
-          spacing: { line: 360, after: 120 },
-          children: [
-            new TextRun({
-              text: c.content,
-              font: "Arial",
-              size: 24,
-            }),
-          ],
-        })
-      );
+
+      if (c.id === "objeto_social" && updatedCompany.cnaes && updatedCompany.cnaes.length > 0) {
+        children.push(
+          new Paragraph({
+            alignment: AlignmentType.JUSTIFIED,
+            spacing: { line: 360, after: 120 },
+            children: [
+              new TextRun({
+                text: "A sociedade terá por objeto o exercício das seguintes atividades econômicas:",
+                font: "Arial",
+                size: 24,
+              }),
+            ],
+          })
+        );
+
+        updatedCompany.cnaes.forEach((cnae: any) => {
+          const codePart = cnae.code ? `${cnae.code} – ` : "";
+          const descPart = (cnae.description || "").toUpperCase();
+          children.push(
+            new Paragraph({
+              alignment: AlignmentType.JUSTIFIED,
+              spacing: { line: 360, after: 60 },
+              children: [
+                new TextRun({
+                  text: `${codePart}${descPart}`,
+                  bold: true,
+                  font: "Arial",
+                  size: 24,
+                }),
+              ],
+            })
+          );
+        });
+
+        const descriptions = updatedCompany.cnaes
+          .map((c: any) => (c.description || "").toUpperCase().trim())
+          .filter(Boolean);
+
+        if (descriptions.length > 0) {
+          children.push(
+            new Paragraph({
+              alignment: AlignmentType.JUSTIFIED,
+              spacing: { line: 360, before: 120, after: 240 },
+              children: [
+                new TextRun({
+                  text: "Parágrafo único. ",
+                  bold: true,
+                  font: "Arial",
+                  size: 24,
+                }),
+                new TextRun({
+                  text: "Em estabelecimento eleito como Sede (Matriz) será(ão) exercida(s) a(s) atividade(s) de: ",
+                  font: "Arial",
+                  size: 24,
+                }),
+                new TextRun({
+                  text: `${descriptions.join(", ")}.`,
+                  bold: true,
+                  font: "Arial",
+                  size: 24,
+                }),
+              ],
+            })
+          );
+        }
+      } else {
+        children.push(
+          new Paragraph({
+            alignment: AlignmentType.JUSTIFIED,
+            spacing: { line: 360, after: 120 },
+            children: [
+              new TextRun({
+                text: c.content,
+                font: "Arial",
+                size: 24,
+              }),
+            ],
+          })
+        );
+      }
     });
 
     // Date

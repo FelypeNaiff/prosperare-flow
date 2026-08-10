@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { 
   Building2, 
   FileText, 
@@ -17,7 +17,12 @@ import {
   Mail,
   Calendar,
   Briefcase,
-  Shield
+  Shield,
+  Search,
+  Check,
+  ArrowUp,
+  ArrowDown,
+  Sparkles
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
@@ -37,6 +42,94 @@ import { collection } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
 import { ClientSearchSelect } from "@/components/clients/client-search-select"
 import { cn } from "@/lib/utils"
+
+interface CnaeItem {
+  code: string;
+  description: string;
+}
+
+const parseCnaeString = (raw: string): CnaeItem => {
+  if (!raw) return { code: "", description: "" };
+  const trimmed = raw.trim();
+
+  // Match "1063500 - FABRICACAO DE FARINHA..." or "1063500 – FABRICACAO..."
+  const match = trimmed.match(/^([\d\.\-\/]+)\s*[\-\–\—]\s*(.+)$/);
+  if (match) {
+    const code = match[1].replace(/\D/g, "");
+    const description = match[2].trim().toUpperCase();
+    return { code, description };
+  }
+
+  // Pure digits or code format
+  const cleanDigits = trimmed.replace(/\D/g, "");
+  if (cleanDigits.length >= 4 && cleanDigits.length <= 7 && !trimmed.includes(" ")) {
+    return { code: cleanDigits, description: "" };
+  }
+
+  return { code: "", description: trimmed.toUpperCase() };
+};
+
+const extractCnaesFromClient = (client: any, ibgeList: any[] = []): CnaeItem[] => {
+  const result: CnaeItem[] = [];
+  const addedKeys = new Set<string>();
+
+  const addCnae = (code: string, description: string) => {
+    let cleanCode = (code || "").replace(/\D/g, "");
+    let cleanDesc = (description || "").trim().toUpperCase();
+
+    // If description is missing, check IBGE list
+    if (!cleanDesc && cleanCode && ibgeList.length > 0) {
+      const found = ibgeList.find((item: any) => String(item.id).replace(/\D/g, "") === cleanCode);
+      if (found) {
+        cleanDesc = String(found.descricao || "").toUpperCase();
+      }
+    }
+
+    const key = cleanCode || cleanDesc;
+    if (key && !addedKeys.has(key)) {
+      addedKeys.add(key);
+      result.push({ code: cleanCode, description: cleanDesc });
+    }
+  };
+
+  if (!client) return result;
+
+  // 1. client.cnaes array
+  if (Array.isArray(client.cnaes) && client.cnaes.length > 0) {
+    client.cnaes.forEach((item: any) => {
+      if (typeof item === "string") {
+        const parsed = parseCnaeString(item);
+        addCnae(parsed.code, parsed.description);
+      } else if (item && typeof item === "object") {
+        addCnae(item.code || item.id || "", item.description || item.descricao || "");
+      }
+    });
+  }
+
+  // 2. primaryCnae
+  if (client.primaryCnae) {
+    if (typeof client.primaryCnae === "string") {
+      const parsed = parseCnaeString(client.primaryCnae);
+      addCnae(parsed.code, parsed.description);
+    } else if (typeof client.primaryCnae === "object") {
+      addCnae(client.primaryCnae.code || client.primaryCnae.id || "", client.primaryCnae.description || client.primaryCnae.descricao || "");
+    }
+  }
+
+  // 3. secondaryCnaes
+  if (Array.isArray(client.secondaryCnaes)) {
+    client.secondaryCnaes.forEach((sec: any) => {
+      if (typeof sec === "string") {
+        const parsed = parseCnaeString(sec);
+        addCnae(parsed.code, parsed.description);
+      } else if (sec && typeof sec === "object") {
+        addCnae(sec.code || sec.id || "", sec.description || sec.descricao || "");
+      }
+    });
+  }
+
+  return result;
+};
 
 const GRUPOS_EVENTOS = [
   {
@@ -79,8 +172,28 @@ export default function AlteracaoSocietariaPage() {
   // Checklist states
   const [eventosSelecionados, setEventosSelecionados] = useState<string[]>([])
   
+  // IBGE CNAEs list state
+  const [ibgeCnaes, setIbgeCnaes] = useState<any[]>([])
+  const [isLoadingIbge, setIsLoadingIbge] = useState<boolean>(false)
+  const [cnaeSearchQuery, setCnaeSearchQuery] = useState("")
+  const [cnaeSearchResults, setCnaeSearchResults] = useState<any[]>([])
+
+  // Manual CNAE addition inputs
+  const [manualCnaeCode, setManualCnaeCode] = useState("")
+  const [manualCnaeDesc, setManualCnaeDesc] = useState("")
+
   // Altered data states
-  const [novosDados, setNovosDados] = useState({
+  const [novosDados, setNovosDados] = useState<{
+    corporateName: string;
+    objetoSocial: string;
+    capitalSocial: number;
+    address: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    cnaes: CnaeItem[];
+  }>({
     corporateName: "",
     objetoSocial: "",
     capitalSocial: 0,
@@ -88,8 +201,30 @@ export default function AlteracaoSocietariaPage() {
     neighborhood: "",
     city: "",
     state: "",
-    zipCode: ""
+    zipCode: "",
+    cnaes: []
   })
+
+  // Load IBGE CNAEs subclasses list
+  useEffect(() => {
+    let isMounted = true
+    const fetchIbge = async () => {
+      setIsLoadingIbge(true)
+      try {
+        const res = await fetch("https://servicodados.ibge.gov.br/api/v2/cnae/subclasses")
+        if (res.ok) {
+          const data = await res.json()
+          if (isMounted) setIbgeCnaes(data)
+        }
+      } catch (err) {
+        console.error("Erro ao buscar CNAEs do IBGE:", err)
+      } finally {
+        if (isMounted) setIsLoadingIbge(false)
+      }
+    }
+    fetchIbge()
+    return () => { isMounted = false }
+  }, [])
 
   // Load clients
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
@@ -103,8 +238,8 @@ export default function AlteracaoSocietariaPage() {
   // Partner array state for current client
   const [socios, setSocios] = useState<any[]>([])
 
-  // Load partners when client changes
-  useMemo(() => {
+  // Sync client data and CNAEs from Ficha 360º when client or IBGE data changes
+  useEffect(() => {
     if (currentClient) {
       const qsa = currentClient.qsa || []
       const initialized = qsa.map((s: any) => ({
@@ -136,7 +271,9 @@ export default function AlteracaoSocietariaPage() {
       }))
       setSocios(initialized)
       setOpenPartnerIndex(initialized.length > 0 ? 0 : null)
-      
+
+      const extractedCnaes = extractCnaesFromClient(currentClient, ibgeCnaes)
+
       setNovosDados({
         corporateName: currentClient.corporateName || "",
         objetoSocial: currentClient.objetoSocial || currentClient.naturezaJuridica || "",
@@ -145,13 +282,43 @@ export default function AlteracaoSocietariaPage() {
         neighborhood: currentClient.neighborhood || "",
         city: currentClient.city || "",
         state: currentClient.state || "",
-        zipCode: currentClient.zipCode || ""
+        zipCode: currentClient.zipCode || "",
+        cnaes: extractedCnaes
       })
     } else {
       setSocios([])
       setOpenPartnerIndex(null)
+      setNovosDados({
+        corporateName: "",
+        objetoSocial: "",
+        capitalSocial: 0,
+        address: "",
+        neighborhood: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        cnaes: []
+      })
     }
-  }, [currentClient])
+  }, [currentClient, ibgeCnaes])
+
+  // Filter IBGE CNAE search query
+  useEffect(() => {
+    if (cnaeSearchQuery.length < 2) {
+      setCnaeSearchResults([])
+      return
+    }
+    const cleanDigits = cnaeSearchQuery.toLowerCase().replace(/\D/g, "")
+    const textQuery = cnaeSearchQuery.toLowerCase()
+
+    const filtered = ibgeCnaes.filter((item: any) => {
+      const cleanId = String(item.id).replace(/\D/g, "")
+      const desc = String(item.descricao || "").toLowerCase()
+      return (cleanDigits.length > 0 && cleanId.includes(cleanDigits)) || desc.includes(textQuery)
+    }).slice(0, 50)
+
+    setCnaeSearchResults(filtered)
+  }, [cnaeSearchQuery, ibgeCnaes])
 
   // Toggle events
   const handleToggleEvent = (eventKey: string) => {
@@ -210,6 +377,53 @@ export default function AlteracaoSocietariaPage() {
     })
   }
 
+  // CNAE manipulation handlers
+  const handleAddCnaeItem = (code: string, description: string) => {
+    const cleanCode = code.replace(/\D/g, "")
+    const cleanDesc = description.trim().toUpperCase()
+
+    if (!cleanCode && !cleanDesc) return
+
+    setNovosDados(prev => {
+      const exists = prev.cnaes.some(
+        c => (cleanCode && c.code === cleanCode) || (cleanDesc && c.description === cleanDesc)
+      );
+      if (exists) {
+        toast({ variant: "destructive", title: "CNAE já adicionado", description: "Esta atividade já está na lista de alterações." });
+        return prev;
+      }
+      toast({ title: "Atividade Adicionada", description: `${cleanCode ? cleanCode + " - " : ""}${cleanDesc}` });
+      return {
+        ...prev,
+        cnaes: [...prev.cnaes, { code: cleanCode, description: cleanDesc }]
+      };
+    });
+
+    setCnaeSearchQuery("")
+    setCnaeSearchResults([])
+    setManualCnaeCode("")
+    setManualCnaeDesc("")
+  }
+
+  const handleRemoveCnaeItem = (index: number) => {
+    setNovosDados(prev => ({
+      ...prev,
+      cnaes: prev.cnaes.filter((_, i) => i !== index)
+    }))
+  }
+
+  const handleMoveCnaeItem = (index: number, direction: "up" | "down") => {
+    setNovosDados(prev => {
+      const copy = [...prev.cnaes]
+      const targetIndex = direction === "up" ? index - 1 : index + 1
+      if (targetIndex < 0 || targetIndex >= copy.length) return prev
+      const temp = copy[index]
+      copy[index] = copy[targetIndex]
+      copy[targetIndex] = temp
+      return { ...prev, cnaes: copy }
+    })
+  }
+
   const handleSyncWithFicha360 = () => {
     if (currentClient) {
       const qsa = currentClient.qsa || []
@@ -242,7 +456,14 @@ export default function AlteracaoSocietariaPage() {
       }))
       setSocios(initialized)
       setOpenPartnerIndex(initialized.length > 0 ? 0 : null)
-      toast({ title: "Dados Sincronizados", description: "Os dados dos sócios foram atualizados a partir da Ficha 360º." })
+
+      const extractedCnaes = extractCnaesFromClient(currentClient, ibgeCnaes)
+      setNovosDados(prev => ({
+        ...prev,
+        cnaes: extractedCnaes
+      }))
+
+      toast({ title: "Dados Sincronizados", description: "Os dados dos sócios e CNAEs foram atualizados a partir da Ficha 360º." })
     }
   }
 
@@ -276,7 +497,8 @@ export default function AlteracaoSocietariaPage() {
             zipCode: currentClient.zipCode,
             capitalSocial: currentClient.capitalSocial || 0,
             nire: currentClient.nire || "NÃO INFORMADO",
-            naturezaJuridica: currentClient.naturezaJuridica
+            naturezaJuridica: currentClient.naturezaJuridica,
+            cnaes: novosDados.cnaes
           },
           socios: socios,
           novosDados: novosDados,
@@ -828,22 +1050,206 @@ export default function AlteracaoSocietariaPage() {
                       </div>
                     )}
 
-                    {/* Objeto social */}
+                    {/* Objeto social & Atividades Econômicas (CNAE) - Evento 244 */}
                     {(eventosSelecionados.includes("244") || eventosSelecionados.includes("objeto_social")) && (
-                      <div className="space-y-3 p-4 border border-blue-100 rounded-lg bg-blue-50/10">
-                        <h4 className="text-xs font-semibold text-blue-700 flex items-center gap-2">
-                          <FileText className="h-4 w-4" /> Alteração de Objeto Social
-                        </h4>
-                        <div className="space-y-1">
-                          <Label className="text-[10px] text-slate-500 font-bold uppercase">Novo Objeto Social</Label>
-                          <Textarea 
-                            rows={3}
-                            value={novosDados.objetoSocial}
-                            onChange={(e) => setNovosDados({ ...novosDados, objetoSocial: e.target.value })}
-                            className="bg-white border-slate-200 text-xs"
-                            placeholder="Descreva detalhadamente o novo objeto social da empresa..."
-                          />
+                      <div className="space-y-5 p-5 border border-blue-200 rounded-xl bg-gradient-to-b from-blue-50/20 to-white shadow-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3 border-blue-100">
+                          <div>
+                            <h4 className="text-xs font-bold text-blue-900 flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-blue-600" /> 
+                              Alteração de Atividades Econômicas (CNAEs) e Objeto Social
+                            </h4>
+                            <p className="text-[10px] text-slate-500 mt-0.5">
+                              Os CNAEs são puxados da Ficha 360º. Você pode adicionar ou remover atividades conforme necessário.
+                            </p>
+                          </div>
+                          {currentClient && (
+                            <span className="text-[10px] font-bold text-blue-700 bg-blue-100/80 px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1">
+                              <Sparkles className="h-3 w-3 text-blue-600" />
+                              Ficha 360º: {novosDados.cnaes.length} atividade(s)
+                            </span>
+                          )}
                         </div>
+
+                        {/* Smart Search CNAE IBGE */}
+                        <div className="space-y-2">
+                          <Label className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">
+                            Pesquisar CNAE Oficial no IBGE (Código ou Palavra-chave)
+                          </Label>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                            <Input 
+                              placeholder="Digite o código (ex: 1063500) ou termo (ex: mandioca, peixes, legumes)..."
+                              value={cnaeSearchQuery}
+                              onChange={(e) => setCnaeSearchQuery(e.target.value)}
+                              className="pl-9 bg-white border-slate-200 text-xs h-9"
+                            />
+                            {isLoadingIbge && (
+                              <div className="absolute right-3 top-2.5">
+                                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                              </div>
+                            )}
+                          </div>
+
+                          {cnaeSearchResults.length > 0 && (
+                            <div className="border border-slate-200 rounded-xl bg-white shadow-xl max-h-52 overflow-y-auto divide-y divide-slate-100 z-10 relative">
+                              {cnaeSearchResults.map((opt) => {
+                                const cleanId = String(opt.id).replace(/\D/g, "");
+                                const desc = String(opt.descricao).toUpperCase();
+                                return (
+                                  <div 
+                                    key={opt.id} 
+                                    className="flex items-center justify-between p-2.5 hover:bg-blue-50/50 cursor-pointer text-xs transition-colors"
+                                    onClick={() => handleAddCnaeItem(cleanId, desc)}
+                                  >
+                                    <div>
+                                      <span className="font-mono font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 mr-2">
+                                        {cleanId}
+                                      </span>
+                                      <span className="font-semibold text-slate-800">{desc}</span>
+                                    </div>
+                                    <Button type="button" size="sm" className="h-7 text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                                      + Adicionar
+                                    </Button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Manual CNAE Add fallback */}
+                        <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
+                          <Label className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                            Ou Adicione CNAE Manualmente
+                          </Label>
+                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                            <Input 
+                              placeholder="Código (ex: 1063500)"
+                              value={manualCnaeCode}
+                              onChange={(e) => setManualCnaeCode(e.target.value)}
+                              className="sm:col-span-4 bg-white border-slate-200 text-xs h-8 font-mono font-bold"
+                            />
+                            <Input 
+                              placeholder="Descrição (ex: FABRICACAO DE FARINHA DE MANDIOCA)"
+                              value={manualCnaeDesc}
+                              onChange={(e) => setManualCnaeDesc(e.target.value.toUpperCase())}
+                              className="sm:col-span-6 bg-white border-slate-200 text-xs h-8 font-semibold"
+                            />
+                            <Button 
+                              type="button" 
+                              size="sm"
+                              className="sm:col-span-2 h-8 text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white"
+                              onClick={() => handleAddCnaeItem(manualCnaeCode, manualCnaeDesc)}
+                            >
+                              Adicionar
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Active CNAEs List */}
+                        <div className="space-y-2">
+                          <Label className="text-[10px] text-slate-700 font-bold uppercase tracking-wider flex items-center justify-between">
+                            <span>Atividades Econômicas Cadastradas / Selecionadas ({novosDados.cnaes.length})</span>
+                            <span className="text-[9px] text-slate-400 font-normal normal-case">Use as setas para reordenar</span>
+                          </Label>
+
+                          {novosDados.cnaes.length > 0 ? (
+                            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                              {novosDados.cnaes.map((item, idx) => (
+                                <div 
+                                  key={idx} 
+                                  className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-xs hover:border-blue-300 transition-colors"
+                                >
+                                  <div className="flex items-center gap-3 min-w-0 pr-2">
+                                    <span className="bg-slate-100 text-slate-500 text-[10px] font-bold h-6 w-6 rounded-full flex items-center justify-center shrink-0">
+                                      {idx + 1}
+                                    </span>
+                                    {item.code ? (
+                                      <span className="font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded text-xs shrink-0">
+                                        {item.code}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border text-center shrink-0">
+                                        S/ CÓD
+                                      </span>
+                                    )}
+                                    <span className="text-xs font-bold text-slate-800 truncate">
+                                      {item.description}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="sm"
+                                      disabled={idx === 0}
+                                      onClick={() => handleMoveCnaeItem(idx, "up")}
+                                      className="h-7 w-7 p-0 text-slate-400 hover:text-slate-700"
+                                    >
+                                      <ArrowUp className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="sm"
+                                      disabled={idx === novosDados.cnaes.length - 1}
+                                      onClick={() => handleMoveCnaeItem(idx, "down")}
+                                      className="h-7 w-7 p-0 text-slate-400 hover:text-slate-700"
+                                    >
+                                      <ArrowDown className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="sm"
+                                      onClick={() => handleRemoveCnaeItem(idx)}
+                                      className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-6 border border-dashed border-slate-200 rounded-xl bg-white">
+                              <Briefcase className="h-6 w-6 text-slate-300 mx-auto mb-1" />
+                              <p className="text-xs text-slate-400 font-medium">Nenhuma atividade cadastrada ou selecionada.</p>
+                              <p className="text-[10px] text-slate-400">Use a pesquisa IBGE acima para adicionar atividades econômicas.</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Live Clause Preview - Model Image 2 */}
+                        {novosDados.cnaes.length > 0 && (
+                          <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-2">
+                            <h5 className="text-[10px] font-black text-amber-800 uppercase tracking-widest flex items-center gap-1.5">
+                              <FileSignature className="h-3.5 w-3.5 text-amber-600" />
+                              Modelo de Cláusula de Alteração de Atividades e Objeto Social (Padrão DREI):
+                            </h5>
+                            
+                            <div className="bg-white p-3.5 rounded-lg border border-amber-200 text-xs leading-relaxed text-slate-900 space-y-2 shadow-xs">
+                              <p className="font-bold">
+                                Cláusula Segunda – A sociedade terá por objeto o exercício das seguintes atividades econômicas:
+                              </p>
+                              <div className="pl-3 space-y-0.5 font-sans">
+                                {novosDados.cnaes.map((c, i) => (
+                                  <p key={i} className="font-bold text-slate-900 bg-yellow-100/80 px-1 rounded inline-block w-full">
+                                    {c.code ? `${c.code} – ` : ""}{c.description}
+                                  </p>
+                                ))}
+                              </div>
+                              <p className="pt-2 border-t border-slate-100">
+                                <span className="font-bold">Parágrafo único.</span> Em estabelecimento eleito como Sede (Matriz) será(ão) exercida(s) a(s) atividade(s) de:{" "}
+                                <span className="font-bold text-slate-900 bg-yellow-100/80 px-1 py-0.5 rounded">
+                                  {novosDados.cnaes.map(c => c.description).filter(Boolean).join(", ")}.
+                                </span>
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
