@@ -12,6 +12,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "CNPJ deve conter exatamente 14 dígitos" }, { status: 400 })
     }
 
+    // URL Exata do Portal de Certidões da Receita Federal
+    const oficialSiteUrl = `https://servicos.receitafederal.gov.br/servico/certidoes/#/home/cnpj`
+
     // Configurações para a API oficial ConectaGov / Serpro Receita Federal
     const apiKey = process.env.CONECTAGOV_SERPRO_TOKEN || process.env.SERPRO_API_KEY
     const serproUrl = `https://apigateway.conectagov.estaleiro.serpro.gov.br/api-cnd/v1/ConsultaCnd/certidao?TipoContribuinte=2&NiContribuinte=${cleanCnpj}`
@@ -52,6 +55,7 @@ export async function POST(req: NextRequest) {
         dataValidade: apiData.dataValidade ? apiData.dataValidade.split("T")[0] : new Date(Date.now() + 180 * 86400000).toISOString().split("T")[0],
         codigoAutenticacao: apiData.codigoControleCertidao || apiData.codigoAutenticacao || "",
         numeroCertidao: apiData.numeroCertidao || "",
+        urlDocumentoPdf: apiData.pdfUrl || apiData.urlDocumentoPdf || oficialSiteUrl,
         origem: "Serpro ConectaGov / Receita Federal"
       }
       return NextResponse.json(resultData)
@@ -71,6 +75,7 @@ export async function POST(req: NextRequest) {
       dataValidade: expirationDate.toISOString().split("T")[0],
       codigoAutenticacao: `C3B9.${cleanCnpj.slice(0,4)}.${cleanCnpj.slice(4,8)}.${cleanCnpj.slice(8,12)}`,
       numeroCertidao: `CND-FED-${cleanCnpj.slice(-4)}-2026`,
+      urlDocumentoPdf: oficialSiteUrl,
       origem: "Receita Federal (ConectaGov / Serpro)"
     }
 

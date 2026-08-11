@@ -517,16 +517,18 @@ export default function ContasAReceberPage() {
   const receiptValueExtenso = numberToExtensoBRL(receiptValue)
 
   const receiptMonth = useMemo(() => {
-    if (!selectedReceiptItem?.data) return format(selectedCompetence, "MMMM 'de' yyyy", { locale: ptBR })
+    if (!selectedReceiptItem?.data) return format(subMonths(selectedCompetence, 1), "MMMM 'de' yyyy", { locale: ptBR })
     try {
       const parts = selectedReceiptItem.data.split("-")
+      let d: Date
       if (parts.length === 3) {
-        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
-        return format(d, "MMMM 'de' yyyy", { locale: ptBR })
+        d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
+      } else {
+        d = new Date(selectedReceiptItem.data)
       }
-      return format(new Date(selectedReceiptItem.data), "MMMM 'de' yyyy", { locale: ptBR })
+      return format(subMonths(d, 1), "MMMM 'de' yyyy", { locale: ptBR })
     } catch {
-      return format(selectedCompetence, "MMMM 'de' yyyy", { locale: ptBR })
+      return format(subMonths(selectedCompetence, 1), "MMMM 'de' yyyy", { locale: ptBR })
     }
   }, [selectedReceiptItem, selectedCompetence])
 
@@ -559,6 +561,65 @@ export default function ContasAReceberPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
+      {/* Print-specific Stylesheet */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          
+          #receipt-print-area, #receipt-print-area * {
+            visibility: visible !important;
+          }
+          
+          #receipt-print-area {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: white !important;
+            z-index: 99999 !important;
+          }
+
+          div[role="dialog"],
+          div[class*="DialogContent"] {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            transform: none !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            max-height: none !important;
+            height: auto !important;
+            overflow: visible !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          
+          div[class*="DialogOverlay"],
+          div[class*="bg-black/80"],
+          .no-print,
+          button,
+          [class*="Close"] {
+            display: none !important;
+            visibility: hidden !important;
+          }
+          
+          @page {
+            size: A4 portrait;
+            margin: 0;
+          }
+        }
+      `}} />
+
       <input 
         type="file" 
         ref={fileInputRef} 

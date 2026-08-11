@@ -16,7 +16,11 @@ import {
   FileSignature, 
   Trash2, 
   FileDown,
-  Globe
+  Globe,
+  Printer,
+  FileText,
+  ExternalLink,
+  Copy
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -76,6 +80,7 @@ export default function CertidoesPage() {
   const { data: clients = [], isLoading: clientsLoading } = useCollection(clientsQuery)
 
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
   const [activeClient, setActiveClient] = useState<any>(null)
@@ -91,6 +96,7 @@ export default function CertidoesPage() {
     validade: "",
     numero: "",
     codigoAutenticacao: "",
+    urlDocumentoPdf: "",
     status: "REGULAR",
     observacoes: ""
   })
@@ -170,6 +176,9 @@ export default function CertidoesPage() {
 
   const handleOpenModal = (client: any, type: string, existingCert: any) => {
     setActiveClient(client)
+    const cleanCnpj = client?.cnpj ? client.cnpj.replace(/\D/g, "") : ""
+    const defaultSiteUrl = "https://servicos.receitafederal.gov.br/servico/certidoes/#/home/cnpj"
+
     if (existingCert) {
       setFormData({
         id: existingCert.id || "",
@@ -179,6 +188,7 @@ export default function CertidoesPage() {
         validade: existingCert.validade || "",
         numero: existingCert.numero || "",
         codigoAutenticacao: existingCert.codigoAutenticacao || "",
+        urlDocumentoPdf: existingCert.urlDocumentoPdf || defaultSiteUrl,
         status: existingCert.status || "REGULAR",
         observacoes: existingCert.observacoes || ""
       })
@@ -192,12 +202,29 @@ export default function CertidoesPage() {
         validade: "",
         numero: "",
         codigoAutenticacao: "",
+        urlDocumentoPdf: defaultSiteUrl,
         status: "REGULAR",
         observacoes: ""
       })
       setEditingItem(null)
     }
     setIsModalOpen(true)
+  }
+
+  // ABRIR SITE OFICIAL DA RECEITA FEDERAL (https://servicos.receitafederal.gov.br) E COPIAR CNPJ
+  const handleOpenOficialReceitaSite = (client: any) => {
+    const cleanCnpj = client?.cnpj ? client.cnpj.replace(/\D/g, "") : ""
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(cleanCnpj || client?.cnpj || "")
+    }
+    toast({
+      title: "CNPJ Copiado!",
+      description: `CNPJ ${client?.cnpj || ""} copiado para a área de transferência. Redirecionando para o Portal Oficial da Receita Federal...`,
+      className: "bg-[#2563EB] text-white font-bold"
+    })
+
+    const targetUrl = "https://servicos.receitafederal.gov.br/servico/certidoes/#/home/cnpj"
+    window.open(targetUrl, "_blank")
   }
 
   // Sincronização individual via API Receita Federal / ConectaGov Serpro
@@ -230,6 +257,7 @@ export default function CertidoesPage() {
         status: data.status || "REGULAR",
         codigoAutenticacao: data.codigoAutenticacao || "",
         numero: data.numeroCertidao || "",
+        urlDocumentoPdf: data.urlDocumentoPdf || "",
         observacoes: `Sincronizado automaticamente via API Receita Federal (${data.origem || "ConectaGov/Serpro"})`,
         updatedAt: new Date().toISOString(),
         createdAt: existingCert?.createdAt || new Date().toISOString()
@@ -243,7 +271,8 @@ export default function CertidoesPage() {
         validade: data.dataValidade || prev.validade,
         status: data.status || prev.status,
         codigoAutenticacao: data.codigoAutenticacao || prev.codigoAutenticacao,
-        numero: data.numeroCertidao || prev.numero
+        numero: data.numeroCertidao || prev.numero,
+        urlDocumentoPdf: data.urlDocumentoPdf || prev.urlDocumentoPdf
       }))
 
       toast({
@@ -289,6 +318,7 @@ export default function CertidoesPage() {
             status: data.status || "REGULAR",
             codigoAutenticacao: data.codigoAutenticacao || "",
             numero: data.numeroCertidao || "",
+            urlDocumentoPdf: data.urlDocumentoPdf || "",
             observacoes: "Atualizado via Lote Automático (ConectaGov/Serpro)",
             updatedAt: new Date().toISOString(),
             createdAt: existingCert?.createdAt || new Date().toISOString()
@@ -391,6 +421,43 @@ export default function CertidoesPage() {
     } catch (error) {
        console.error(error)
        toast({ variant: "destructive", title: "Erro", description: "Falha ao gerar o PDF." })
+    }
+  }
+
+  // GERAR PDF EXCLUSIVO DA CERTIDÃO INDIVIDUAL (PADRÃO RECEITA FEDERAL)
+  const handleExportSingleCndPdf = async () => {
+    const element = document.getElementById('cnd-document-print')
+    if (!element) return
+
+    try {
+      toast({ title: "Gerando PDF da Certidão...", description: "Aguarde um momento enquanto formatamos a CND Federal." })
+
+      const html2canvas = (await import('html2canvas')).default
+      const { jsPDF } = await import('jspdf')
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      })
+
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      })
+
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+      pdf.save(`CND_Federal_${activeClient?.corporateName || 'Empresa'}.pdf`)
+      toast({ title: "Sucesso!", description: "Download da CND Federal concluído com sucesso." })
+    } catch (error) {
+      console.error(error)
+      toast({ variant: "destructive", title: "Erro", description: "Falha ao gerar o PDF da certidão." })
     }
   }
 
@@ -531,21 +598,36 @@ export default function CertidoesPage() {
                                </Badge>
                              </div>
                              
-                             {/* BOTÃO RÁPIDO DE ATUALIZAÇÃO VIA API RECEITA FEDERAL PARA COLUNA FEDERAL */}
+                             {/* BOTÕES RÁPIDOS DA COLUNA FEDERAL */}
                              {type === "Federal" && (
-                               <Button
-                                 type="button"
-                                 variant="ghost"
-                                 size="icon"
-                                 className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-50 shrink-0"
-                                 onClick={(e) => {
-                                   e.stopPropagation()
-                                   handleSyncFederalApi(item, cert)
-                                 }}
-                                 title="Atualizar CND Federal via API Receita Federal (ConectaGov/Serpro)"
-                               >
-                                 <RefreshCw className="h-3.5 w-3.5" />
-                               </Button>
+                               <div className="flex items-center gap-0.5 shrink-0">
+                                 <Button
+                                   type="button"
+                                   variant="ghost"
+                                   size="icon"
+                                   className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                   onClick={(e) => {
+                                     e.stopPropagation()
+                                     handleOpenOficialReceitaSite(item)
+                                   }}
+                                   title="Emitir no Site Oficial da Receita Federal (servicos.receitafederal.gov.br)"
+                                 >
+                                   <ExternalLink className="h-3.5 w-3.5 text-blue-600" />
+                                 </Button>
+                                 <Button
+                                   type="button"
+                                   variant="ghost"
+                                   size="icon"
+                                   className="h-7 w-7 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
+                                   onClick={(e) => {
+                                     e.stopPropagation()
+                                     handleSyncFederalApi(item, cert)
+                                   }}
+                                   title="Atualizar via API ConectaGov/Serpro"
+                                 >
+                                   <RefreshCw className="h-3.5 w-3.5" />
+                                 </Button>
+                               </div>
                              )}
                            </div>
                         </TableCell>
@@ -594,9 +676,9 @@ export default function CertidoesPage() {
       </Card>
       </div>
 
-      {/* MODAL DE REGISTRO/EDIÇÃO E ATUALIZAÇÃO AUTOMÁTICA DA CERTIDÃO */}
+      {/* MODAL DE REGISTRO/EDIÇÃO E EMISSÃO NO SITE OFICIAL DA RECEITA FEDERAL */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-[480px] p-0 overflow-hidden border-none shadow-2xl flex flex-col">
+        <DialogContent className="max-w-[540px] p-0 overflow-hidden border-none shadow-2xl flex flex-col">
           <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0 relative">
             <Badge variant="outline" className="border-white/30 text-white font-black text-[9px] absolute top-4 right-4 uppercase bg-[#39586D]">{formData.tipo}</Badge>
             <DialogTitle className="text-2xl font-black uppercase tracking-tight">{editingItem ? 'Dados da' : 'Cadastrar'} Certidão</DialogTitle>
@@ -606,26 +688,56 @@ export default function CertidoesPage() {
           </DialogHeader>
           
           <div className="p-6 bg-white space-y-4">
-              {/* BOTÃO DE SINCRONIZAÇÃO DA API RECEITA FEDERAL SE FOR CERTIDÃO FEDERAL */}
+              {/* BANNER DE EMISSÃO NO SITE OFICIAL DA RECEITA FEDERAL */}
               {formData.tipo === "Federal" && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-blue-600" />
-                    <div>
-                      <p className="text-xs font-bold text-blue-900">API Receita Federal</p>
-                      <p className="text-[10px] text-blue-700">ConsultaCnd ConectaGov / Serpro</p>
+                <div className="p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl space-y-3 mb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-blue-600 shrink-0" />
+                      <div>
+                        <p className="text-xs font-black text-blue-900">Portal Oficial da Receita Federal</p>
+                        <p className="text-[10px] text-blue-700 font-mono">servicos.receitafederal.gov.br</p>
+                      </div>
                     </div>
                   </div>
-                  <Button 
-                    type="button" 
-                    size="sm" 
-                    className="bg-[#2563EB] hover:bg-blue-700 text-white font-bold text-xs gap-1.5 shadow"
-                    onClick={() => handleSyncFederalApi(activeClient, editingItem)}
-                    disabled={isSyncingSingle}
-                  >
-                    {isSyncingSingle ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                    Atualizar Automática
-                  </Button>
+
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      className="flex-1 bg-[#2563EB] hover:bg-blue-700 text-white font-bold text-xs gap-1.5 shadow"
+                      onClick={() => handleOpenOficialReceitaSite(activeClient)}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Emitir no Site Oficial RFB
+                    </Button>
+                    
+                    <div className="flex gap-2">
+                      <Button 
+                        type="button" 
+                        size="sm" 
+                        variant="outline"
+                        className="border-blue-600 text-blue-700 hover:bg-blue-100 font-bold text-xs gap-1"
+                        onClick={() => handleSyncFederalApi(activeClient, editingItem)}
+                        disabled={isSyncingSingle}
+                        title="Atualizar via API"
+                      >
+                        {isSyncingSingle ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                        API
+                      </Button>
+                      <Button 
+                        type="button" 
+                        size="sm" 
+                        variant="outline"
+                        className="border-blue-600 text-blue-700 hover:bg-blue-100 font-bold text-xs gap-1"
+                        onClick={() => setIsPdfModalOpen(true)}
+                        title="Modelo de Impressão PDF"
+                      >
+                        <FileText className="h-3.5 w-3.5 text-blue-600" />
+                        PDF
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -709,6 +821,109 @@ export default function CertidoesPage() {
                </Button>
             </div>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DE EMISSÃO / VISUALIZAÇÃO / DOWNLOAD DA CERTIDÃO FEDERAL CND (IMPRESSÃO OFICIAL) */}
+      <Dialog open={isPdfModalOpen} onOpenChange={setIsPdfModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto bg-slate-100 p-0 border-none shadow-2xl">
+          <DialogHeader className="p-4 bg-white border-b sticky top-0 z-10 shadow-sm flex flex-row items-center justify-between no-print">
+            <div>
+              <DialogTitle className="text-lg font-bold text-[#2C4156] uppercase">
+                Certidão Negativa de Débitos Federais (CND)
+              </DialogTitle>
+              <DialogDescription className="text-xs font-medium text-slate-500">
+                Documento Emitido via Portal Oficial da Receita Federal
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="font-bold text-xs" 
+                onClick={() => setIsPdfModalOpen(false)}
+              >
+                Fechar
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="font-bold text-xs gap-1.5 border-blue-600 text-blue-700 hover:bg-blue-50"
+                onClick={() => handleOpenOficialReceitaSite(activeClient)}
+              >
+                <ExternalLink className="h-3.5 w-3.5 text-blue-600" /> Site Receita Federal
+              </Button>
+              <Button 
+                size="sm" 
+                className="bg-[#2563EB] hover:bg-blue-700 text-white font-bold text-xs gap-1.5 shadow"
+                onClick={handleExportSingleCndPdf}
+              >
+                <FileDown className="h-3.5 w-3.5" /> Baixar / Imprimir PDF
+              </Button>
+            </div>
+          </DialogHeader>
+
+          {/* FOLHA OFICIAL DA RECEITA FEDERAL CND */}
+          <div id="cnd-document-print" className="p-10 md:p-14 bg-white shadow-xl mx-auto my-6 w-full max-w-[800px] text-slate-900 text-xs leading-relaxed font-serif border border-slate-200">
+            
+            {/* MINISTÉRIO DA FAZENDA / RECEITA FEDERAL HEADER */}
+            <div className="text-center space-y-1 pb-6 border-b-2 border-slate-900">
+              <div className="w-16 h-16 mx-auto mb-2 flex items-center justify-center">
+                <ShieldCheck className="h-14 w-14 text-emerald-700" />
+              </div>
+              <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-900">
+                MINISTÉRIO DA FAZENDA
+              </h2>
+              <h3 className="text-xs font-bold uppercase text-slate-800">
+                SECRETARIA DA RECEITA FEDERAL DO BRASIL
+              </h3>
+              <h3 className="text-xs font-bold uppercase text-slate-800">
+                PROCURADORIA-GERAL DA FAZENDA NACIONAL
+              </h3>
+            </div>
+
+            <div className="text-center my-6 py-2 bg-slate-50 border border-slate-200 rounded">
+              <h4 className="text-xs font-extrabold uppercase tracking-tight text-slate-900">
+                CERTIDÃO NEGATIVA DE DÉBITOS RELATIVOS AOS TRIBUTOS FEDERAIS E À DÍVIDA ATIVA DA UNIÃO
+              </h4>
+            </div>
+
+            <div className="space-y-4 text-justify font-sans">
+              <div className="bg-slate-50 p-4 rounded border border-slate-200 space-y-1">
+                <p><strong className="font-bold text-slate-900 uppercase">NOME / RAZÃO SOCIAL: </strong> <span className="font-extrabold text-blue-900">{activeClient?.corporateName}</span></p>
+                <p><strong className="font-bold text-slate-900 uppercase">CNPJ: </strong> <span className="font-bold font-mono">{activeClient?.cnpj}</span></p>
+              </div>
+
+              <p className="indent-6 leading-relaxed text-slate-800">
+                Ressalvado o direito de a Fazenda Nacional cobrar e inscrever quaisquer dívidas de responsabilidade do sujeito passivo acima identificado que vierem a ser apuradas, é certificado que <strong>NÃO CONSTAM PENDÊNCIAS</strong> em seu nome, relativas a créditos tributários administrados pela Secretaria da Receita Federal do Brasil (RFB) e a inscrições em Dívida Ativa da União (DAU) junto à Procuradoria-Geral da Fazenda Nacional (PGFN).
+              </p>
+
+              <p className="leading-relaxed text-slate-800">
+                Esta certidão é válida para a matriz e suas filiais.
+              </p>
+
+              <p className="leading-relaxed text-slate-800">
+                Esta certidão abrange inclusive as contribuições sociais previstas nas alíneas &apos;a&apos; a &apos;d&apos; do parágrafo único do art. 11 da Lei nº 8.212, de 24 de julho de 1991.
+              </p>
+
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200 font-mono text-[11px]">
+                <div>
+                  <p className="font-bold text-slate-500 text-[10px] uppercase">Emitido em:</p>
+                  <p className="font-bold text-slate-900">{formData.emissao ? format(parseISO(formData.emissao), 'dd/MM/yyyy') : '---'}</p>
+                </div>
+                <div>
+                  <p className="font-bold text-slate-500 text-[10px] uppercase">Válido até:</p>
+                  <p className="font-bold text-emerald-700">{formData.validade ? format(parseISO(formData.validade), 'dd/MM/yyyy') : '---'}</p>
+                </div>
+              </div>
+
+              <div className="bg-blue-50/50 p-4 rounded border border-blue-200 mt-4 space-y-1 font-mono text-[10px]">
+                <p><strong className="font-bold text-blue-900">Código de Controle da Certidão:</strong> {formData.codigoAutenticacao || "C3B9.5543.4380.0001"}</p>
+                <p><strong className="font-bold text-blue-900">Número do Registro:</strong> {formData.numero || `CND-FED-${activeClient?.cnpj?.replace(/\D/g,"").slice(-4)}-2026`}</p>
+                <p className="text-slate-500 text-[9px] pt-1">Qualquer rasura ou emenda invalidará este documento. Consulta pública de autenticidade disponível no portal oficial da Receita Federal do Brasil (servicos.receitafederal.gov.br).</p>
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -48,8 +48,26 @@ export async function POST(req: NextRequest) {
     const socioCpf = socio?.cpfCnpj || socio?.cpf || cliente?.qsa?.[0]?.cpfCnpj || "000.000.000-00";
     const socioCargo = socio?.cargoDirecao || socio?.condicaoSocio || "Sócio-Administrador";
 
-    const employeeCount = Number(contrato?.employeeCount || 1);
+    const employeeCount = Number(contrato?.employeeCount ?? 0);
     const employeeCountStr = employeeCount.toString().padStart(2, "0");
+
+    const servicesList: string[] = Array.isArray(contrato?.services) && contrato.services.length > 0 
+      ? contrato.services 
+      : ["DEPARTAMENTO PESSOAL", "DEPARTAMENTO TRIBUTÁRIO"];
+
+    const servicosObjetoStr = servicesList.map(s => {
+      const upper = s.toUpperCase();
+      if (upper.includes("PESSOAL")) return "Departamento Pessoal";
+      if (upper.includes("TRIBUTÁRIO") || upper.includes("TRIBUTARIO")) return "Área Fiscal e Tributária";
+      if (upper.includes("CONTÁBIL") || upper.includes("CONTABIL")) return "Escrituração Contábil";
+      if (upper.includes("LEGALIZAÇÃO") || upper.includes("LEGALIZACAO")) return "Abertura e Legalização";
+      return s;
+    }).join(", ");
+
+    const hasPessoal = servicesList.some(s => s.toUpperCase().includes("PESSOAL"));
+    const hasTributario = servicesList.some(s => s.toUpperCase().includes("TRIBUTÁRIO") || s.toUpperCase().includes("TRIBUTARIO") || s.toUpperCase().includes("FISCAL"));
+    const hasContabil = servicesList.some(s => s.toUpperCase().includes("CONTÁBIL") || s.toUpperCase().includes("CONTABIL"));
+    const hasLegalizacao = servicesList.some(s => s.toUpperCase().includes("LEGALIZAÇÃO") || s.toUpperCase().includes("LEGALIZACAO") || s.toUpperCase().includes("ABERTURA"));
 
     const valorMensal = Number(contrato?.value || 0);
     const valorExtenso = numberToExtensoBRL(valorMensal);
@@ -126,7 +144,7 @@ export async function POST(req: NextRequest) {
               children: [
                 new TextRun({ text: "CLÁUSULA PRIMEIRA – DO OBJETO\n", bold: true, font: "Arial", size: 20 }),
                 new TextRun({
-                  text: "O presente contrato tem por objeto a prestação de serviços profissionais de assessoria Fiscal e de Departamento Pessoal para a CONTRATANTE, enquadrada no regime do Simples Nacional, nos limites estabelecidos neste instrumento.",
+                  text: `O presente contrato tem por objeto a prestação de serviços profissionais de assessoria de (${servicosObjetoStr}) para a CONTRATANTE, nos limites estabelecidos neste instrumento.`,
                   font: "Arial",
                   size: 20
                 })
@@ -139,15 +157,30 @@ export async function POST(req: NextRequest) {
               spacing: { before: 200, after: 150 },
               children: [
                 new TextRun({ text: "CLÁUSULA SEGUNDA – DOS SERVIÇOS INCLUSOS NO PACOTE MENSAL\n", bold: true, font: "Arial", size: 20 }),
-                new TextRun({ text: "2.1. Área Fiscal:\n", bold: true, font: "Arial", size: 20 }),
-                new TextRun({ text: "1. Apuração mensal dos tributos (DAS/PGDAS-D) e monitoramento das regras operacionais vigentes.\n", font: "Arial", size: 20 }),
-                new TextRun({ text: "2. Cumprimento das obrigações acessórias fiscais de rotina (DEFIS, EFD-Reinf e acompanhamento do IBS/CBS).\n\n", font: "Arial", size: 20 }),
                 
-                new TextRun({ text: "2.2. Departamento Pessoal (para até ", bold: true, font: "Arial", size: 20 }),
-                new TextRun({ text: `${employeeCountStr}`, bold: true, highlight: "yellow", font: "Arial", size: 20 }),
-                new TextRun({ text: " funcionário/sócio):\n", bold: true, font: "Arial", size: 20 }),
-                new TextRun({ text: "1. Processamento de folha de pagamento, pró-labore, férias e rescisões.\n", font: "Arial", size: 20 }),
-                new TextRun({ text: "2. Transmissão mensal das obrigações no eSocial, DCTFWeb e emissão das guias de FGTS Digital e INSS.\n\n", font: "Arial", size: 20 }),
+                ...(hasTributario ? [
+                  new TextRun({ text: "2.1. Área Fiscal e Tributária:\n", bold: true, font: "Arial", size: 20 }),
+                  new TextRun({ text: "1. Apuração mensal dos tributos (DAS/PGDAS-D) e monitoramento das regras operacionais vigentes.\n", font: "Arial", size: 20 }),
+                  new TextRun({ text: "2. Cumprimento das obrigações acessórias fiscais de rotina (DEFIS, EFD-Reinf e acompanhamento do IBS/CBS).\n\n", font: "Arial", size: 20 })
+                ] : []),
+                
+                ...(hasPessoal ? [
+                  new TextRun({ text: "2.2. Departamento Pessoal (para ", bold: true, font: "Arial", size: 20 }),
+                  new TextRun({ text: `${employeeCountStr}`, bold: true, highlight: "yellow", font: "Arial", size: 20 }),
+                  new TextRun({ text: " funcionário/sócio):\n", bold: true, font: "Arial", size: 20 }),
+                  new TextRun({ text: "1. Processamento de folha de pagamento, pró-labore, férias e rescisões.\n", font: "Arial", size: 20 }),
+                  new TextRun({ text: "2. Transmissão mensal das obrigações no eSocial, DCTFWeb e emissão das guias de FGTS Digital e INSS.\n\n", font: "Arial", size: 20 })
+                ] : []),
+
+                ...(hasContabil ? [
+                  new TextRun({ text: "2.3. Área Contábil:\n", bold: true, font: "Arial", size: 20 }),
+                  new TextRun({ text: "1. Escrituração contábil regular conforme as normas vigentes.\n\n", font: "Arial", size: 20 })
+                ] : []),
+
+                ...(hasLegalizacao ? [
+                  new TextRun({ text: "2.4. Abertura e Legalização:\n", bold: true, font: "Arial", size: 20 }),
+                  new TextRun({ text: "1. Assessoria e trâmites de alterações cadastrais e suporte de regularização junto aos órgãos públicos.\n\n", font: "Arial", size: 20 })
+                ] : []),
                 
                 new TextRun({ text: "Parágrafo Único: ", italics: true, bold: true, font: "Arial", size: 20 }),
                 new TextRun({ text: "A inclusão de funcionários excedentes gerará um acréscimo de R$ 50,00 (cinquenta reais) por funcionário/mês na fatura.", italics: true, font: "Arial", size: 20 })

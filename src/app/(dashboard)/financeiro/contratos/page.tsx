@@ -68,6 +68,13 @@ const formatDateExtenso = (dateStr?: string) => {
   return `${day.toString().padStart(2, "0")} de ${months[monthIdx] || "janeiro"} de ${year}`
 }
 
+const AVAILABLE_SERVICES = [
+  { id: "pessoal", label: "DEPARTAMENTO PESSOAL" },
+  { id: "tributario", label: "DEPARTAMENTO TRIBUTÁRIO" },
+  { id: "contabil", label: "DEPARTAMENTO CONTÁBIL" },
+  { id: "legalizacao", label: "ABERTURA E LEGALIZAÇÃO" }
+]
+
 export default function ContatosPage() {
   const firestore = useFirestore()
   const [searchTerm, setSearchTerm] = useState("")
@@ -85,7 +92,8 @@ export default function ContatosPage() {
 
   const [formData, setFormData] = useState({
     clientId: "",
-    employeeCount: 1,
+    employeeCount: 0,
+    services: ["DEPARTAMENTO PESSOAL", "DEPARTAMENTO TRIBUTÁRIO"] as string[],
     value: 0,
     startDate: new Date().toISOString().split('T')[0],
     dueDay: 10,
@@ -104,7 +112,8 @@ export default function ContatosPage() {
     setEditingId(null)
     setFormData({
       clientId: "",
-      employeeCount: 1,
+      employeeCount: 0,
+      services: ["DEPARTAMENTO PESSOAL", "DEPARTAMENTO TRIBUTÁRIO"],
       value: 0,
       startDate: new Date().toISOString().split('T')[0],
       dueDay: 10,
@@ -118,7 +127,10 @@ export default function ContatosPage() {
     setEditingId(contract.id)
     setFormData({
       clientId: contract.clientId,
-      employeeCount: contract.employeeCount || 1,
+      employeeCount: contract.employeeCount !== undefined ? contract.employeeCount : 0,
+      services: Array.isArray(contract.services) && contract.services.length > 0 
+        ? contract.services 
+        : ["DEPARTAMENTO PESSOAL", "DEPARTAMENTO TRIBUTÁRIO"],
       value: contract.value,
       startDate: contract.startDate,
       dueDay: contract.dueDay,
@@ -134,14 +146,19 @@ export default function ContatosPage() {
       return
     }
 
+    if (!formData.services || formData.services.length === 0) {
+      toast({ title: "Selecione Serviços", description: "Escolha ao menos um serviço contratado para continuar.", variant: "destructive" })
+      return
+    }
+
     const client = (clients || []).find(c => c.id === formData.clientId)
     const id = editingId || Math.random().toString(36).substr(2, 9)
     const contractRef = doc(firestore, "contracts", id)
-    
+
     const contractData = {
       ...formData,
       id,
-      employeeCount: Number(formData.employeeCount || 1),
+      employeeCount: Number(formData.employeeCount ?? 0),
       clientName: client?.corporateName || "Empresa não identificada",
       clientCnpj: client?.cnpj || "00.000.000/0000-00",
       clientRegime: client?.taxRegime || "Simples Nacional",
@@ -158,9 +175,10 @@ export default function ContatosPage() {
       const today = new Date()
       const vencimentoStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${formData.dueDay.toString().padStart(2, '0')}`
 
+      const servicosResumo = formData.services.join(", ")
       const receivableData = {
         id: receivableId,
-        descricao: `HONORÁRIO CONTÁBIL - FISCAL E DP (${formData.employeeCount || 1} FUNC)`.toUpperCase(),
+        descricao: `HONORÁRIO CONTÁBIL - ${servicosResumo} (${formData.employeeCount ?? 0} FUNC)`.toUpperCase(),
         cliente: client?.corporateName || "Cliente Avulso",
         clientId: formData.clientId,
         pagamento: "PIX",
@@ -177,7 +195,7 @@ export default function ContatosPage() {
     setIsModalOpen(false)
     toast({ 
       title: editingId ? "Contrato Atualizado!" : "Contrato Ativado!", 
-      description: editingId ? "As alterações foram salvas com sucesso." : "O contrato foi ativado e o honorário lançado." 
+      description: "Parâmetros do contrato salvos com sucesso." 
     })
   }
 
@@ -317,7 +335,7 @@ export default function ContatosPage() {
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge variant="secondary" className="text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5">
-                        <Users className="h-3 w-3 mr-1" /> {item.employeeCount || 1} func/sócio
+                        <Users className="h-3 w-3 mr-1" /> {item.employeeCount !== undefined ? item.employeeCount : 0} func/sócio
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs font-semibold text-[#39586D]">
@@ -411,18 +429,56 @@ export default function ContatosPage() {
               />
             </div>
 
-            {/* QUANTIDADE DE FUNCIONÁRIOS (NOVO CAMPO CONFORME IMAGEM 1) */}
+            {/* SERVIÇOS CONTRATADOS (MÚLTIPLA ESCOLHA - CONFORME IMAGEM 2) */}
+            <div className="col-span-2 space-y-2 border border-slate-200 rounded-xl p-4 bg-slate-50/50">
+              <Label className="text-xs font-black text-[#2C4156] uppercase tracking-wider block">
+                SERVIÇOS CONTRATADOS (MÚLTIPLA ESCOLHA)
+              </Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                {AVAILABLE_SERVICES.map((s) => {
+                  const isSelected = formData.services.includes(s.label)
+                  return (
+                    <label 
+                      key={s.id} 
+                      className={cn(
+                        "flex items-center gap-3 p-3 rounded-xl border text-xs font-bold cursor-pointer transition-all",
+                        isSelected 
+                          ? "bg-blue-50/80 border-blue-600 text-blue-900 shadow-sm" 
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100/50"
+                      )}
+                    >
+                      <input 
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            services: isSelected 
+                              ? prev.services.filter(item => item !== s.label)
+                              : [...prev.services, s.label]
+                          }))
+                        }}
+                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600"
+                      />
+                      <span className="uppercase text-[11px] font-extrabold tracking-tight">{s.label}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* QUANTIDADE DE FUNCIONÁRIOS (PERMITE 0 FUNCIONÁRIOS CONFORME IMAGEM 1) */}
             <div className="col-span-2 space-y-1.5">
               <Label className="text-xs font-black text-[#2C4156] uppercase tracking-wider">
                 QUANTIDADE DE FUNCIONÁRIOS
               </Label>
               <Input 
                 type="number" 
-                min="1" 
-                placeholder="Ex: 01" 
+                min="0" 
+                placeholder="Ex: 0" 
                 className="border-[#D2D7DB] bg-white font-bold" 
                 value={formData.employeeCount}
-                onChange={(e) => setFormData({...formData, employeeCount: Math.max(1, Number(e.target.value))})}
+                onChange={(e) => setFormData({...formData, employeeCount: Math.max(0, Number(e.target.value))})}
               />
             </div>
 
@@ -605,7 +661,13 @@ export default function ContatosPage() {
                   CLÁUSULA PRIMEIRA – DO OBJETO
                 </h3>
                 <p>
-                  O presente contrato tem por objeto a prestação de serviços profissionais de assessoria <strong>Fiscal e de Departamento Pessoal</strong> para a CONTRATANTE, enquadrada no regime do Simples Nacional, nos limites estabelecidos neste instrumento.
+                  O presente contrato tem por objeto a prestação de serviços profissionais de assessoria de{" "}
+                  <strong>
+                    {Array.isArray(selectedContract?.services) && selectedContract.services.length > 0 
+                      ? selectedContract.services.join(", ") 
+                      : "Departamento Pessoal e Departamento Tributário"}
+                  </strong>{" "}
+                  para a CONTRATANTE, nos limites estabelecidos neste instrumento.
                 </p>
               </div>
 
@@ -614,23 +676,50 @@ export default function ContatosPage() {
                 <h3 className="font-bold uppercase text-slate-900 mb-1">
                   CLÁUSULA SEGUNDA – DOS SERVIÇOS INCLUSOS NO PACOTE MENSAL
                 </h3>
-                <p className="font-bold text-slate-900">2.1. Área Fiscal:</p>
-                <ol className="list-decimal pl-6 space-y-1">
-                  <li>Apuração mensal dos tributos (DAS/PGDAS-D) e monitoramento das regras operacionais vigentes.</li>
-                  <li>Cumprimento das obrigações acessórias fiscais de rotina (DEFIS, EFD-Reinf e acompanhamento do IBS/CBS).</li>
-                </ol>
+                
+                {(!selectedContract?.services || selectedContract.services.some((s: string) => s.toUpperCase().includes("TRIBUTÁRIO") || s.toUpperCase().includes("TRIBUTARIO") || s.toUpperCase().includes("FISCAL"))) && (
+                  <>
+                    <p className="font-bold text-slate-900">2.1. Área Fiscal e Tributária:</p>
+                    <ol className="list-decimal pl-6 space-y-1">
+                      <li>Apuração mensal dos tributos (DAS/PGDAS-D) e monitoramento das regras operacionais vigentes.</li>
+                      <li>Cumprimento das obrigações acessórias fiscais de rotina (DEFIS, EFD-Reinf e acompanhamento do IBS/CBS).</li>
+                    </ol>
+                  </>
+                )}
 
-                <p className="font-bold text-slate-900 mt-3">
-                  2.2. Departamento Pessoal (para até{" "}
-                  <span className="bg-yellow-300 text-slate-900 font-bold px-1.5 py-0.5 rounded border border-yellow-400">
-                    {(selectedContract?.employeeCount || 1).toString().padStart(2, "0")}
-                  </span>{" "}
-                  funcionário/sócio):
-                </p>
-                <ol className="list-decimal pl-6 space-y-1">
-                  <li>Processamento de folha de pagamento, pró-labore, férias e rescisões.</li>
-                  <li>Transmissão mensal das obrigações no eSocial, DCTFWeb e emissão das guias de FGTS Digital e INSS.</li>
-                </ol>
+                {(!selectedContract?.services || selectedContract.services.some((s: string) => s.toUpperCase().includes("PESSOAL"))) && (
+                  <>
+                    <p className="font-bold text-slate-900 mt-3">
+                      2.2. Departamento Pessoal (para{" "}
+                      <span className="bg-yellow-300 text-slate-900 font-bold px-1.5 py-0.5 rounded border border-yellow-400">
+                        {(selectedContract?.employeeCount !== undefined ? selectedContract.employeeCount : 0).toString().padStart(2, "0")}
+                      </span>{" "}
+                      funcionário/sócio):
+                    </p>
+                    <ol className="list-decimal pl-6 space-y-1">
+                      <li>Processamento de folha de pagamento, pró-labore, férias e rescisões.</li>
+                      <li>Transmissão mensal das obrigações no eSocial, DCTFWeb e emissão das guias de FGTS Digital e INSS.</li>
+                    </ol>
+                  </>
+                )}
+
+                {selectedContract?.services?.some((s: string) => s.toUpperCase().includes("CONTÁBIL") || s.toUpperCase().includes("CONTABIL")) && (
+                  <>
+                    <p className="font-bold text-slate-900 mt-3">2.3. Área Contábil:</p>
+                    <ol className="list-decimal pl-6 space-y-1">
+                      <li>Escrituração contábil regular conforme as normas vigentes.</li>
+                    </ol>
+                  </>
+                )}
+
+                {selectedContract?.services?.some((s: string) => s.toUpperCase().includes("LEGALIZAÇÃO") || s.toUpperCase().includes("LEGALIZACAO") || s.toUpperCase().includes("ABERTURA")) && (
+                  <>
+                    <p className="font-bold text-slate-900 mt-3">2.4. Abertura e Legalização:</p>
+                    <ol className="list-decimal pl-6 space-y-1">
+                      <li>Assessoria e trâmites de alterações cadastrais e suporte de regularização junto aos órgãos públicos.</li>
+                    </ol>
+                  </>
+                )}
 
                 <p className="italic text-slate-700 mt-2 pl-2 border-l-2 border-slate-300">
                   <strong>Parágrafo Único:</strong> A inclusão de funcionários excedentes gerará um acréscimo de R$ 50,00 (cinquenta reais) por funcionário/mês na fatura.
