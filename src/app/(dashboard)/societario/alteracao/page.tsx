@@ -46,8 +46,8 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection } from "firebase/firestore"
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase"
+import { collection, doc } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
 import { ClientSearchSelect } from "@/components/clients/client-search-select"
 import { cn, numberToExtensoBRL } from "@/lib/utils"
@@ -184,6 +184,124 @@ export default function AlteracaoSocietariaPage() {
 
   // Checklist states
   const [eventosSelecionados, setEventosSelecionados] = useState<string[]>([])
+
+  // Save & Load process states
+  const [currentAlterationId, setCurrentAlterationId] = useState<string | null>(null)
+  const [processLabel, setProcessLabel] = useState<string>("")
+
+  // Fetch all societary alterations
+  const alterationsQuery = useMemoFirebase(() => collection(firestore, "societaryAlterations"), [firestore])
+  const { data: allAlterations = [], isLoading: loadingAlterations } = useCollection(alterationsQuery)
+
+  // Filter alterations for the selected client
+  const clientAlterations = useMemo(() => {
+    if (!selectedClientId) return []
+    return (allAlterations || [])
+      .filter((alt: any) => alt.clientId === selectedClientId)
+      .sort((a: any, b: any) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
+  }, [allAlterations, selectedClientId])
+
+  // Reset process states when client changes
+  useEffect(() => {
+    setCurrentAlterationId(null)
+    setProcessLabel("")
+    setEventosSelecionados([])
+  }, [selectedClientId])
+
+  const handleSaveAlteration = (status: "SALVA" | "CONCLUIDA") => {
+    if (!selectedClientId || !currentClient) {
+      toast({ variant: "destructive", title: "Erro", description: "Selecione uma empresa primeiro." })
+      return
+    }
+
+    if (eventosSelecionados.length === 0) {
+      toast({ variant: "destructive", title: "Atenção", description: "Selecione ao menos um evento antes de salvar." })
+      return
+    }
+
+    const finalLabel = processLabel.trim() || `Alteração - ${new Date().toLocaleDateString("pt-BR")}`
+    const alterationId = currentAlterationId || doc(collection(firestore, "societaryAlterations")).id
+    const alterationDocRef = doc(firestore, "societaryAlterations", alterationId)
+
+    const dataToSave: any = {
+      id: alterationId,
+      clientId: selectedClientId,
+      clientName: currentClient.corporateName || currentClient.razaoSocial || "",
+      label: finalLabel,
+      status: status,
+      eventosSelecionados: eventosSelecionados,
+      novosDados: novosDados,
+      socios: socios,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+
+    const existing = (allAlterations || []).find((alt: any) => alt.id === alterationId)
+    if (existing) {
+      dataToSave.createdAt = existing.createdAt || dataToSave.createdAt
+    }
+
+    setDocumentNonBlocking(alterationDocRef, dataToSave, { merge: true })
+
+    setCurrentAlterationId(alterationId)
+    setProcessLabel(finalLabel)
+
+    toast({
+      title: status === "CONCLUIDA" ? "Alteração Concluída!" : "Rascunho Salvo!",
+      description: status === "CONCLUIDA" 
+        ? `O processo "${finalLabel}" foi marcado como Concluído.` 
+        : `O progresso do processo "${finalLabel}" foi salvo.`
+    })
+  }
+
+  const handleLoadAlteration = (alt: any) => {
+    setCurrentAlterationId(alt.id)
+    setProcessLabel(alt.label || "")
+    setEventosSelecionados(alt.eventosSelecionados || [])
+    
+    if (alt.novosDados) {
+      setNovosDados(alt.novosDados)
+    }
+    if (alt.socios) {
+      setSocios(alt.socios)
+    }
+
+    toast({
+      title: "Progresso Carregado",
+      description: `O processo "${alt.label}" foi carregado com sucesso.`
+    })
+
+    setIsModalOpen(true)
+  }
+
+  const handleDeleteAlteration = (altId: string, altLabel: string) => {
+    if (confirm(`Tem certeza que deseja excluir permanentemente o processo "${altLabel}"?`)) {
+      const alterationDocRef = doc(firestore, "societaryAlterations", altId)
+      deleteDocumentNonBlocking(alterationDocRef)
+      if (currentAlterationId === altId) {
+        setCurrentAlterationId(null)
+        setProcessLabel("")
+      }
+      toast({
+        title: "Processo Excluído",
+        description: `O processo "${altLabel}" foi removido do sistema.`
+      })
+    }
+  }
+
+  const handleCompleteAlteration = (alt: any) => {
+    const alterationDocRef = doc(firestore, "societaryAlterations", alt.id)
+    setDocumentNonBlocking(alterationDocRef, {
+      ...alt,
+      status: "CONCLUIDA",
+      updatedAt: new Date().toISOString()
+    }, { merge: true })
+    
+    toast({
+      title: "Processo Concluído",
+      description: `O processo "${alt.label}" foi finalizado.`
+    })
+  }
   
   // IBGE CNAEs list state
   const [ibgeCnaes, setIbgeCnaes] = useState<any[]>([])
@@ -684,91 +802,181 @@ export default function AlteracaoSocietariaPage() {
         {/* Right Side: Main Dashboard Panel & Action Trigger */}
         <div className="lg:col-span-2 space-y-6">
           {selectedClientId ? (
-            <Card className="border-blue-100 bg-gradient-to-br from-white via-blue-50/20 to-slate-50 shadow-md">
-              <CardHeader className="border-b pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-blue-600" />
-                    <CardTitle className="text-base font-bold text-slate-800">
-                      Empresa Selecionada para Alteração
-                    </CardTitle>
+            <>
+              <Card className="border-blue-100 bg-gradient-to-br from-white via-blue-50/20 to-slate-50 shadow-md">
+                <CardHeader className="border-b pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-blue-600" />
+                      <CardTitle className="text-base font-bold text-slate-800">
+                        Empresa Selecionada para Alteração
+                      </CardTitle>
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 bg-blue-100/80 px-2.5 py-1 rounded-full border border-blue-200">
+                      Ficha 360º Integrada
+                    </span>
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 bg-blue-100/80 px-2.5 py-1 rounded-full border border-blue-200">
-                    Ficha 360º Integrada
-                  </span>
+                  <CardDescription className="text-xs text-slate-500">
+                    Confira as informações base da empresa e os eventos marcados antes de avançar para a redação das cláusulas.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-5 space-y-6">
+                  {/* Information Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-slate-400">Razão Social Atual</span>
+                      <p className="text-xs font-bold text-slate-800 uppercase">{currentClient?.corporateName || "Carregando..."}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-slate-400">CNPJ</span>
+                      <p className="text-xs font-bold text-slate-800">{currentClient?.cnpj || "NÃO INFORMADO"}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-slate-400">Capital Social Atual</span>
+                      <p className="text-xs font-bold text-blue-700">
+                        R$ {currentClient?.capitalSocial ? currentClient.capitalSocial.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "0,00"}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-slate-400">Endereço da Sede</span>
+                      <p className="text-xs font-semibold text-slate-700 truncate">
+                        {[currentClient?.address, currentClient?.neighborhood, currentClient?.city && currentClient?.state ? `${currentClient.city}/${currentClient.state}` : ""].filter(Boolean).join(", ") || "Não informado"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Selected Events List */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-600" />
+                      Eventos Marcados para esta Alteração ({eventosSelecionados.length})
+                    </h4>
+
+                    {eventosSelecionados.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {eventosSelecionados.map((evId) => {
+                          const evObj = GRUPOS_EVENTOS.flatMap(g => g.eventos).find(e => e.id === evId)
+                          return (
+                            <span key={evId} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200/80 shadow-xs">
+                              <Sparkles className="h-3 w-3 text-blue-500" />
+                              {evObj ? evObj.label : evId}
+                            </span>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-amber-600 shrink-0" />
+                        Selecione ao menos um evento no checklist à esquerda para habilitar o botão de avançar.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Big AVANÇAR Button */}
+                  <div className="pt-2 flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={() => setIsModalOpen(true)}
+                      disabled={eventosSelecionados.length === 0}
+                      className="w-full md:w-auto h-12 px-8 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 rounded-xl transition-all"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      AVANÇAR PARA REDAÇÃO DAS CLÁUSULAS
+                      <ArrowRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+            {/* CARD DE HISTÓRICO E RASCUNHOS DE ALTERAÇÕES */}
+            <Card className="border-slate-200 shadow-sm bg-white">
+              <CardHeader className="pb-3 border-b">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                  <CardTitle className="text-sm font-semibold text-slate-800">
+                    Histórico de Alterações (Rascunhos e Concluídos)
+                  </CardTitle>
                 </div>
-                <CardDescription className="text-xs text-slate-500">
-                  Confira as informações base da empresa e os eventos marcados antes de avançar para a redação das cláusulas.
+                <CardDescription className="text-xs text-slate-400">
+                  Gerencie os rascunhos em andamento ou visualize processos finalizados.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-5 space-y-6">
-                {/* Information Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase text-slate-400">Razão Social Atual</span>
-                    <p className="text-xs font-bold text-slate-800 uppercase">{currentClient?.corporateName || "Carregando..."}</p>
+              <CardContent className="pt-4">
+                {loadingAlterations ? (
+                  <div className="flex items-center gap-2 py-4 justify-center">
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                    <span className="text-xs text-slate-500 font-semibold">Carregando histórico...</span>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase text-slate-400">CNPJ</span>
-                    <p className="text-xs font-bold text-slate-800">{currentClient?.cnpj || "NÃO INFORMADO"}</p>
+                ) : clientAlterations.length > 0 ? (
+                  <div className="space-y-3">
+                    {clientAlterations.map((alt: any) => (
+                      <div 
+                        key={alt.id} 
+                        className={cn(
+                          "flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border border-slate-100 bg-slate-50/40 hover:bg-slate-50 transition-colors gap-3",
+                          currentAlterationId === alt.id && "border-blue-300 bg-blue-50/10"
+                        )}
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-slate-800 uppercase">
+                              {alt.label}
+                            </span>
+                            <span className={cn(
+                              "text-[9px] font-black uppercase px-2 py-0.5 rounded-full",
+                              alt.status === "CONCLUIDA" 
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
+                                : "bg-amber-50 text-amber-700 border border-amber-200"
+                            )}>
+                              {alt.status === "CONCLUIDA" ? "Concluído" : "Salva / Rascunho"}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-medium">
+                            Última atualização: {new Date(alt.updatedAt || alt.createdAt).toLocaleString("pt-BR")} | {alt.eventosSelecionados?.length || 0} eventos
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+                          {alt.status !== "CONCLUIDA" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200 uppercase gap-1"
+                              onClick={() => handleCompleteAlteration(alt)}
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                              Concluir
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200 uppercase gap-1"
+                            onClick={() => handleLoadAlteration(alt)}
+                          >
+                            <RefreshCw className="h-3.5 w-3.5" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => handleDeleteAlteration(alt.id, alt.label)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase text-slate-400">Capital Social Atual</span>
-                    <p className="text-xs font-bold text-blue-700">
-                      R$ {currentClient?.capitalSocial ? currentClient.capitalSocial.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "0,00"}
-                    </p>
+                ) : (
+                  <div className="py-8 text-center text-xs font-semibold uppercase text-slate-400 tracking-widest border border-dashed rounded-xl bg-slate-50/50">
+                    Nenhum processo de alteração registrado para esta empresa.
                   </div>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase text-slate-400">Endereço da Sede</span>
-                    <p className="text-xs font-semibold text-slate-700 truncate">
-                      {[currentClient?.address, currentClient?.neighborhood, currentClient?.city && currentClient?.state ? `${currentClient.city}/${currentClient.state}` : ""].filter(Boolean).join(", ") || "Não informado"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Selected Events List */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-                    <Check className="h-4 w-4 text-emerald-600" />
-                    Eventos Marcados para esta Alteração ({eventosSelecionados.length})
-                  </h4>
-
-                  {eventosSelecionados.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {eventosSelecionados.map((evId) => {
-                        const evObj = GRUPOS_EVENTOS.flatMap(g => g.eventos).find(e => e.id === evId)
-                        return (
-                          <span key={evId} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200/80 shadow-xs">
-                            <Sparkles className="h-3 w-3 text-blue-500" />
-                            {evObj ? evObj.label : evId}
-                          </span>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-amber-600 shrink-0" />
-                      Selecione ao menos um evento no checklist à esquerda para habilitar o botão de avançar.
-                    </div>
-                  )}
-                </div>
-
-                {/* Big AVANÇAR Button */}
-                <div className="pt-2 flex justify-end">
-                  <Button
-                    type="button"
-                    onClick={() => setIsModalOpen(true)}
-                    disabled={eventosSelecionados.length === 0}
-                    className="w-full md:w-auto h-12 px-8 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 rounded-xl transition-all"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    AVANÇAR PARA REDAÇÃO DAS CLÁUSULAS
-                    <ArrowRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
+                )}
               </CardContent>
             </Card>
-          ) : (
+          </>
+        ) : (
             <div className="bg-white border border-slate-200 rounded-lg p-12 text-center shadow-sm">
               <Building2 className="h-10 w-10 text-blue-600/20 mx-auto mb-4" />
               <h3 className="text-sm font-semibold text-slate-800 mb-1">Aguardando Seleção de Empresa</h3>
@@ -796,11 +1004,30 @@ export default function AlteracaoSocietariaPage() {
                 </DialogDescription>
               </div>
               {currentClient && (
-                <div className="hidden sm:block text-right">
+                <div className="hidden sm:block text-right shrink-0">
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Empresa Ativa</span>
-                  <span className="text-xs font-bold text-blue-300 uppercase">{currentClient.corporateName}</span>
+                  <span className="text-xs font-bold text-blue-300 uppercase block">{currentClient.corporateName}</span>
+                  {currentAlterationId && (
+                    <span className="inline-block mt-1 text-[9px] font-black uppercase text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20">
+                      Rascunho Ativo
+                    </span>
+                  )}
                 </div>
               )}
+            </div>
+
+            {/* Input to name the process */}
+            <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-3 max-w-2xl">
+              <div className="space-y-0.5 shrink-0">
+                <Label className="text-[9px] font-black uppercase text-amber-400 tracking-wider">Nome / Identificação do Processo</Label>
+                <p className="text-[9px] text-slate-400 font-medium">Nomeie para salvar e retomar mais tarde.</p>
+              </div>
+              <Input 
+                placeholder="Ex: Alteração de Sede e Sócios - Julho/26" 
+                value={processLabel} 
+                onChange={(e) => setProcessLabel(e.target.value)}
+                className="h-8 text-xs bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-amber-400 flex-1 font-bold"
+              />
             </div>
           </DialogHeader>
 
@@ -1731,33 +1958,56 @@ export default function AlteracaoSocietariaPage() {
           </div>
 
           {/* Modal Footer with Actions */}
-          <DialogFooter className="p-4 border-t bg-slate-100/90 flex flex-row items-center justify-between shrink-0">
+          <DialogFooter className="p-4 border-t bg-slate-100/90 flex flex-col sm:flex-row items-center justify-between shrink-0 gap-3">
             <Button
               type="button"
               variant="outline"
               onClick={() => setIsModalOpen(false)}
-              className="text-xs font-bold text-slate-600 border-slate-300"
+              className="text-xs font-bold text-slate-600 border-slate-300 w-full sm:w-auto"
             >
               Voltar e Selecionar Outros Eventos
             </Button>
-            <Button 
-              type="button"
-              onClick={handleGenerateContract}
-              disabled={isGenerating}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-6 shadow-md flex items-center gap-2"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Gerando Documento Word...
-                </>
-              ) : (
-                <>
-                  <Download className="h-4 w-4" />
-                  GERAR CONTRATO DE ALTERAÇÃO (.DOCX)
-                </>
-              )}
-            </Button>
+            
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="text-xs font-bold border-amber-300 text-amber-700 hover:bg-amber-50 uppercase h-9 px-4 gap-1.5"
+                onClick={() => handleSaveAlteration("SALVA")}
+              >
+                <FileText className="h-4 w-4" />
+                Salvar Rascunho
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="text-xs font-bold border-emerald-300 text-emerald-700 hover:bg-emerald-50 uppercase h-9 px-4 gap-1.5"
+                onClick={() => handleSaveAlteration("CONCLUIDA")}
+              >
+                <Check className="h-4 w-4" />
+                Salvar e Concluir
+              </Button>
+
+              <Button 
+                type="button"
+                onClick={handleGenerateContract}
+                disabled={isGenerating}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-9 px-5 shadow-md flex items-center gap-1.5 uppercase"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Gerando...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-3.5 w-3.5" />
+                    Gerar Word (.docx)
+                  </>
+                )}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
