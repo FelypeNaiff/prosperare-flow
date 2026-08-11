@@ -564,14 +564,26 @@ export default function ContasAReceberPage() {
       {/* Print-specific Stylesheet */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          body * {
-            visibility: hidden !important;
+          /* Esconder toda a estrutura do site ao fundo para eliminar folhas em branco extras */
+          body > *:not([data-radix-portal]) {
+            display: none !important;
           }
           
+          /* Resetar body e html para fluxo de impressão limpo */
+          html, body {
+            background: white !important;
+            height: auto !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          /* Mostrar apenas o recibo e seus descendentes */
           #receipt-print-area, #receipt-print-area * {
             visibility: visible !important;
           }
           
+          /* Ajustar posicionamento do recibo */
           #receipt-print-area {
             position: absolute !important;
             left: 0 !important;
@@ -586,6 +598,7 @@ export default function ContasAReceberPage() {
             z-index: 99999 !important;
           }
 
+          /* Forçar o DialogContent a ocupar o topo sem centralização e overlay */
           div[role="dialog"],
           div[class*="DialogContent"] {
             position: absolute !important;
@@ -604,6 +617,7 @@ export default function ContasAReceberPage() {
             margin: 0 !important;
           }
           
+          /* Ocultar overlay, botões e elementos de fechar */
           div[class*="DialogOverlay"],
           div[class*="bg-black/80"],
           .no-print,
@@ -615,7 +629,7 @@ export default function ContasAReceberPage() {
           
           @page {
             size: A4 portrait;
-            margin: 0;
+            margin: 15mm;
           }
         }
       `}} />
