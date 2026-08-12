@@ -112,11 +112,16 @@ export async function POST(req: NextRequest) {
 
     // Address of company headquarters formatted
     const companyAddressParts = [];
-    if (currentCompany.address) companyAddressParts.push(currentCompany.address);
+    if (currentCompany.address) {
+      let streetAndNum = currentCompany.address;
+      if (currentCompany.numero) streetAndNum += `, ${currentCompany.numero}`;
+      if (currentCompany.complemento) streetAndNum += ` - ${currentCompany.complemento}`;
+      companyAddressParts.push(streetAndNum);
+    }
     if (currentCompany.neighborhood) companyAddressParts.push(`BAIRRO ${currentCompany.neighborhood}`);
     if (currentCompany.city && currentCompany.state) companyAddressParts.push(`${currentCompany.city}/${currentCompany.state}`);
     if (currentCompany.zipCode) companyAddressParts.push(`CEP ${currentCompany.zipCode}`);
-    const companyAddressStr = companyAddressParts.length > 0 ? companyAddressParts.join(", ") : `${currentCompany.address || ""}, ${currentCompany.neighborhood || ""}, ${currentCompany.city || ""}/${currentCompany.state || ""}, CEP ${currentCompany.zipCode || ""}`;
+    const companyAddressStr = companyAddressParts.length > 0 ? companyAddressParts.join(", ") : `${currentCompany.address || ""}${currentCompany.numero ? ", " + currentCompany.numero : ""}${currentCompany.complemento ? " - " + currentCompany.complemento : ""}, ${currentCompany.neighborhood || ""}, ${currentCompany.city || ""}/${currentCompany.state || ""}, CEP ${currentCompany.zipCode || ""}`;
 
     const resolvesWord = socios.length > 1 ? "resolvem:" : "resolve:";
 
@@ -398,10 +403,22 @@ export async function POST(req: NextRequest) {
     // 4. Alteração de Natureza Jurídica / Transformação (225 ou transformacao)
     if (eventosSelecionados.includes("225") || eventosSelecionados.includes("transformacao")) {
       const companyAddressParts = [];
-      if (updatedCompany.address || currentCompany.address) companyAddressParts.push(updatedCompany.address || currentCompany.address);
-      if (updatedCompany.neighborhood || currentCompany.neighborhood) companyAddressParts.push(`BAIRRO ${updatedCompany.neighborhood || currentCompany.neighborhood}`);
-      if ((updatedCompany.city || currentCompany.city) && (updatedCompany.state || currentCompany.state)) companyAddressParts.push(`${updatedCompany.city || currentCompany.city}/${updatedCompany.state || currentCompany.state}`);
-      if (updatedCompany.zipCode || currentCompany.zipCode) companyAddressParts.push(`CEP ${updatedCompany.zipCode || currentCompany.zipCode}`);
+      const street = updatedCompany.address || currentCompany.address;
+      const num = updatedCompany.numero || currentCompany.numero;
+      const comp = updatedCompany.complemento || currentCompany.complemento;
+      if (street) {
+        let streetAndNum = street;
+        if (num) streetAndNum += `, ${num}`;
+        if (comp) streetAndNum += ` - ${comp}`;
+        companyAddressParts.push(streetAndNum);
+      }
+      const neigh = updatedCompany.neighborhood || currentCompany.neighborhood;
+      if (neigh) companyAddressParts.push(`BAIRRO ${neigh}`);
+      const ct = updatedCompany.city || currentCompany.city;
+      const st = updatedCompany.state || currentCompany.state;
+      if (ct && st) companyAddressParts.push(`${ct}/${st}`);
+      const zip = updatedCompany.zipCode || currentCompany.zipCode;
+      if (zip) companyAddressParts.push(`CEP ${zip}`);
       const companyAddrStr = companyAddressParts.join(", ");
 
       const corpNameStr = (updatedCompany.corporateName || currentCompany.corporateName || "").toUpperCase();
@@ -645,10 +662,22 @@ export async function POST(req: NextRequest) {
       const cpfStr = entrandoSocio.cpfCnpj || "610.001.162-04";
 
       const companyAddressParts = [];
-      if (updatedCompany.address || currentCompany.address) companyAddressParts.push(updatedCompany.address || currentCompany.address);
-      if (updatedCompany.neighborhood || currentCompany.neighborhood) companyAddressParts.push(`BAIRRO ${updatedCompany.neighborhood || currentCompany.neighborhood}`);
-      if ((updatedCompany.city || currentCompany.city) && (updatedCompany.state || currentCompany.state)) companyAddressParts.push(`${updatedCompany.city || currentCompany.city}/${updatedCompany.state || currentCompany.state}`);
-      if (updatedCompany.zipCode || currentCompany.zipCode) companyAddressParts.push(`CEP ${updatedCompany.zipCode || currentCompany.zipCode}`);
+      const street = updatedCompany.address || currentCompany.address;
+      const num = updatedCompany.numero || currentCompany.numero;
+      const comp = updatedCompany.complemento || currentCompany.complemento;
+      if (street) {
+        let streetAndNum = street;
+        if (num) streetAndNum += `, ${num}`;
+        if (comp) streetAndNum += ` - ${comp}`;
+        companyAddressParts.push(streetAndNum);
+      }
+      const neigh = updatedCompany.neighborhood || currentCompany.neighborhood;
+      if (neigh) companyAddressParts.push(`BAIRRO ${neigh}`);
+      const ct = updatedCompany.city || currentCompany.city;
+      const st = updatedCompany.state || currentCompany.state;
+      if (ct && st) companyAddressParts.push(`${ct}/${st}`);
+      const zip = updatedCompany.zipCode || currentCompany.zipCode;
+      if (zip) companyAddressParts.push(`CEP ${zip}`);
       const companyAddrStr = companyAddressParts.join(", ");
 
       const partnerAddr = entrandoSocio.enderecoResidencial || entrandoSocio.endereco || companyAddrStr;

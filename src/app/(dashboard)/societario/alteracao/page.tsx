@@ -140,6 +140,28 @@ const extractCnaesFromClient = (client: any, ibgeList: any[] = []): CnaeItem[] =
   return result;
 };
 
+const formatCompanyAddress = (
+  addr: string,
+  num?: string,
+  comp?: string,
+  neighborhood?: string,
+  city?: string,
+  state?: string,
+  zipCode?: string
+) => {
+  const parts = [];
+  let streetAndNum = addr || "";
+  if (num) streetAndNum += `, ${num}`;
+  if (comp) streetAndNum += ` - ${comp}`;
+  if (streetAndNum) parts.push(streetAndNum);
+  if (neighborhood) parts.push(`BAIRRO ${neighborhood}`);
+  if (city && state) parts.push(`${city}/${state}`);
+  else if (city) parts.push(city);
+  else if (state) parts.push(state);
+  if (zipCode) parts.push(`CEP ${zipCode}`);
+  return parts.filter(Boolean).join(", ");
+};
+
 const GRUPOS_EVENTOS = [
   {
     titulo: "Eventos Junta Comercial (DREI)",
@@ -320,6 +342,8 @@ export default function AlteracaoSocietariaPage() {
     objetoSocial: string;
     capitalSocial: number;
     address: string;
+    numero: string;
+    complemento: string;
     neighborhood: string;
     city: string;
     state: string;
@@ -331,6 +355,8 @@ export default function AlteracaoSocietariaPage() {
     objetoSocial: "",
     capitalSocial: 0,
     address: "",
+    numero: "",
+    complemento: "",
     neighborhood: "",
     city: "",
     state: "",
@@ -416,6 +442,8 @@ export default function AlteracaoSocietariaPage() {
         objetoSocial: currentClient.objetoSocial || currentClient.naturezaJuridica || "",
         capitalSocial: currentClient.capitalSocial || 0,
         address: currentClient.address || "",
+        numero: currentClient.numero || "",
+        complemento: currentClient.complemento || "",
         neighborhood: currentClient.neighborhood || "",
         city: currentClient.city || "",
         state: currentClient.state || "",
@@ -431,6 +459,8 @@ export default function AlteracaoSocietariaPage() {
         objetoSocial: "",
         capitalSocial: 0,
         address: "",
+        numero: "",
+        complemento: "",
         neighborhood: "",
         city: "",
         state: "",
@@ -631,6 +661,8 @@ export default function AlteracaoSocietariaPage() {
             corporateName: currentClient.corporateName,
             cnpj: currentClient.cnpj,
             address: currentClient.address,
+            numero: currentClient.numero || "",
+            complemento: currentClient.complemento || "",
             neighborhood: currentClient.neighborhood,
             city: currentClient.city,
             state: currentClient.state,
@@ -1253,12 +1285,15 @@ export default function AlteracaoSocietariaPage() {
                             let rgStr = s.rg ? `, RG nº: ${s.rg}${s.rgOrgaoEmissor ? " " + s.rgOrgaoEmissor : ""}${s.rgUf ? "/" + s.rgUf : ""}` : "";
                             let cpfStr = s.cpfCnpj ? `, CPF: ${s.cpfCnpj}` : "";
 
-                            const companyAddr = [
-                              novosDados.address || currentClient?.address,
-                              (novosDados.neighborhood || currentClient?.neighborhood) ? `BAIRRO ${novosDados.neighborhood || currentClient?.neighborhood}` : "",
-                              (novosDados.city || currentClient?.city) && (novosDados.state || currentClient?.state) ? `${novosDados.city || currentClient?.city}/${novosDados.state || currentClient?.state}` : "",
-                              (novosDados.zipCode || currentClient?.zipCode) ? `CEP ${novosDados.zipCode || currentClient?.zipCode}` : ""
-                            ].filter(Boolean).join(", ");
+                            const companyAddr = formatCompanyAddress(
+                               novosDados.address || currentClient?.address,
+                               novosDados.numero || currentClient?.numero,
+                               novosDados.complemento || currentClient?.complemento,
+                               novosDados.neighborhood || currentClient?.neighborhood,
+                               novosDados.city || currentClient?.city,
+                               novosDados.state || currentClient?.state,
+                               novosDados.zipCode || currentClient?.zipCode
+                             );
 
                             const partnerAddr = s.enderecoResidencial || s.endereco || companyAddr || "RAMAL DO ILARIO, S/N, BAIRRO ZONA RURAL, ITAUBAL/AP, CEP 68976-000";
                             const condicao = (s.condicaoSocio || "titular").toLowerCase();
@@ -1343,12 +1378,15 @@ export default function AlteracaoSocietariaPage() {
                           </span>
                           <span className="text-slate-800"> e terá sua sede e domicílio no </span>
                           <span className="bg-yellow-300 text-slate-900 font-bold px-1 py-0.5 rounded border border-yellow-400/50">
-                            {[
+                            {formatCompanyAddress(
                               novosDados.address || currentClient?.address,
-                              (novosDados.neighborhood || currentClient?.neighborhood) ? `BAIRRO ${novosDados.neighborhood || currentClient?.neighborhood}` : "",
-                              (novosDados.city || currentClient?.city) && (novosDados.state || currentClient?.state) ? `${novosDados.city || currentClient?.city}/${novosDados.state || currentClient?.state}` : "",
-                              (novosDados.zipCode || currentClient?.zipCode) ? `CEP ${novosDados.zipCode || currentClient?.zipCode}` : ""
-                            ].filter(Boolean).join(", ") || "RAMAL DO ILARIO, S/N, BAIRRO ZONA RURAL, ITAUBAL/AP, CEP 68976-000"}
+                              novosDados.numero || currentClient?.numero,
+                              novosDados.complemento || currentClient?.complemento,
+                              novosDados.neighborhood || currentClient?.neighborhood,
+                              novosDados.city || currentClient?.city,
+                              novosDados.state || currentClient?.state,
+                              novosDados.zipCode || currentClient?.zipCode
+                            ) || "RAMAL DO ILARIO, S/N, BAIRRO ZONA RURAL, ITAUBAL/AP, CEP 68976-000"}
                           </span>
                           <span className="text-slate-800">.</span>
                         </div>
@@ -1586,10 +1624,26 @@ export default function AlteracaoSocietariaPage() {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="space-y-1 md:col-span-2">
-                        <Label className="text-[9px] text-slate-500 font-bold uppercase">Logradouro / Rua e Número</Label>
+                        <Label className="text-[9px] text-slate-500 font-bold uppercase">Logradouro / Rua</Label>
                         <Input 
                           value={novosDados.address} 
                           onChange={(e) => setNovosDados(prev => ({ ...prev, address: e.target.value }))}
+                          className="bg-white border-slate-200 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[9px] text-slate-500 font-bold uppercase">Número</Label>
+                        <Input 
+                          value={novosDados.numero} 
+                          onChange={(e) => setNovosDados(prev => ({ ...prev, numero: e.target.value }))}
+                          className="bg-white border-slate-200 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[9px] text-slate-500 font-bold uppercase">Complemento</Label>
+                        <Input 
+                          value={novosDados.complemento} 
+                          onChange={(e) => setNovosDados(prev => ({ ...prev, complemento: e.target.value }))}
                           className="bg-white border-slate-200 text-xs"
                         />
                       </div>
@@ -1609,7 +1663,7 @@ export default function AlteracaoSocietariaPage() {
                           className="bg-white border-slate-200 text-xs"
                         />
                       </div>
-                      <div className="space-y-1 md:col-span-2">
+                      <div className="space-y-1">
                         <Label className="text-[9px] text-slate-500 font-bold uppercase">Cidade</Label>
                         <Input 
                           value={novosDados.city} 
@@ -1645,12 +1699,15 @@ export default function AlteracaoSocietariaPage() {
                           <span className="font-bold text-slate-900">Cláusula de Endereço – </span>
                           <span className="text-slate-800">A sociedade terá sua sede e domicílio alterados para o endereço </span>
                           <span className="bg-yellow-300 text-slate-900 font-bold px-1 py-0.5 rounded border border-yellow-400/50">
-                            {[
+                            {formatCompanyAddress(
                               novosDados.address || currentClient?.address,
-                              (novosDados.neighborhood || currentClient?.neighborhood) ? `BAIRRO ${novosDados.neighborhood || currentClient?.neighborhood}` : "",
-                              (novosDados.city || currentClient?.city) && (novosDados.state || currentClient?.state) ? `${novosDados.city || currentClient?.city}/${novosDados.state || currentClient?.state}` : "",
-                              (novosDados.zipCode || currentClient?.zipCode) ? `CEP ${novosDados.zipCode || currentClient?.zipCode}` : ""
-                            ].filter(Boolean).join(", ") || "ENDEREÇO DA SEDE"}
+                              novosDados.numero || currentClient?.numero,
+                              novosDados.complemento || currentClient?.complemento,
+                              novosDados.neighborhood || currentClient?.neighborhood,
+                              novosDados.city || currentClient?.city,
+                              novosDados.state || currentClient?.state,
+                              novosDados.zipCode || currentClient?.zipCode
+                            ) || "ENDEREÇO DA SEDE"}
                           </span>
                           <span className="text-slate-800">.</span>
                         </p>

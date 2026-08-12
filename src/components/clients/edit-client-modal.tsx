@@ -72,7 +72,7 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
   const [cachedCnaes, setCachedCnaes] = useState<any[]>([])
   const [isLoadingCnaes, setIsLoadingCnaes] = useState(false)
   const [selectedCnae, setSelectedCnae] = useState<any>(null)
-  
+
   const [formData, setFormData] = useState({
     corporateName: "",
     nomeFantasia: "",
@@ -104,6 +104,41 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
     complemento: "",
     qsa: [] as Socio[]
   })
+
+  // Pre-load IBGE subclasses list on modal open
+  useEffect(() => {
+    if (open && cachedCnaes.length === 0) {
+      const fetchCnaes = async () => {
+        try {
+          const res = await fetch("https://servicodados.ibge.gov.br/api/v2/cnae/subclasses")
+          if (res.ok) {
+            const list = await res.json()
+            setCachedCnaes(list)
+          }
+        } catch (err) {
+          console.error("Erro ao pré-carregar CNAEs:", err)
+        }
+      }
+      fetchCnaes()
+    }
+  }, [open, cachedCnaes.length])
+
+  // Auto-resolve primary CNAE description if it is code-only
+  useEffect(() => {
+    if (cachedCnaes.length > 0 && formData.primaryCnae) {
+      const current = formData.primaryCnae.trim()
+      if (current && !current.includes(" - ")) {
+        const cleanCode = current.replace(/\D/g, "")
+        if (cleanCode.length === 7) {
+          const found = cachedCnaes.find((item: any) => String(item.id).replace(/\D/g, "") === cleanCode)
+          if (found) {
+            const resolved = `${current} - ${found.descricao.toUpperCase()}`
+            setFormData(prev => ({ ...prev, primaryCnae: resolved }))
+          }
+        }
+      }
+    }
+  }, [cachedCnaes, formData.primaryCnae])
 
   useEffect(() => {
     if (client) {
@@ -336,8 +371,13 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
         console.warn("BrasilAPI fetch failed or returned error, using fallback logic", err)
       }
 
-      // Merge current QSA fields if they exist to avoid losing manually entered data
-      const mergedQsa = sociologicalData.qsa ? sociologicalData.qsa.map((newPartner: any) => {
+      // Choose QSA from sociologicalData or fall back to coreData
+      const apiQsa = (sociologicalData.qsa && sociologicalData.qsa.length > 0) 
+        ? sociologicalData.qsa 
+        : (coreData.qsa || []);
+
+      // Merge with existing QSA manually entered fields to avoid losing them
+      const mergedQsa = apiQsa.map((newPartner: any) => {
         const existing = (formData.qsa || []).find(
           (p: any) => p.cpfCnpj === newPartner.cpfCnpj || p.nome === newPartner.nome
         )
@@ -345,7 +385,7 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
           return { ...newPartner, ...existing }
         }
         return newPartner
-      }) : (formData.qsa || [])
+      });
 
       setFormData(prev => ({
         ...prev,
@@ -357,14 +397,16 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
         naturezaJuridica: sociologicalData.naturezaJuridica ?? prev.naturezaJuridica,
         porte: sociologicalData.porte ?? prev.porte,
         address: sociologicalData.address ?? coreData.address ?? prev.address,
-        numero: sociologicalData.numero ?? prev.numero,
-        complemento: sociologicalData.complemento ?? prev.complemento,
+        numero: sociologicalData.numero ?? coreData.numero ?? prev.numero,
+        complemento: sociologicalData.complemento ?? coreData.complemento ?? prev.complemento,
         neighborhood: sociologicalData.neighborhood ?? coreData.neighborhood ?? prev.neighborhood,
         city: sociologicalData.city ?? coreData.city ?? prev.city,
         state: sociologicalData.state ?? coreData.state ?? prev.state,
         zipCode: sociologicalData.zipCode ?? coreData.zipCode ?? prev.zipCode,
-        secondaryCnaes: sociologicalData.secondaryCnaes ?? prev.secondaryCnaes,
-        qsa: mergedQsa
+        secondaryCnaes: (sociologicalData.secondaryCnaes && sociologicalData.secondaryCnaes.length > 0) 
+          ? sociologicalData.secondaryCnaes 
+          : (coreData.secondaryCnaes ?? prev.secondaryCnaes),
+        qsa: mergedQsa.length > 0 ? mergedQsa : prev.qsa
       }))
 
       toast({ title: "Dados Sincronizados!", description: "Informações corporativas, endereço, CNAEs e sócios atualizados." })

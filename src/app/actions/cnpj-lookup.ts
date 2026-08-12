@@ -36,7 +36,9 @@ export async function lookupCnpjAction(cnpj: string) {
           nomeFantasia: data.fantasia || data.nome,
           cnpj: data.cnpj,
           openingDate: data.abertura ? data.abertura.split('/').reverse().join('-') : "",
-          address: `${data.logradouro}${data.numero ? ', ' + data.numero : ''}${data.complemento ? ' - ' + data.complemento : ''}`,
+          address: data.logradouro,
+          numero: data.numero || "",
+          complemento: data.complemento || "",
           neighborhood: data.bairro,
           city: data.municipio,
           state: data.uf,
@@ -46,7 +48,26 @@ export async function lookupCnpjAction(cnpj: string) {
           primaryCnae: primaryCnaeFormatted,
           taxRegime: "Consultar no Portal",
           companyContactPerson: principalPartner.toUpperCase(),
-          companyStatus: data.situacao || data.status || ""
+          companyStatus: data.situacao || data.status || "",
+          secondaryCnaes: data.atividades_secundarias?.map((c: any) => 
+            c.text ? `${c.code} - ${c.text.toUpperCase()}` : c.code
+          ) || [],
+          qsa: data.qsa?.map((socio: any) => ({
+            nome: socio.nome?.toUpperCase() || "",
+            cpfCnpj: "",
+            qualificacao: socio.qual || "",
+            dataIngresso: "",
+            participacao: 0,
+            rg: "",
+            rgOrgaoEmissor: "",
+            rgUf: "",
+            dataNascimento: "",
+            estadoCivil: "Solteiro(a)",
+            regimeBens: "",
+            profissao: "",
+            nacionalidade: "Brasileira",
+            email: ""
+          })) || []
         };
       }
     }
@@ -77,7 +98,9 @@ export async function lookupCnpjAction(cnpj: string) {
       nomeFantasia: bData.nome_fantasia || bData.razao_social,
       cnpj: bData.cnpj,
       openingDate: bData.data_inicio_atividade,
-      address: `${bData.logradouro}${bData.numero ? ', ' + bData.numero : ''}`,
+      address: bData.logradouro,
+      numero: bData.numero || "",
+      complemento: bData.complemento || "",
       neighborhood: bData.bairro,
       city: bData.municipio,
       state: bData.uf,
@@ -87,7 +110,26 @@ export async function lookupCnpjAction(cnpj: string) {
       primaryCnae: primaryCnaeBapiFormatted,
       taxRegime: regimeSugerido,
       companyContactPerson: principalPartnerBapi.toUpperCase(),
-      companyStatus: bData.status || ""
+      companyStatus: bData.status || "",
+      secondaryCnaes: bData.cnaes_secundarios?.map((c: any) => 
+        c.descricao ? `${c.codigo} - ${c.descricao.toUpperCase()}` : c.codigo
+      ) || [],
+      qsa: bData.qsa?.map((socio: any) => ({
+        nome: socio.nome_socio?.toUpperCase() || "",
+        cpfCnpj: socio.cnpj_cpf_do_socio || "",
+        qualificacao: socio.qualificacao_socio || "",
+        dataIngresso: socio.data_entrada_sociedade || "",
+        participacao: 0,
+        rg: "",
+        rgOrgaoEmissor: "",
+        rgUf: "",
+        dataNascimento: "",
+        estadoCivil: "Solteiro(a)",
+        regimeBens: "",
+        profissao: "",
+        nacionalidade: "Brasileira",
+        email: ""
+      })) || []
     };
 
   } catch (error: any) {
