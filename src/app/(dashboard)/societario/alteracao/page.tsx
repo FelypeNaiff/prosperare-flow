@@ -23,7 +23,11 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Activity,
+  Layers,
+  Power,
+  Award
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
@@ -167,15 +171,15 @@ const GRUPOS_EVENTOS = [
     titulo: "Eventos Junta Comercial (DREI)",
     eventos: [
       { id: "220", code: "220", label: "Alteração do nome empresarial (firma ou denominação)", sub: "Evento 220" },
-      { id: "244", code: "244", label: "Alteração de atividades econômicas (principal e secundárias)", sub: "Evento 244" },
+      { id: "244", code: "244", label: "Alteração de atividades econômicas e objeto social (principal e secundárias)", sub: "Evento 244" },
       { id: "211", code: "211", label: "Alteração de endereço dentro do mesmo município", sub: "Evento 211" },
       { id: "209", code: "209", label: "Alteração de endereço entre municípios dentro do mesmo estado", sub: "Evento 209" },
       { id: "210", code: "210", label: "Alteração de endereço entre estados", sub: "Evento 210" },
-      { id: "225", code: "225", label: "Alteração da natureza jurídica", sub: "Evento 225" },
+      { id: "225", code: "225", label: "Alteração da natureza jurídica (Transformação)", sub: "Evento 225" },
       { id: "249", code: "249", label: "Alteração da forma de atuação", sub: "Evento 249" },
       { id: "248", code: "248", label: "Alteração do tipo de unidade", sub: "Evento 248" },
       { id: "052", code: "052", label: "Reativação - Artigo 60 Lei 8.934/94", sub: "Evento 052" },
-      { id: "999", code: "999", label: "Licenciamento de Estabelecimento anteriormente registrado (Legado)", sub: "Evento 999" },
+      { id: "090", code: "090", label: "Licenciamento de Estabelecimento anteriormente registrado (Legado)", sub: "Evento 090" },
       { id: "221", code: "221", label: "Alteração do título do estabelecimento (nome de fantasia)", sub: "Evento 221" },
     ]
   },
@@ -183,11 +187,9 @@ const GRUPOS_EVENTOS = [
     titulo: "Operações Gerais",
     eventos: [
       { id: "capital", label: "ALTERAÇÃO DE CAPITAL SOCIAL", sub: "Geral" },
-      { id: "objeto_social", label: "ALTERAÇÃO DO OBJETO SOCIAL", sub: "Geral" },
       { id: "alteracao_socio", label: "ALTERAÇÃO DE SÓCIO/ADMINISTRADOR", sub: "Geral" },
       { id: "entrada_socio", label: "ENTRADA SÓCIO/ADMINISTRADOR", sub: "Geral" },
       { id: "saida_socio", label: "SAÍDA SÓCIO/ADMINISTRADOR", sub: "Geral" },
-      { id: "transformacao", label: "TRANSFORMAÇÃO", sub: "Geral" },
       { id: "cessao_quotas", label: "CESSÃO DE QUOTAS", sub: "Geral" },
       { id: "consolidacao", label: "CONSOLIDAÇÃO DE CONTRATO/ESTATUTO", sub: "Geral" }
     ]
@@ -722,12 +724,28 @@ export default function AlteracaoSocietariaPage() {
       tabs.push({ id: "endereco", label: "Endereço da Sede", icon: MapPin, badge: "Evento 211/209" })
     }
 
-    if (eventosSelecionados.includes("capital") || eventosSelecionados.includes("cessao_quotas") || eventosSelecionados.includes("transformacao")) {
+    if (eventosSelecionados.includes("capital") || eventosSelecionados.includes("cessao_quotas") || eventosSelecionados.includes("transformacao") || eventosSelecionados.includes("225")) {
       tabs.push({ id: "capital", label: "Capital Social & Quotas", icon: DollarSign, badge: "Capital" })
     }
 
-    if (eventosSelecionados.includes("cessao_quotas") || eventosSelecionados.includes("saida_socio") || eventosSelecionados.includes("entrada_socio") || eventosSelecionados.includes("alteracao_socio") || eventosSelecionados.includes("transformacao")) {
+    if (eventosSelecionados.includes("cessao_quotas") || eventosSelecionados.includes("saida_socio") || eventosSelecionados.includes("entrada_socio") || eventosSelecionados.includes("alteracao_socio") || eventosSelecionados.includes("transformacao") || eventosSelecionados.includes("225")) {
       tabs.push({ id: "titularidade", label: "Cessão & Titularidade", icon: FileSignature, badge: "Quotas" })
+    }
+
+    if (eventosSelecionados.includes("249")) {
+      tabs.push({ id: "forma_atuacao", label: "Forma de Atuação", icon: Activity, badge: "Evento 249" })
+    }
+
+    if (eventosSelecionados.includes("248")) {
+      tabs.push({ id: "tipo_unidade", label: "Tipo de Unidade", icon: Layers, badge: "Evento 248" })
+    }
+
+    if (eventosSelecionados.includes("052")) {
+      tabs.push({ id: "reativacao", label: "Reativação da Sociedade", icon: Power, badge: "Evento 052" })
+    }
+
+    if (eventosSelecionados.includes("090") || eventosSelecionados.includes("999")) {
+      tabs.push({ id: "licenciamento", label: "Licenciamento", icon: Award, badge: "Evento 090" })
     }
 
     return tabs
@@ -2005,6 +2023,162 @@ export default function AlteracaoSocietariaPage() {
                             </div>
                           );
                         })()}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* TAB: FORMA DE ATUAÇÃO (EVENTO 249) */}
+              {activeTab === "forma_atuacao" && (
+                <div className="space-y-5 animate-in fade-in duration-300">
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                    <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-1">
+                      <Activity className="h-4 w-4 text-blue-600" />
+                      Alteração da Forma de Atuação (Evento 249)
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Esta alteração define as novas modalidades de atuação da empresa. Esta cláusula possui redação padrão.
+                    </p>
+                  </div>
+
+                  {/* REDAÇÃO EM TEMPO REAL: FORMA DE ATUAÇÃO */}
+                  <Card className="border-amber-200 bg-gradient-to-b from-amber-50/40 to-white shadow-xs">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-xs font-bold text-amber-900 flex items-center gap-2 uppercase tracking-wide">
+                        <FileSignature className="h-4 w-4 text-amber-600" />
+                        Redação da Cláusula de Forma de Atuação (Tempo Real)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-white p-4 rounded-xl border border-amber-200 text-xs leading-relaxed text-slate-800 space-y-3 font-sans">
+                        <p className="text-[10px] font-black text-white uppercase tracking-wider bg-red-600 inline-block px-2 py-0.5 rounded shadow-xs">
+                          MODELO DE CLAUSULA DE ALTERAÇÃO DA FORMA DE ATUAÇÃO:
+                        </p>
+                        
+                        <div className="leading-relaxed font-sans pt-1">
+                          <span className="font-bold text-slate-900">Cláusula de Atuação - </span>
+                          <span className="text-slate-800">
+                            A sociedade altera sua forma de atuação dos estabelecimentos, passando a realizar atividades nas modalidades presenciais, internet e demais meios eletrônicos, conforme definido em regulamento interno.
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* TAB: TIPO DE UNIDADE (EVENTO 248) */}
+              {activeTab === "tipo_unidade" && (
+                <div className="space-y-5 animate-in fade-in duration-300">
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                    <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-1">
+                      <Layers className="h-4 w-4 text-blue-600" />
+                      Alteração do Tipo de Unidade (Evento 248)
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Esta alteração modifica o tipo do estabelecimento da sociedade. Esta cláusula possui redação padrão.
+                    </p>
+                  </div>
+
+                  {/* REDAÇÃO EM TEMPO REAL: TIPO DE UNIDADE */}
+                  <Card className="border-amber-200 bg-gradient-to-b from-amber-50/40 to-white shadow-xs">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-xs font-bold text-amber-900 flex items-center gap-2 uppercase tracking-wide">
+                        <FileSignature className="h-4 w-4 text-amber-600" />
+                        Redação da Cláusula de Tipo de Unidade (Tempo Real)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-white p-4 rounded-xl border border-amber-200 text-xs leading-relaxed text-slate-800 space-y-3 font-sans">
+                        <p className="text-[10px] font-black text-white uppercase tracking-wider bg-red-600 inline-block px-2 py-0.5 rounded shadow-xs">
+                          MODELO DE CLAUSULA DE ALTERAÇÃO DO TIPO DE UNIDADE:
+                        </p>
+                        
+                        <div className="leading-relaxed font-sans pt-1">
+                          <span className="font-bold text-slate-900">Cláusula de Tipo de Unidade - </span>
+                          <span className="text-slate-800">
+                            Fica modificado o tipo de unidade do estabelecimento da sociedade, passando a operar como unidade operacional/produtiva, visando otimizar a logística e os processos operacionais.
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* TAB: REATIVAÇÃO DA SOCIEDADE (EVENTO 052) */}
+              {activeTab === "reativacao" && (
+                <div className="space-y-5 animate-in fade-in duration-300">
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                    <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-1">
+                      <Power className="h-4 w-4 text-blue-600" />
+                      Reativação da Sociedade (Evento 052)
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Reativação da sociedade limitada sob o amparo da Lei nº 8.934/94. Esta cláusula possui redação padrão.
+                    </p>
+                  </div>
+
+                  {/* REDAÇÃO EM TEMPO REAL: REATIVAÇÃO DA SOCIEDADE */}
+                  <Card className="border-amber-200 bg-gradient-to-b from-amber-50/40 to-white shadow-xs">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-xs font-bold text-amber-900 flex items-center gap-2 uppercase tracking-wide">
+                        <FileSignature className="h-4 w-4 text-amber-600" />
+                        Redação da Cláusula de Reativação da Sociedade (Tempo Real)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-white p-4 rounded-xl border border-amber-200 text-xs leading-relaxed text-slate-800 space-y-3 font-sans">
+                        <p className="text-[10px] font-black text-white uppercase tracking-wider bg-red-600 inline-block px-2 py-0.5 rounded shadow-xs">
+                          MODELO DE CLAUSULA DE REATIVAÇÃO DE SOCIEDADE (ART. 60 LEI 8.934/94):
+                        </p>
+                        
+                        <div className="leading-relaxed font-sans pt-1">
+                          <span className="font-bold text-slate-900">Cláusula de Reativação - </span>
+                          <span className="text-slate-800">
+                            Os sócios promovem a reativação da sociedade limitada sob o amparo do artigo 60 da Lei nº 8.934/94, declarando a intenção de retornar a todas as suas operações normais e restabelecer sua atividade empresarial de forma plena.
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* TAB: LICENCIAMENTO DE ESTABELECIMENTO (EVENTO 090) */}
+              {activeTab === "licenciamento" && (
+                <div className="space-y-5 animate-in fade-in duration-300">
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                    <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-1">
+                      <Award className="h-4 w-4 text-blue-600" />
+                      Licenciamento de Estabelecimento (Evento 090)
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Regularização do licenciamento do estabelecimento anteriormente registrado (Legado). Esta cláusula possui redação padrão.
+                    </p>
+                  </div>
+
+                  {/* REDAÇÃO EM TEMPO REAL: LICENCIAMENTO */}
+                  <Card className="border-amber-200 bg-gradient-to-b from-amber-50/40 to-white shadow-xs">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-xs font-bold text-amber-900 flex items-center gap-2 uppercase tracking-wide">
+                        <FileSignature className="h-4 w-4 text-amber-600" />
+                        Redação da Cláusula de Licenciamento de Estabelecimento (Tempo Real)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-white p-4 rounded-xl border border-amber-200 text-xs leading-relaxed text-slate-800 space-y-3 font-sans">
+                        <p className="text-[10px] font-black text-white uppercase tracking-wider bg-red-600 inline-block px-2 py-0.5 rounded shadow-xs">
+                          MODELO DE CLAUSULA DE LICENCIAMENTO DE ESTABELECIMENTO:
+                        </p>
+                        
+                        <div className="leading-relaxed font-sans pt-1">
+                          <span className="font-bold text-slate-900">Cláusula de Licenciamento - </span>
+                          <span className="text-slate-800">
+                            Fica pactuada a solicitação e regularização do licenciamento do estabelecimento anteriormente registrado (Legado) perante as autarquias locais, vigilância sanitária e corpo de bombeiros, visando o pleno funcionamento legal da sociedade.
+                          </span>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

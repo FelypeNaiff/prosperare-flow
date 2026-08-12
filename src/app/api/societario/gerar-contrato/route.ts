@@ -568,8 +568,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 8. Licenciamento de Estabelecimento (999)
-    if (eventosSelecionados.includes("999")) {
+    // 8. Licenciamento de Estabelecimento (090)
+    if (eventosSelecionados.includes("090") || eventosSelecionados.includes("999")) {
       children.push(
         new Paragraph({
           alignment: AlignmentType.CENTER,
