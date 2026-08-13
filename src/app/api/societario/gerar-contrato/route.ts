@@ -123,10 +123,14 @@ export async function POST(req: NextRequest) {
     if (currentCompany.zipCode) companyAddressParts.push(`CEP ${currentCompany.zipCode}`);
     const companyAddressStr = companyAddressParts.length > 0 ? companyAddressParts.join(", ") : `${currentCompany.address || ""}${currentCompany.numero ? ", " + currentCompany.numero : ""}${currentCompany.complemento ? " - " + currentCompany.complemento : ""}, ${currentCompany.neighborhood || ""}, ${currentCompany.city || ""}/${currentCompany.state || ""}, CEP ${currentCompany.zipCode || ""}`;
 
-    const resolvesWord = socios.length > 1 ? "resolvem:" : "resolve:";
+    const qualificandos = socios.some((s: any) => s.statusAlteracao === "saindo")
+      ? socios.filter((s: any) => s.statusAlteracao === "saindo")
+      : socios.filter((s: any) => s.statusAlteracao !== "entrando");
+
+    const resolvesWord = qualificandos.length > 1 ? "resolvem:" : "resolve:";
 
     // Partner qualifications (Modelo de Cláusula de Qualificação Cadastral)
-    socios.forEach((s: any) => {
+    qualificandos.forEach((s: any) => {
       const g = s.sexo || "Masculino";
       const isFemale = g === "Feminino";
       
@@ -647,8 +651,15 @@ export async function POST(req: NextRequest) {
         eventosSelecionados.includes("saida_socio") ||
         eventosSelecionados.includes("cessao_quotas")) {
 
-      const saindoSocio = socios.find((s: any) => s.dataSaida && s.dataSaida !== "") || socios[0] || {};
-      const entrandoSocio = socios.find((s: any) => s.dataIngresso && s.dataIngresso !== "") || socios[1] || socios[0] || {};
+      const saindoSocio = socios.find((s: any) => s.statusAlteracao === "saindo")
+        || socios.find((s: any) => s.dataSaida && s.dataSaida !== "")
+        || socios[0]
+        || {};
+      const entrandoSocio = socios.find((s: any) => s.statusAlteracao === "entrando")
+        || socios.find((s: any) => s.statusAlteracao !== "saindo" && s.statusAlteracao !== "permanece" && s.dataIngresso && s.dataIngresso !== "")
+        || socios[1]
+        || socios[0]
+        || {};
 
       const corpNameStr = (updatedCompany.corporateName || currentCompany.corporateName || "").toUpperCase();
       const cnpjStr = updatedCompany.cnpj || currentCompany.cnpj || "28.154.716/0001-62";
@@ -834,8 +845,15 @@ export async function POST(req: NextRequest) {
 
       // Modelo de Cessão de Quotas e Transferência de Titularidade (Saída de Sócio)
       if (eventosSelecionados.includes("cessao_quotas")) {
-        const cedeSocio = socios.find((s: any) => s.dataSaida && s.dataSaida !== "") || socios[0] || {};
-        const recebeSocio = socios.find((s: any) => s.dataIngresso && s.dataIngresso !== "") || socios[1] || socios[0] || {};
+        const cedeSocio = socios.find((s: any) => s.statusAlteracao === "saindo")
+          || socios.find((s: any) => s.dataSaida && s.dataSaida !== "")
+          || socios[0]
+          || {};
+        const recebeSocio = socios.find((s: any) => s.statusAlteracao === "entrando")
+          || socios.find((s: any) => s.statusAlteracao !== "saindo" && s.statusAlteracao !== "permanece" && s.dataIngresso && s.dataIngresso !== "")
+          || socios[1]
+          || socios[0]
+          || {};
 
         const cedeNome = String(cedeSocio.nome || "ORLANDO FERREIRA COUTINHO JUNIOR").toUpperCase();
         const recebeNome = String(recebeSocio.nome || "DISRAELI DOS SANTOS ANDRADE").toUpperCase();

@@ -429,7 +429,8 @@ export default function AlteracaoSocietariaPage() {
         dataInicioMandato: s.dataInicioMandato || "",
         dataFimMandato: s.dataFimMandato || "",
         cargoDirecao: s.cargoDirecao || "",
-        dataSaidaAdmin: s.dataSaidaAdmin || ""
+        dataSaidaAdmin: s.dataSaidaAdmin || "",
+        statusAlteracao: s.statusAlteracao || (s.dataSaida ? "saindo" : "permanece")
       }))
       setSocios(initialized)
       setOpenPartnerIndex(initialized.length > 0 ? 0 : null)
@@ -529,7 +530,8 @@ export default function AlteracaoSocietariaPage() {
         dataInicioMandato: "",
         dataFimMandato: "",
         cargoDirecao: "",
-        dataSaidaAdmin: ""
+        dataSaidaAdmin: "",
+        statusAlteracao: "entrando"
       }
     ])
     setOpenPartnerIndex(socios.length)
@@ -624,7 +626,8 @@ export default function AlteracaoSocietariaPage() {
         dataInicioMandato: s.dataInicioMandato || "",
         dataFimMandato: s.dataFimMandato || "",
         cargoDirecao: s.cargoDirecao || "",
-        dataSaidaAdmin: s.dataSaidaAdmin || ""
+        dataSaidaAdmin: s.dataSaidaAdmin || "",
+        statusAlteracao: s.statusAlteracao || (s.dataSaida ? "saindo" : "permanece")
       }))
       setSocios(initialized)
       setOpenPartnerIndex(initialized.length > 0 ? 0 : null)
@@ -1256,6 +1259,40 @@ export default function AlteracaoSocietariaPage() {
                                   />
                                 </div>
                               </div>
+                              <div className="space-y-1">
+                                <Label className="text-[9px] text-slate-500 font-bold uppercase">Situação neste Evento</Label>
+                                <Select
+                                  value={s.statusAlteracao || "permanece"}
+                                  onValueChange={(val) => handlePartnerChange(idx, "statusAlteracao", val)}
+                                >
+                                  <SelectTrigger className="bg-white border-slate-200 text-xs h-8">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="permanece">Permanecer na Sociedade</SelectItem>
+                                    <SelectItem value="saindo">Sair da Sociedade</SelectItem>
+                                    <SelectItem value="entrando">Entrar na Sociedade</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[9px] text-slate-500 font-bold uppercase">Data de Entrada / Ingresso</Label>
+                                <Input 
+                                  type="date"
+                                  value={s.dataIngresso || ""} 
+                                  onChange={(e) => handlePartnerChange(idx, "dataIngresso", e.target.value)} 
+                                  className="bg-white border-slate-200 text-xs" 
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[9px] text-slate-500 font-bold uppercase">Data de Saída</Label>
+                                <Input 
+                                  type="date"
+                                  value={s.dataSaida || ""} 
+                                  onChange={(e) => handlePartnerChange(idx, "dataSaida", e.target.value)} 
+                                  className="bg-white border-slate-200 text-xs" 
+                                />
+                              </div>
                               <div className="space-y-1 md:col-span-3">
                                 <Label className="text-[9px] text-slate-500 font-bold uppercase">Endereço Residencial do Sócio</Label>
                                 <Input 
@@ -1286,8 +1323,14 @@ export default function AlteracaoSocietariaPage() {
                           MODELO DE CLAUSULA DE QUALIFICAÇÃO:
                         </p>
                         
-                        {socios.length > 0 ? (
-                          socios.map((s, i) => {
+                        {(() => {
+                          const qualificandos = socios.some(s => s.statusAlteracao === "saindo")
+                            ? socios.filter(s => s.statusAlteracao === "saindo")
+                            : socios.filter(s => s.statusAlteracao !== "entrando");
+
+                          if (qualificandos.length === 0) return null;
+
+                          return qualificandos.map((s, i) => {
                             const isFemale = s.sexo === "Feminino";
                             const nac = s.nacionalidade ? (isFemale && s.nacionalidade.toLowerCase().endsWith("o") ? s.nacionalidade.slice(0, -1) + "a" : s.nacionalidade) : (isFemale ? "brasileira" : "brasileiro");
                             const estCivil = s.estadoCivil ? s.estadoCivil.toLowerCase() : (isFemale ? "solteira" : "solteiro");
@@ -1315,7 +1358,7 @@ export default function AlteracaoSocietariaPage() {
 
                             const partnerAddr = s.enderecoResidencial || s.endereco || companyAddr || "RAMAL DO ILARIO, S/N, BAIRRO ZONA RURAL, ITAUBAL/AP, CEP 68976-000";
                             const condicao = (s.condicaoSocio || "titular").toLowerCase();
-                            const resolvesWord = socios.length > 1 ? "resolvem:" : "resolve:";
+                            const resolvesWord = qualificandos.length > 1 ? "resolvem:" : "resolve:";
                             const companyName = (novosDados.corporateName || currentClient?.corporateName || "NOME DA EMPRESA").toUpperCase();
 
                             return (
@@ -1334,8 +1377,8 @@ export default function AlteracaoSocietariaPage() {
                                 <span className="text-slate-800">, {resolvesWord}</span>
                               </div>
                             );
-                          })
-                        ) : null}
+                          });
+                        })()}
                       </div>
                     </CardContent>
                   </Card>
@@ -1876,8 +1919,15 @@ export default function AlteracaoSocietariaPage() {
                         </p>
                         
                         {(() => {
-                          const saindoSocio = socios.find(s => s.dataSaida && s.dataSaida !== "") || socios[0] || {};
-                          const entrandoSocio = socios.find(s => s.dataIngresso && s.dataIngresso !== "") || socios[1] || socios[0] || {};
+                          const saindoSocio = socios.find(s => s.statusAlteracao === "saindo")
+                            || socios.find(s => s.dataSaida && s.dataSaida !== "")
+                            || socios[0]
+                            || {};
+                          const entrandoSocio = socios.find(s => s.statusAlteracao === "entrando")
+                            || socios.find(s => s.statusAlteracao !== "saindo" && s.statusAlteracao !== "permanece" && s.dataIngresso && s.dataIngresso !== "")
+                            || socios[1]
+                            || socios[0]
+                            || {};
 
                           const corpName = (novosDados.corporateName || currentClient?.corporateName || "F R SILVA TRANSPORTES LTDA").toUpperCase();
                           const cnpjStr = currentClient?.cnpj || "28.154.716/0001-62";
@@ -1982,8 +2032,15 @@ export default function AlteracaoSocietariaPage() {
                         </p>
                         
                         {(() => {
-                          const cedeSocio = socios.find(s => s.dataSaida && s.dataSaida !== "") || socios[0] || {};
-                          const recebeSocio = socios.find(s => s.dataIngresso && s.dataIngresso !== "") || socios[1] || socios[0] || {};
+                          const cedeSocio = socios.find(s => s.statusAlteracao === "saindo")
+                            || socios.find(s => s.dataSaida && s.dataSaida !== "")
+                            || socios[0]
+                            || {};
+                          const recebeSocio = socios.find(s => s.statusAlteracao === "entrando")
+                            || socios.find(s => s.statusAlteracao !== "saindo" && s.statusAlteracao !== "permanece" && s.dataIngresso && s.dataIngresso !== "")
+                            || socios[1]
+                            || socios[0]
+                            || {};
 
                           const cedeNome = (cedeSocio.nome || "ORLANDO FERREIRA COUTINHO JUNIOR").toUpperCase();
                           const recebeNome = (recebeSocio.nome || "DISRAELI DOS SANTOS ANDRADE").toUpperCase();
