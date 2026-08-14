@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { 
   Building2, 
   FileText, 
@@ -398,10 +398,15 @@ export default function AlteracaoSocietariaPage() {
 
   // Partner array state for current client
   const [socios, setSocios] = useState<any[]>([])
+  const lastInitializedClientId = useRef<string | null>(null)
 
   // Sync client data and CNAEs from Ficha 360º when client or IBGE data changes
   useEffect(() => {
     if (currentClient) {
+      if (lastInitializedClientId.current === currentClient.id) {
+        return;
+      }
+      lastInitializedClientId.current = currentClient.id;
       const qsa = currentClient.qsa || []
       const initialized = qsa.map((s: any) => ({
         nome: s.nome || "",
@@ -470,6 +475,7 @@ export default function AlteracaoSocietariaPage() {
         zipCode: "",
         cnaes: []
       })
+      lastInitializedClientId.current = null;
     }
   }, [currentClient, ibgeCnaes])
 
