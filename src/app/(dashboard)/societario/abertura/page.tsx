@@ -71,6 +71,10 @@ export default function AberturaSocietariaPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [openPartnerIndex, setOpenPartnerIndex] = useState<number | null>(0)
   
+  // PDF download states
+  const [printData, setPrintData] = useState<any>(null)
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+  
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<string>("dados_gerais")
@@ -418,6 +422,69 @@ export default function AberturaSocietariaPage() {
     }
   }
 
+  const handleDownloadPDF = async (open: any) => {
+    setIsGeneratingPdf(true)
+    setPrintData(open)
+    
+    toast({ title: "Gerando PDF...", description: "Aguarde um momento enquanto preparamos a ficha cadastral." })
+
+    // Aguarda o React renderizar o template invisível no DOM
+    setTimeout(async () => {
+      try {
+        const element = document.getElementById("print-pdf-template")
+        if (!element) {
+          throw new Error("Template de impressão não encontrado")
+        }
+
+        const html2canvas = (await import('html2canvas')).default
+        const { jsPDF } = await import('jspdf')
+
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff'
+        })
+
+        const imgData = canvas.toDataURL('image/png')
+        
+        // Formato Retrato A4: 210mm x 297mm
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        })
+
+        const pdfWidth = pdf.internal.pageSize.getWidth()
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+        
+        const pageHeight = 295; // A4 útil
+        let heightLeft = pdfHeight;
+        let position = 0;
+
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight)
+        heightLeft -= pageHeight
+
+        while (heightLeft > 0) {
+          position = heightLeft - pdfHeight
+          pdf.addPage()
+          pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight)
+          heightLeft -= pageHeight
+        }
+
+        const cleanLabel = (open.label || "Ficha_Abertura").replace(/\s+/g, "_")
+        pdf.save(`Ficha_${cleanLabel}.pdf`)
+        toast({ title: "Sucesso!", description: "Ficha cadastral em PDF baixada com sucesso." })
+      } catch (err: any) {
+        console.error(err)
+        toast({ variant: "destructive", title: "Erro ao gerar PDF", description: err.message || "Não foi possível gerar a ficha em PDF." })
+      } finally {
+        setPrintData(null)
+        setIsGeneratingPdf(false)
+      }
+    }, 600)
+  }
+
   const handleCreateNewOpening = () => {
     setCurrentOpeningId(null)
     setProcessLabel("")
@@ -542,7 +609,21 @@ export default function AberturaSocietariaPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200 uppercase gap-1"
+                        className="h-8 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200 uppercase gap-1 rounded-lg"
+                        onClick={() => handleDownloadPDF(open)}
+                        disabled={isGeneratingPdf}
+                      >
+                        {isGeneratingPdf && printData?.id === open.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <FileText className="h-3.5 w-3.5" />
+                        )}
+                        PDF Ficha
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200 uppercase gap-1 rounded-lg"
                         onClick={() => handleLoadOpening(open)}
                       >
                         <RefreshCw className="h-3.5 w-3.5" />
@@ -551,7 +632,7 @@ export default function AberturaSocietariaPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                        className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                         onClick={() => handleDeleteOpening(open.id, open.label)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -1826,6 +1907,317 @@ export default function AberturaSocietariaPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Template de Impressão Invisível (html2canvas) */}
+      {printData && (
+        <div 
+          id="print-pdf-template" 
+          style={{ 
+            position: "absolute", 
+            left: "-9999px", 
+            top: 0, 
+            width: "800px", 
+            background: "#FFFFFF", 
+            padding: "40px", 
+            color: "#1E293B" 
+          }}
+          className="font-sans space-y-6"
+        >
+          {/* Header */}
+          <div className="flex justify-between items-center border-b-2 border-blue-600 pb-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="bg-blue-600 text-white p-1.5 rounded-xl">
+                  <Building2 className="h-6 w-6" />
+                </div>
+                <span className="text-xl font-black tracking-tight text-slate-800 uppercase">
+                  PROSPERARE <span className="text-blue-600">FLOW</span>
+                </span>
+              </div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ficha de Constituição de CNPJ</p>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Identificação</span>
+              <span className="text-sm font-black text-slate-800 uppercase block">{printData.label}</span>
+            </div>
+          </div>
+
+          {/* Status & Protocol Grid */}
+          <div className="grid grid-cols-3 gap-4 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+            <div className="space-y-1">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Status do Rascunho</span>
+              <span className={cn(
+                "inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded-full border",
+                printData.status === "CONCLUIDO" 
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                  : "bg-amber-50 text-amber-700 border-amber-200"
+              )}>
+                {printData.status === "CONCLUIDO" ? "Concluído" : "Rascunho"}
+              </span>
+            </div>
+            <div className="space-y-1">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Protocolo Junta Comercial</span>
+              <span className="text-xs font-bold text-slate-800 block">
+                {printData.protocoloJunta || "Aguardando Protocolo"}
+              </span>
+            </div>
+            <div className="space-y-1">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Status Protocolo</span>
+              <span className="text-xs font-bold text-slate-800 block">
+                {printData.protocoloJunta ? (printData.statusProtocolo || "Deferido") : "Sem Protocolo"}
+              </span>
+            </div>
+          </div>
+
+          {/* Section 1: Dados Gerais */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-black text-blue-600 uppercase tracking-wider border-b pb-1.5">
+              1. Diretrizes do Negócio
+            </h3>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 bg-white p-4 rounded-xl border">
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Composição da Empresa</span>
+                <p className="text-xs font-semibold text-slate-700">
+                  {printData.dadosGerais?.compostaPorSocio === "individual" ? "Empresário Individual / Unipessoal" : "Sociedade com Sócios"}
+                </p>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Natureza Jurídica</span>
+                <p className="text-xs font-semibold text-slate-700">{printData.dadosGerais?.naturezaJuridica}</p>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Faturamento Anual Previsto</span>
+                <p className="text-xs font-semibold text-slate-700">
+                  {printData.dadosGerais?.faturamentoAnual === "ME" ? "Até R$ 360 mil (ME) - Microempresa" :
+                   printData.dadosGerais?.faturamentoAnual === "EPP" ? "Entre R$ 360 mil e R$ 4,8 milhões (EPP)" : "Acima de R$ 4,8 milhões (OUTROS)"}
+                </p>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Empresa será Startup?</span>
+                <p className="text-xs font-semibold text-slate-700">{printData.dadosGerais?.startup || "Não"}</p>
+              </div>
+              <div className="col-span-2">
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Data Início de Atividades</span>
+                <p className="text-xs font-semibold text-slate-700">
+                  {printData.dadosGerais?.dataInicioAtividades 
+                    ? new Date(printData.dadosGerais.dataInicioAtividades + "T00:00:00").toLocaleDateString("pt-BR") 
+                    : "Não informada"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Nome Empresarial */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-black text-blue-600 uppercase tracking-wider border-b pb-1.5">
+              2. Nome Empresarial & Nome Fantasia
+            </h3>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 bg-white p-4 rounded-xl border">
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Tem Nome Fantasia?</span>
+                <p className="text-xs font-semibold text-slate-700">{printData.nomeFantasia?.temNomeFantasia || "Não"}</p>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Nome Fantasia</span>
+                <p className="text-xs font-semibold text-slate-700">{printData.nomeFantasia?.nomeFantasia || "Não informado"}</p>
+              </div>
+              <div className="col-span-2 space-y-1.5 pt-1">
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Opções de Nome (Junta Comercial)</span>
+                <div className="grid grid-cols-3 gap-3 text-xs">
+                  <div className="p-2.5 rounded bg-slate-50 border">
+                    <span className="text-[8px] font-black text-slate-400 uppercase block">1ª Opção</span>
+                    <span className="font-bold text-slate-700">{printData.nomeFantasia?.opcaoNome1 || "Não informada"}</span>
+                  </div>
+                  <div className="p-2.5 rounded bg-slate-50 border">
+                    <span className="text-[8px] font-black text-slate-400 uppercase block">2ª Opção</span>
+                    <span className="font-bold text-slate-700">{printData.nomeFantasia?.opcaoNome2 || "Não informada"}</span>
+                  </div>
+                  <div className="p-2.5 rounded bg-slate-50 border">
+                    <span className="text-[8px] font-black text-slate-400 uppercase block">3ª Opção</span>
+                    <span className="font-bold text-slate-700">{printData.nomeFantasia?.opcaoNome3 || "Não informada"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Endereço Sede */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-black text-blue-600 uppercase tracking-wider border-b pb-1.5">
+              3. Localização da Sede
+            </h3>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 bg-white p-4 rounded-xl border">
+              <div className="col-span-2">
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Logradouro</span>
+                <p className="text-xs font-semibold text-slate-700">
+                  {printData.endereco?.tipoLogradouro || "RUA"} {printData.endereco?.logradouro}, Nº {printData.endereco?.numero}
+                  {printData.endereco?.complemento ? ` - ${printData.endereco.complemento}` : ""}
+                </p>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Bairro</span>
+                <p className="text-xs font-semibold text-slate-700">{printData.endereco?.bairro}</p>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Cidade/UF</span>
+                <p className="text-xs font-semibold text-slate-700">{printData.endereco?.municipio}/{printData.endereco?.uf}</p>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">CEP</span>
+                <p className="text-xs font-semibold text-slate-700">{printData.endereco?.cep}</p>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Natureza do Imóvel</span>
+                <p className="text-xs font-semibold text-slate-700">{printData.endereco?.naturezaImovel}</p>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Inscrição Imobiliária (IPTU)</span>
+                <p className="text-xs font-semibold text-slate-700">{printData.endereco?.iptu || "Não informada"}</p>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Área Total Edificada / Empreendimento</span>
+                <p className="text-xs font-semibold text-slate-700">
+                  {printData.endereco?.areaTotalEdificada || 0} m² / {printData.endereco?.areaEmpreendimento || 0} m²
+                </p>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">E-mail da Empresa</span>
+                <p className="text-xs font-semibold text-slate-700">{printData.endereco?.emailEmpresa || "Não informado"}</p>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Telefone da Empresa</span>
+                <p className="text-xs font-semibold text-slate-700">{printData.endereco?.telefoneEmpresa || "Não informado"}</p>
+              </div>
+              <div className="col-span-2">
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Ponto de Referência</span>
+                <p className="text-xs font-semibold text-slate-700">{printData.endereco?.referencia || "Não informado"}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 4: Atividades & Capital */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-black text-blue-600 uppercase tracking-wider border-b pb-1.5">
+              4. Atividades Econômicas & Capital
+            </h3>
+            <div className="space-y-3 bg-white p-4 rounded-xl border">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase">Capital Social</span>
+                  <p className="text-xs font-black text-slate-800">
+                    R$ {(printData.atividades?.capitalSocial || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    {printData.atividades?.capitalSocial ? ` (${numberToExtensoBRL(printData.atividades.capitalSocial).toUpperCase()})` : ""}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Atividade Principal (CNAE)</span>
+                {printData.atividades?.atividadePrincipal ? (
+                  <p className="text-xs font-bold text-slate-700 mt-1">
+                    <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded mr-1.5 border border-blue-200">
+                      {printData.atividades.atividadePrincipal.code}
+                    </span>
+                    {printData.atividades.atividadePrincipal.description}
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-400 italic">Não informada</p>
+                )}
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Atividades Secundárias (CNAEs)</span>
+                {printData.atividades?.atividadesSecundarias && printData.atividades.atividadesSecundarias.length > 0 ? (
+                  <div className="space-y-1.5 mt-1">
+                    {printData.atividades.atividadesSecundarias.map((c: any) => (
+                      <p key={c.code} className="text-[11px] font-medium text-slate-600 flex items-start gap-1">
+                        <span className="bg-slate-50 text-slate-600 px-1.5 py-0.5 rounded border text-[9px] shrink-0 font-bold">
+                          {c.code}
+                        </span>
+                        <span>{c.description}</span>
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 italic">Nenhuma atividade secundária selecionada</p>
+                )}
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Objeto Social Gerado</span>
+                <p className="text-xs leading-relaxed text-slate-600 bg-slate-50 p-2.5 rounded border border-slate-100 italic">
+                  {printData.atividades?.objetoSocial}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 5: Quadro de Sócios */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-black text-blue-600 uppercase tracking-wider border-b pb-1.5">
+              5. Quadro de Sócios & Administradores (QSA)
+            </h3>
+            {printData.socios && printData.socios.length > 0 ? (
+              <div className="space-y-4">
+                {printData.socios.map((s: any, idx: number) => (
+                  <div key={idx} className="bg-white p-4 rounded-xl border space-y-3">
+                    <div className="flex justify-between items-start border-b pb-2">
+                      <div>
+                        <h4 className="text-xs font-black text-slate-800 uppercase">{s.nome}</h4>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase">
+                          {s.condicaoSocio || "SÓCIO"} • {s.condicaoAdministrador || "Não Administrador"}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] font-black text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
+                          R$ {(s.participacao || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ({s.participacaoPercentual || 0}%)
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-x-4 gap-y-2 text-[10px] text-slate-600">
+                      <div>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase block">CPF/CNPJ</span>
+                        <span className="font-semibold">{s.cpfCnpj}</span>
+                      </div>
+                      <div>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase block">RG</span>
+                        <span className="font-semibold">{s.rg} {s.rgOrgaoEmissor}/{s.rgUf}</span>
+                      </div>
+                      <div>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase block">Nacionalidade</span>
+                        <span className="font-semibold">{s.nacionalidade}</span>
+                      </div>
+                      <div>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase block">Profissão</span>
+                        <span className="font-semibold">{s.profissao}</span>
+                      </div>
+                      <div>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase block">Estado Civil</span>
+                        <span className="font-semibold">{s.estadoCivil} {s.regimeBens ? `(${s.regimeBens})` : ""}</span>
+                      </div>
+                      <div>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase block">Nascimento</span>
+                        <span className="font-semibold">{s.dataNascimento ? new Date(s.dataNascimento + "T00:00:00").toLocaleDateString("pt-BR") : "Não informada"}</span>
+                      </div>
+                      <div className="col-span-3">
+                        <span className="text-[8px] font-bold text-slate-400 uppercase block">Endereço Residencial</span>
+                        <span className="font-semibold">{s.enderecoResidencial || s.endereco}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-slate-50 border text-center text-slate-400 text-xs italic">
+                Nenhum sócio cadastrado.
+              </div>
+            )}
+          </div>
+
+          {/* Page Footer */}
+          <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 border-t pt-4">
+            <span>DOCUMENTO DE ACOMPANHAMENTO DE ABERTURA - PROSPERARE FLOW - EM {new Date().toLocaleString("pt-BR")}</span>
+            <span>PÁGINA DE CONTROLE</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

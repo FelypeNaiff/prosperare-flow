@@ -218,6 +218,7 @@ export default function ClientesPage() {
         updatedRegime = "Outros";
       }
 
+      const clientRef = doc(firestore, "clients", client.id);
       setDocumentNonBlocking(clientRef, {
         companyStatus: data.companyStatus?.toUpperCase?.() ? data.companyStatus.toUpperCase() : data.companyStatus || "",
         taxRegime: updatedRegime
