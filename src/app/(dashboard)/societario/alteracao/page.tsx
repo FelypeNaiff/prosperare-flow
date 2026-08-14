@@ -1924,9 +1924,8 @@ export default function AlteracaoSocietariaPage() {
                             || socios[0]
                             || {};
                           const entrandoSocio = socios.find(s => s.statusAlteracao === "entrando")
-                            || socios.find(s => s.statusAlteracao !== "saindo" && s.statusAlteracao !== "permanece" && s.dataIngresso && s.dataIngresso !== "")
-                            || socios[1]
-                            || socios[0]
+                            || socios.find(s => s.statusAlteracao !== "saindo" && s.statusAlteracao !== "permanece" && s.statusAlteracao && s.dataIngresso && s.dataIngresso !== "")
+                            || (socios.length > 1 ? socios[1] : socios[0])
                             || {};
 
                           const corpName = (novosDados.corporateName || currentClient?.corporateName || "F R SILVA TRANSPORTES LTDA").toUpperCase();
@@ -2037,9 +2036,8 @@ export default function AlteracaoSocietariaPage() {
                             || socios[0]
                             || {};
                           const recebeSocio = socios.find(s => s.statusAlteracao === "entrando")
-                            || socios.find(s => s.statusAlteracao !== "saindo" && s.statusAlteracao !== "permanece" && s.dataIngresso && s.dataIngresso !== "")
-                            || socios[1]
-                            || socios[0]
+                            || socios.find(s => s.statusAlteracao !== "saindo" && s.statusAlteracao !== "permanece" && s.statusAlteracao && s.dataIngresso && s.dataIngresso !== "")
+                            || (socios.length > 1 ? socios[1] : socios[0])
                             || {};
 
                           const cedeNome = (cedeSocio.nome || "ORLANDO FERREIRA COUTINHO JUNIOR").toUpperCase();

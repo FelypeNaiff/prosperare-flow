@@ -123,9 +123,11 @@ export async function POST(req: NextRequest) {
     if (currentCompany.zipCode) companyAddressParts.push(`CEP ${currentCompany.zipCode}`);
     const companyAddressStr = companyAddressParts.length > 0 ? companyAddressParts.join(", ") : `${currentCompany.address || ""}${currentCompany.numero ? ", " + currentCompany.numero : ""}${currentCompany.complemento ? " - " + currentCompany.complemento : ""}, ${currentCompany.neighborhood || ""}, ${currentCompany.city || ""}/${currentCompany.state || ""}, CEP ${currentCompany.zipCode || ""}`;
 
-    const qualificandos = socios.some((s: any) => s.statusAlteracao === "saindo")
-      ? socios.filter((s: any) => s.statusAlteracao === "saindo")
-      : socios.filter((s: any) => s.statusAlteracao !== "entrando");
+    const qualificandos = socios.filter((s: any, idx: number) => {
+      if (s.statusAlteracao === "entrando") return false;
+      if (s.statusAlteracao === "saindo" || s.statusAlteracao === "permanece") return true;
+      return idx === 0;
+    });
 
     const resolvesWord = qualificandos.length > 1 ? "resolvem:" : "resolve:";
 
@@ -656,9 +658,8 @@ export async function POST(req: NextRequest) {
         || socios[0]
         || {};
       const entrandoSocio = socios.find((s: any) => s.statusAlteracao === "entrando")
-        || socios.find((s: any) => s.statusAlteracao !== "saindo" && s.statusAlteracao !== "permanece" && s.dataIngresso && s.dataIngresso !== "")
-        || socios[1]
-        || socios[0]
+        || socios.find((s: any) => s.statusAlteracao !== "saindo" && s.statusAlteracao !== "permanece" && s.statusAlteracao && s.dataIngresso && s.dataIngresso !== "")
+        || (socios.length > 1 ? socios[1] : socios[0])
         || {};
 
       const corpNameStr = (updatedCompany.corporateName || currentCompany.corporateName || "").toUpperCase();
@@ -850,9 +851,8 @@ export async function POST(req: NextRequest) {
           || socios[0]
           || {};
         const recebeSocio = socios.find((s: any) => s.statusAlteracao === "entrando")
-          || socios.find((s: any) => s.statusAlteracao !== "saindo" && s.statusAlteracao !== "permanece" && s.dataIngresso && s.dataIngresso !== "")
-          || socios[1]
-          || socios[0]
+          || socios.find((s: any) => s.statusAlteracao !== "saindo" && s.statusAlteracao !== "permanece" && s.statusAlteracao && s.dataIngresso && s.dataIngresso !== "")
+          || (socios.length > 1 ? socios[1] : socios[0])
           || {};
 
         const cedeNome = String(cedeSocio.nome || "ORLANDO FERREIRA COUTINHO JUNIOR").toUpperCase();
