@@ -211,10 +211,16 @@ export default function ClientesPage() {
     setStatusConsultingId(client.id)
     try {
       const data = await lookupCnpjAction(cleanCnpj)
-      const clientRef = doc(firestore, "clients", client.id)
+      let updatedRegime = client.taxRegime;
+      if (data.taxRegime === "MEI" || data.taxRegime === "Simples Nacional") {
+        updatedRegime = data.taxRegime;
+      } else if ((client.taxRegime === "MEI" || client.taxRegime === "Simples Nacional") && data.taxRegime === "Outros") {
+        updatedRegime = "Outros";
+      }
+
       setDocumentNonBlocking(clientRef, {
         companyStatus: data.companyStatus?.toUpperCase?.() ? data.companyStatus.toUpperCase() : data.companyStatus || "",
-        taxRegime: data.taxRegime !== "Consultar no Portal" ? data.taxRegime : client.taxRegime
+        taxRegime: updatedRegime
       }, { merge: true })
 
       toast({
@@ -269,10 +275,17 @@ export default function ClientesPage() {
 
         try {
           const data = await lookupCnpjAction(cleanCnpj)
+          let updatedRegime = client.taxRegime;
+          if (data.taxRegime === "MEI" || data.taxRegime === "Simples Nacional") {
+            updatedRegime = data.taxRegime;
+          } else if ((client.taxRegime === "MEI" || client.taxRegime === "Simples Nacional") && data.taxRegime === "Outros") {
+            updatedRegime = "Outros";
+          }
+
           const clientRef = doc(firestore, "clients", clientId)
           setDocumentNonBlocking(clientRef, {
             companyStatus: data.companyStatus?.toUpperCase?.() ? data.companyStatus.toUpperCase() : data.companyStatus || "",
-            taxRegime: data.taxRegime !== "Consultar no Portal" ? data.taxRegime : client.taxRegime
+            taxRegime: updatedRegime
           }, { merge: true })
           successCount++
         } catch (error) {

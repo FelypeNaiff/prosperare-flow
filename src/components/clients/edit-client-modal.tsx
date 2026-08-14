@@ -390,7 +390,11 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
       setFormData(prev => ({
         ...prev,
         ...coreData,
-        taxRegime: coreData.taxRegime !== "Consultar no Portal" ? coreData.taxRegime : prev.taxRegime,
+        taxRegime: (coreData.taxRegime === "MEI" || coreData.taxRegime === "Simples Nacional") 
+          ? coreData.taxRegime 
+          : ((prev.taxRegime === "MEI" || prev.taxRegime === "Simples Nacional") && coreData.taxRegime === "Outros" 
+            ? "Outros" 
+            : prev.taxRegime),
         companyStatus: coreData.companyStatus || prev.companyStatus,
         capitalSocial: sociologicalData.capitalSocial ?? prev.capitalSocial,
         dataInicioAtividade: sociologicalData.dataInicioAtividade ?? prev.dataInicioAtividade,
