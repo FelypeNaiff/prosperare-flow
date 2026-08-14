@@ -21,7 +21,8 @@ import {
   Copy,
   SortAsc,
   SortDesc,
-  User
+  User,
+  ArrowUpDown
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -83,13 +84,24 @@ export default function ClientesPage() {
   const [isBatchReceitaChecking, setIsBatchReceitaChecking] = useState(false)
   const [selectedClientIds, setSelectedClientIds] = useState<string[]>([])
   const [currentBatchClientId, setCurrentBatchClientId] = useState<string | null>(null)
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('asc')
+  
+  const [sortField, setSortField] = useState<'corporateName' | 'cnpj' | 'taxRegime' | 'accountingContactUserId'>('corporateName')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  
+  const [filterRegime, setFilterRegime] = useState<string>("todos")
+  const [filterResponsible, setFilterResponsible] = useState<string>("todos")
+  const [filterStatus, setFilterStatus] = useState<string>("todos")
   
   const clientsQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "clients") : null, 
     [firestore, userLoaded]
   )
   const { data: clients = [], isLoading } = useCollection(clientsQuery)
+
+  const responsibles = useMemo(() => {
+    const list = (clients || []).map(c => c.accountingContactUserId || "Geral")
+    return ["todos", ...Array.from(new Set(list))]
+  }, [clients])
   
   const [newClient, setNewClient] = useState({
     corporateName: "",
@@ -414,26 +426,45 @@ export default function ClientesPage() {
 
   const filteredClients = useMemo(() => {
     const searchLower = searchTerm.toLowerCase()
-    let list = (clients || []).filter(c => 
-      c.corporateName?.toLowerCase().includes(searchLower) || 
-      c.nomeFantasia?.toLowerCase().includes(searchLower) ||
-      c.cnpj?.includes(searchTerm)
-    )
+    let list = (clients || []).filter(c => {
+      const matchesSearch = c.corporateName?.toLowerCase().includes(searchLower) || 
+                            c.nomeFantasia?.toLowerCase().includes(searchLower) ||
+                            c.cnpj?.includes(searchTerm);
+      
+      const matchesRegime = filterRegime === "todos" || c.taxRegime === filterRegime;
+      
+      const matchesResponsible = filterResponsible === "todos" || (c.accountingContactUserId || "Geral") === filterResponsible;
+      
+      const clientStatus = c.status || "Ativa";
+      const matchesStatus = filterStatus === "todos" || 
+        (filterStatus === "Ativa" && clientStatus !== "Inativa") || 
+        (filterStatus === "Inativa" && clientStatus === "Inativa");
 
-    if (sortOrder) {
-      list = [...list].sort((a, b) => {
-        const nameA = a.corporateName?.toLowerCase() || ""
-        const nameB = b.corporateName?.toLowerCase() || ""
-        if (sortOrder === 'asc') return nameA.localeCompare(nameB)
-        return nameB.localeCompare(nameA)
-      })
-    }
+      return matchesSearch && matchesRegime && matchesResponsible && matchesStatus;
+    })
+
+    list = [...list].sort((a, b) => {
+      let valA = a[sortField] || ""
+      let valB = b[sortField] || ""
+      
+      if (typeof valA === 'string') valA = valA.toLowerCase()
+      if (typeof valB === 'string') valB = valB.toLowerCase()
+
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1
+      return 0
+    })
 
     return list
-  }, [clients, searchTerm, sortOrder])
+  }, [clients, searchTerm, filterRegime, filterResponsible, filterStatus, sortField, sortOrder])
 
-  const toggleSort = () => {
-    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
+  const handleSort = (field: 'corporateName' | 'cnpj' | 'taxRegime' | 'accountingContactUserId') => {
+    if (sortField === field) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortOrder('asc')
+    }
   }
 
   return (
@@ -508,15 +539,80 @@ export default function ClientesPage() {
       )}
 
       <Card className="border-[#D2D7DB] shadow-sm overflow-hidden print:border-none print:shadow-none">
-        <CardHeader className="pb-3 border-b bg-[#F7F7F7]/50 print:hidden">
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
-            <Input
-              placeholder="Buscar por nome ou CNPJ..."
-              className="pl-10 bg-white border-[#D2D7DB]"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+        <CardHeader className="pb-4 border-b bg-[#F7F7F7]/50 print:hidden space-y-3">
+          <div className="flex flex-col lg:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
+              <Input
+                placeholder="Buscar por nome ou CNPJ..."
+                className="pl-10 bg-white border-[#D2D7DB]"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Regime Tributário */}
+              <div className="w-[180px]">
+                <Select value={filterRegime} onValueChange={setFilterRegime}>
+                  <SelectTrigger className="bg-white border-[#D2D7DB] text-slate-700 h-10 font-medium text-xs">
+                    <SelectValue placeholder="Regime Tributário" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos" className="text-xs font-medium">Todos os Regimes</SelectItem>
+                    <SelectItem value="Simples Nacional" className="text-xs font-medium">Simples Nacional</SelectItem>
+                    <SelectItem value="MEI" className="text-xs font-medium">MEI</SelectItem>
+                    <SelectItem value="Lucro Presumido" className="text-xs font-medium">Lucro Presumido</SelectItem>
+                    <SelectItem value="Lucro Real" className="text-xs font-medium">Lucro Real</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Responsável */}
+              <div className="w-[180px]">
+                <Select value={filterResponsible} onValueChange={setFilterResponsible}>
+                  <SelectTrigger className="bg-white border-[#D2D7DB] text-slate-700 h-10 font-medium text-xs">
+                    <SelectValue placeholder="Responsável" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos" className="text-xs font-medium">Todos os Responsáveis</SelectItem>
+                    {responsibles.filter(r => r !== "todos").map(r => (
+                      <SelectItem key={r} value={r} className="text-xs font-medium">{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Status */}
+              <div className="w-[140px]">
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="bg-white border-[#D2D7DB] text-slate-700 h-10 font-medium text-xs">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos" className="text-xs font-medium">Todos os Status</SelectItem>
+                    <SelectItem value="Ativa" className="text-xs font-medium">Ativa</SelectItem>
+                    <SelectItem value="Inativa" className="text-xs font-medium">Inativa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Reset button if any filter is active */}
+              {(filterRegime !== "todos" || filterResponsible !== "todos" || filterStatus !== "todos" || searchTerm !== "") && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setFilterRegime("todos")
+                    setFilterResponsible("todos")
+                    setFilterStatus("todos")
+                    setSearchTerm("")
+                  }}
+                  className="text-xs font-bold text-slate-500 hover:text-slate-900 gap-1 h-10"
+                >
+                  Limpar
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         
@@ -551,16 +647,47 @@ export default function ClientesPage() {
                     className="border-slate-300 data-[state=checked]:bg-blue-600"
                   />
                 </TableHead>
-                  <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500 cursor-pointer group" onClick={toggleSort}>
+                  <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500 cursor-pointer group select-none" onClick={() => handleSort('corporateName')}>
                     <div className="flex items-center gap-2">
                       Empresa / Razão Social
-                      {sortOrder === 'asc' ? <SortAsc className="h-3 w-3 text-blue-600" /> : <SortDesc className="h-3 w-3 text-blue-600" />}
+                      {sortField === 'corporateName' ? (
+                        sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
                     </div>
-                </TableHead>
-                <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500">CNPJ</TableHead>
-                <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500">Regime Tributário</TableHead>
-                <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500">Responsável</TableHead>
-                <TableHead className="text-slate-500 font-medium text-sm text-right action-col">Ações</TableHead>
+                  </TableHead>
+                  <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500 cursor-pointer group select-none" onClick={() => handleSort('cnpj')}>
+                    <div className="flex items-center gap-2">
+                      CNPJ
+                      {sortField === 'cnpj' ? (
+                        sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500 cursor-pointer group select-none" onClick={() => handleSort('taxRegime')}>
+                    <div className="flex items-center gap-2">
+                      Regime Tributário
+                      {sortField === 'taxRegime' ? (
+                        sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500 cursor-pointer group select-none" onClick={() => handleSort('accountingContactUserId')}>
+                    <div className="flex items-center gap-2">
+                      Responsável
+                      {sortField === 'accountingContactUserId' ? (
+                        sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-slate-500 font-medium text-sm text-right action-col">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
