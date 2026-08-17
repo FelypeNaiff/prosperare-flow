@@ -10,13 +10,15 @@ import {
   AlertCircle,
   CheckCircle2,
   Loader2,
-  Save,
   Building2,
-  FileText,
-  AlertTriangle
+  AlertTriangle,
+  Lock,
+  Eye,
+  Trash2,
+  FolderOpen
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -55,13 +57,14 @@ import { ClientCombobox } from "@/components/shared/client-combobox"
 import { TemplateSearchSelect } from "@/components/atendimentos/template-search-select"
 import { TicketDetailsDrawer } from "@/components/atendimentos/ticket-details-drawer"
 import { buildTaskAssignmentNotificationKey, createAppNotification } from "@/lib/notifications"
-
-const COLUMNS = [
-  { id: 'novo', title: 'Novos', color: 'border-t-[#2C4156]', bg: 'bg-[#2C4156]/5' },
-  { id: 'atendimento', title: 'Em Atendimento', color: 'border-t-[#2574A9]', bg: 'bg-[#2574A9]/5' },
-  { id: 'pendente', title: 'Pendente Cliente', color: 'border-t-[#F2B705]', bg: 'bg-[#F2B705]/5' },
-  { id: 'concluido', title: 'Concluído', color: 'border-t-[#2563EB]', bg: 'bg-[#2563EB]/5' },
-]
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table"
 
 export default function AtendimentosPage() {
   const firestore = useFirestore()
@@ -70,7 +73,7 @@ export default function AtendimentosPage() {
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false)
   const [filtroResponsavel, setFiltroResponsavel] = useState("todas")
   const [filtroPrazo, setFiltroPrazo] = useState("Todos")
-  const [isHistoryView, setIsHistoryView] = useState(false)
+  const [filtroStatus, setFiltroStatus] = useState<"todos" | "aberto" | "concluido">("aberto")
   const [selectedTicket, setSelectedTicket] = useState<any>(null)
 
   const tasksQuery = useMemoFirebase(() => 
@@ -91,8 +94,6 @@ export default function AtendimentosPage() {
     [firestore, userLoaded]
   )
   const { data: team = [] } = useCollection(usersQuery)
-
-
 
   const templatesQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "processoModelos") : null, 
@@ -156,22 +157,6 @@ export default function AtendimentosPage() {
     toast({ title: "Demanda Enviada!", description: "O colaborador foi notificado." })
   }
 
-  const handleDragStart = (e: React.DragEvent, ticketId: string) => {
-    e.dataTransfer.setData('ticketId', ticketId);
-  }
-
-  const handleDrop = (e: React.DragEvent, statusId: string) => {
-    e.preventDefault();
-    const ticketId = e.dataTransfer.getData('ticketId');
-    if (ticketId) {
-      updateStatus(ticketId, statusId);
-    }
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  }
-
   const updateStatus = (id: string, newStatus: string) => {
     updateDocumentNonBlocking(doc(firestore, "tasks", id), { status: newStatus, updatedAt: new Date().toISOString() })
     toast({ title: "Status Atualizado" })
@@ -208,7 +193,12 @@ export default function AtendimentosPage() {
     return matchesSearch && matchesResponsible && matchesPrazo
   })
 
-  const filteredTickets = baseFilteredTickets.filter((t: any) => isHistoryView ? t.status === 'concluido' : t.status !== 'concluido')
+  const filteredTickets = baseFilteredTickets.filter((t: any) => {
+    const isCompleted = t.status === 'concluido'
+    if (filtroStatus === 'aberto') return !isCompleted
+    if (filtroStatus === 'concluido') return isCompleted
+    return true
+  })
 
   const uniqueAssignees = Array.from(new Set(visibleTickets.map((t: any) => t.responsibleId)))
     .map(id => {
@@ -218,9 +208,10 @@ export default function AtendimentosPage() {
     .filter(a => a.id && a.name)
     .sort((a, b) => a.name!.localeCompare(b.name!))
 
+  const todayStr = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0')
   const stats = {
     open: baseFilteredTickets.filter((t: any) => t.status !== 'concluido').length,
-    critical: baseFilteredTickets.filter((t: any) => t.status === 'pendente').length,
+    critical: baseFilteredTickets.filter((t: any) => t.status !== 'concluido' && t.dueDate && t.dueDate < todayStr).length,
     completed: baseFilteredTickets.filter((t: any) => t.status === 'concluido').length,
   }
 
@@ -232,13 +223,6 @@ export default function AtendimentosPage() {
           <p className="text-[#98A7AA] font-medium text-sm">Gestão de solicitações entre departamentos.</p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant={isHistoryView ? "default" : "outline"}
-            className={cn("gap-2 font-semibold text-xs", isHistoryView ? "bg-[#2C4156] text-white" : "border-[#D2D7DB] text-[#5E6C84]")}
-            onClick={() => setIsHistoryView(!isHistoryView)}
-          >
-            <Clock className="h-4 w-4" /> {isHistoryView ? "Ver Kanban Ativo" : "Histórico/Arquivados"}
-          </Button>
           <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-semibold text-xs shadow-lg" onClick={() => setIsNewTicketOpen(true)}>
             <Plus className="h-4 w-4" /> Novo Atendimento
           </Button>
@@ -288,11 +272,31 @@ export default function AtendimentosPage() {
             </Button>
           ))}
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-semibold text-[#98A7AA]">Filtrar por Status:</span>
+          {[
+            { id: 'aberto', label: 'Em Aberto' },
+            { id: 'concluido', label: 'Concluídos' },
+            { id: 'todos', label: 'Todos' }
+          ].map(s => (
+            <Button 
+              key={s.id}
+              variant={filtroStatus === s.id ? "default" : "outline"} 
+              onClick={() => setFiltroStatus(s.id as any)}
+              className={cn(
+                "h-8 text-xs font-medium rounded-full transition-all border shadow-none",
+                filtroStatus === s.id ? "bg-blue-50 text-blue-700 hover:bg-blue-100 border-none" : "bg-slate-100 text-slate-600 hover:bg-slate-200 border-none"
+              )}
+            >
+              {s.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiMiniCard label="Em Aberto" value={stats.open} icon={Clock} color="info" />
-        <KpiMiniCard label="Críticos" value={stats.critical} icon={AlertCircle} color="warning" />
+        <KpiMiniCard label="Críticos (Vencidos)" value={stats.critical} icon={AlertCircle} color="warning" />
         <KpiMiniCard label="Concluídos" value={stats.completed} icon={CheckCircle2} color="success" />
       </div>
 
@@ -306,135 +310,174 @@ export default function AtendimentosPage() {
         />
       </div>
 
-      {!isHistoryView ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 min-h-[600px]">
-          {COLUMNS.filter(c => c.id !== 'concluido').map(col => (
-            <div 
-              key={col.id} 
-              className={cn("flex flex-col gap-4 p-2 rounded-xl border-t-4 transition-all duration-300", col.color, col.bg)}
-              onDrop={(e) => handleDrop(e, col.id)}
-              onDragOver={handleDragOver}
-            >
-              <div className="flex items-center justify-between px-2 pt-1">
-                <h3 className="font-semibold text-[#2C4156] text-sm flex items-center gap-2">
-                  {col.title}
-                  <Badge variant="secondary" className="rounded-full px-1.5 h-5 min-w-5 text-[10px] bg-white border font-medium">
-                    {filteredTickets.filter(t => t.status === col.id).length}
-                  </Badge>
-                </h3>
-              </div>
-              
-              <ScrollArea className="h-[calc(100vh-350px)]">
-                <div className="flex flex-col gap-3 pr-2 pb-4">
-                  {loadingTickets ? (
-                    <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#2563EB]" /></div>
-                  ) : filteredTickets.filter(t => t.status === col.id).length > 0 ? (
-                    filteredTickets.filter(t => t.status === col.id).map((ticket) => (
-                      <Card 
-                        key={ticket.id} 
-                        className={cn(
-                          "bg-white border-[#D2D7DB] shadow-sm hover:shadow-md transition-all group cursor-pointer active:cursor-grabbing hover:border-[#2563EB]/40",
-                          ticket.dueDate && ticket.dueDate < (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0')) && "animate-pulse border-2 border-red-600 bg-red-50 shadow-md shadow-red-200"
-                        )}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, ticket.id)}
-                        onClick={() => setSelectedTicket(ticket)}
-                      >
-                      <CardContent className="p-4 space-y-3">
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-1">
-                            <p className="text-[9px] font-medium text-[#2563EB] truncate">{ticket.clientName}</p>
-                            <h4 className="text-xs font-semibold text-[#2C4156] leading-tight">{ticket.title}</h4>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 text-[#98A7AA]"><MoreVertical className="h-4 w-4" /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {COLUMNS.filter(c => c.id !== ticket.status).map(c => (
-                                <DropdownMenuItem key={c.id} onClick={() => updateStatus(ticket.id, c.id)} className="text-xs font-medium">
-                                  Mover para {c.title}
-                                </DropdownMenuItem>
-                              ))}
-                              <DropdownMenuItem onClick={() => handleDelete(ticket.id)} className="text-xs font-medium text-[#E74C3C]">
-                                Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+      <Card className="border-[#D2D7DB] shadow-sm overflow-hidden bg-white">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-12 text-slate-500 font-semibold text-xs"></TableHead>
+                <TableHead className="text-slate-500 font-semibold text-xs">Empresa</TableHead>
+                <TableHead className="text-slate-500 font-semibold text-xs">Demanda</TableHead>
+                <TableHead className="text-slate-500 font-semibold text-xs">Responsável</TableHead>
+                <TableHead className="text-slate-500 font-semibold text-xs">Criação</TableHead>
+                <TableHead className="text-slate-500 font-semibold text-xs">Prazo</TableHead>
+                <TableHead className="text-slate-500 font-semibold text-xs">Status</TableHead>
+                <TableHead className="text-slate-500 font-semibold text-xs text-right pr-6">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loadingTickets ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-32 text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#2563EB]" />
+                    <p className="text-[10px] font-black text-[#98A7AA] uppercase mt-2">Carregando Demandas...</p>
+                  </TableCell>
+                </TableRow>
+              ) : filteredTickets.length > 0 ? (
+                filteredTickets.map((ticket: any) => {
+                  const isCompleted = ticket.status === 'concluido'
+                  const isOverdue = ticket.dueDate && ticket.dueDate < todayStr && !isCompleted
+                  return (
+                    <TableRow 
+                      key={ticket.id}
+                      className={cn(
+                        "transition-colors hover:bg-slate-50/50 cursor-pointer",
+                        isOverdue && "bg-red-50/30 hover:bg-red-50/50"
+                      )}
+                      onClick={() => setSelectedTicket(ticket)}
+                    >
+                      {/* Checkbox de Ação Rápida */}
+                      <TableCell className="pl-4" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => updateStatus(ticket.id, isCompleted ? 'novo' : 'concluido')}
+                          className={cn(
+                            "h-5 w-5 rounded-full border flex items-center justify-center transition-all duration-200",
+                            isCompleted 
+                              ? "bg-emerald-500 border-emerald-500 text-white" 
+                              : "border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 text-transparent hover:text-emerald-600"
+                          )}
+                          title={isCompleted ? "Reabrir Demanda" : "Concluir Demanda"}
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                        </button>
+                      </TableCell>
 
-                          <div className="flex items-center gap-2 pt-2 border-t justify-between">
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-6 w-6 border">
-                                <AvatarFallback className="text-[8px] font-semibold bg-slate-200 text-slate-700">
-                                  {ticket.responsibleName?.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex flex-col">
-                                <span className="text-[10px] font-medium text-[#39586D]">{ticket.responsibleName}</span>
-                                <span className="text-[8px] text-[#98A7AA] font-medium">{new Date(ticket.createdAt).toLocaleDateString('pt-BR')}</span>
-                              </div>
-                            </div>
-                            {ticket.dueDate && (
-                               <div className="flex items-center gap-1">
-                                 {ticket.dueDate < (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0')) && <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />}
-                                 <div className={cn(
-                                   "text-[9px] font-medium px-2 py-0.5 rounded border",
-                                   ticket.dueDate < (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0')) 
-                                     ? "bg-red-50 text-red-700 border-red-200" 
-                                     : "bg-gray-50 text-[#98A7AA] border-gray-200"
-                                 )}>
-                                   Prazo: {new Date(ticket.dueDate + 'T12:00:00Z').toLocaleDateString('pt-BR')}
-                                 </div>
-                               </div>
-                            )}
+                      {/* Empresa */}
+                      <TableCell>
+                        <span className="font-semibold text-blue-600 text-xs tracking-tight">
+                          {ticket.clientName}
+                        </span>
+                      </TableCell>
+
+                      {/* Título / Demanda */}
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className={cn("text-xs font-medium text-slate-800", isCompleted && "line-through text-slate-400")}>
+                            {ticket.title}
+                          </span>
+                          {ticket.restrita && (
+                            <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] px-1.5 py-0.5 font-semibold gap-1">
+                              <Lock className="h-2.5 w-2.5" /> Restrita
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      {/* Responsável */}
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-6 w-6 border">
+                            <AvatarFallback className="text-[8px] font-semibold bg-slate-200 text-slate-700">
+                              {ticket.responsibleName?.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-xs text-slate-700 font-medium">{ticket.responsibleName}</span>
+                        </div>
+                      </TableCell>
+
+                      {/* Criação */}
+                      <TableCell className="text-xs text-slate-500">
+                        {new Date(ticket.createdAt).toLocaleDateString('pt-BR')}
+                      </TableCell>
+
+                      {/* Prazo */}
+                      <TableCell>
+                        {ticket.dueDate ? (
+                          <div className="flex items-center gap-1.5">
+                            {isOverdue && <AlertTriangle className="h-3.5 w-3.5 text-red-600 shrink-0" />}
+                            <span className={cn(
+                              "text-xs font-semibold px-2 py-0.5 rounded border",
+                              isOverdue 
+                                ? "bg-red-50 text-red-700 border-red-200 animate-pulse" 
+                                : isCompleted
+                                  ? "bg-slate-50 text-slate-400 border-slate-200"
+                                  : "bg-slate-50 text-slate-600 border-slate-200"
+                            )}>
+                              {new Date(ticket.dueDate + 'T12:00:00Z').toLocaleDateString('pt-BR')}
+                            </span>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))
-                  ) : (
-                    <div className="text-center py-12 text-[10px] font-black text-[#98A7AA] uppercase border-2 border-dashed rounded-xl">
-                      Solte as tarefas aqui
+                        ) : (
+                          <span className="text-xs text-slate-400 font-normal">-</span>
+                        )}
+                      </TableCell>
+
+                      {/* Status */}
+                      <TableCell>
+                        <Badge className={cn(
+                          "text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 border shadow-none",
+                          isCompleted 
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                            : "bg-blue-50 text-blue-700 border-blue-200"
+                        )}>
+                          {isCompleted ? "Concluído" : "Aberto"}
+                        </Badge>
+                      </TableCell>
+
+                      {/* Ações */}
+                      <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-700">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setSelectedTicket(ticket)} className="text-xs font-medium">
+                              <Eye className="h-3.5 w-3.5 mr-2 text-slate-500" /> Visualizar / Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => updateStatus(ticket.id, isCompleted ? 'novo' : 'concluido')} 
+                              className="text-xs font-medium"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-2 text-slate-500" />
+                              {isCompleted ? "Reabrir Demanda" : "Concluir Demanda"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={(e) => handleDelete(ticket.id, e)} 
+                              className="text-xs font-medium text-red-600 focus:text-red-700"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-2 text-red-500" /> Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-40 text-center">
+                    <div className="flex flex-col items-center justify-center text-slate-400 gap-2">
+                      <FolderOpen className="h-8 w-8 text-slate-300" />
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Nenhuma demanda encontrada</p>
                     </div>
-                  )}
-                </div>
-              </ScrollArea>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-[#D2D7DB] shadow-sm overflow-hidden min-h-[500px]">
-          <div className="p-4 border-b bg-[#F4F5F7] flex justify-between items-center">
-             <h3 className="font-semibold text-[#2C4156] text-sm flex items-center gap-2">
-                Tarefas Concluídas
-                <Badge variant="secondary" className="rounded-full px-1.5 h-5 min-w-5 text-[10px] bg-white border font-medium">
-                  {filteredTickets.length}
-                </Badge>
-              </h3>
-          </div>
-          <ScrollArea className="h-[500px]">
-             {filteredTickets.length === 0 ? (
-                <div className="py-12 flex justify-center text-[10px] font-medium uppercase text-[#98A7AA]">Nenhum histórico encontrado.</div>
-             ) : (
-                <div className="divide-y">
-                   {filteredTickets.map(ticket => (
-                      <div key={ticket.id} className="p-4 hover:bg-[#F9FAFB] cursor-pointer flex justify-between items-center transition-colors" onClick={() => setSelectedTicket(ticket)}>
-                         <div className="flex flex-col gap-1">
-                            <p className="text-[9px] font-medium text-[#2563EB]">{ticket.clientName}</p>
-                            <h4 className="text-xs font-semibold text-[#2C4156] leading-tight">{ticket.title}</h4>
-                            <div className="flex gap-4 mt-1 text-[10px] font-medium text-[#98A7AA]">
-                               <span>Concluído em: {new Date(ticket.updatedAt).toLocaleDateString('pt-BR')}</span>
-                               <span>Responsável: {ticket.responsibleName}</span>
-                            </div>
-                         </div>
-                         <Button variant="outline" size="sm" className="h-8 text-[10px] font-medium" onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'novo') }}>Reabrir</Button>
-                      </div>
-                   ))}
-                </div>
-             )}
-          </ScrollArea>
-        </div>
-      )}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       <Dialog open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen} modal={false}>
         <DialogContent 
@@ -534,7 +577,7 @@ export default function AtendimentosPage() {
 function KpiMiniCard({ label, value, icon: Icon, color }: any) {
   const colors = {
     info: "border-l-[#2574A9] bg-[#2574A9]/5",
-    warning: "border-l-[#F2B705] bg-[#F2B705]/5",
+    warning: "border-l-[#E74C3C] bg-[#E74C3C]/5", // Red for warning/late critical demands
     success: "border-l-[#2563EB] bg-[#2563EB]/5",
   }
   return (

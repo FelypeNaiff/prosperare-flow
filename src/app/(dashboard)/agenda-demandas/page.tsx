@@ -51,7 +51,7 @@ export default function AgendaDemandasPage() {
       if (t.restrita && t.criadorId !== selectedUser?.id) return
 
       // FILTRO EXCLUSIVO: Apenas collection fields mapeados como Demandas Internas
-      if (!['novo', 'atendimento', 'pendente'].includes(t.status)) return
+      if (t.status === 'concluido') return
       if (!t.dueDate) return
 
       const matchesSearch = t.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -84,7 +84,7 @@ export default function AgendaDemandasPage() {
     return list.sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime())
   }, [rawTasks, selectedUser, searchTerm, filtroResponsavel, filtroPrazo])
 
-  const uniqueAssignees = Array.from(new Set((rawTasks || []).filter((t:any) => ['novo', 'atendimento', 'pendente'].includes(t.status) && (!t.restrita || t.criadorId === selectedUser?.id) && !!t.dueDate).map((t: any) => t.responsibleId)))
+  const uniqueAssignees = Array.from(new Set((rawTasks || []).filter((t:any) => t.status !== 'concluido' && (!t.restrita || t.criadorId === selectedUser?.id) && !!t.dueDate).map((t: any) => t.responsibleId)))
     .map(id => {
       const ticket = (rawTasks || []).find((t: any) => t.responsibleId === id)
       return { id, name: ticket?.responsibleName }

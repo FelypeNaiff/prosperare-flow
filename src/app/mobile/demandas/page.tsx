@@ -46,7 +46,7 @@ export default function MobileDemandasPage() {
 
   // Responsáveis únicos (apenas tickets visíveis)
   const uniqueAssignees = useMemo(() => {
-     const rawMemos = (rawTasks || []).filter((t:any) => ['novo', 'atendimento', 'pendente'].includes(t.status) && (!t.restrita || t.criadorId === selectedUser?.id))
+     const rawMemos = (rawTasks || []).filter((t:any) => t.status !== 'concluido' && (!t.restrita || t.criadorId === selectedUser?.id))
      const uniqueIds = Array.from(new Set(rawMemos.map((t: any) => t.responsibleId)))
      return uniqueIds.map(id => {
        const user = (team||[]).find(u=>u.id === id) || rawMemos.find((t:any)=>t.responsibleId === id)
@@ -57,7 +57,7 @@ export default function MobileDemandasPage() {
   const tickets = useMemo(() => {
     return (rawTasks || []).filter(t => {
       // Exclusividade
-      if (!['novo', 'atendimento', 'pendente'].includes(t.status)) return false
+      if (t.status === 'concluido') return false
       // FILTRO 4: Regra estrita OR
       if (t.restrita && t.criadorId !== selectedUser?.id) return false
       
