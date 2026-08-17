@@ -15,7 +15,10 @@ import {
   Lock,
   Eye,
   Trash2,
-  FolderOpen
+  FolderOpen,
+  ArrowUpDown,
+  SortAsc,
+  SortDesc
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -75,6 +78,17 @@ export default function AtendimentosPage() {
   const [filtroPrazo, setFiltroPrazo] = useState("Todos")
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "aberto" | "concluido">("aberto")
   const [selectedTicket, setSelectedTicket] = useState<any>(null)
+  const [sortField, setSortField] = useState<'clientName' | 'title' | 'responsibleName' | 'createdAt' | 'dueDate' | 'status'>('createdAt')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+
+  const handleSort = (field: typeof sortField) => {
+    if (sortField === field) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortOrder('asc')
+    }
+  }
 
   const tasksQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "tasks") : null, 
@@ -200,6 +214,18 @@ export default function AtendimentosPage() {
     return true
   })
 
+  const sortedTickets = [...filteredTickets].sort((a, b) => {
+    let valA = a[sortField] || ""
+    let valB = b[sortField] || ""
+    
+    if (typeof valA === 'string') valA = valA.toLowerCase()
+    if (typeof valB === 'string') valB = valB.toLowerCase()
+
+    if (valA < valB) return sortOrder === 'asc' ? -1 : 1
+    if (valA > valB) return sortOrder === 'asc' ? 1 : -1
+    return 0
+  })
+
   const uniqueAssignees = Array.from(new Set(visibleTickets.map((t: any) => t.responsibleId)))
     .map(id => {
       const ticket = visibleTickets.find((t: any) => t.responsibleId === id)
@@ -316,12 +342,84 @@ export default function AtendimentosPage() {
             <TableHeader className="bg-slate-50 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-12 text-slate-500 font-semibold text-xs"></TableHead>
-                <TableHead className="text-slate-500 font-semibold text-xs">Empresa</TableHead>
-                <TableHead className="text-slate-500 font-semibold text-xs">Demanda</TableHead>
-                <TableHead className="text-slate-500 font-semibold text-xs">Responsável</TableHead>
-                <TableHead className="text-slate-500 font-semibold text-xs">Criação</TableHead>
-                <TableHead className="text-slate-500 font-semibold text-xs">Prazo</TableHead>
-                <TableHead className="text-slate-500 font-semibold text-xs">Status</TableHead>
+                <TableHead 
+                  className="text-slate-500 font-semibold text-xs cursor-pointer group select-none" 
+                  onClick={() => handleSort('clientName')}
+                >
+                  <div className="flex items-center gap-2">
+                    Empresa
+                    {sortField === 'clientName' ? (
+                      sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-slate-500 font-semibold text-xs cursor-pointer group select-none" 
+                  onClick={() => handleSort('title')}
+                >
+                  <div className="flex items-center gap-2">
+                    Demanda
+                    {sortField === 'title' ? (
+                      sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-slate-500 font-semibold text-xs cursor-pointer group select-none" 
+                  onClick={() => handleSort('responsibleName')}
+                >
+                  <div className="flex items-center gap-2">
+                    Responsável
+                    {sortField === 'responsibleName' ? (
+                      sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-slate-500 font-semibold text-xs cursor-pointer group select-none" 
+                  onClick={() => handleSort('createdAt')}
+                >
+                  <div className="flex items-center gap-2">
+                    Criação
+                    {sortField === 'createdAt' ? (
+                      sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-slate-500 font-semibold text-xs cursor-pointer group select-none" 
+                  onClick={() => handleSort('dueDate')}
+                >
+                  <div className="flex items-center gap-2">
+                    Prazo
+                    {sortField === 'dueDate' ? (
+                      sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-slate-500 font-semibold text-xs cursor-pointer group select-none" 
+                  onClick={() => handleSort('status')}
+                >
+                  <div className="flex items-center gap-2">
+                    Status
+                    {sortField === 'status' ? (
+                      sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </div>
+                </TableHead>
                 <TableHead className="text-slate-500 font-semibold text-xs text-right pr-6">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -333,8 +431,8 @@ export default function AtendimentosPage() {
                     <p className="text-[10px] font-black text-[#98A7AA] uppercase mt-2">Carregando Demandas...</p>
                   </TableCell>
                 </TableRow>
-              ) : filteredTickets.length > 0 ? (
-                filteredTickets.map((ticket: any) => {
+              ) : sortedTickets.length > 0 ? (
+                sortedTickets.map((ticket: any) => {
                   const isCompleted = ticket.status === 'concluido'
                   const isOverdue = ticket.dueDate && ticket.dueDate < todayStr && !isCompleted
                   return (
