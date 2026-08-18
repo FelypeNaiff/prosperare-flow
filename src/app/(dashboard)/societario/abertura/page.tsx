@@ -85,6 +85,7 @@ export default function AberturaSocietariaPage() {
   const [protocoloJunta, setProtocoloJunta] = useState<string>("")
   const [statusProtocolo, setStatusProtocolo] = useState<string>("Aguardando Protocolo")
   const [obsProtocolo, setObsProtocolo] = useState<string>("")
+  const [isObjetoSocialEdited, setIsObjetoSocialEdited] = useState(false)
 
   // Fetch all company openings
   const openingsQuery = useMemoFirebase(() => collection(firestore, "societaryOpenings"), [firestore])
@@ -339,15 +340,27 @@ export default function AberturaSocietariaPage() {
     
     if (combined.length > 0) {
       const generated = "A empresa terá por objeto social a exploração das seguintes atividades econômicas: " + combined.join("; ").toUpperCase() + "."
-      setAtividades(prev => ({
-        ...prev,
-        objetoSocial: prev.objetoSocial && prev.objetoSocial !== "" ? prev.objetoSocial : generated
-      }))
+      if (!isObjetoSocialEdited) {
+        setAtividades(prev => ({
+          ...prev,
+          objetoSocial: generated
+        }))
+      }
+    } else {
+      if (!isObjetoSocialEdited) {
+        setAtividades(prev => ({
+          ...prev,
+          objetoSocial: ""
+        }))
+      }
     }
-  }, [atividades.atividadePrincipal, atividades.atividadesSecundarias])
+  }, [atividades.atividadePrincipal, atividades.atividadesSecundarias, isObjetoSocialEdited])
 
   const handleSaveOpening = (status: "SALVO" | "CONCLUIDO") => {
-    const finalLabel = processLabel.trim() || `Nova Abertura - ${nomeFantasia.nomeFantasia || nomeFantasia.opcaoNome1 || "Sem Nome"}`
+    let finalLabel = processLabel.trim()
+    if (!finalLabel || finalLabel.startsWith("Nova Abertura -")) {
+      finalLabel = `Nova Abertura - ${nomeFantasia.nomeFantasia || nomeFantasia.opcaoNome1 || "Sem Nome"}`
+    }
     
     const openingId = currentOpeningId || doc(collection(firestore, "societaryOpenings")).id
     const openingDocRef = doc(firestore, "societaryOpenings", openingId)
@@ -396,7 +409,10 @@ export default function AberturaSocietariaPage() {
     if (open.dadosGerais) setDadosGerais(open.dadosGerais)
     if (open.nomeFantasia) setNomeFantasia(open.nomeFantasia)
     if (open.endereco) setEndereco(open.endereco)
-    if (open.atividades) setAtividades(open.atividades)
+    if (open.atividades) {
+      setAtividades(open.atividades)
+      setIsObjetoSocialEdited(!!open.atividades.objetoSocial)
+    }
     if (open.socios) setSocios(open.socios)
 
     toast({
@@ -491,6 +507,7 @@ export default function AberturaSocietariaPage() {
     setProtocoloJunta("")
     setStatusProtocolo("Aguardando Protocolo")
     setObsProtocolo("")
+    setIsObjetoSocialEdited(false)
     setDadosGerais({
       compostaPorSocio: "individual",
       naturezaJuridica: "Sociedade LTDA (Unipessoal)",
@@ -1787,7 +1804,10 @@ export default function AberturaSocietariaPage() {
                         <Textarea 
                           rows={4}
                           value={atividades.objetoSocial}
-                          onChange={(e) => setAtividades(prev => ({ ...prev, objetoSocial: e.target.value }))}
+                          onChange={(e) => {
+                            setAtividades(prev => ({ ...prev, objetoSocial: e.target.value }))
+                            setIsObjetoSocialEdited(true)
+                          }}
                           className="bg-white border-slate-200 text-xs leading-relaxed"
                           placeholder="Objeto social gerado a partir dos CNAEs ou redigido livremente..."
                         />

@@ -78,7 +78,6 @@ const menuItems = [
     subItems: [
       { title: "Gestão de Clientes", url: "/clientes", icon: Users },
       { title: "Demandas Internas", url: "/atendimentos", icon: TicketCheck },
-      { title: "Cofre de Senhas", url: "/cofre-senhas", icon: Lock },
       { title: "Agenda de Demandas", url: "/agenda-demandas", icon: CalendarClock },
     ]
   },
@@ -94,8 +93,6 @@ const menuItems = [
       { title: "Agenda de Obrigações", url: "/processos/calendario", icon: Calendar },
       { title: "IRPF 2026", url: "/processos/irpf", icon: ClipboardList },
       { title: "Parcelamentos", url: "/processos/parcelamentos", icon: InstallmentIcon },
-      { title: "Legalizações (CNPJ)", url: "/legalizacoes", icon: Landmark },
-      { title: "Alvarás e Licenças", url: "/alvaras", icon: FileSignature },
       { title: "Certidões Negativas", url: "/certidoes", icon: ShieldCheck },
     ]
   },
@@ -108,6 +105,8 @@ const menuItems = [
       { title: "Abertura", url: "/societario/abertura", icon: Building },
       { title: "Alteração", url: "/societario/alteracao", icon: FileSignature },
       { title: "Baixa", url: "/societario/baixa", icon: Landmark },
+      { title: "Legalizações (CNPJ)", url: "/legalizacoes", icon: Landmark },
+      { title: "Alvarás e Licenças", url: "/alvaras", icon: FileSignature },
     ]
   },
   {
@@ -118,6 +117,7 @@ const menuItems = [
     subItems: [
       { title: "Gerar Documentos", url: "/docs-flow", icon: FileSignature },
       { title: "Histórico de Docs", url: "/docs-flow/historico", icon: History },
+      { title: "Cofre de Senhas", url: "/cofre-senhas", icon: Lock },
     ]
   },
   {

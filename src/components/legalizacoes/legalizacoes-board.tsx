@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, getDocs, getDoc, setDoc } from "firebase/firestore"
 import { firestore as db } from "@/firebase/init"
 import { useToast } from "@/hooks/use-toast"
+import { useUser } from "@/firebase"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
@@ -43,7 +44,8 @@ import {
   RotateCcw,
   Archive,
   BookOpen,
-  ArrowRight
+  ArrowRight,
+  FileDown
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -140,6 +142,7 @@ function ProcessModal({
   clientes: Client[]
   boardColumns: ColumnConfig[]
 }) {
+  const { selectedUser } = useUser()
   const firstColumnId = boardColumns[0]?.id ?? "abertura"
   const empty: Process = {
     id: crypto.randomUUID(),
@@ -153,7 +156,7 @@ function ProcessModal({
     comments: [],
     tags: [],
     checklist: [],
-    responsibleId: "u1",
+    responsibleId: selectedUser?.id || "u1",
     isModelo: false,
     arquivado: false,
   }
@@ -252,17 +255,25 @@ function ProcessModal({
   const addComment = () => {
     const trimmed = newCommentText.trim()
     if (!trimmed) return
-    const currentUser = TEAM_MEMBERS[0]
+    const senderName = selectedUser?.fullName || selectedUser?.name || "Felype Naiff"
+    const senderId = selectedUser?.id || "u1"
     const comment: Comment = {
       id: crypto.randomUUID(),
-      userId: currentUser.id,
-      userName: currentUser.name,
+      userId: senderId,
+      userName: senderName,
       text: trimmed,
       createdAt: new Date().toISOString(),
     }
 
     setForm((f) => ({ ...f, comments: [...f.comments, comment] }))
     setNewCommentText("")
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      addComment()
+    }
   }
 
   return (
@@ -525,7 +536,7 @@ function ProcessModal({
           {/* Comments + Progress */}
           <div className="space-y-3">
             <Label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Anotações e Histórico</Label>
-            <div className="space-y-3 bg-slate-50 rounded-3xl p-4 border border-slate-100 max-h-[320px] overflow-hidden">
+            <div className="space-y-3 bg-slate-50 rounded-3xl p-4 border border-slate-100">
               <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2">
                 {form.comments.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-slate-200 bg-white/80 p-4 text-center text-[11px] text-slate-500">
@@ -565,6 +576,7 @@ function ProcessModal({
                 <Textarea
                   value={newCommentText}
                   onChange={(e) => setNewCommentText(e.target.value)}
+                  onKeyDown={handleKeyDown}
                   placeholder="Digite @ para mencionar um membro da equipe..."
                   className="border-slate-200 text-xs rounded-2xl resize-none h-24 focus-visible:ring-blue-500"
                 />
@@ -806,6 +818,7 @@ function ProcessCard({
 
 export function LegalizacoesBoard() {
   const { toast } = useToast()
+  const { selectedUser } = useUser()
   const [processes, setProcesses] = useState<Process[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected] = useState<Process | null>(null)
@@ -813,6 +826,302 @@ export function LegalizacoesBoard() {
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS)
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null)
   const [columnTitleDraft, setColumnTitleDraft] = useState<Record<string, string>>({})
+
+  const handleExportPDF = async () => {
+    const activeProcesses = processes.filter(
+      (p) => !p.arquivado && !p.isModelo && calcProgress(p.checklist) < 100
+    )
+
+    if (activeProcesses.length === 0) {
+      toast({
+        title: "Aviso",
+        description: "Não há processos em andamento ou em aberto para gerar o PDF.",
+      })
+      return
+    }
+
+    try {
+      toast({
+        title: "Gerando PDF...",
+        description: "Aguarde um momento enquanto preparamos o relatório.",
+      })
+
+      const { jsPDF } = await import("jspdf")
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      })
+
+      const margin = 15
+      const pageWidth = 210
+      const pageHeight = 297
+      const maxWritableHeight = pageHeight - margin
+      let y = 20
+
+      const drawPageHeader = () => {
+        pdf.setFont("helvetica", "bold")
+        pdf.setFontSize(8)
+        pdf.setTextColor(152, 167, 170)
+        pdf.text(
+          "PROSPERARE FLOW - RELATÓRIO DE ACOMPANHAMENTO DE LEGALIZAÇÕES",
+          margin,
+          margin
+        )
+        pdf.setDrawColor(209, 213, 219)
+        pdf.setLineWidth(0.2)
+        pdf.line(margin, margin + 2, pageWidth - margin, margin + 2)
+      }
+
+      const checkPage = (neededHeight: number) => {
+        if (y + neededHeight > maxWritableHeight) {
+          pdf.addPage()
+          y = margin + 10
+          drawPageHeader()
+        }
+      }
+
+      // Title Section
+      pdf.setFont("helvetica", "bold")
+      pdf.setFontSize(16)
+      pdf.setTextColor(44, 65, 86)
+      pdf.text("PROSPERARE FLOW", margin, y)
+
+      y += 6
+      pdf.setFontSize(11)
+      pdf.text("RELATÓRIO DE PROCESSOS EM ANDAMENTO E EM ABERTO - LEGALIZAÇÕES", margin, y)
+
+      y += 5
+      pdf.setFont("helvetica", "normal")
+      pdf.setFontSize(8)
+      pdf.setTextColor(152, 167, 170)
+      const dateStr = new Date().toLocaleString("pt-BR")
+      pdf.text(
+        `Gerado em: ${dateStr} | Operador: ${selectedUser?.fullName || "Felype Naiff"}`,
+        margin,
+        y
+      )
+
+      y += 3
+      pdf.setDrawColor(44, 65, 86)
+      pdf.setLineWidth(0.5)
+      pdf.line(margin, y, pageWidth - margin, y)
+
+      y += 10
+
+      // Sort by status, then by deadline
+      const activeSorted = [...activeProcesses].sort((a, b) => {
+        const colA = columns.findIndex((c) => c.id === a.status)
+        const colB = columns.findIndex((c) => c.id === b.status)
+        if (colA !== colB) return colA - colB
+        return (a.deadline || "9999-99-99").localeCompare(b.deadline || "9999-99-99")
+      })
+
+      activeSorted.forEach((process, index) => {
+        const columnTitle = columns.find((c) => c.id === process.status)?.title || process.status
+        const deadlineFormatted = process.deadline
+          ? new Date(process.deadline + "T12:00:00Z").toLocaleDateString("pt-BR")
+          : "Não definido"
+        const responsibleName = TEAM_MEMBERS.find((u) => u.id === process.responsibleId)?.name || "Não definido"
+
+        // Check space for the process card header (at least 30mm)
+        checkPage(30)
+
+        // Draw process background box
+        pdf.setFillColor(248, 250, 252) // slate-50 background color
+        pdf.rect(margin, y, pageWidth - 2 * margin, 20, "F")
+        pdf.setDrawColor(226, 232, 240) // slate-200 border color
+        pdf.setLineWidth(0.2)
+        pdf.rect(margin, y, pageWidth - 2 * margin, 20, "D")
+
+        // Draw left blue border accent
+        pdf.setFillColor(37, 99, 235) // bg-blue-600
+        pdf.rect(margin, y, 1.5, 20, "F")
+
+        // Process Title
+        pdf.setFont("helvetica", "bold")
+        pdf.setFontSize(10)
+        pdf.setTextColor(44, 65, 86)
+        pdf.text(process.title, margin + 4, y + 5)
+
+        // Subtitle line 1: Empresa & Etapa
+        pdf.setFont("helvetica", "bold")
+        pdf.setFontSize(8)
+        pdf.setTextColor(100, 116, 139)
+        pdf.text("Empresa: ", margin + 4, y + 11)
+        pdf.setFont("helvetica", "normal")
+        pdf.setTextColor(51, 65, 85)
+        pdf.text(process.company || "Sem Empresa Vinculada", margin + 18, y + 11)
+
+        pdf.setFont("helvetica", "bold")
+        pdf.setTextColor(100, 116, 139)
+        pdf.text("Etapa: ", margin + 110, y + 11)
+        pdf.setFont("helvetica", "normal")
+        pdf.setTextColor(51, 65, 85)
+        pdf.text(columnTitle, margin + 120, y + 11)
+
+        // Subtitle line 2: Prazo & Responsável
+        pdf.setFont("helvetica", "bold")
+        pdf.setTextColor(100, 116, 139)
+        pdf.text("Prazo: ", margin + 4, y + 16)
+        pdf.setFont("helvetica", "normal")
+        
+        // Highlight overdue deadlines in red
+        const isProcessOverdue = process.deadline && new Date(process.deadline) < new Date()
+        if (isProcessOverdue) {
+          pdf.setTextColor(220, 38, 38) // red-600
+        } else {
+          pdf.setTextColor(51, 65, 85)
+        }
+        pdf.text(deadlineFormatted, margin + 14, y + 16)
+
+        pdf.setFont("helvetica", "bold")
+        pdf.setTextColor(100, 116, 139)
+        pdf.text("Responsável: ", margin + 110, y + 16)
+        pdf.setFont("helvetica", "normal")
+        pdf.setTextColor(51, 65, 85)
+        pdf.text(responsibleName, margin + 130, y + 16)
+
+        y += 24
+
+        // Checklist Section
+        checkPage(8)
+        pdf.setFont("helvetica", "bold")
+        pdf.setFontSize(8.5)
+        pdf.setTextColor(71, 85, 105)
+        pdf.text("CHECKLIST DE TAREFAS", margin, y)
+        y += 4
+
+        if (process.checklist.length === 0) {
+          checkPage(5)
+          pdf.setFont("helvetica", "italic")
+          pdf.setFontSize(8)
+          pdf.setTextColor(148, 163, 184)
+          pdf.text("Nenhum item de checklist cadastrado.", margin + 4, y)
+          y += 5
+        } else {
+          process.checklist.forEach((item) => {
+            const statusSymbol = item.done ? "[X]" : "[ ]"
+            const lines = pdf.splitTextToSize(item.label, 168)
+            const neededHeight = lines.length * 4.5
+            checkPage(neededHeight + 2)
+
+            pdf.setFont("helvetica", "bold")
+            pdf.setFontSize(8)
+            if (item.done) {
+              pdf.setTextColor(34, 197, 94) // green-500
+            } else {
+              pdf.setTextColor(100, 116, 139) // slate-500
+            }
+            pdf.text(statusSymbol, margin + 2, y)
+
+            pdf.setFont("helvetica", item.done ? "italic" : "normal")
+            pdf.setTextColor(item.done ? 148 : 51, item.done ? 163 : 65, item.done ? 184 : 85)
+            lines.forEach((line: string) => {
+              pdf.text(line, margin + 8, y)
+              y += 4.5
+            })
+            y += 0.5
+          })
+        }
+        y += 2
+
+        // Comments Section
+        checkPage(8)
+        pdf.setFont("helvetica", "bold")
+        pdf.setFontSize(8.5)
+        pdf.setTextColor(71, 85, 105)
+        pdf.text("ANOTAÇÕES E HISTÓRICO", margin, y)
+        y += 4
+
+        if (!process.comments || process.comments.length === 0) {
+          checkPage(5)
+          pdf.setFont("helvetica", "italic")
+          pdf.setFontSize(8)
+          pdf.setTextColor(148, 163, 184)
+          pdf.text("Nenhuma anotação registrada.", margin + 4, y)
+          y += 5
+        } else {
+          process.comments.forEach((comment) => {
+            const dateFormatted = new Date(comment.createdAt).toLocaleString("pt-BR", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+            const commentHeader = `${comment.userName} - ${dateFormatted}:`
+
+            checkPage(10)
+            pdf.setFont("helvetica", "bold")
+            pdf.setFontSize(8)
+            pdf.setTextColor(30, 41, 59)
+            pdf.text(commentHeader, margin + 2, y)
+            y += 4
+
+            pdf.setFont("helvetica", "normal")
+            pdf.setTextColor(71, 85, 105)
+            const lines = pdf.splitTextToSize(comment.text, 170)
+            const neededHeight = lines.length * 4.5
+            checkPage(neededHeight + 2)
+
+            lines.forEach((line: string) => {
+              pdf.text(line, margin + 6, y)
+              y += 4.5
+            })
+            y += 1.5
+          })
+        }
+
+        // Draw a light divider line after each process (except the last one)
+        if (index < activeSorted.length - 1) {
+          checkPage(8)
+          y += 3
+          pdf.setDrawColor(226, 232, 240)
+          pdf.setLineWidth(0.3)
+          pdf.line(margin, y, pageWidth - margin, y)
+          y += 6
+        }
+      })
+
+      // Add footers/page numbers
+      const totalPages = pdf.getNumberOfPages()
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i)
+        
+        if (i > 1) {
+          drawPageHeader()
+        }
+
+        pdf.setFont("helvetica", "normal")
+        pdf.setFontSize(8)
+        pdf.setTextColor(148, 163, 184)
+        pdf.text(
+          `Página ${i} de ${totalPages}`,
+          pageWidth - margin - 20,
+          pageHeight - 8
+        )
+        pdf.text(
+          "Prosperare Flow - Controle de Legalizações e Prazos",
+          margin,
+          pageHeight - 8
+        )
+      }
+
+      pdf.save("Relatorio_Acompanhamento_Legalizacoes.pdf")
+      toast({
+        title: "Sucesso!",
+        description: "O relatório PDF foi gerado e baixado.",
+      })
+    } catch (error) {
+      console.error(error)
+      toast({
+        title: "Erro",
+        description: "Falha ao gerar o PDF.",
+        variant: "destructive",
+      })
+    }
+  }
 
   useEffect(() => {
     async function loadBoardConfig() {
@@ -1205,12 +1514,21 @@ export function LegalizacoesBoard() {
             <p className="text-xs text-slate-400 font-medium">Aberturas · Alterações · Baixas · Alvarás</p>
           </div>
         </div>
-        <Button
-          onClick={() => openNew()}
-          className="bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl gap-2 shadow-sm h-11 px-5"
-        >
-          <Plus className="h-4 w-4" /> Novo Processo
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleExportPDF}
+            variant="outline"
+            className="border-slate-200 text-slate-700 hover:bg-slate-50 font-bold rounded-xl gap-2 shadow-sm h-11 px-5"
+          >
+            <FileDown className="h-4 w-4" /> Gerar PDF
+          </Button>
+          <Button
+            onClick={() => openNew()}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl gap-2 shadow-sm h-11 px-5"
+          >
+            <Plus className="h-4 w-4" /> Novo Processo
+          </Button>
+        </div>
       </div>
 
       {/* Abas de Visualização (Ativos, Histórico, Arquivados, Modelos) */}
