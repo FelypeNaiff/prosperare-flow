@@ -60,14 +60,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from "@/firebase"
+import { useUser, useAuth, useFirestore, useDoc, useCollection, useMemoFirebase } from "@/firebase"
 import { initiateLogout } from "@/firebase/non-blocking-login"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { doc } from "firebase/firestore"
+import { doc, collection } from "firebase/firestore"
 
 const menuItems = [
   {
@@ -172,23 +172,56 @@ export function AppSidebar() {
   // Busca o nome do escritório das configurações reais
   const officeRef = useMemoFirebase(() => doc(firestore, "officeSettings", "main"), [firestore])
   const { data: officeData } = useDoc(officeRef)
+
+  const profilesQuery = useMemoFirebase(() => collection(firestore, "accessProfiles"), [firestore])
+  const { data: dbProfiles = [] } = useCollection(profilesQuery)
   
   const filteredItems = React.useMemo(() => {
     if (!selectedUser) return []
+
+    // Encontrar o perfil do usuário na lista de perfis salvos do banco
+    const userProfileObj = (dbProfiles || []).find(p => p.name?.toUpperCase() === selectedUser.profile?.toUpperCase())
+
     return menuItems.filter(item => {
-      if (!item.profiles.includes(selectedUser.profile)) return false;
-      
-      if (item.title === "Financeiro") {
-        const isMaster = selectedUser.profile === "SÓCIO" || selectedUser.profile === "ADMINISTRADOR";
-        const hasFinanceiro = (selectedUser.departmentIds || []).some((d: string) => d.toUpperCase() === "FINANCEIRO");
-        
-        if (!isMaster && !hasFinanceiro) {
-          return false;
+      // Mapeamento do item para a chave de permissão correspondente
+      let permKey = ""
+      if (item.title === "Relacionamento") permKey = "relacionamento"
+      else if (item.title === "Fluxo de Produção") permKey = "processos"
+      else if (item.title === "Societário") permKey = "societario"
+      else if (item.title === "Docs Flow") permKey = "docs_flow"
+      else if (item.title === "Financeiro") permKey = "financeiro"
+      else if (item.title === "Gestão de Equipe") permKey = "equipe"
+      else if (item.title === "Configurações") permKey = "configuracoes"
+
+      // Se temos o perfil salvo no banco, usamos a permissão do banco
+      if (userProfileObj && userProfileObj.permissions) {
+        if (userProfileObj.permissions[permKey] !== undefined) {
+          return !!userProfileObj.permissions[permKey]
         }
       }
-      return true;
+
+      // Fallback para regras padrão se o perfil não estiver no banco
+      const profile = selectedUser.profile?.toUpperCase()
+      if (profile === "SÓCIO") return true
+      if (profile === "ADMINISTRADOR") return true
+      
+      if (item.title === "Financeiro") {
+        const isMaster = profile === "SÓCIO" || profile === "ADMINISTRADOR" || profile === "CONTADOR/GESTOR";
+        const hasFinanceiro = (selectedUser.departmentIds || []).some((d: string) => d.toUpperCase() === "FINANCEIRO");
+        return isMaster || hasFinanceiro;
+      }
+      
+      if (item.title === "Gestão de Equipe") {
+        return profile === "ADMINISTRADOR" || profile === "SÓCIO";
+      }
+      
+      if (item.title === "Configurações") {
+        return profile === "ADMINISTRADOR" || profile === "SÓCIO";
+      }
+
+      return true; // Relacionamento, Processos, Societário, Docs Flow ativos por padrão
     })
-  }, [selectedUser])
+  }, [selectedUser, dbProfiles])
 
   const officeName = officeData?.nomeFantasia || officeData?.razaoSocial || "PROSPERARE"
 

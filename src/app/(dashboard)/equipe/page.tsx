@@ -74,6 +74,9 @@ export default function EquipePage() {
   const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
   const { data: team = [], isLoading } = useCollection(usersQuery)
 
+  const profilesQuery = useMemoFirebase(() => collection(firestore, "accessProfiles"), [firestore])
+  const { data: dbProfiles = [] } = useCollection(profilesQuery)
+
   // --- Função utilitária temporária para revogação em massa ---
   useEffect(() => {
     const runFix = async () => {
@@ -401,10 +404,21 @@ export default function EquipePage() {
                     <SelectValue placeholder="Nível de acesso" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="SÓCIO" className="text-xs font-bold">SÓCIO / PROPRIETÁRIO</SelectItem>
-                    <SelectItem value="ADMINISTRADOR" className="text-xs font-bold">ADMINISTRADOR</SelectItem>
-                    <SelectItem value="CONTADOR/GESTOR" className="text-xs font-bold">CONTADOR / GESTOR</SelectItem>
-                    <SelectItem value="ASSISTENTE" className="text-xs font-bold">ASSISTENTE / ANALISTA</SelectItem>
+                    {(dbProfiles || []).length > 0 ? (
+                      (dbProfiles || []).map((p) => (
+                        <SelectItem key={p.id} value={p.name} className="text-xs font-bold">
+                          {p.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <>
+                        <SelectItem value="SÓCIO" className="text-xs font-bold">SÓCIO / PROPRIETÁRIO</SelectItem>
+                        <SelectItem value="ADMINISTRADOR" className="text-xs font-bold">ADMINISTRADOR</SelectItem>
+                        <SelectItem value="SUPERVISOR" className="text-xs font-bold">SUPERVISOR</SelectItem>
+                        <SelectItem value="CONTADOR/GESTOR" className="text-xs font-bold">CONTADOR / GESTOR</SelectItem>
+                        <SelectItem value="ASSISTENTE" className="text-xs font-bold">ASSISTENTE / ANALISTA</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -486,10 +500,21 @@ export default function EquipePage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="SÓCIO" className="text-xs font-bold">SÓCIO / PROPRIETÁRIO</SelectItem>
-                    <SelectItem value="ADMINISTRADOR" className="text-xs font-bold">ADMINISTRADOR</SelectItem>
-                    <SelectItem value="CONTADOR/GESTOR" className="text-xs font-bold">CONTADOR / GESTOR</SelectItem>
-                    <SelectItem value="ASSISTENTE" className="text-xs font-bold">ASSISTENTE / ANALISTA</SelectItem>
+                    {(dbProfiles || []).length > 0 ? (
+                      (dbProfiles || []).map((p) => (
+                        <SelectItem key={p.id} value={p.name} className="text-xs font-bold">
+                          {p.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <>
+                        <SelectItem value="SÓCIO" className="text-xs font-bold">SÓCIO / PROPRIETÁRIO</SelectItem>
+                        <SelectItem value="ADMINISTRADOR" className="text-xs font-bold">ADMINISTRADOR</SelectItem>
+                        <SelectItem value="SUPERVISOR" className="text-xs font-bold">SUPERVISOR</SelectItem>
+                        <SelectItem value="CONTADOR/GESTOR" className="text-xs font-bold">CONTADOR / GESTOR</SelectItem>
+                        <SelectItem value="ASSISTENTE" className="text-xs font-bold">ASSISTENTE / ANALISTA</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
