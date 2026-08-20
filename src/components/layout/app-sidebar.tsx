@@ -146,6 +146,17 @@ const menuItems = [
     ]
   },
   {
+    title: "Cadastros",
+    url: "/cadastros",
+    icon: ClipboardList,
+    profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
+    subItems: [
+      { title: "Funcionários", url: "/cadastros/funcionarios", icon: Users },
+      { title: "Lotes", url: "/cadastros/lotes", icon: Layers },
+      { title: "Eventos", url: "/cadastros/eventos", icon: Calendar },
+    ]
+  },
+  {
     title: "Configurações",
     url: "/configuracoes",
     icon: Settings,
@@ -191,6 +202,7 @@ export function AppSidebar() {
       else if (item.title === "Docs Flow") permKey = "docs_flow"
       else if (item.title === "Financeiro") permKey = "financeiro"
       else if (item.title === "Gestão de Equipe") permKey = "equipe"
+      else if (item.title === "Cadastros") permKey = "cadastros"
       else if (item.title === "Configurações") permKey = "configuracoes"
 
       // Se temos o perfil salvo no banco, usamos a permissão do banco
@@ -215,6 +227,10 @@ export function AppSidebar() {
         return profile === "ADMINISTRADOR" || profile === "SÓCIO";
       }
       
+      if (item.title === "Cadastros") {
+        return profile === "ADMINISTRADOR" || profile === "SÓCIO" || profile === "CONTADOR/GESTOR" || profile === "ASSISTENTE";
+      }
+
       if (item.title === "Configurações") {
         return profile === "ADMINISTRADOR" || profile === "SÓCIO";
       }
