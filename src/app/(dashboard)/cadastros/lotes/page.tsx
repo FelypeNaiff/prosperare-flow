@@ -239,7 +239,7 @@ export default function LotesPage() {
       return
     }
 
-    const client = clients.find(c => c.id === selectedClientId)
+    const client = (clients || []).find(c => c.id === selectedClientId)
     if (!client) return
 
     const validRows = gridData.filter(row => row.nome.trim() !== "" && row.cpf.trim() !== "")
@@ -333,7 +333,7 @@ export default function LotesPage() {
                     <SelectValue placeholder="Selecione a empresa..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {clients.map(c => (
+                    {(clients || []).map(c => (
                       <SelectItem key={c.id} value={c.id} className="text-xs font-bold uppercase">
                         {c.nomeFantasia || c.razaoSocial} ({formatCNPJ(c.cnpj)})
                       </SelectItem>

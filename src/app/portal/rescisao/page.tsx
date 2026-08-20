@@ -45,6 +45,7 @@ import {
 } from "@/firebase"
 import { collection, doc, query, where } from "firebase/firestore"
 import { format, parseISO } from "date-fns"
+import { cn } from "@/lib/utils"
 
 export default function RescisaoPortalPage() {
   const firestore = useFirestore()
@@ -114,7 +115,7 @@ export default function RescisaoPortalPage() {
       return
     }
 
-    const emp = emps.find(e => e.id === newRequest.funcionarioId)
+    const emp = (emps || []).find(e => e.id === newRequest.funcionarioId)
     if (!emp) {
       toast({ title: "Erro", description: "Funcionário selecionado inválido.", variant: "destructive" })
       return
@@ -272,13 +273,13 @@ export default function RescisaoPortalPage() {
                     <Loader2 className="h-4 w-4 animate-spin text-blue-600 mr-2" />
                     <span className="text-xs font-medium text-slate-400">Buscando funcionários...</span>
                   </div>
-                ) : emps.length > 0 ? (
+                ) : (emps || []).length > 0 ? (
                   <Select value={newRequest.funcionarioId} onValueChange={(v) => setNewRequest({...newRequest, funcionarioId: v})}>
                     <SelectTrigger className="border-[#D2D7DB] h-11">
                       <SelectValue placeholder="Selecione o trabalhador..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {emps.map(e => (
+                      {(emps || []).map(e => (
                         <SelectItem key={e.id} value={e.id} className="text-xs font-bold uppercase">
                           {e.nome} - {e.cargo || "Sem cargo"} (CPF: {e.cpf})
                         </SelectItem>
@@ -326,7 +327,7 @@ export default function RescisaoPortalPage() {
             <Button 
               className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-8 shadow-lg shadow-blue-500/20 h-11" 
               onClick={handleCreateRequest}
-              disabled={isSaving || emps.length === 0}
+              disabled={isSaving || (emps || []).length === 0}
             >
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
               Enviar Solicitação
