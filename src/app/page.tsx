@@ -18,7 +18,8 @@ import {
   CheckCircle2,
   Lock,
   Menu,
-  X
+  X,
+  ChevronDown
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -28,6 +29,8 @@ export default function LandingPage() {
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [megaMenuOpen, setMegaMenuOpen] = useState(false)
+  const [mobileConteudosOpen, setMobileConteudosOpen] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -63,6 +66,131 @@ export default function LandingPage() {
             <a href="#diferenciais" className="text-sm font-bold text-slate-500 hover:text-[#2563EB] uppercase tracking-wider transition-colors">Diferenciais</a>
             <a href="#como-funciona" className="text-sm font-bold text-slate-500 hover:text-[#2563EB] uppercase tracking-wider transition-colors">Como Funciona</a>
             <a href="#planos" className="text-sm font-bold text-slate-500 hover:text-[#2563EB] uppercase tracking-wider transition-colors">Planos</a>
+            
+            {/* Mega Menu Dropdown */}
+            <div 
+              className="relative py-2"
+              onMouseEnter={() => setMegaMenuOpen(true)}
+              onMouseLeave={() => setMegaMenuOpen(false)}
+            >
+              <button 
+                onClick={() => setMegaMenuOpen(!megaMenuOpen)}
+                className="flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-[#2563EB] uppercase tracking-wider transition-colors focus:outline-none"
+              >
+                Conteúdos
+                <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", megaMenuOpen && "transform rotate-180")} />
+              </button>
+
+              {/* Dropdown container */}
+              <div 
+                className={cn(
+                  "absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[550px] bg-white border border-slate-200/60 rounded-2xl shadow-xl p-6 transition-all duration-200 origin-top z-50",
+                  megaMenuOpen 
+                    ? "opacity-100 translate-y-0 pointer-events-auto scale-100" 
+                    : "opacity-0 -translate-y-2 pointer-events-none scale-95"
+                )}
+              >
+                <div className="grid grid-cols-2 gap-8 text-left">
+                  {/* Column 1 */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-black text-[#2C4156] uppercase tracking-wider border-b border-slate-100 pb-1.5">
+                      Calculadoras:
+                    </h4>
+                    <ul className="space-y-1">
+                      <li>
+                        <a 
+                          href="/calculadoras/custo-para-abrir-cnpj" 
+                          className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                        >
+                          Calculadora de Custo para abrir CNPJ
+                        </a>
+                      </li>
+                      <li>
+                        <a 
+                          href="/calculadoras/pj-x-clt" 
+                          className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                        >
+                          Calculadora PJ x CLT
+                        </a>
+                      </li>
+                      <li>
+                        <a 
+                          href="/calculadoras/fator-r" 
+                          className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                        >
+                          Calculadora de Fator R
+                        </a>
+                      </li>
+                      <li>
+                        <a 
+                          href="/calculadoras/rpa-online" 
+                          className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                        >
+                          Calculadora de RPA online
+                        </a>
+                      </li>
+                      <li>
+                        <a 
+                          href="/calculadoras/reforma-tributaria" 
+                          className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                        >
+                          Calculadora de Reforma Tributária
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Column 2 */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-black text-[#2C4156] uppercase tracking-wider border-b border-slate-100 pb-1.5">
+                      Nosso blog:
+                    </h4>
+                    <ul className="space-y-1">
+                      <li>
+                        <a 
+                          href="/blog/abertura-de-empresa" 
+                          className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                        >
+                          Abertura de Empresa
+                        </a>
+                      </li>
+                      <li>
+                        <a 
+                          href="/blog/simples-nacional" 
+                          className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                        >
+                          Simples Nacional
+                        </a>
+                      </li>
+                      <li>
+                        <a 
+                          href="/blog/comparativo-clt-x-pj" 
+                          className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                        >
+                          Comparativo CLT x PJ
+                        </a>
+                      </li>
+                      <li>
+                        <a 
+                          href="/blog/tabela-simples-nacional" 
+                          className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                        >
+                          Tabela Simples Nacional
+                        </a>
+                      </li>
+                      <li>
+                        <a 
+                          href="/blog/ebook-guia-para-ser-pj" 
+                          className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                        >
+                          Ebook: Guia para ser PJ
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
           </nav>
 
           {/* Login Action Button */}
@@ -119,6 +247,42 @@ export default function LandingPage() {
               >
                 Planos
               </a>
+              
+              {/* Mobile Conteúdos Dropdown */}
+              <div className="flex flex-col gap-2">
+                <button 
+                  onClick={() => setMobileConteudosOpen(!mobileConteudosOpen)}
+                  className="flex items-center justify-between text-xs font-black text-slate-500 hover:text-[#2563EB] uppercase tracking-wider w-full text-left"
+                >
+                  <span>Conteúdos</span>
+                  <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", mobileConteudosOpen && "transform rotate-180")} />
+                </button>
+                
+                {mobileConteudosOpen && (
+                  <div className="pl-4 space-y-4 border-l border-slate-200 mt-2 animate-in slide-in-from-top-2 duration-200">
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black text-[#2C4156] uppercase tracking-widest">Calculadoras:</p>
+                      <div className="flex flex-col gap-2 pl-2">
+                        <a href="/calculadoras/custo-para-abrir-cnpj" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Calculadora de Custo para abrir CNPJ</a>
+                        <a href="/calculadoras/pj-x-clt" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Calculadora PJ x CLT</a>
+                        <a href="/calculadoras/fator-r" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Calculadora de Fator R</a>
+                        <a href="/calculadoras/rpa-online" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Calculadora de RPA online</a>
+                        <a href="/calculadoras/reforma-tributaria" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Calculadora de Reforma Tributária</a>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black text-[#2C4156] uppercase tracking-widest">Nosso blog:</p>
+                      <div className="flex flex-col gap-2 pl-2">
+                        <a href="/blog/abertura-de-empresa" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Abertura de Empresa</a>
+                        <a href="/blog/simples-nacional" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Simples Nacional</a>
+                        <a href="/blog/comparativo-clt-x-pj" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Comparativo CLT x PJ</a>
+                        <a href="/blog/tabela-simples-nacional" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Tabela Simples Nacional</a>
+                        <a href="/blog/ebook-guia-para-ser-pj" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Ebook: Guia para ser PJ</a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </nav>
             <div className="pt-4 border-t border-slate-100">
               {mounted && !isUserLoading && user ? (
