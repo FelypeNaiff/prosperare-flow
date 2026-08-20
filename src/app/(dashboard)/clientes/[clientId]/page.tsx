@@ -196,6 +196,11 @@ export default function DetalhesClientePage() {
               <Badge className={cn("border-none font-bold text-[10px] uppercase", client.status === 'Inativa' ? "bg-[#F3F4F6] text-[#98A7AA]" : "bg-[#7ED6B5] text-[#2563EB]")}>
                 {client.status || 'Ativa'}
               </Badge>
+              {client.codigoInterno && (
+                <Badge variant="outline" className="border-slate-300 text-slate-500 bg-slate-50 font-black text-[9px] uppercase tracking-wider px-2 py-0.5 rounded">
+                  Cód: {client.codigoInterno}
+                </Badge>
+              )}
             </div>
             <div className="flex items-center gap-2 mt-0.5">
               <p className="text-sm text-[#98A7AA] font-bold uppercase tracking-widest">{client.cnpj} • {client.taxRegime}</p>

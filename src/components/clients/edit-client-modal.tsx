@@ -102,7 +102,8 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
     porte: "",
     numero: "",
     complemento: "",
-    qsa: [] as Socio[]
+    qsa: [] as Socio[],
+    codigoInterno: ""
   })
 
   // Pre-load IBGE subclasses list on modal open
@@ -171,7 +172,8 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
         porte: client.porte || "",
         numero: client.numero || "",
         complemento: client.complemento || "",
-        qsa: client.qsa || []
+        qsa: client.qsa || [],
+        codigoInterno: client.codigoInterno || ""
       })
       setActiveTab("basico")
     }
@@ -505,6 +507,16 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
           {/* TAB 1: BÁSICO */}
           {activeTab === "basico" && (
             <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="space-y-2 max-w-[200px]">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Código Interno</Label>
+                <Input 
+                  value={formData.codigoInterno || ""}
+                  onChange={(e) => setFormData({...formData, codigoInterno: e.target.value})}
+                  placeholder="Ex: 1234"
+                  className="border-[#D2D7DB] h-10 font-bold"
+                />
+              </div>
+
               <div className="flex flex-wrap items-end gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200/60">
                 <div className="flex-1 min-w-[200px] space-y-2">
                   <Label className="text-[10px] font-black uppercase text-[#98A7AA]">CNPJ do Cliente</Label>

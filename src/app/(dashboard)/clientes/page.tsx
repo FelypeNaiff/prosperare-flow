@@ -443,7 +443,8 @@ export default function ClientesPage() {
     let list = (clients || []).filter(c => {
       const matchesSearch = c.corporateName?.toLowerCase().includes(searchLower) || 
                             c.nomeFantasia?.toLowerCase().includes(searchLower) ||
-                            c.cnpj?.includes(searchTerm);
+                            c.cnpj?.includes(searchTerm) ||
+                            c.codigoInterno?.toLowerCase().includes(searchLower);
       
       const matchesRegime = filterRegime === "todos" || c.taxRegime === filterRegime;
       
@@ -750,6 +751,11 @@ export default function ClientesPage() {
                             )}>
                               {client.companyStatus.toUpperCase()}
                             </span>
+                          )}
+                          {client.codigoInterno && (
+                            <Badge variant="outline" className="border-slate-300 text-slate-500 bg-slate-50 font-black text-[9px] uppercase tracking-wider px-1.5 py-0">
+                              Cód: {client.codigoInterno}
+                            </Badge>
                           )}
                         </div>
                         {client.nomeFantasia && client.nomeFantasia !== client.corporateName && (

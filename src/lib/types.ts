@@ -42,6 +42,7 @@ export interface Client {
   honorarioValor: number;
   healthScore: number;
   status: 'ATIVO' | 'INATIVO';
+  codigoInterno?: string;
   
   // Dados societários e QSA
   capitalSocial?: number;
