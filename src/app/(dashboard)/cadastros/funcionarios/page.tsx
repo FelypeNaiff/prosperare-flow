@@ -56,7 +56,7 @@ import {
   updateDocumentNonBlocking
 } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
-import { formatCNPJ } from "@/lib/utils"
+import { formatCNPJ, cn } from "@/lib/utils"
 
 export default function FuncionariosPage() {
   const firestore = useFirestore()
@@ -97,7 +97,7 @@ export default function FuncionariosPage() {
       return
     }
 
-    const client = clients.find(c => c.id === newEmp.clientId)
+    const client = (clients || []).find(c => c.id === newEmp.clientId)
     if (!client) {
       toast({ title: "Erro", description: "Empresa selecionada inválida.", variant: "destructive" })
       return
@@ -138,7 +138,7 @@ export default function FuncionariosPage() {
   const handleUpdateEmp = () => {
     if (!selectedEmp || !editFormData.nome || !editFormData.clientId || !editFormData.cpf) return
     
-    const client = clients.find(c => c.id === editFormData.clientId)
+    const client = (clients || []).find(c => c.id === editFormData.clientId)
     if (!client) {
       toast({ title: "Erro", description: "Empresa selecionada inválida.", variant: "destructive" })
       return
@@ -328,7 +328,7 @@ export default function FuncionariosPage() {
                     <SelectValue placeholder="Selecione a empresa..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {clients.map(c => (
+                    {(clients || []).map(c => (
                       <SelectItem key={c.id} value={c.id} className="text-xs font-bold uppercase">
                         {c.nomeFantasia || c.razaoSocial} ({formatCNPJ(c.cnpj)})
                       </SelectItem>
@@ -419,7 +419,7 @@ export default function FuncionariosPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {clients.map(c => (
+                    {(clients || []).map(c => (
                       <SelectItem key={c.id} value={c.id} className="text-xs font-bold uppercase">
                         {c.nomeFantasia || c.razaoSocial} ({formatCNPJ(c.cnpj)})
                       </SelectItem>
