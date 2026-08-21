@@ -43,6 +43,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { ClientSearchSelect } from "@/components/clients/client-search-select"
 import { toast } from "@/hooks/use-toast"
 import { 
   useFirestore, 
@@ -498,18 +499,12 @@ export default function FuncionariosPage() {
               <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">
                 Empresa Cadastrada *
               </Label>
-              <Select value={newEmp.clientId} onValueChange={(v) => setNewEmp({...newEmp, clientId: v})}>
-                <SelectTrigger className="border-slate-200 h-11 text-xs font-semibold text-slate-700">
-                  <SelectValue placeholder="Selecione a empresa..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {(clients || []).map(c => (
-                    <SelectItem key={c.id} value={c.id} className="text-xs font-bold uppercase">
-                      {c.nomeFantasia || c.razaoSocial} ({formatCNPJ(c.cnpj)})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ClientSearchSelect
+                clients={clients}
+                value={newEmp.clientId}
+                onValueChange={(v: string) => setNewEmp({...newEmp, clientId: v})}
+                placeholder="SELECIONE A EMPRESA..."
+              />
             </div>
 
             {/* Matrícula e Nome */}
@@ -737,18 +732,12 @@ export default function FuncionariosPage() {
               <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">
                 Empresa Cadastrada *
               </Label>
-              <Select value={editFormData.clientId} onValueChange={(v) => setEditFormData({...editFormData, clientId: v})}>
-                <SelectTrigger className="border-slate-200 h-11 text-xs font-semibold text-slate-700">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(clients || []).map(c => (
-                    <SelectItem key={c.id} value={c.id} className="text-xs font-bold uppercase">
-                      {c.nomeFantasia || c.razaoSocial} ({formatCNPJ(c.cnpj)})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ClientSearchSelect
+                clients={clients}
+                value={editFormData.clientId}
+                onValueChange={(v: string) => setEditFormData({...editFormData, clientId: v})}
+                placeholder="SELECIONE A EMPRESA..."
+              />
             </div>
 
             {/* Matrícula e Nome */}

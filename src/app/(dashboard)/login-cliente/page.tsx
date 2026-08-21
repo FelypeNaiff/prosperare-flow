@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { 
   Plus, 
   Search, 
@@ -104,6 +104,27 @@ export default function LoginClientePage() {
   const [editSelectOpen, setEditSelectOpen] = useState(false)
   const [createCompanySearch, setCreateCompanySearch] = useState("")
   const [editCompanySearch, setEditCompanySearch] = useState("")
+
+  const createInputRef = useRef<HTMLInputElement>(null)
+  const editInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (createSelectOpen) {
+      const timer = setTimeout(() => {
+        createInputRef.current?.focus()
+      }, 150)
+      return () => clearTimeout(timer)
+    }
+  }, [createSelectOpen])
+
+  useEffect(() => {
+    if (editSelectOpen) {
+      const timer = setTimeout(() => {
+        editInputRef.current?.focus()
+      }, 150)
+      return () => clearTimeout(timer)
+    }
+  }, [editSelectOpen])
 
   // Filtrar apenas usuários do tipo CLIENTE
   const clientLogins = (users || []).filter(u => u.profile?.toUpperCase() === 'CLIENTE')
@@ -520,7 +541,7 @@ export default function LoginClientePage() {
                     <span className="text-xs font-semibold text-slate-400">Carregando empresas...</span>
                   </div>
                 ) : (
-                  <Popover open={createSelectOpen} onOpenChange={setCreateSelectOpen}>
+                  <Popover open={createSelectOpen} onOpenChange={setCreateSelectOpen} modal={true}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -540,15 +561,27 @@ export default function LoginClientePage() {
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[380px] p-0" align="start">
+                    <PopoverContent 
+                      className="w-[380px] p-0 border-[#D2D7DB] shadow-2xl z-[10000] pointer-events-auto" 
+                      align="start"
+                      onOpenAutoFocus={(e) => e.preventDefault()}
+                      onCloseAutoFocus={(e) => e.preventDefault()}
+                      onPointerDownOutside={(e) => e.preventDefault()}
+                    >
                       <div className="flex flex-col">
                         <div className="flex items-center border-b p-2 bg-slate-50 gap-2">
                           <Search className="h-4 w-4 text-slate-400 shrink-0" />
                           <Input
+                            ref={createInputRef}
+                            autoFocus
                             placeholder="Buscar empresa pelo nome ou CNPJ..."
                             value={createCompanySearch}
                             onChange={(e) => setCreateCompanySearch(e.target.value)}
-                            className="h-8 border-none bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-xs"
+                            className="h-8 border-none bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-xs pointer-events-auto"
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => e.stopPropagation()}
+                            onTouchStart={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
                           />
                         </div>
                         
@@ -557,7 +590,9 @@ export default function LoginClientePage() {
                             type="button" 
                             variant="ghost" 
                             className="h-6 px-1.5 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-transparent"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
                               const allIds = (clients || []).map((c: any) => c.id)
                               setNewLogin(prev => ({ ...prev, clientIds: allIds }))
                             }}
@@ -568,7 +603,9 @@ export default function LoginClientePage() {
                             type="button" 
                             variant="ghost" 
                             className="h-6 px-1.5 text-[10px] font-bold text-red-600 hover:text-red-700 hover:bg-transparent"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
                               setNewLogin(prev => ({ ...prev, clientIds: [] }))
                             }}
                           >
@@ -602,7 +639,9 @@ export default function LoginClientePage() {
                                   <div
                                     key={c.id}
                                     className="flex items-center gap-2.5 px-2.5 py-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
                                       const nextIds = isChecked
                                         ? newLogin.clientIds.filter(id => id !== c.id)
                                         : [...newLogin.clientIds, c.id]
@@ -690,7 +729,7 @@ export default function LoginClientePage() {
                     <span className="text-xs font-semibold text-slate-400">Carregando empresas...</span>
                   </div>
                 ) : (
-                  <Popover open={editSelectOpen} onOpenChange={setEditSelectOpen}>
+                  <Popover open={editSelectOpen} onOpenChange={setEditSelectOpen} modal={true}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -710,15 +749,27 @@ export default function LoginClientePage() {
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[380px] p-0" align="start">
+                    <PopoverContent 
+                      className="w-[380px] p-0 border-[#D2D7DB] shadow-2xl z-[10000] pointer-events-auto" 
+                      align="start"
+                      onOpenAutoFocus={(e) => e.preventDefault()}
+                      onCloseAutoFocus={(e) => e.preventDefault()}
+                      onPointerDownOutside={(e) => e.preventDefault()}
+                    >
                       <div className="flex flex-col">
                         <div className="flex items-center border-b p-2 bg-slate-50 gap-2">
                           <Search className="h-4 w-4 text-slate-400 shrink-0" />
                           <Input
+                            ref={editInputRef}
+                            autoFocus
                             placeholder="Buscar empresa pelo nome ou CNPJ..."
                             value={editCompanySearch}
                             onChange={(e) => setEditCompanySearch(e.target.value)}
-                            className="h-8 border-none bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-xs"
+                            className="h-8 border-none bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-xs pointer-events-auto"
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => e.stopPropagation()}
+                            onTouchStart={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
                           />
                         </div>
                         
@@ -727,7 +778,9 @@ export default function LoginClientePage() {
                             type="button" 
                             variant="ghost" 
                             className="h-6 px-1.5 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-transparent"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
                               const allIds = (clients || []).map((c: any) => c.id)
                               setEditForm(prev => ({ ...prev, clientIds: allIds }))
                             }}
@@ -738,7 +791,9 @@ export default function LoginClientePage() {
                             type="button" 
                             variant="ghost" 
                             className="h-6 px-1.5 text-[10px] font-bold text-red-600 hover:text-red-700 hover:bg-transparent"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
                               setEditForm(prev => ({ ...prev, clientIds: [] }))
                             }}
                           >
@@ -772,7 +827,9 @@ export default function LoginClientePage() {
                                   <div
                                     key={c.id}
                                     className="flex items-center gap-2.5 px-2.5 py-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
                                       const nextIds = isChecked
                                         ? editForm.clientIds.filter(id => id !== c.id)
                                         : [...editForm.clientIds, c.id]
