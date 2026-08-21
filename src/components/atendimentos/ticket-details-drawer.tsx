@@ -16,7 +16,9 @@ import {
   Trash2,
   CalendarDays,
   Clock,
-  MessageSquare
+  MessageSquare,
+  Save,
+  Loader2
 } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -47,6 +49,7 @@ import {
 export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team, templates }: any) {
   const firestore = useFirestore()
   const { user } = useUser()
+  const [isSaving, setIsSaving] = useState(false)
   const [localData, setLocalData] = useState({
     title: "",
     notes: "",
@@ -82,39 +85,61 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
 
   if (!ticket) return null
 
-  const handleUpdate = (field: string, value: any) => {
-    setLocalData(prev => ({ ...prev, [field]: value }))
-    
-    // Auto-update extra names to avoid inconsistencies
-    const updates: any = { [field]: value, updatedAt: new Date().toISOString() }
-    
-    if (field === 'clientId' && value !== 'none') {
-      const client = clients.find((c: any) => c.id === value)
-      if (client) updates.clientName = client.corporateName
-    }
-    if (field === 'responsibleId') {
-      const resp = team.find((t: any) => t.id === value)
-      if (resp) updates.responsibleName = resp.fullName
-    }
-    if (field === 'templateId' && value !== 'none') {
-      const temp = templates.find((t: any) => t.id === value)
-      if (temp) updates.title = temp.nome
-    }
+  const handleSaveChanges = async () => {
+    setIsSaving(true)
+    try {
+      const updates: any = {
+        title: localData.title,
+        notes: localData.notes,
+        clientId: localData.clientId,
+        templateId: localData.templateId,
+        responsibleId: localData.responsibleId,
+        dueDate: localData.dueDate,
+        updatedAt: new Date().toISOString()
+      }
 
-    const docRef = doc(firestore, "tasks", ticket.id)
-    updateDocumentNonBlocking(docRef, updates)
+      if (localData.clientId && localData.clientId !== 'none') {
+        const client = clients.find((c: any) => c.id === localData.clientId)
+        if (client) updates.clientName = client.corporateName
+      } else {
+        updates.clientName = ""
+      }
+      
+      if (localData.responsibleId) {
+        const resp = team.find((t: any) => t.id === localData.responsibleId)
+        if (resp) updates.responsibleName = resp.fullName
+      } else {
+        updates.responsibleName = ""
+      }
 
-    if (field === 'responsibleId' && value && value !== ticket.responsibleId) {
-      createAppNotification(firestore, {
-        userId: value,
-        title: "Demanda Interna Atualizada",
-        message: `Você foi designado para a demanda: ${updates.title || ticket.title}`,
-        type: "assignment",
-        link: "/atendimentos",
-        taskId: ticket.id,
-        remetente: user?.displayName || "Sistema",
-        metaKey: buildTaskAssignmentNotificationKey(ticket.id, value),
-      })
+      if (localData.templateId && localData.templateId !== 'none') {
+        const temp = templates.find((t: any) => t.id === localData.templateId)
+        if (temp) updates.title = temp.nome
+      }
+
+      const docRef = doc(firestore, "tasks", ticket.id)
+      await updateDocumentNonBlocking(docRef, updates)
+
+      // Notify responsible user if they were changed
+      if (localData.responsibleId && localData.responsibleId !== ticket.responsibleId) {
+        createAppNotification(firestore, {
+          userId: localData.responsibleId,
+          title: "Demanda Interna Designada",
+          message: `Você foi designado para a demanda: ${updates.title || localData.title}`,
+          type: "assignment",
+          link: "/atendimentos",
+          taskId: ticket.id,
+          remetente: user?.displayName || "Sistema",
+          metaKey: buildTaskAssignmentNotificationKey(ticket.id, localData.responsibleId),
+        })
+      }
+
+      toast({ title: "Alterações Salvas!", description: "A demanda foi atualizada com sucesso." })
+    } catch (e) {
+      console.error(e)
+      toast({ title: "Erro ao salvar", description: "Não foi possível atualizar a demanda.", variant: "destructive" })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -169,10 +194,6 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
 
     setNewComment("")
   }
-
-  const usersData = (team || [])
-    .filter((u: any) => u && u.id && u.fullName)
-    .map((u: any) => ({ id: String(u.id), display: String(u.fullName) }))
 
   const renderCommentText = (text: string) => {
     if (!text) return null;
@@ -249,7 +270,6 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
                 <Input 
                   value={localData.title} 
                   onChange={(e) => setLocalData({...localData, title: e.target.value.toUpperCase()})}
-                  onBlur={() => handleUpdate('title', localData.title)}
                   className="border-[#D2D7DB] font-bold text-[#2C4156] uppercase"
                   disabled={localData.templateId !== 'none' && localData.templateId !== ''}
                 />
@@ -258,7 +278,7 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-wider">Empresa</Label>
-                  <Select value={localData.clientId} onValueChange={(v) => handleUpdate('clientId', v)}>
+                  <Select value={localData.clientId} onValueChange={(v) => setLocalData(prev => ({ ...prev, clientId: v }))}>
                     <SelectTrigger className="border-[#D2D7DB] font-bold text-[#2C4156] text-xs">
                       <SelectValue />
                     </SelectTrigger>
@@ -273,7 +293,14 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
 
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-wider">Modelo</Label>
-                  <Select value={localData.templateId} onValueChange={(v) => handleUpdate('templateId', v)}>
+                  <Select value={localData.templateId} onValueChange={(v) => {
+                    const temp = templates.find((t: any) => t.id === v)
+                    setLocalData(prev => ({ 
+                      ...prev, 
+                      templateId: v,
+                      title: temp ? temp.nome : prev.title 
+                    }))
+                  }}>
                     <SelectTrigger className="border-[#D2D7DB] font-bold text-[#2C4156] text-xs">
                       <SelectValue placeholder="Sem Modelo" />
                     </SelectTrigger>
@@ -288,7 +315,7 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
 
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-wider">Responsável</Label>
-                  <Select value={localData.responsibleId} onValueChange={(v) => handleUpdate('responsibleId', v)}>
+                  <Select value={localData.responsibleId} onValueChange={(v) => setLocalData(prev => ({ ...prev, responsibleId: v }))}>
                     <SelectTrigger className="border-[#D2D7DB] font-bold text-[#2C4156] text-xs">
                       <SelectValue />
                     </SelectTrigger>
@@ -307,7 +334,7 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
                     <Input 
                       type="date"
                       value={localData.dueDate} 
-                      onChange={(e) => handleUpdate('dueDate', e.target.value)}
+                      onChange={(e) => setLocalData(prev => ({ ...prev, dueDate: e.target.value }))}
                       className="border-[#D2D7DB] font-bold text-[#2C4156] pl-10"
                     />
                   </div>
@@ -319,7 +346,6 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
                 <Textarea 
                   value={localData.notes} 
                   onChange={(e) => setLocalData({...localData, notes: e.target.value})}
-                  onBlur={() => handleUpdate('notes', localData.notes)}
                   className="border-[#D2D7DB] min-h-[100px] text-sm"
                   placeholder="Insira detalhes da tarefa..."
                 />
@@ -394,8 +420,16 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
               </div>
             </div>
             
-            <div className="flex justify-end pt-4">
-               <Button variant="destructive" className="gap-2 text-xs font-black uppercase shadow-sm" onClick={handleDelete}>
+            <div className="flex justify-between items-center pt-4">
+               <Button 
+                 className="bg-[#2563EB] hover:bg-[#2563EB]/95 gap-2 text-xs font-black uppercase shadow-sm h-11 px-8" 
+                 onClick={handleSaveChanges}
+                 disabled={isSaving}
+               >
+                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                 Salvar Alterações
+               </Button>
+               <Button variant="destructive" className="gap-2 text-xs font-black uppercase shadow-sm h-11 px-6" onClick={handleDelete}>
                  <Trash2 className="h-4 w-4" /> Excluir Demanda
                </Button>
             </div>
