@@ -2,18 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { 
-  Plus, 
-  Search, 
-  Loader2,
   Calendar,
-  Save,
-  CheckCircle,
-  HelpCircle,
+  Send,
+  Info,
+  Loader2,
   Clock,
+  Building,
   User,
   ArrowRight,
-  Calculator,
-  RefreshCw,
   FolderOpen
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -28,17 +24,10 @@ import {
   TableRow 
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter
-} from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/hooks/use-toast"
 import { 
   useFirestore, 
@@ -56,9 +45,49 @@ export default function FeriasPortalPage() {
   const { selectedUser } = useUser()
   const [cnpj, setCnpj] = useState("")
   const [companyName, setCompanyName] = useState("")
-  const [isAddOpen, setIsAddOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  
+
+  // Estados do formulário
+  const [selectedEmpresa, setSelectedEmpresa] = useState("empresa2") // Default to ELETRO LTDA
+  const [lotacaoSetor, setLotacaoSetor] = useState("GERAL")
+  const [selectedFuncionario, setSelectedFuncionario] = useState("func1")
+  const [dataInicio, setDataInicio] = useState("")
+  const [diasGozo, setDiasGozo] = useState(30)
+  const [abonoPecuniario, setAbonoPecuniario] = useState(false)
+  const [adiantamento13, setAdiantamento13] = useState(false)
+  const [observacoes, setObservacoes] = useState("")
+
+  // Lógica de cálculo de datas
+  const [dataFinal, setDataFinal] = useState("")
+  const [dataRetorno, setDataRetorno] = useState("")
+
+  useEffect(() => {
+    if (dataInicio && diasGozo > 0) {
+      try {
+        const start = parseISO(dataInicio)
+        if (isValid(start)) {
+          // Data Final = Início + Dias - 1
+          const end = addDays(start, diasGozo - 1)
+          // Retorno ao Trabalho = Data Final + 1 (Início + Dias)
+          const ret = addDays(end, 1)
+
+          setDataFinal(format(end, "dd/MM/yyyy"))
+          setDataRetorno(format(ret, "dd/MM/yyyy"))
+        } else {
+          setDataFinal("")
+          setDataRetorno("")
+        }
+      } catch (e) {
+        console.error("Erro ao calcular datas", e)
+        setDataFinal("")
+        setDataRetorno("")
+      }
+    } else {
+      setDataFinal("")
+      setDataRetorno("")
+    }
+  }, [dataInicio, diasGozo])
+
   // Sincroniza CNPJ da empresa ativa no portal
   useEffect(() => {
     const container = document.getElementById("portal-context-container")
@@ -79,14 +108,7 @@ export default function FeriasPortalPage() {
     return () => window.removeEventListener("portalCompanyChanged", handleCnpjChange)
   }, [])
 
-  // Buscar funcionários ativos da empresa atual
-  const empsQuery = useMemoFirebase(() => 
-    cnpj ? query(collection(firestore, "funcionarios"), where("clientCnpj", "==", cnpj), where("status", "==", "ATIVO")) : null, 
-    [firestore, cnpj]
-  )
-  const { data: emps = [], isLoading: loadingEmps } = useCollection(empsQuery)
-
-  // Buscar solicitações de férias na coleção de tarefas
+  // Buscar solicitações de férias existentes da empresa ativa
   const tasksQuery = useMemoFirebase(() => 
     cnpj ? query(
       collection(firestore, "tasks"), 
@@ -102,104 +124,87 @@ export default function FeriasPortalPage() {
     new Date(b.createdAt || "").getTime() - new Date(a.createdAt || "").getTime()
   )
 
-  // Formulário do Modal
-  const [newRequest, setNewRequest] = useState({
-    funcionarioId: "",
-    dataInicio: "",
-    dias: 30,
-    abonoPecuniario: false,
-    diasAbono: 10
-  })
+  // Mocks de dados solicitados
+  const MOCK_EMPRESAS = [
+    { id: "empresa1", label: "1 - PROSPERARE LTDA (04.536.819/0001-90)", name: "PROSPERARE LTDA", cnpj: "04.536.819/0001-90" },
+    { id: "empresa2", label: "2 - ELETRO LTDA (12.345.678/0001-90)", name: "ELETRO LTDA", cnpj: "12.345.678/0001-90" }
+  ]
 
-  // Datas calculadas automaticamente
-  const [calculatedDates, setCalculatedDates] = useState({
-    dataFim: "",
-    dataRetorno: ""
-  })
+  const MOCK_FUNCIONARIOS = [
+    { id: "func1", label: "Matrícula 1 - CARLOS EDUARDO SILVA (01.01 - GERAL)", name: "CARLOS EDUARDO SILVA", matricula: "1", setor: "GERAL" },
+    { id: "func2", label: "Matrícula 2 - ANA MARIA DE SOUZA (01.02 - GERÊNCIA)", name: "ANA MARIA DE SOUZA", matricula: "2", setor: "GERÊNCIA" },
+    { id: "func3", label: "Matrícula 3 - PEDRO ALVES DE LIMA (01.01 - GERAL)", name: "PEDRO ALVES DE LIMA", matricula: "3", setor: "GERAL" }
+  ]
 
-  // Realiza o cálculo automático das datas de férias
-  useEffect(() => {
-    if (newRequest.dataInicio && newRequest.dias > 0) {
-      try {
-        const start = parseISO(newRequest.dataInicio)
-        if (isValid(start)) {
-          // Data Final = Início + Dias - 1
-          const end = addDays(start, newRequest.dias - 1)
-          // Retorno ao Trabalho = Data Final + 1 (ou Início + Dias)
-          const ret = addDays(end, 1)
-
-          setCalculatedDates({
-            dataFim: format(end, "yyyy-MM-dd"),
-            dataRetorno: format(ret, "yyyy-MM-dd")
-          })
-        }
-      } catch (e) {
-        console.error("Erro ao calcular datas", e)
-      }
-    } else {
-      setCalculatedDates({ dataFim: "", dataRetorno: "" })
-    }
-  }, [newRequest.dataInicio, newRequest.dias])
+  // Ações rápidos de dias de gozo
+  const QUICK_DAYS = [30, 20, 15, 10]
 
   const handleCreateRequest = async () => {
-    if (!cnpj) {
-      toast({ title: "Erro", description: "Selecione uma empresa válida.", variant: "destructive" })
-      return
-    }
-    if (!newRequest.funcionarioId || !newRequest.dataInicio || !newRequest.dias) {
-      toast({ title: "Erro", description: "Preencha todos os campos obrigatórios.", variant: "destructive" })
+    if (!dataInicio) {
+      toast({ title: "Erro", description: "Informe a Data de Início das Férias.", variant: "destructive" })
       return
     }
 
-    const emp = (emps || []).find(e => e.id === newRequest.funcionarioId)
-    if (!emp) {
-      toast({ title: "Erro", description: "Funcionário selecionado inválido.", variant: "destructive" })
+    if (diasGozo <= 0) {
+      toast({ title: "Erro", description: "A quantidade de dias de gozo deve ser maior que zero.", variant: "destructive" })
       return
     }
 
     setIsSaving(true)
     try {
+      const selectedCompanyObj = MOCK_EMPRESAS.find(e => e.id === selectedEmpresa)
+      const selectedEmpObj = MOCK_FUNCIONARIOS.find(f => f.id === selectedFuncionario)
+
       const id = Math.random().toString(36).substr(2, 9)
       const taskRef = doc(firestore, "tasks", id)
 
       const notesHtml = `
         Solicitação de Férias criada via Portal do Cliente.
-        Funcionário: ${emp.nome} (CPF: ${emp.cpf})
-        Período de Gozo: ${format(parseISO(newRequest.dataInicio), "dd/MM/yyyy")} a ${format(parseISO(calculatedDates.dataFim), "dd/MM/yyyy")}
-        Quantidade de Dias: ${newRequest.dias} dias
-        Retorno ao Trabalho: ${format(parseISO(calculatedDates.dataRetorno), "dd/MM/yyyy")}
-        Abono Pecuniário (Venda de 1/3): ${newRequest.abonoPecuniario ? `Sim (${newRequest.diasAbono} dias)` : "Não"}
+        Funcionário: ${selectedEmpObj?.name || "Funcionário"}
+        Lotação: ${lotacaoSetor}
+        Período de Gozo: ${dataInicio ? format(parseISO(dataInicio), "dd/MM/yyyy") : ""} a ${dataFinal}
+        Quantidade de Dias: ${diasGozo} dias
+        Retorno ao Trabalho: ${dataRetorno}
+        Abono Pecuniário (Venda de 1/3): ${abonoPecuniario ? "Sim (10 dias)" : "Não"}
+        Adiantamento 13º Salário: ${adiantamento13 ? "Sim" : "Não"}
+        Observações: ${observacoes || "-"}
       `.trim()
 
       const taskData = {
         id,
-        clientId: cnpj,
-        clientName: companyName || emp.clientName,
-        title: `SOLICITAÇÃO DE FÉRIAS - ${emp.nome}`,
+        clientId: selectedCompanyObj?.cnpj || cnpj || "12.345.678/0001-90",
+        clientName: selectedCompanyObj?.name || companyName || "ELETRO LTDA",
+        title: `SOLICITAÇÃO DE FÉRIAS - ${selectedEmpObj?.name || "Funcionário"}`,
         responsibleId: "Geral",
         responsibleName: "Departamento Pessoal",
         notes: notesHtml,
-        status: "pendente", // PENDENTE
+        status: "pendente",
         origem: "PORTAL_CLIENTE",
         tipo: "FERIAS",
         departamento: "DP",
-        funcionarioId: emp.id,
-        funcionarioNome: emp.nome,
-        dataInicio: newRequest.dataInicio,
-        dias: newRequest.dias,
-        dataFim: calculatedDates.dataFim,
-        dataRetorno: calculatedDates.dataRetorno,
-        abonoPecuniario: newRequest.abonoPecuniario,
-        diasAbono: newRequest.abonoPecuniario ? newRequest.diasAbono : 0,
+        funcionarioNome: selectedEmpObj?.name || "Funcionário",
+        dataInicio: dataInicio,
+        dias: diasGozo,
+        dataFim: dataInicio && diasGozo > 0 ? format(addDays(parseISO(dataInicio), diasGozo - 1), "yyyy-MM-dd") : "",
+        dataRetorno: dataInicio && diasGozo > 0 ? format(addDays(parseISO(dataInicio), diasGozo), "yyyy-MM-dd") : "",
+        abonoPecuniario: abonoPecuniario,
+        diasAbono: abonoPecuniario ? 10 : 0,
+        adiantamento13: adiantamento13,
+        observacoes: observacoes,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }
 
       setDocumentNonBlocking(taskRef, taskData, { merge: true })
       
-      setIsAddOpen(false)
-      setNewRequest({ funcionarioId: "", dataInicio: "", dias: 30, abonoPecuniario: false, diasAbono: 10 })
-      toast({ title: "Solicitação Enviada!", description: `A demanda de férias para ${emp.nome} foi enviada ao Departamento Pessoal.` })
+      toast({ title: "Solicitação Enviada!", description: `A demanda de férias para ${selectedEmpObj?.name} foi enviada ao Departamento Pessoal.` })
+      
+      // Reseta formulário pós envio
+      setDataInicio("")
+      setDiasGozo(30)
+      setAbonoPecuniario(false)
+      setAdiantamento13(false)
+      setObservacoes("")
     } catch (e) {
       toast({ title: "Erro", description: "Falha ao enviar a solicitação.", variant: "destructive" })
     } finally {
@@ -207,52 +212,306 @@ export default function FeriasPortalPage() {
     }
   }
 
-  // Seeding inicial de funcionários para testes se o banco estiver vazio
-  const handleSeedEmployees = async () => {
-    if (!cnpj) return
-    setIsSaving(true)
-    try {
-      const mockEmps = [
-        { id: "emp1", nome: "MARIO SOUZA DA SILVA", cpf: "123.456.789-00", clientCnpj: cnpj, clientName: companyName, status: "ATIVO", cargo: "Analista de TI", dataAdmissao: "2024-01-15" },
-        { id: "emp2", nome: "ANA PAULA SANTOS", cpf: "987.654.321-11", clientCnpj: cnpj, clientName: companyName, status: "ATIVO", cargo: "Gerente Geral", dataAdmissao: "2022-06-10" },
-        { id: "emp3", nome: "CARLOS PEREIRA ALMEIDA", cpf: "456.789.123-22", clientCnpj: cnpj, clientName: companyName, status: "ATIVO", cargo: "Assistente Administrativo", dataAdmissao: "2025-02-01" }
-      ]
-
-      for (const e of mockEmps) {
-        const empRef = doc(firestore, "funcionarios", e.id)
-        setDocumentNonBlocking(empRef, e, { merge: true })
-      }
-      toast({ title: "Base de Testes Semeada!", description: "3 funcionários de teste foram criados para esta empresa." })
-    } catch (e) {
-      toast({ title: "Erro ao semear", variant: "destructive" })
-    } finally {
-      setIsSaving(false)
-    }
-  }
+  const isDateValid = dataInicio && isValid(parseISO(dataInicio))
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-[#2C4156] tracking-tight">Férias de Funcionários</h1>
-          <p className="text-[#98A7AA] font-medium text-sm">Registre programações de gozo e controle o histórico de solicitações.</p>
-        </div>
-        <div className="flex gap-2">
-          {(emps || []).length === 0 && (
-            <Button variant="outline" className="border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 text-xs font-bold" onClick={handleSeedEmployees} disabled={isSaving}>
-              Semear Funcionários Demo
-            </Button>
-          )}
-          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-bold shadow-lg h-11" onClick={() => setIsAddOpen(true)}>
-            <Plus className="h-4 w-4" /> Nova Férias
-          </Button>
-        </div>
+    <div className="space-y-8 animate-in fade-in duration-500 max-w-4xl mx-auto pb-12">
+      
+      {/* Page Header */}
+      <div>
+        <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight flex items-center gap-3">
+          <Calendar className="h-8 w-8 text-blue-600 shrink-0" />
+          Férias de Funcionários
+        </h1>
+        <p className="text-[#98A7AA] font-bold text-sm">Registre programações de gozo e controle o histórico de solicitações.</p>
       </div>
 
-      <Card className="border-[#D2D7DB] shadow-sm overflow-hidden bg-white">
+      {/* Main Form Card with visual Stepper */}
+      <Card className="border-[#D2D7DB] shadow-lg bg-white overflow-hidden">
+        <CardHeader className="bg-[#2C4156] text-white p-6">
+          <div className="flex items-center gap-3">
+            <Calendar className="h-6 w-6 text-[#2563EB] shrink-0" />
+            <div>
+              <CardTitle className="text-xl font-black uppercase tracking-tight">Formulário de Solicitação</CardTitle>
+              <CardDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest mt-0.5">
+                Preencha os campos abaixo para gerar o lançamento de férias
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-8 space-y-8">
+          
+          {/* STEP 1: Seleciona Empresa */}
+          <div className="flex gap-6 relative">
+            <div className="flex flex-col items-center">
+              <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm z-10 shrink-0 shadow-md shadow-blue-500/20">
+                1
+              </div>
+              <div className="w-0.5 bg-slate-100 flex-1 my-2"></div>
+            </div>
+            
+            <div className="flex-1 pb-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="md:col-span-2 space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">
+                  1. Seleciona Empresa *
+                </Label>
+                <Select value={selectedEmpresa} onValueChange={setSelectedEmpresa}>
+                  <SelectTrigger className="border-[#D2D7DB] h-11 bg-slate-50/50 focus:ring-blue-600 font-semibold text-slate-700">
+                    <SelectValue placeholder="Selecione a empresa..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MOCK_EMPRESAS.map(emp => (
+                      <SelectItem key={emp.id} value={emp.id} className="text-xs font-bold uppercase">
+                        {emp.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">
+                  Lotação / Setor
+                </Label>
+                <Select value={lotacaoSetor} onValueChange={setLotacaoSetor}>
+                  <SelectTrigger className="border-[#D2D7DB] h-11 bg-slate-50/50 focus:ring-blue-600 font-semibold text-slate-700">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="GERAL" className="text-xs font-bold uppercase">GERAL</SelectItem>
+                    <SelectItem value="ADMINISTRATIVO" className="text-xs font-bold uppercase">ADMINISTRATIVO</SelectItem>
+                    <SelectItem value="FINANCEIRO" className="text-xs font-bold uppercase">FINANCEIRO</SelectItem>
+                    <SelectItem value="PRODUÇÃO" className="text-xs font-bold uppercase">PRODUÇÃO</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* STEP 2: Seleciona Funcionário */}
+          <div className="flex gap-6 relative">
+            <div className="flex flex-col items-center">
+              <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm z-10 shrink-0 shadow-md shadow-blue-500/20">
+                2
+              </div>
+              <div className="w-0.5 bg-slate-100 flex-1 my-2"></div>
+            </div>
+            
+            <div className="flex-1 pb-4 space-y-2">
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">
+                2. Seleciona Funcionário *
+              </Label>
+              <Select value={selectedFuncionario} onValueChange={(val) => {
+                setSelectedFuncionario(val)
+                const f = MOCK_FUNCIONARIOS.find(x => x.id === val)
+                if (f) setLotacaoSetor(f.setor)
+              }}>
+                <SelectTrigger className="border-[#D2D7DB] h-11 bg-slate-50/50 focus:ring-blue-600 font-semibold text-slate-700">
+                  <SelectValue placeholder="Selecione o funcionário..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {MOCK_FUNCIONARIOS.map(f => (
+                    <SelectItem key={f.id} value={f.id} className="text-xs font-bold uppercase">
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* STEP 3: Data do Gozo */}
+          <div className="flex gap-6 relative">
+            <div className="flex flex-col items-center">
+              <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm z-10 shrink-0 shadow-md shadow-blue-500/20">
+                3
+              </div>
+              <div className="w-0.5 bg-slate-100 flex-1 my-2"></div>
+            </div>
+            
+            <div className="flex-1 pb-4 space-y-6">
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest block">
+                3. Data do Gozo (Início e Duração)
+              </Label>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-slate-600">
+                    Data de Início do Gozo (Início das Férias) *
+                  </Label>
+                  <Input 
+                    type="date"
+                    value={dataInicio} 
+                    onChange={(e) => setDataInicio(e.target.value)}
+                    className="border-[#D2D7DB] h-11 bg-slate-50/50 font-bold focus-visible:ring-blue-600"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-slate-600">
+                    Quantos Dias de Gozo? *
+                  </Label>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <Input 
+                      type="number"
+                      min={1}
+                      max={30}
+                      value={diasGozo} 
+                      onChange={(e) => setDiasGozo(parseInt(e.target.value) || 0)}
+                      className="border-[#D2D7DB] h-11 bg-slate-50/50 font-bold sm:w-28 focus-visible:ring-blue-600"
+                    />
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {QUICK_DAYS.map((days) => (
+                        <Button 
+                          key={days} 
+                          type="button" 
+                          variant={diasGozo === days ? "default" : "outline"} 
+                          size="sm"
+                          onClick={() => setDiasGozo(days)}
+                          className={cn(
+                            "h-9 font-bold px-3 text-xs tracking-wider",
+                            diasGozo === days 
+                              ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm" 
+                              : "border-[#D2D7DB] text-[#2C4156] hover:bg-slate-50"
+                          )}
+                        >
+                          {days}d
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dynamic Info Banner (Teal/Emerald Theme) */}
+              {isDateValid && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-emerald-800 animate-in fade-in zoom-in duration-300">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-100 rounded-lg text-emerald-700">
+                      <Info className="h-5 w-5 shrink-0" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Período de Descanso</span>
+                      <p className="text-sm font-extrabold text-[#2C4156]">
+                        Data Final do Gozo: <span className="text-blue-600 font-black">{dataFinal}</span>
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-emerald-100/70 border border-emerald-200/50 px-5 py-3 rounded-xl flex flex-col items-start sm:items-end justify-center">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600">Dia de Retorno</span>
+                    <span className="text-sm font-black text-emerald-800">
+                      Retorno ao trabalho: {dataRetorno}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* STEP 4: Vender Férias */}
+          <div className="flex gap-6 relative">
+            <div className="flex flex-col items-center">
+              <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm z-10 shrink-0 shadow-md shadow-blue-500/20">
+                4
+              </div>
+            </div>
+            
+            <div className="flex-1 space-y-4">
+              <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest block">
+                4. Vender Férias (Abono Pecuniário)
+              </Label>
+
+              <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-amber-900 transition-all duration-300">
+                <div className="space-y-1">
+                  <h4 className="text-sm font-extrabold text-amber-950">Abono Pecuniário (Venda de 1/3)</h4>
+                  <p className="text-xs text-amber-800/80 font-medium max-w-md">
+                    Selecione se deseja converter 1/3 do período de férias a que o trabalhador tem direito em abono em dinheiro.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={cn(
+                    "text-xs font-black uppercase tracking-wider",
+                    abonoPecuniario ? "text-amber-700" : "text-slate-400"
+                  )}>
+                    {abonoPecuniario ? "SIM (Vender)" : "NÃO (Não Vender)"}
+                  </span>
+                  <Switch 
+                    id="abono" 
+                    checked={abonoPecuniario} 
+                    onCheckedChange={setAbonoPecuniario}
+                    className="data-[state=checked]:bg-amber-600 data-[state=unchecked]:bg-slate-200"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </CardContent>
+
+        {/* Form Footer */}
+        <div className="bg-slate-50 border-t border-[#D2D7DB] p-8 space-y-6">
+          <div className="flex items-start space-x-3">
+            <Checkbox 
+              id="adiantamento" 
+              checked={adiantamento13} 
+              onCheckedChange={(checked) => setAdiantamento13(!!checked)}
+              className="mt-0.5 border-[#D2D7DB] data-[state=checked]:bg-blue-600"
+            />
+            <div className="grid gap-1.5 leading-none">
+              <label 
+                htmlFor="adiantamento" 
+                className="text-xs font-black text-[#2C4156] uppercase tracking-wide cursor-pointer select-none"
+              >
+                Solicitar Adiantamento da 1ª Parcela do 13º Salário
+              </label>
+              <p className="text-[10px] text-[#98A7AA] font-bold uppercase">
+                O pagamento do adiantamento do décimo terceiro salário ocorrerá junto com as férias.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="observacoes" className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">
+              Observações adicionais para o DP (opcional)
+            </Label>
+            <Input 
+              id="observacoes"
+              placeholder="Digite mensagens ou instruções complementares para o DP contábil..."
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+              className="border-[#D2D7DB] h-12 bg-white font-medium focus-visible:ring-blue-600"
+            />
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button 
+              className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-8 shadow-lg shadow-blue-500/20 h-12 gap-2.5 rounded-xl transition-all duration-300"
+              onClick={handleCreateRequest}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                  Cadastrando...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  Cadastrar Solicitação de Férias
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* History List Section (Maintained to prevent data visibility loss) */}
+      <Card className="border-[#D2D7DB] shadow-sm overflow-hidden bg-white mt-12">
         <CardHeader className="pb-3 border-b bg-slate-50/50">
           <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-blue-600" />
+            <Clock className="h-5 w-5 text-blue-600" />
             Histórico de Solicitações de Férias
           </CardTitle>
           <CardDescription className="text-xs text-slate-400">
@@ -304,7 +563,7 @@ export default function FeriasPortalPage() {
                       <TableCell>
                         {req.abonoPecuniario ? (
                           <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 text-[9px] font-bold">
-                            Sim ({req.diasAbono} dias)
+                            Sim (10 dias)
                           </Badge>
                         ) : (
                           <span className="text-xs text-slate-400">-</span>
@@ -328,7 +587,7 @@ export default function FeriasPortalPage() {
                 <TableRow>
                   <TableCell colSpan={7} className="h-40 text-center">
                     <div className="flex flex-col items-center justify-center text-slate-400 gap-2">
-                      <FolderOpen className="h-8 w-8 text-slate-300" />
+                      <FolderOpen className="h-8 w-8 text-slate-300 animate-pulse" />
                       <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Nenhuma solicitação de férias registrada</p>
                     </div>
                   </TableCell>
@@ -338,140 +597,7 @@ export default function FeriasPortalPage() {
           </Table>
         </CardContent>
       </Card>
-
-      {/* MODAL NOVA FÉRIAS */}
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none shadow-2xl flex flex-col">
-          <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
-            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Nova Férias</DialogTitle>
-            <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
-              Gere uma nova solicitação de gozo de férias para o funcionário selecionado.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="modal-scroll-content">
-            <div className="p-6 space-y-5 bg-white">
-              
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
-                  <User className="h-3 w-3" /> Selecionar Funcionário *
-                </Label>
-                {loadingEmps ? (
-                  <div className="h-11 flex items-center justify-center border border-dashed rounded-lg bg-slate-50">
-                    <Loader2 className="h-4 w-4 animate-spin text-blue-600 mr-2" />
-                    <span className="text-xs font-medium text-slate-400">Buscando funcionários...</span>
-                  </div>
-                ) : (emps || []).length > 0 ? (
-                  <Select value={newRequest.funcionarioId} onValueChange={(v) => setNewRequest({...newRequest, funcionarioId: v})}>
-                    <SelectTrigger className="border-[#D2D7DB] h-11">
-                      <SelectValue placeholder="Selecione o trabalhador..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(emps || []).map(e => (
-                        <SelectItem key={e.id} value={e.id} className="text-xs font-bold uppercase">
-                          {e.nome} - {e.cargo || "Sem cargo"} (CPF: {e.cpf})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="p-4 border rounded-xl bg-amber-50 border-amber-200 text-center space-y-2">
-                    <p className="text-xs text-amber-700 font-bold">Nenhum funcionário ativo cadastrado para este CNPJ.</p>
-                    <p className="text-[10px] text-amber-600 font-semibold uppercase">Peça ao escritório contábil para cadastrar funcionários nesta empresa no painel administrativo.</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
-                    <Calendar className="h-3 w-3" /> Início do Gozo *
-                  </Label>
-                  <Input 
-                    type="date"
-                    value={newRequest.dataInicio} 
-                    onChange={(e) => setNewRequest({...newRequest, dataInicio: e.target.value})}
-                    className="border-[#D2D7DB] h-11 font-bold"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
-                    <Calculator className="h-3 w-3" /> Dias de Gozo *
-                  </Label>
-                  <Input 
-                    type="number"
-                    min={1}
-                    max={30}
-                    value={newRequest.dias} 
-                    onChange={(e) => setNewRequest({...newRequest, dias: parseInt(e.target.value) || 0})}
-                    className="border-[#D2D7DB] h-11 font-bold"
-                  />
-                </div>
-              </div>
-
-              {/* Campos Calculados Automaticamente */}
-              {newRequest.dataInicio && newRequest.dias > 0 && (
-                <div className="p-4 rounded-xl bg-[#2563EB]/5 border border-[#2563EB]/10 grid grid-cols-2 gap-4">
-                  <div className="space-y-0.5">
-                    <span className="text-[9px] font-black uppercase text-[#2563EB] tracking-wider">Fim do Gozo</span>
-                    <p className="text-sm font-bold text-slate-800">
-                      {calculatedDates.dataFim ? new Date(calculatedDates.dataFim + 'T12:00:00Z').toLocaleDateString('pt-BR') : "-"}
-                    </p>
-                  </div>
-                  <div className="space-y-0.5">
-                    <span className="text-[9px] font-black uppercase text-[#2563EB] tracking-wider">Retorno ao Trabalho</span>
-                    <p className="text-sm font-bold text-slate-800">
-                      {calculatedDates.dataRetorno ? new Date(calculatedDates.dataRetorno + 'T12:00:00Z').toLocaleDateString('pt-BR') : "-"}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Venda de Férias */}
-              <div className="space-y-3 pt-3 border-t">
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col space-y-0.5">
-                    <Label htmlFor="abono" className="text-xs font-bold text-slate-700">Vender Férias (Abono Pecuniário)?</Label>
-                    <span className="text-[9px] text-slate-400 font-semibold uppercase">Permite vender 1/3 do período de férias</span>
-                  </div>
-                  <Switch 
-                    id="abono" 
-                    checked={newRequest.abonoPecuniario} 
-                    onCheckedChange={(v) => setNewRequest({...newRequest, abonoPecuniario: v})}
-                  />
-                </div>
-
-                {newRequest.abonoPecuniario && (
-                  <div className="space-y-2 animate-in fade-in duration-200">
-                    <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Quantos dias?</Label>
-                    <Input 
-                      type="number" 
-                      min={1} 
-                      max={10} 
-                      value={newRequest.diasAbono} 
-                      onChange={(e) => setNewRequest({...newRequest, diasAbono: parseInt(e.target.value) || 0})}
-                      className="border-[#2563EB] focus-visible:ring-[#2563EB] h-11 font-bold text-blue-700 bg-blue-50/10"
-                    />
-                  </div>
-                )}
-              </div>
-
-            </div>
-          </div>
-
-          <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
-            <Button variant="outline" onClick={() => setIsAddOpen(false)} className="font-bold text-xs uppercase h-11 border-slate-300">Cancelar</Button>
-            <Button 
-              className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-8 shadow-lg shadow-blue-500/20 h-11" 
-              onClick={handleCreateRequest}
-              disabled={isSaving || (emps || []).length === 0}
-            >
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-              Enviar Solicitação
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      
     </div>
   )
 }
