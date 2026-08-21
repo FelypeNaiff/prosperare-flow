@@ -14,7 +14,8 @@ export function formatCurrency(value: number) {
 }
 
 export function formatCNPJ(value: string) {
-  return value
+  if (!value) return ""
+  return String(value)
     .replace(/\D/g, '')
     .replace(/^(\d{2})(\d)/, '$1.$2')
     .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
@@ -22,6 +23,7 @@ export function formatCNPJ(value: string) {
     .replace(/(\d{4})(\d)/, '$1-$2')
     .substring(0, 18)
 }
+
 
 export function validateCNPJ(cnpj: string) {
   const c = String(cnpj).replace(/[^\d]/g, '')
