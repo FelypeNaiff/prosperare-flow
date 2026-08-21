@@ -292,8 +292,8 @@ export default function LotesPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Cadastro de Lotes</h1>
-          <p className="text-[#98A7AA] font-medium text-sm">Insira ou importe múltiplos funcionários simultaneamente para as empresas.</p>
+          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Cadastro de Lotada/Departamento</h1>
+          <p className="text-[#98A7AA] font-medium text-sm">Insira ou importe múltiplos funcionários por lotada/departamento simultaneamente para as empresas.</p>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -313,10 +313,10 @@ export default function LotesPage() {
         <Card className="border-[#D2D7DB] shadow-sm lg:col-span-1 h-fit bg-white">
           <CardHeader className="pb-4 border-b">
             <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-              <Building className="h-4.5 w-4.5 text-blue-600" /> Vincular Lote
+              <Building className="h-4.5 w-4.5 text-blue-600" /> Vincular Lotada/Departamento
             </CardTitle>
             <CardDescription className="text-xs text-slate-400">
-              Associe estes cadastros a uma empresa ativa.
+              Associe estes cadastros de lotada/departamento a uma empresa ativa.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-4 space-y-4">
@@ -520,7 +520,7 @@ export default function LotesPage() {
               disabled={isSaving || gridData.length === 0}
             >
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-              Salvar Lote de Funcionários
+              Salvar Lotada/Departamento
             </Button>
           </div>
         </Card>

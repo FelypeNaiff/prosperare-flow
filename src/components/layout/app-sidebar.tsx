@@ -77,8 +77,7 @@ const menuItems = [
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
     subItems: [
       { title: "Gestão de Clientes", url: "/clientes", icon: Users },
-      { title: "Demandas Internas", url: "/atendimentos", icon: TicketCheck },
-      { title: "Agenda de Demandas", url: "/agenda-demandas", icon: CalendarClock },
+      { title: "Login Cliente", url: "/login-cliente", icon: Lock },
     ]
   },
   {
@@ -88,8 +87,7 @@ const menuItems = [
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
     subItems: [
       { title: "Todos os Processos", url: "/processos", icon: Files },
-      { title: "Grupos de Obrigações", url: "/processos/grupos", icon: Layers },
-      { title: "Modelos de Checklist", url: "/processos/modelos", icon: FileText },
+      { title: "Demandas Internas", url: "/atendimentos", icon: TicketCheck },
       { title: "Agenda de Obrigações", url: "/processos/calendario", icon: Calendar },
       { title: "IRPF 2026", url: "/processos/irpf", icon: ClipboardList },
       { title: "Parcelamentos", url: "/processos/parcelamentos", icon: InstallmentIcon },
@@ -151,9 +149,11 @@ const menuItems = [
     icon: ClipboardList,
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
     subItems: [
-      { title: "Funcionários", url: "/cadastros/funcionarios", icon: Users },
-      { title: "Lotes", url: "/cadastros/lotes", icon: Layers },
-      { title: "Eventos", url: "/cadastros/eventos", icon: Calendar },
+      { title: "Funcionários Clientes", url: "/cadastros/funcionarios", icon: Users },
+      { title: "Lotada/Departamento", url: "/cadastros/lotes", icon: Layers },
+      { title: "Eventos Calima", url: "/cadastros/eventos", icon: Calendar },
+      { title: "Grupos de Obrigações", url: "/cadastros/grupos", icon: Layers },
+      { title: "Modelos de Processos", url: "/cadastros/modelos", icon: FileText },
     ]
   },
   {

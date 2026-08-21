@@ -173,11 +173,11 @@ export default function FuncionariosPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Cadastro de Funcionários</h1>
-          <p className="text-[#98A7AA] font-medium text-sm">Gerencie os funcionários ativos das empresas clientes.</p>
+          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Cadastro de Funcionários Clientes</h1>
+          <p className="text-[#98A7AA] font-medium text-sm">Gerencie os funcionários clientes ativos das empresas clientes.</p>
         </div>
         <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-bold shadow-lg h-11" onClick={() => setIsAddOpen(true)}>
-          <UserPlus className="h-4 w-4" /> Cadastrar Funcionário
+          <UserPlus className="h-4 w-4" /> Cadastrar Funcionário Cliente
         </Button>
       </div>
 
@@ -280,9 +280,9 @@ export default function FuncionariosPage() {
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
         <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl flex flex-col">
           <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
-            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Cadastrar Funcionário</DialogTitle>
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Cadastrar Funcionário Cliente</DialogTitle>
             <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
-              Insira as informações do funcionário e vincule-o a uma empresa cliente.
+              Insira as informações do funcionário cliente e vincule-o a uma empresa cliente.
             </DialogDescription>
           </DialogHeader>
           
@@ -376,7 +376,7 @@ export default function FuncionariosPage() {
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl flex flex-col">
           <DialogHeader className="p-6 bg-[#39586D] text-white shrink-0">
-            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Editar Funcionário</DialogTitle>
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Editar Funcionário Cliente</DialogTitle>
             <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
               Alterando dados cadastrais de: {selectedEmp?.nome}
             </DialogDescription>
