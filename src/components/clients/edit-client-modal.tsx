@@ -103,8 +103,33 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
     numero: "",
     complemento: "",
     qsa: [] as Socio[],
-    codigoInterno: ""
+    codigoInterno: "",
+    hasDepartments: false,
+    departments: [] as string[]
   })
+
+  const [newDepartment, setNewDepartment] = useState("")
+
+  const handleAddDepartment = () => {
+    if (!newDepartment.trim()) return
+    const dept = newDepartment.trim().toUpperCase()
+    if ((formData.departments || []).includes(dept)) {
+      toast({ variant: "destructive", title: "Atenção", description: "Este departamento já está cadastrado." })
+      return
+    }
+    setFormData(prev => ({
+      ...prev,
+      departments: [...(prev.departments || []), dept]
+    }))
+    setNewDepartment("")
+  }
+
+  const handleRemoveDepartment = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      departments: (prev.departments || []).filter((_, idx) => idx !== index)
+    }))
+  }
 
   // Pre-load IBGE subclasses list on modal open
   useEffect(() => {
@@ -173,7 +198,9 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
         numero: client.numero || "",
         complemento: client.complemento || "",
         qsa: client.qsa || [],
-        codigoInterno: client.codigoInterno || ""
+        codigoInterno: client.codigoInterno || "",
+        hasDepartments: client.hasDepartments || false,
+        departments: client.departments || []
       })
       setActiveTab("basico")
     }
@@ -609,6 +636,90 @@ export function EditClientModal({ open, onOpenChange, client }: any) {
                     onChange={(e) => setFormData({...formData, openingDate: e.target.value})}
                     className="border-[#D2D7DB]"
                   />
+                </div>
+              </div>
+
+              <div className="border-t border-slate-200/60 pt-6">
+                <div className="flex flex-col space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-xs font-black uppercase text-[#2C4156] tracking-wider">Lotações / Departamentos</Label>
+                      <p className="text-[10px] text-slate-400 font-semibold uppercase">A empresa possui divisão por departamentos ou setores?</p>
+                    </div>
+                    <div className="flex items-center bg-slate-100 p-1 rounded-lg border">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, hasDepartments: true })}
+                        className={cn(
+                          "px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all",
+                          formData.hasDepartments
+                            ? "bg-white text-blue-700 shadow-sm border border-slate-200/50 font-extrabold"
+                            : "text-slate-500 hover:text-slate-800"
+                        )}
+                      >
+                        Sim
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, hasDepartments: false, departments: [] })}
+                        className={cn(
+                          "px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all",
+                          !formData.hasDepartments
+                            ? "bg-white text-slate-800 shadow-sm border border-slate-200/50 font-extrabold"
+                            : "text-slate-500 hover:text-slate-800"
+                        )}
+                      >
+                        Não
+                      </button>
+                    </div>
+                  </div>
+
+                  {formData.hasDepartments && (
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/60 space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Digite o nome do departamento (ex: FINANCEIRO, TI, RH...)"
+                          value={newDepartment}
+                          onChange={(e) => setNewDepartment(e.target.value.toUpperCase())}
+                          className="border-[#D2D7DB] h-10 font-bold uppercase"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault()
+                              handleAddDepartment()
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          onClick={handleAddDepartment}
+                          className="bg-blue-600 hover:bg-blue-700 h-10 font-bold px-4 gap-2"
+                        >
+                          <Plus className="h-4 w-4" /> Adicionar
+                        </Button>
+                      </div>
+
+                      {formData.departments && formData.departments.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                          {formData.departments.map((dept, idx) => (
+                            <div key={idx} className="flex items-center justify-between bg-white border border-slate-200 px-3 py-2 rounded-lg shadow-sm group">
+                              <span className="text-xs font-black uppercase text-[#2C4156] truncate pr-2">{dept}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveDepartment(idx)}
+                                className="text-slate-400 hover:text-red-500 transition-colors"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-slate-400 font-bold uppercase text-center py-4 border border-dashed rounded-lg bg-white/50">
+                          Nenhum departamento cadastrado ainda.
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -101,6 +101,7 @@ export default function FuncionariosPage() {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isImportOpen, setIsImportOpen] = useState(false)
   
+
   // Estados para linha e seleção de checkbox
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [selectedEmp, setSelectedEmp] = useState<any>(null)
@@ -122,6 +123,9 @@ export default function FuncionariosPage() {
   // Buscar clientes do banco real
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
   const { data: clients = [] } = useCollection(clientsQuery)
+
+  const selectedClientInfo = (clients || []).find((c: any) => c.id === newEmp.clientId)
+  const editClientInfo = (clients || []).find((c: any) => c.id === editFormData.clientId)
 
   // Handlers para seleção na tabela
   const handleSelectAll = (checked: boolean) => {
@@ -542,26 +546,47 @@ export default function FuncionariosPage() {
             </div>
 
             {/* Lotação (Cód + Nome) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Código Lotação</Label>
-                <Input 
-                  placeholder="Ex: 01.01" 
-                  value={newEmp.codLotacao} 
-                  onChange={(e) => setNewEmp({...newEmp, codLotacao: e.target.value})}
-                  className="border-slate-200 h-11 font-semibold"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Nome Lotação</Label>
-                <Input 
-                  placeholder="Ex: Setor Geral" 
+            {selectedClientInfo?.hasDepartments && selectedClientInfo?.departments && selectedClientInfo.departments.length > 0 ? (
+              <div className="space-y-2 text-left">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Lotação / Departamento *</Label>
+                <Select 
                   value={newEmp.nomeLotacao} 
-                  onChange={(e) => setNewEmp({...newEmp, nomeLotacao: e.target.value})}
-                  className="border-slate-200 h-11 font-semibold"
-                />
+                  onValueChange={(v) => setNewEmp({...newEmp, nomeLotacao: v, codLotacao: v})}
+                >
+                  <SelectTrigger className="border-slate-200 h-11 text-xs font-semibold text-slate-700">
+                    <SelectValue placeholder="Selecione o departamento..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedClientInfo.departments.map((dept: string) => (
+                      <SelectItem key={dept} value={dept} className="text-xs font-bold uppercase">
+                        {dept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Código Lotação</Label>
+                  <Input 
+                    placeholder="Ex: 01.01" 
+                    value={newEmp.codLotacao} 
+                    onChange={(e) => setNewEmp({...newEmp, codLotacao: e.target.value})}
+                    className="border-slate-200 h-11 font-semibold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Nome Lotação</Label>
+                  <Input 
+                    placeholder="Ex: Setor Geral" 
+                    value={newEmp.nomeLotacao} 
+                    onChange={(e) => setNewEmp({...newEmp, nomeLotacao: e.target.value})}
+                    className="border-slate-200 h-11 font-semibold"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Admissão e Cargo */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
@@ -757,24 +782,45 @@ export default function FuncionariosPage() {
             </div>
 
             {/* Lotação (Cód + Nome) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Código Lotação</Label>
-                <Input 
-                  value={editFormData.codLotacao} 
-                  onChange={(e) => setEditFormData({...editFormData, codLotacao: e.target.value})}
-                  className="border-slate-200 h-11 font-semibold"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Nome Lotação</Label>
-                <Input 
+            {editClientInfo?.hasDepartments && editClientInfo?.departments && editClientInfo.departments.length > 0 ? (
+              <div className="space-y-2 text-left">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Lotação / Departamento *</Label>
+                <Select 
                   value={editFormData.nomeLotacao} 
-                  onChange={(e) => setEditFormData({...editFormData, nomeLotacao: e.target.value})}
-                  className="border-slate-200 h-11 font-semibold"
-                />
+                  onValueChange={(v) => setEditFormData({...editFormData, nomeLotacao: v, codLotacao: v})}
+                >
+                  <SelectTrigger className="border-slate-200 h-11 text-xs font-semibold text-slate-700">
+                    <SelectValue placeholder="Selecione o departamento..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {editClientInfo.departments.map((dept: string) => (
+                      <SelectItem key={dept} value={dept} className="text-xs font-bold uppercase">
+                        {dept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Código Lotação</Label>
+                  <Input 
+                    value={editFormData.codLotacao} 
+                    onChange={(e) => setEditFormData({...editFormData, codLotacao: e.target.value})}
+                    className="border-slate-200 h-11 font-semibold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Nome Lotação</Label>
+                  <Input 
+                    value={editFormData.nomeLotacao} 
+                    onChange={(e) => setEditFormData({...editFormData, nomeLotacao: e.target.value})}
+                    className="border-slate-200 h-11 font-semibold"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Admissão e Cargo */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">

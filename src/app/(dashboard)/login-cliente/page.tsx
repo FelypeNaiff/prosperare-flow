@@ -16,8 +16,15 @@ import {
   CheckCircle2,
   XCircle,
   Lock,
-  RefreshCw
+  RefreshCw,
+  Check,
+  ChevronsUpDown,
+  Pencil
 } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -80,8 +87,23 @@ export default function LoginClientePage() {
     fullName: "",
     email: "",
     password: "",
-    clientId: ""
+    clientIds: [] as string[]
   })
+
+  // Estados para Edição
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<any>(null)
+  const [editForm, setEditForm] = useState({
+    fullName: "",
+    clientIds: [] as string[]
+  })
+  const [isUpdating, setIsUpdating] = useState(false)
+
+  // Estados dos Selects
+  const [createSelectOpen, setCreateSelectOpen] = useState(false)
+  const [editSelectOpen, setEditSelectOpen] = useState(false)
+  const [createCompanySearch, setCreateCompanySearch] = useState("")
+  const [editCompanySearch, setEditCompanySearch] = useState("")
 
   // Filtrar apenas usuários do tipo CLIENTE
   const clientLogins = (users || []).filter(u => u.profile?.toUpperCase() === 'CLIENTE')
@@ -99,9 +121,11 @@ export default function LoginClientePage() {
     inactive: clientLogins.filter(u => u.status === 'INATIVO').length
   }
 
+  const cleanCnpj = (val: string) => (val || "").replace(/\D/g, "")
+
   const handleRegister = async () => {
-    if (!newLogin.fullName || !newLogin.email || !newLogin.password || !newLogin.clientId) {
-      toast({ title: "Erro", description: "Nome, e-mail, senha e empresa são obrigatórios.", variant: "destructive" })
+    if (!newLogin.fullName || !newLogin.email || !newLogin.password || newLogin.clientIds.length === 0) {
+      toast({ title: "Erro", description: "Nome, e-mail, senha e pelo menos uma empresa são obrigatórios.", variant: "destructive" })
       return
     }
 
@@ -115,11 +139,18 @@ export default function LoginClientePage() {
       return
     }
 
-    const client = (clients || []).find(c => c.id === newLogin.clientId)
-    if (!client) {
-      toast({ title: "Erro", description: "Empresa selecionada inválida.", variant: "destructive" })
+    const selectedClients = (clients || []).filter(c => newLogin.clientIds.includes(c.id))
+    if (selectedClients.length === 0) {
+      toast({ title: "Erro", description: "Empresas selecionadas inválidas.", variant: "destructive" })
       return
     }
+
+    const firstClient = selectedClients[0]
+    const empresasVinculadas = selectedClients.map(c => ({
+      cnpj: c.cnpj || "",
+      companyName: c.nomeFantasia || c.razaoSocial || "",
+      razaoSocial: c.razaoSocial || c.nomeFantasia || ""
+    }))
 
     setIsRegistering(true)
     try {
@@ -158,21 +189,91 @@ export default function LoginClientePage() {
         email: newLogin.email.trim().toLowerCase(),
         profile: "CLIENTE",
         status: "ATIVO",
-        cnpj: client.cnpj || "",
-        companyName: client.nomeFantasia || client.razaoSocial || "",
+        cnpj: firstClient.cnpj || "",
+        companyName: firstClient.nomeFantasia || firstClient.razaoSocial || "",
+        empresasVinculadas,
         createdAt: new Date().toISOString()
       }
 
       setDocumentNonBlocking(userRef, userData, { merge: true })
       
       setIsAddOpen(false)
-      setNewLogin({ fullName: "", email: "", password: "", clientId: "" })
-      toast({ title: "Login Criado com Sucesso!", description: `Acesso liberado para a empresa ${userData.companyName}.` })
+      setNewLogin({ fullName: "", email: "", password: "", clientIds: [] })
+      setCreateCompanySearch("")
+      toast({ title: "Login Criado com Sucesso!", description: `Acesso liberado para as empresas do cliente.` })
     } catch (error: any) {
       console.error(error)
       toast({ title: "Erro ao cadastrar", description: error.message, variant: "destructive" })
     } finally {
       setIsRegistering(false)
+    }
+  }
+
+  const handleOpenEdit = (login: any) => {
+    let selectedIds: string[] = []
+    
+    if (login.empresasVinculadas && login.empresasVinculadas.length > 0) {
+      const cleanCnpjs = login.empresasVinculadas.map((e: any) => cleanCnpj(e.cnpj))
+      selectedIds = (clients || [])
+        .filter(c => cleanCnpjs.includes(cleanCnpj(c.cnpj || "")))
+        .map(c => c.id)
+    } else if (login.cnpj) {
+      const cleanTarget = cleanCnpj(login.cnpj)
+      selectedIds = (clients || [])
+        .filter(c => cleanCnpj(c.cnpj || "") === cleanTarget)
+        .map(c => c.id)
+    }
+
+    setEditingUser(login)
+    setEditForm({
+      fullName: login.fullName || "",
+      clientIds: selectedIds
+    })
+    setEditCompanySearch("")
+    setIsEditOpen(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editForm.fullName || editForm.clientIds.length === 0) {
+      toast({ title: "Erro", description: "Nome e pelo menos uma empresa são obrigatórios.", variant: "destructive" })
+      return
+    }
+
+    if (!editingUser) return
+
+    setIsUpdating(true)
+    try {
+      const selectedClients = (clients || []).filter(c => editForm.clientIds.includes(c.id))
+      if (selectedClients.length === 0) {
+        toast({ title: "Erro", description: "Nenhuma empresa selecionada é válida.", variant: "destructive" })
+        return
+      }
+
+      const firstClient = selectedClients[0]
+      const empresasVinculadas = selectedClients.map(c => ({
+        cnpj: c.cnpj || "",
+        companyName: c.nomeFantasia || c.razaoSocial || "",
+        razaoSocial: c.razaoSocial || c.nomeFantasia || ""
+      }))
+
+      const userRef = doc(firestore, "users", editingUser.id)
+      const updateData = {
+        fullName: editForm.fullName.toUpperCase(),
+        cnpj: firstClient.cnpj || "",
+        companyName: firstClient.nomeFantasia || firstClient.razaoSocial || "",
+        empresasVinculadas
+      }
+
+      updateDocumentNonBlocking(userRef, updateData)
+      
+      setIsEditOpen(false)
+      setEditingUser(null)
+      toast({ title: "Acesso Atualizado!", description: "As credenciais do cliente foram atualizadas com sucesso." })
+    } catch (error: any) {
+      console.error(error)
+      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" })
+    } finally {
+      setIsUpdating(false)
     }
   }
 
@@ -286,9 +387,33 @@ export default function LoginClientePage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-blue-600">{login.companyName}</span>
-                        <span className="text-[9px] text-[#98A7AA] font-semibold">{formatCNPJ(login.cnpj)}</span>
+                      <div className="flex flex-col items-start gap-1">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-blue-600 uppercase">{login.companyName}</span>
+                          <span className="text-[9px] text-[#98A7AA] font-semibold font-mono">{formatCNPJ(login.cnpj)}</span>
+                        </div>
+                        {login.empresasVinculadas && login.empresasVinculadas.length > 1 && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="outline" className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0 h-4 bg-slate-50 hover:bg-slate-100 text-[#2C4156] border-[#D2D7DB] cursor-help">
+                                  +{login.empresasVinculadas.length - 1} {login.empresasVinculadas.length - 1 === 1 ? "empresa" : "empresas"}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent className="bg-[#2C4156] border-[#2C4156] text-white p-3 rounded-lg shadow-xl max-w-xs space-y-1.5 z-[100]">
+                                <p className="text-[9px] font-black uppercase text-white/50 tracking-widest">Empresas Vinculadas</p>
+                                <div className="space-y-1 max-h-40 overflow-y-auto">
+                                  {login.empresasVinculadas.map((emp: any, idx: number) => (
+                                    <div key={emp.cnpj || idx} className="text-xs font-bold flex flex-col border-b border-white/10 pb-1 last:border-0 last:pb-0">
+                                      <span className="uppercase text-[11px]">{emp.companyName || emp.razaoSocial}</span>
+                                      <span className="text-[9px] text-white/60 font-medium font-mono">{formatCNPJ(emp.cnpj)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -305,6 +430,10 @@ export default function LoginClientePage() {
                           <Button variant="ghost" size="icon" className="text-[#98A7AA]"><MoreHorizontal className="h-4 w-4" /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-52">
+                          <DropdownMenuItem className="gap-2 text-xs font-bold uppercase cursor-pointer" onClick={() => handleOpenEdit(login)}>
+                            <Pencil className="h-3.5 w-3.5 text-[#2563EB]" /> 
+                            Editar Acesso
+                          </DropdownMenuItem>
                           <DropdownMenuItem className="gap-2 text-xs font-bold uppercase cursor-pointer" onClick={() => handleToggleStatus(login)}>
                             <RefreshCw className="h-3.5 w-3.5 text-[#2563EB]" /> 
                             {login.status === 'INATIVO' ? 'Reativar Acesso' : 'Desativar Acesso'}
@@ -383,26 +512,125 @@ export default function LoginClientePage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Empresa Cliente Vinculada</Label>
+              <div className="space-y-2 flex flex-col">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest mb-1">Empresas Clientes Vinculadas</Label>
                 {loadingClients ? (
                   <div className="h-11 flex items-center justify-center border border-dashed rounded-lg bg-slate-50">
                     <Loader2 className="h-4 w-4 animate-spin text-blue-600 mr-2" />
                     <span className="text-xs font-semibold text-slate-400">Carregando empresas...</span>
                   </div>
                 ) : (
-                  <Select value={newLogin.clientId} onValueChange={(v) => setNewLogin({...newLogin, clientId: v})}>
-                    <SelectTrigger className="border-[#D2D7DB] h-11">
-                      <SelectValue placeholder="Selecione a empresa..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(clients || []).map(c => (
-                        <SelectItem key={c.id} value={c.id} className="text-xs font-bold uppercase">
-                          {c.nomeFantasia || c.razaoSocial} ({formatCNPJ(c.cnpj)})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={createSelectOpen} onOpenChange={setCreateSelectOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={createSelectOpen}
+                        className="w-full justify-between border-[#D2D7DB] h-11 text-xs font-bold text-[#2C4156] px-3 bg-white hover:bg-white active:bg-white text-left"
+                      >
+                        <span className="truncate">
+                          {newLogin.clientIds.length === 0
+                            ? "Selecionar empresas..."
+                            : `${newLogin.clientIds.length} ${
+                                newLogin.clientIds.length === 1
+                                  ? "empresa selecionada"
+                                  : "empresas selecionadas"
+                              }`}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[380px] p-0" align="start">
+                      <div className="flex flex-col">
+                        <div className="flex items-center border-b p-2 bg-slate-50 gap-2">
+                          <Search className="h-4 w-4 text-slate-400 shrink-0" />
+                          <Input
+                            placeholder="Buscar empresa pelo nome ou CNPJ..."
+                            value={createCompanySearch}
+                            onChange={(e) => setCreateCompanySearch(e.target.value)}
+                            className="h-8 border-none bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-xs"
+                          />
+                        </div>
+                        
+                        <div className="flex items-center justify-between border-b px-3 py-1.5 bg-slate-100/50">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            className="h-6 px-1.5 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-transparent"
+                            onClick={() => {
+                              const allIds = (clients || []).map((c: any) => c.id)
+                              setNewLogin(prev => ({ ...prev, clientIds: allIds }))
+                            }}
+                          >
+                            Selecionar Todas
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            className="h-6 px-1.5 text-[10px] font-bold text-red-600 hover:text-red-700 hover:bg-transparent"
+                            onClick={() => {
+                              setNewLogin(prev => ({ ...prev, clientIds: [] }))
+                            }}
+                          >
+                            Limpar Seleção
+                          </Button>
+                        </div>
+
+                        <ScrollArea className="h-60 overflow-y-auto">
+                          <div className="p-2 space-y-1">
+                            {(() => {
+                              const filtered = (clients || []).filter((c: any) => {
+                                const term = createCompanySearch.toLowerCase()
+                                return (
+                                  (c.nomeFantasia || "").toLowerCase().includes(term) ||
+                                  (c.razaoSocial || "").toLowerCase().includes(term) ||
+                                  (c.cnpj || "").includes(term)
+                                )
+                              })
+
+                              if (filtered.length === 0) {
+                                return (
+                                  <div className="text-center py-6 text-slate-400 text-xs font-medium">
+                                    Nenhuma empresa encontrada
+                                  </div>
+                                )
+                              }
+
+                              return filtered.map((c: any) => {
+                                const isChecked = newLogin.clientIds.includes(c.id)
+                                return (
+                                  <div
+                                    key={c.id}
+                                    className="flex items-center gap-2.5 px-2.5 py-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors"
+                                    onClick={() => {
+                                      const nextIds = isChecked
+                                        ? newLogin.clientIds.filter(id => id !== c.id)
+                                        : [...newLogin.clientIds, c.id]
+                                      setNewLogin(prev => ({ ...prev, clientIds: nextIds }))
+                                    }}
+                                  >
+                                    <Checkbox
+                                      checked={isChecked}
+                                      onCheckedChange={() => {}}
+                                      className="border-[#D2D7DB] data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 pointer-events-none"
+                                    />
+                                    <div className="flex flex-col overflow-hidden">
+                                      <span className="text-xs font-bold text-slate-700 truncate uppercase">
+                                        {c.nomeFantasia || c.razaoSocial}
+                                      </span>
+                                      <span className="text-[10px] text-slate-400 font-semibold font-mono">
+                                        {formatCNPJ(c.cnpj)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )
+                              })
+                            })()}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 )}
               </div>
             </div>
@@ -417,6 +645,176 @@ export default function LoginClientePage() {
                 <Save className="h-4 w-4" />
               )}
               Criar Credencial
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DE EDIÇÃO */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl flex flex-col">
+          <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Editar Acesso Cliente</DialogTitle>
+            <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest">
+              Atualize as informações de cadastro e empresas vinculadas do cliente.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="modal-scroll-content">
+            <div className="p-6 space-y-5 bg-white">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Nome do Responsável</Label>
+                <Input 
+                  placeholder="Ex: CARLOS ALBERTO SILVA" 
+                  value={editForm.fullName} 
+                  onChange={(e) => setEditForm({...editForm, fullName: e.target.value.toUpperCase()})}
+                  className="border-[#D2D7DB] font-bold uppercase h-11"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">E-mail (Login - Não Alterável)</Label>
+                <Input 
+                  value={editingUser?.email || ""} 
+                  className="border-[#D2D7DB] font-bold h-11 bg-slate-50 text-slate-500 cursor-not-allowed"
+                  disabled
+                />
+              </div>
+
+              <div className="space-y-2 flex flex-col">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest mb-1">Empresas Clientes Vinculadas</Label>
+                {loadingClients ? (
+                  <div className="h-11 flex items-center justify-center border border-dashed rounded-lg bg-slate-50">
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-600 mr-2" />
+                    <span className="text-xs font-semibold text-slate-400">Carregando empresas...</span>
+                  </div>
+                ) : (
+                  <Popover open={editSelectOpen} onOpenChange={setEditSelectOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={editSelectOpen}
+                        className="w-full justify-between border-[#D2D7DB] h-11 text-xs font-bold text-[#2C4156] px-3 bg-white hover:bg-white active:bg-white text-left"
+                      >
+                        <span className="truncate">
+                          {editForm.clientIds.length === 0
+                            ? "Selecionar empresas..."
+                            : `${editForm.clientIds.length} ${
+                                editForm.clientIds.length === 1
+                                  ? "empresa selecionada"
+                                  : "empresas selecionadas"
+                              }`}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[380px] p-0" align="start">
+                      <div className="flex flex-col">
+                        <div className="flex items-center border-b p-2 bg-slate-50 gap-2">
+                          <Search className="h-4 w-4 text-slate-400 shrink-0" />
+                          <Input
+                            placeholder="Buscar empresa pelo nome ou CNPJ..."
+                            value={editCompanySearch}
+                            onChange={(e) => setEditCompanySearch(e.target.value)}
+                            className="h-8 border-none bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-xs"
+                          />
+                        </div>
+                        
+                        <div className="flex items-center justify-between border-b px-3 py-1.5 bg-slate-100/50">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            className="h-6 px-1.5 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-transparent"
+                            onClick={() => {
+                              const allIds = (clients || []).map((c: any) => c.id)
+                              setEditForm(prev => ({ ...prev, clientIds: allIds }))
+                            }}
+                          >
+                            Selecionar Todas
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            className="h-6 px-1.5 text-[10px] font-bold text-red-600 hover:text-red-700 hover:bg-transparent"
+                            onClick={() => {
+                              setEditForm(prev => ({ ...prev, clientIds: [] }))
+                            }}
+                          >
+                            Limpar Seleção
+                          </Button>
+                        </div>
+
+                        <ScrollArea className="h-60 overflow-y-auto">
+                          <div className="p-2 space-y-1">
+                            {(() => {
+                              const filtered = (clients || []).filter((c: any) => {
+                                const term = editCompanySearch.toLowerCase()
+                                return (
+                                  (c.nomeFantasia || "").toLowerCase().includes(term) ||
+                                  (c.razaoSocial || "").toLowerCase().includes(term) ||
+                                  (c.cnpj || "").includes(term)
+                                )
+                              })
+
+                              if (filtered.length === 0) {
+                                return (
+                                  <div className="text-center py-6 text-slate-400 text-xs font-medium">
+                                    Nenhuma empresa encontrada
+                                  </div>
+                                )
+                              }
+
+                              return filtered.map((c: any) => {
+                                const isChecked = editForm.clientIds.includes(c.id)
+                                return (
+                                  <div
+                                    key={c.id}
+                                    className="flex items-center gap-2.5 px-2.5 py-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors"
+                                    onClick={() => {
+                                      const nextIds = isChecked
+                                        ? editForm.clientIds.filter(id => id !== c.id)
+                                        : [...editForm.clientIds, c.id]
+                                      setEditForm(prev => ({ ...prev, clientIds: nextIds }))
+                                    }}
+                                  >
+                                    <Checkbox
+                                      checked={isChecked}
+                                      onCheckedChange={() => {}}
+                                      className="border-[#D2D7DB] data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 pointer-events-none"
+                                    />
+                                    <div className="flex flex-col overflow-hidden">
+                                      <span className="text-xs font-bold text-slate-700 truncate uppercase">
+                                        {c.nomeFantasia || c.razaoSocial}
+                                      </span>
+                                      <span className="text-[10px] text-slate-400 font-semibold font-mono">
+                                        {formatCNPJ(c.cnpj)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )
+                              })
+                            })()}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
+            <Button variant="outline" onClick={() => setIsEditOpen(false)} className="font-bold text-xs uppercase h-11" disabled={isUpdating}>Cancelar</Button>
+            <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-8 shadow-lg h-11 gap-2" onClick={handleSaveEdit} disabled={isUpdating}>
+              {isUpdating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Salvar Alterações
             </Button>
           </DialogFooter>
         </DialogContent>

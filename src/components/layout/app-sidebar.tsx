@@ -150,7 +150,7 @@ const menuItems = [
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
     subItems: [
       { title: "Funcionários Clientes", url: "/cadastros/funcionarios", icon: Users },
-      { title: "Lotada/Departamento", url: "/cadastros/lotes", icon: Layers },
+
       { title: "Eventos Calima", url: "/cadastros/eventos", icon: Calendar },
       { title: "Grupos de Obrigações", url: "/cadastros/grupos", icon: Layers },
       { title: "Modelos de Processos", url: "/cadastros/modelos", icon: FileText },

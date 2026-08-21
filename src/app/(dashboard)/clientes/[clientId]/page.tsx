@@ -334,12 +334,32 @@ export default function DetalhesClientePage() {
                   <InfoItem label="Inscrição Municipal" value={client.cityRegistration || "--"} />
                   <InfoItem label="Regime" value={client.taxRegime} />
                   <InfoItem label="Data de Abertura" value={client.openingDate || "--"} />
+                  <InfoItem 
+                    label="Lotações / Departamentos" 
+                    value={
+                      client.hasDepartments 
+                        ? `${client.departments?.length || 0} cadastrados` 
+                        : "NÃO"
+                    } 
+                  />
                   <div className="col-span-2 space-y-2 border-t pt-4">
                     <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Endereço Completo</Label>
                     <div className="flex items-center gap-2 text-sm font-bold text-[#39586D]">
                       <MapPin className="h-4 w-4 text-[#2563EB]" /> {client.address}, {client.neighborhood} - {client.city}/{client.state}
                     </div>
                   </div>
+                  {client.hasDepartments && client.departments && client.departments.length > 0 && (
+                    <div className="col-span-2 space-y-2 border-t pt-4">
+                      <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Lista de Departamentos / Lotações</Label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {client.departments.map((dept: string, idx: number) => (
+                          <Badge key={idx} variant="outline" className="border-slate-300 text-[#39586D] bg-slate-50 font-black text-[9px] uppercase tracking-wider px-2 py-0.5 rounded">
+                            {dept}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
