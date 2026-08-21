@@ -163,54 +163,115 @@ export default function LandingPage() {
               {/* Dropdown container */}
               <div 
                 className={cn(
-                  "absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[240px] bg-white border border-slate-200/60 rounded-2xl shadow-xl p-4 transition-all duration-200 origin-top z-50",
+                  "absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[280px] bg-white border border-slate-200/60 rounded-2xl shadow-xl p-4 transition-all duration-200 origin-top z-50",
                   linksMenuOpen 
                     ? "opacity-100 translate-y-0 pointer-events-auto scale-100" 
                     : "opacity-0 -translate-y-2 pointer-events-none scale-95"
                 )}
               >
-                <ul className="space-y-1 text-left">
-                  <li>
+                <div className="space-y-3">
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider px-2.5">Links Úteis</p>
+                  <ul className="space-y-0.5 text-left max-h-[280px] overflow-y-auto pr-1">
+                    <li>
+                      <a 
+                        href="http://www.jucap.ap.gov.br/" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                      >
+                        JUCAP
+                      </a>
+                    </li>
+                    <li>
+                      <a 
+                        href="https://www.gov.br/esocial/pt-br" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                      >
+                        eSocial
+                      </a>
+                    </li>
+                    <li>
+                      <a 
+                        href="https://www.gov.br/trabalho-e-emprego/pt-br/servicos/empregador/fgtsdigital" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                      >
+                        Portal FGTS Digital
+                      </a>
+                    </li>
+                    <li>
+                      <a 
+                        href="https://solucoes.receita.fazenda.gov.br/servicos/cnpjreva/cnpjreva_solicitacao.asp" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                      >
+                        Consulta CNPJ
+                      </a>
+                    </li>
+                    <li>
+                      <a 
+                        href="https://www.gov.br/receitafederal/pt-br/assuntos/orientacao-tributaria/cadastros/cpf" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                      >
+                        Consulta CPF
+                      </a>
+                    </li>
+                    <li>
+                      <a 
+                        href="https://servicos.receitafederal.gov.br/servico/certidoes/" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                      >
+                        CND Receita Federal
+                      </a>
+                    </li>
+                    <li>
+                      <a 
+                        href="https://consulta-crf.caixa.gov.br/consultacrf/pages/consultaEmpregador.jsf" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                      >
+                        CND FGTS
+                      </a>
+                    </li>
+                    <li>
+                      <a 
+                        href="https://macapa.ap.gov.br/" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                      >
+                        Prefeitura de Macapá
+                      </a>
+                    </li>
+                    <li>
+                      <a 
+                        href="https://macapa.ap.gov.br/orientacao-novo-sistema-de-issqn-macapa-ap/" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                      >
+                        NFS-e Macapá (PMM)
+                      </a>
+                    </li>
+                  </ul>
+                  <div className="pt-2 border-t border-slate-100">
                     <a 
-                      href="/blog/abertura-de-empresa" 
-                      className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
+                      href="/links-uteis" 
+                      className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase text-white bg-[#2563EB] hover:bg-[#2563EB]/90 px-3 py-2 rounded-xl transition-all shadow-md"
                     >
-                      Abertura de Empresa
+                      Ver todos os Links Úteis
                     </a>
-                  </li>
-                  <li>
-                    <a 
-                      href="/blog/simples-nacional" 
-                      className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
-                    >
-                      Simples Nacional
-                    </a>
-                  </li>
-                  <li>
-                    <a 
-                      href="/blog/comparativo-clt-x-pj" 
-                      className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
-                    >
-                      Comparativo CLT x PJ
-                    </a>
-                  </li>
-                  <li>
-                    <a 
-                      href="/blog/tabela-simples-nacional" 
-                      className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
-                    >
-                      Tabela Simples Nacional
-                    </a>
-                  </li>
-                  <li>
-                    <a 
-                      href="/blog/ebook-guia-para-ser-pj" 
-                      className="block text-xs font-bold text-slate-500 hover:text-[#2563EB] hover:bg-blue-50/50 px-2.5 py-2 rounded-lg transition-all"
-                    >
-                      Ebook: Guia para ser PJ
-                    </a>
-                  </li>
-                </ul>
+                  </div>
+                </div>
               </div>
             </div>
           </nav>
@@ -303,11 +364,16 @@ export default function LandingPage() {
                 
                 {mobileLinksOpen && (
                   <div className="pl-4 space-y-2 border-l border-slate-200 mt-2 animate-in slide-in-from-top-2 duration-200 flex flex-col gap-2">
-                    <a href="/blog/abertura-de-empresa" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Abertura de Empresa</a>
-                    <a href="/blog/simples-nacional" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Simples Nacional</a>
-                    <a href="/blog/comparativo-clt-x-pj" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Comparativo CLT x PJ</a>
-                    <a href="/blog/tabela-simples-nacional" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Tabela Simples Nacional</a>
-                    <a href="/blog/ebook-guia-para-ser-pj" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Ebook: Guia para ser PJ</a>
+                    <a href="http://www.jucap.ap.gov.br/" target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">JUCAP</a>
+                    <a href="https://www.gov.br/esocial/pt-br" target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">eSocial</a>
+                    <a href="https://www.gov.br/trabalho-e-emprego/pt-br/servicos/empregador/fgtsdigital" target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Portal FGTS Digital</a>
+                    <a href="https://solucoes.receita.fazenda.gov.br/servicos/cnpjreva/cnpjreva_solicitacao.asp" target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Consulta CNPJ</a>
+                    <a href="https://www.gov.br/receitafederal/pt-br/assuntos/orientacao-tributaria/cadastros/cpf" target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Consulta CPF</a>
+                    <a href="https://servicos.receitafederal.gov.br/servico/certidoes/" target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">CND Receita Federal</a>
+                    <a href="https://consulta-crf.caixa.gov.br/consultacrf/pages/consultaEmpregador.jsf" target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">CND FGTS</a>
+                    <a href="https://macapa.ap.gov.br/" target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">Prefeitura de Macapá</a>
+                    <a href="https://macapa.ap.gov.br/orientacao-novo-sistema-de-issqn-macapa-ap/" target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-semibold text-slate-500 hover:text-[#2563EB]">NFS-e Macapá (PMM)</a>
+                    <a href="/links-uteis" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-black uppercase text-[#2563EB] pt-1">Ver todos os Links Úteis →</a>
                   </div>
                 )}
               </div>
@@ -392,63 +458,35 @@ export default function LandingPage() {
 
           </div>
 
-          {/* Interactive Mockup Dashboard Card */}
-          <div className="lg:col-span-5 relative animate-in fade-in duration-1000">
-            <div className="absolute inset-0 bg-[#2563EB]/5 rounded-3xl blur-[40px] pointer-events-none transform -rotate-6" />
+          {/* Stats Cards Column */}
+          <div className="lg:col-span-5 flex flex-col gap-6 w-full max-w-sm mx-auto relative animate-in fade-in duration-1000 z-10">
+            <div className="absolute inset-0 bg-[#2563EB]/5 rounded-3xl blur-[40px] pointer-events-none" />
             
-            <div className="relative bg-white border border-slate-200 shadow-2xl rounded-3xl p-6 space-y-6 max-w-sm mx-auto overflow-hidden">
-              <div className="flex items-center justify-between border-b pb-4">
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full bg-[#EA4335]" />
-                  <div className="h-3 w-3 rounded-full bg-[#FBBC05]" />
-                  <div className="h-3 w-3 rounded-full bg-[#34A853]" />
-                </div>
-                <span className="text-[8px] font-black uppercase text-slate-400 tracking-widest bg-slate-100 px-2 py-1 rounded-md">Prosperare Platform v1.2</span>
-              </div>
+            {/* Card 1 */}
+            <div className="relative bg-white border border-slate-200/80 border-t-[5px] border-t-[#2C4156] shadow-[0_4px_25px_rgba(0,0,0,0.03)] rounded-2xl p-7 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+              <p className="text-5xl font-black text-[#2C4156] tracking-tight mb-2">12+</p>
+              <h4 className="text-base font-extrabold text-[#2C4156] tracking-tight mb-2">Anos de Experiência</h4>
+              <p className="text-xs text-slate-400 font-semibold leading-relaxed">
+                Trajetória sólida em contabilidade estratégica
+              </p>
+            </div>
 
-              {/* Mock Billing stats */}
-              <div className="space-y-1">
-                <p className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">Faturamento Operacional</p>
-                <p className="text-2xl font-black text-[#2C4156]">R$ 48.910,22</p>
-                <p className="text-[8px] text-[#34A853] font-bold uppercase tracking-tight flex items-center gap-1">
-                  ▲ +12.4% em relação ao mês anterior
-                </p>
-              </div>
+            {/* Card 2 */}
+            <div className="relative bg-white border border-slate-200/80 border-t-[5px] border-t-[#2C4156] shadow-[0_4px_25px_rgba(0,0,0,0.03)] rounded-2xl p-7 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+              <p className="text-5xl font-black text-[#2C4156] tracking-tight mb-2">500+</p>
+              <h4 className="text-base font-extrabold text-[#2C4156] tracking-tight mb-2">Empresas Atendidas</h4>
+              <p className="text-xs text-slate-400 font-semibold leading-relaxed">
+                Confiança de centenas de clientes satisfeitos
+              </p>
+            </div>
 
-              {/* Progress and status */}
-              <div className="space-y-4 pt-2">
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-[9px] font-black uppercase text-slate-500">
-                    <span>Guia DAS Simples Nacional</span>
-                    <span className="text-[#34A853]">Pago</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div className="bg-[#34A853] h-full w-full" />
-                  </div>
-                </div>
-                
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-[9px] font-black uppercase text-slate-500">
-                    <span>Folha de Pró-Labore</span>
-                    <span className="text-blue-600">Disponível</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div className="bg-blue-600 h-full w-[70%]" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Security Badge */}
-              <div className="p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-100 flex items-center gap-3">
-                <div className="p-1.5 bg-[#34A853]/10 rounded-lg text-[#34A853] shrink-0">
-                  <ShieldCheck className="h-4 w-4" />
-                </div>
-                <div className="flex flex-col text-left">
-                  <span className="text-[8px] font-black uppercase tracking-wider leading-none mb-0.5">Certidão Federal Válida</span>
-                  <span className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter">Próxima consulta em 3 dias</span>
-                </div>
-              </div>
-
+            {/* Card 3 */}
+            <div className="relative bg-white border border-slate-200/80 border-t-[5px] border-t-[#2C4156] shadow-[0_4px_25px_rgba(0,0,0,0.03)] rounded-2xl p-7 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+              <p className="text-5xl font-black text-[#2C4156] tracking-tight mb-2">100%</p>
+              <h4 className="text-base font-extrabold text-[#2C4156] tracking-tight mb-2">Conformidade Fiscal</h4>
+              <p className="text-xs text-slate-400 font-semibold leading-relaxed">
+                Zero pendências com órgãos reguladores
+              </p>
             </div>
           </div>
 
