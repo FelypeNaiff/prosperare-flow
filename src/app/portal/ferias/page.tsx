@@ -88,6 +88,16 @@ export default function FeriasPortalPage() {
     }
   }, [dataInicio, diasGozo])
 
+  // Auto reset lotacaoSetor when selected company changes
+  useEffect(() => {
+    const activeCompanyObj = MOCK_EMPRESAS.find(e => e.id === selectedEmpresa)
+    if (activeCompanyObj && activeCompanyObj.lotacoes && activeCompanyObj.lotacoes.length > 0) {
+      setLotacaoSetor(activeCompanyObj.lotacoes[0])
+    } else {
+      setLotacaoSetor("GERAL")
+    }
+  }, [selectedEmpresa])
+
   // Sincroniza CNPJ da empresa ativa no portal
   useEffect(() => {
     const container = document.getElementById("portal-context-container")
@@ -126,9 +136,12 @@ export default function FeriasPortalPage() {
 
   // Mocks de dados solicitados
   const MOCK_EMPRESAS = [
-    { id: "empresa1", label: "1 - PROSPERARE LTDA (04.536.819/0001-90)", name: "PROSPERARE LTDA", cnpj: "04.536.819/0001-90" },
-    { id: "empresa2", label: "2 - ELETRO LTDA (12.345.678/0001-90)", name: "ELETRO LTDA", cnpj: "12.345.678/0001-90" }
+    { id: "empresa1", label: "1 - PROSPERARE LTDA (04.536.819/0001-90)", name: "PROSPERARE LTDA", cnpj: "04.536.819/0001-90", lotacoes: ["GERAL", "ADMINISTRATIVO", "PRODUÇÃO"] },
+    { id: "empresa2", label: "2 - ELETRO LTDA (12.345.678/0001-90)", name: "ELETRO LTDA", cnpj: "12.345.678/0001-90", lotacoes: ["GERAL", "FINANCEIRO", "TECNOLOGIA"] }
   ]
+
+  const activeCompanyObj = MOCK_EMPRESAS.find(e => e.id === selectedEmpresa)
+  const availableLotacoes = activeCompanyObj?.lotacoes || ["GERAL"]
 
   const MOCK_FUNCIONARIOS = [
     { id: "func1", label: "Matrícula 1 - CARLOS EDUARDO SILVA (01.01 - GERAL)", name: "CARLOS EDUARDO SILVA", matricula: "1", setor: "GERAL" },
@@ -279,10 +292,9 @@ export default function FeriasPortalPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="GERAL" className="text-xs font-bold uppercase">GERAL</SelectItem>
-                    <SelectItem value="ADMINISTRATIVO" className="text-xs font-bold uppercase">ADMINISTRATIVO</SelectItem>
-                    <SelectItem value="FINANCEIRO" className="text-xs font-bold uppercase">FINANCEIRO</SelectItem>
-                    <SelectItem value="PRODUÇÃO" className="text-xs font-bold uppercase">PRODUÇÃO</SelectItem>
+                    {availableLotacoes.map(lot => (
+                      <SelectItem key={lot} value={lot} className="text-xs font-bold uppercase">{lot}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

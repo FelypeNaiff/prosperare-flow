@@ -44,6 +44,9 @@ export interface Client {
   status: 'ATIVO' | 'INATIVO';
   codigoInterno?: string;
   
+  // Lotações (Departamentos / Setores) associados à empresa
+  lotacoes?: string[];
+  
   // Dados societários e QSA
   capitalSocial?: number;
   dataInicioAtividade?: string;

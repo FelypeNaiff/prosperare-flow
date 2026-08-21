@@ -30,6 +30,24 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoggingIn, setIsGoogleLoggingIn] = useState(false)
 
+  const handleClienteLoginRedirect = (userData: any) => {
+    setSelectedUser(userData)
+    const companyList = userData.empresasVinculadas || []
+    if (companyList.length > 1) {
+      router.push("/portal/selecionar-empresa")
+    } else {
+      if (companyList.length === 1) {
+        const emp = companyList[0]
+        localStorage.setItem("portal_client_active_cnpj", emp.cnpj || "")
+        localStorage.setItem("portal_client_active_company", emp.companyName || emp.razaoSocial || "")
+      } else if (userData.cnpj) {
+        localStorage.setItem("portal_client_active_cnpj", userData.cnpj)
+        localStorage.setItem("portal_client_active_company", userData.companyName || userData.razaoSocial || "Sua Empresa")
+      }
+      router.push("/portal/ferias")
+    }
+  }
+
   // Auto redirect if user is already authenticated on mount
   useEffect(() => {
     const handleAutoRedirect = async () => {
@@ -41,8 +59,7 @@ export default function LoginPage() {
             const data = userDoc.data()
             const role = (data.role || data.profile || '').toUpperCase()
             if (role === 'CLIENTE') {
-              setSelectedUser(data)
-              router.push("/portal/ferias")
+              handleClienteLoginRedirect(data)
             } else {
               router.push("/escolha-usuario")
             }
@@ -94,13 +111,11 @@ export default function LoginPage() {
         }
 
         if (role === 'CLIENTE') {
-          // Salva identidade operacional do cliente e envia ao portal
-          setSelectedUser(data)
           toast({
             title: "Acesso Liberado!",
             description: `Bem-vindo ao portal, ${data.fullName || 'Cliente'}.`
           })
-          router.push("/portal/ferias")
+          handleClienteLoginRedirect(data)
         } else {
           // Usuários administrativos / equipe
           toast({
@@ -197,12 +212,11 @@ export default function LoginPage() {
         }
 
         if (role === 'CLIENTE') {
-          setSelectedUser(data)
           toast({
             title: "Acesso Liberado!",
             description: `Bem-vindo ao portal, ${data.fullName || 'Cliente'}.`
           })
-          router.push("/portal/ferias")
+          handleClienteLoginRedirect(data)
         } else {
           toast({
             title: "Sessão Iniciada",

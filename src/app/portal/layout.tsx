@@ -58,8 +58,16 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (selectedUser) {
       if (selectedUser.cnpj) {
-        setActiveCompanyCnpj(selectedUser.cnpj)
-        setActiveCompanyName(selectedUser.companyName || selectedUser.razaoSocial || "Sua Empresa")
+        const savedClientCnpj = localStorage.getItem("portal_client_active_cnpj")
+        const savedClientCompany = localStorage.getItem("portal_client_active_company")
+        
+        if (selectedUser.empresasVinculadas && selectedUser.empresasVinculadas.length > 1 && savedClientCnpj) {
+          setActiveCompanyCnpj(savedClientCnpj)
+          setActiveCompanyName(savedClientCompany || "Sua Empresa")
+        } else {
+          setActiveCompanyCnpj(selectedUser.cnpj)
+          setActiveCompanyName(selectedUser.companyName || selectedUser.razaoSocial || "Sua Empresa")
+        }
       } else if (clients && clients.length > 0) {
         // Se for admin, tenta carregar o CNPJ do localStorage ou pega a primeira empresa do banco
         const savedCnpj = localStorage.getItem("portal_admin_active_cnpj")
@@ -97,10 +105,18 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     )
   }
 
+  if (pathname === "/portal/selecionar-empresa") {
+    return (
+      <div className="min-h-screen bg-[#F7F7F7]">
+        {children}
+      </div>
+    )
+  }
+
   if (!user || (!selectedUser && pathname !== "/escolha-usuario")) return null
 
   const pathSegments = pathname.split('/').filter(Boolean)
-  const isClientUser = !!selectedUser.cnpj
+  const isClientUser = !!selectedUser?.cnpj
 
   return (
     <SidebarProvider>
