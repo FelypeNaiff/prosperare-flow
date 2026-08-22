@@ -10,14 +10,21 @@ import {
   AlertCircle,
   CheckCircle2,
   Loader2,
-  Save,
   Building2,
-  FileText
+  AlertTriangle,
+  Lock,
+  Eye,
+  Trash2,
+  FolderOpen,
+  ArrowUpDown,
+  SortAsc,
+  SortDesc
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
@@ -49,30 +56,46 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
-import { ClientSearchSelect } from "@/components/clients/client-search-select"
+import { ClientCombobox } from "@/components/shared/client-combobox"
+import { TemplateSearchSelect } from "@/components/atendimentos/template-search-select"
 import { TicketDetailsDrawer } from "@/components/atendimentos/ticket-details-drawer"
-
-const COLUMNS = [
-  { id: 'novo', title: 'Novos', color: 'border-t-[#2C4156]', bg: 'bg-[#2C4156]/5' },
-  { id: 'atendimento', title: 'Em Atendimento', color: 'border-t-[#2574A9]', bg: 'bg-[#2574A9]/5' },
-  { id: 'pendente', title: 'Pendente Cliente', color: 'border-t-[#F2B705]', bg: 'bg-[#F2B705]/5' },
-  { id: 'concluido', title: 'Concluído', color: 'border-t-[#1FA67A]', bg: 'bg-[#1FA67A]/5' },
-]
+import { buildTaskAssignmentNotificationKey, createAppNotification } from "@/lib/notifications"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table"
 
 export default function AtendimentosPage() {
   const firestore = useFirestore()
-  const { userLoaded } = useUser()
+  const { userLoaded, selectedUser } = useUser()
   const [searchTerm, setSearchTerm] = useState("")
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false)
   const [filtroResponsavel, setFiltroResponsavel] = useState("todas")
-  const [isHistoryView, setIsHistoryView] = useState(false)
+  const [filtroPrazo, setFiltroPrazo] = useState("Todos")
+  const [filtroStatus, setFiltroStatus] = useState<"todos" | "aberto" | "concluido">("aberto")
   const [selectedTicket, setSelectedTicket] = useState<any>(null)
+  const [sortField, setSortField] = useState<'clientName' | 'title' | 'responsibleName' | 'createdAt' | 'dueDate' | 'status'>('createdAt')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+
+  const handleSort = (field: typeof sortField) => {
+    if (sortField === field) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortOrder('asc')
+    }
+  }
 
   const tasksQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "tasks") : null, 
     [firestore, userLoaded]
   )
-  const { data: tickets = [], isLoading: loadingTickets } = useCollection(tasksQuery)
+  const { data: rawTickets, isLoading: loadingTickets } = useCollection(tasksQuery)
+  const tickets = (rawTickets || []).filter((t: any) => ['novo', 'atendimento', 'pendente', 'concluido'].includes(t.status))
 
   const clientsQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "clients") : null, 
@@ -98,7 +121,8 @@ export default function AtendimentosPage() {
     responsibleId: "",
     notes: "",
     title: "",
-    dueDate: ""
+    dueDate: "",
+    isRestricted: false
   })
 
   const handleCreateTicket = () => {
@@ -123,43 +147,28 @@ export default function AtendimentosPage() {
       notes: newTicket.notes,
       dueDate: newTicket.dueDate || null,
       status: 'novo',
+      restrita: newTicket.isRestricted,
+      criadorId: selectedUser?.id || "",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
 
     setDocumentNonBlocking(doc(firestore, "tasks", id), ticketData, { merge: true })
     
-    // Notificar o responsável
-    const notifId = Math.random().toString(36).substr(2, 9)
-    setDocumentNonBlocking(doc(firestore, "notifications", notifId), {
-      id: notifId,
+    createAppNotification(firestore, {
       userId: newTicket.responsibleId,
-      title: "Nova Demanda",
+      title: "Nova Demanda Interna",
       message: `Você foi designado para a demanda: ${ticketData.title}`,
-      read: false,
-      createdAt: new Date().toISOString(),
-      link: "/atendimentos"
+      type: "task_new",
+      link: "/atendimentos",
+      taskId: id,
+      remetente: selectedUser?.fullName || "Sistema",
+      metaKey: buildTaskAssignmentNotificationKey(id, newTicket.responsibleId),
     })
 
     setIsNewTicketOpen(false)
-    setNewTicket({ clientId: "", templateId: "", responsibleId: "", notes: "", title: "", dueDate: "" })
+    setNewTicket({ clientId: "", templateId: "", responsibleId: "", notes: "", title: "", dueDate: "", isRestricted: false })
     toast({ title: "Demanda Enviada!", description: "O colaborador foi notificado." })
-  }
-
-  const handleDragStart = (e: React.DragEvent, ticketId: string) => {
-    e.dataTransfer.setData('ticketId', ticketId);
-  }
-
-  const handleDrop = (e: React.DragEvent, statusId: string) => {
-    e.preventDefault();
-    const ticketId = e.dataTransfer.getData('ticketId');
-    if (ticketId) {
-      updateStatus(ticketId, statusId);
-    }
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
   }
 
   const updateStatus = (id: string, newStatus: string) => {
@@ -173,85 +182,147 @@ export default function AtendimentosPage() {
     toast({ title: "Ticket Removido", variant: "destructive" })
   }
 
-  const filteredTickets = (tickets || []).filter(t => {
+  const visibleTickets = (tickets || []).filter((t: any) => {
+    if (!t.restrita) return true;
+    return t.restrita && t.criadorId === selectedUser?.id;
+  });
+
+  const baseFilteredTickets = visibleTickets.filter((t: any) => {
     const matchesSearch = t.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
       t.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.responsibleName?.toLowerCase().includes(searchTerm.toLowerCase())
       
     const matchesResponsible = filtroResponsavel === "todas" ? true : t.responsibleId === filtroResponsavel
     
-    if (isHistoryView) {
-      return t.status === 'concluido' && matchesSearch && matchesResponsible
-    } else {
-      return t.status !== 'concluido' && matchesSearch && matchesResponsible
+    const todayStr = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0')
+    let matchesPrazo = true
+    if (filtroPrazo === 'Vencidos') {
+      matchesPrazo = !!t.dueDate && t.dueDate < todayStr
+    } else if (filtroPrazo === 'Vence Hoje') {
+      matchesPrazo = !!t.dueDate && t.dueDate === todayStr
+    } else if (filtroPrazo === 'No Prazo') {
+      matchesPrazo = !!t.dueDate && t.dueDate > todayStr
     }
+
+    return matchesSearch && matchesResponsible && matchesPrazo
   })
 
-  const uniqueAssignees = Array.from(new Set((tickets || []).map(t => t.responsibleId)))
+  const filteredTickets = baseFilteredTickets.filter((t: any) => {
+    const isCompleted = t.status === 'concluido'
+    if (filtroStatus === 'aberto') return !isCompleted
+    if (filtroStatus === 'concluido') return isCompleted
+    return true
+  })
+
+  const sortedTickets = [...filteredTickets].sort((a, b) => {
+    let valA = a[sortField] || ""
+    let valB = b[sortField] || ""
+    
+    if (typeof valA === 'string') valA = valA.toLowerCase()
+    if (typeof valB === 'string') valB = valB.toLowerCase()
+
+    if (valA < valB) return sortOrder === 'asc' ? -1 : 1
+    if (valA > valB) return sortOrder === 'asc' ? 1 : -1
+    return 0
+  })
+
+  const uniqueAssignees = Array.from(new Set(visibleTickets.map((t: any) => t.responsibleId)))
     .map(id => {
-      const ticket = (tickets || []).find(t => t.responsibleId === id)
+      const ticket = visibleTickets.find((t: any) => t.responsibleId === id)
       return { id, name: ticket?.responsibleName }
     })
     .filter(a => a.id && a.name)
     .sort((a, b) => a.name!.localeCompare(b.name!))
 
+  const todayStr = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0')
   const stats = {
-    open: (tickets || []).filter(t => t.status !== 'concluido').length,
-    critical: (tickets || []).filter(t => t.status === 'pendente').length,
-    completed: (tickets || []).filter(t => t.status === 'concluido').length,
+    open: baseFilteredTickets.filter((t: any) => t.status !== 'concluido').length,
+    critical: baseFilteredTickets.filter((t: any) => t.status !== 'concluido' && t.dueDate && t.dueDate < todayStr).length,
+    completed: baseFilteredTickets.filter((t: any) => t.status === 'concluido').length,
   }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Demandas Internas</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Gestão de solicitações entre departamentos.</p>
+          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Demandas Internas</h1>
+          <p className="text-[#98A7AA] font-medium text-sm">Gestão de solicitações entre departamentos.</p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant={isHistoryView ? "default" : "outline"}
-            className={cn("gap-2 font-black uppercase text-xs", isHistoryView ? "bg-[#2C4156] text-white" : "border-[#D2D7DB] text-[#5E6C84]")}
-            onClick={() => setIsHistoryView(!isHistoryView)}
-          >
-            <Clock className="h-4 w-4" /> {isHistoryView ? "Ver Kanban Ativo" : "Histórico/Arquivados"}
-          </Button>
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs shadow-lg" onClick={() => setIsNewTicketOpen(true)}>
+          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-semibold text-xs shadow-lg" onClick={() => setIsNewTicketOpen(true)}>
             <Plus className="h-4 w-4" /> Novo Atendimento
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 border-b border-[#D2D7DB] pb-4">
-        <span className="text-[10px] font-black uppercase text-[#98A7AA]">Filtrar por Responsável:</span>
-        <Button 
-          variant={filtroResponsavel === "todas" ? "default" : "outline"} 
-          onClick={() => setFiltroResponsavel("todas")}
-          className={cn(
-            "h-8 text-xs font-bold rounded-full transition-all",
-            filtroResponsavel === "todas" ? "bg-[#2C4156] text-white hover:bg-[#2C4156]/90 shadow-md" : "text-[#39586D] border-[#D2D7DB] hover:bg-[#F7F7F7]"
-          )}
-        >
-          Todas as Demandas
-        </Button>
-        {uniqueAssignees.map(assignee => (
+      <div className="flex flex-col gap-3 border-b border-[#D2D7DB] pb-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-semibold text-[#98A7AA]">Filtrar por Responsável:</span>
           <Button 
-            key={assignee.id}
-            variant={filtroResponsavel === assignee.id ? "default" : "outline"}
-            onClick={() => setFiltroResponsavel(assignee.id)}
+            variant={filtroResponsavel === "todas" ? "default" : "outline"} 
+            onClick={() => setFiltroResponsavel("todas")}
             className={cn(
-              "h-8 text-xs font-bold rounded-full transition-all",
-              filtroResponsavel === assignee.id ? "bg-[#2C4156] text-white hover:bg-[#2C4156]/90 shadow-md" : "text-[#39586D] border-[#D2D7DB] hover:bg-[#F7F7F7]"
+              "h-8 text-xs font-medium rounded-full transition-all border shadow-none",
+              filtroResponsavel === "todas" ? "bg-blue-50 text-blue-700 hover:bg-blue-100 border-none" : "bg-slate-100 text-slate-600 hover:bg-slate-200 border-none"
             )}
           >
-            {assignee.name}
+            Todas as Demandas
           </Button>
-        ))}
+          {uniqueAssignees.map(assignee => (
+            <Button 
+              key={assignee.id}
+              variant={filtroResponsavel === assignee.id ? "default" : "outline"}
+              onClick={() => setFiltroResponsavel(assignee.id)}
+              className={cn(
+                "h-8 text-xs font-medium rounded-full transition-all border shadow-none",
+                filtroResponsavel === assignee.id ? "bg-blue-50 text-blue-700 hover:bg-blue-100 border-none" : "bg-slate-100 text-slate-600 hover:bg-slate-200 border-none"
+              )}
+            >
+              {assignee.name}
+            </Button>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-semibold text-[#98A7AA]">Filtrar por Prazo:</span>
+          {['Todos', 'Vencidos', 'Vence Hoje', 'No Prazo'].map(p => (
+            <Button 
+              key={p}
+              variant={filtroPrazo === p ? "default" : "outline"} 
+              onClick={() => setFiltroPrazo(p)}
+              className={cn(
+                "h-8 text-xs font-medium rounded-full transition-all border shadow-none",
+                filtroPrazo === p ? "bg-blue-50 text-blue-700 hover:bg-blue-100 border-none" : "bg-slate-100 text-slate-600 hover:bg-slate-200 border-none"
+              )}
+            >
+              {p}
+            </Button>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-semibold text-[#98A7AA]">Filtrar por Status:</span>
+          {[
+            { id: 'aberto', label: 'Em Aberto' },
+            { id: 'concluido', label: 'Concluídos' },
+            { id: 'todos', label: 'Todos' }
+          ].map(s => (
+            <Button 
+              key={s.id}
+              variant={filtroStatus === s.id ? "default" : "outline"} 
+              onClick={() => setFiltroStatus(s.id as any)}
+              className={cn(
+                "h-8 text-xs font-medium rounded-full transition-all border shadow-none",
+                filtroStatus === s.id ? "bg-blue-50 text-blue-700 hover:bg-blue-100 border-none" : "bg-slate-100 text-slate-600 hover:bg-slate-200 border-none"
+              )}
+            >
+              {s.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiMiniCard label="Em Aberto" value={stats.open} icon={Clock} color="info" />
-        <KpiMiniCard label="Críticos" value={stats.critical} icon={AlertCircle} color="warning" />
+        <KpiMiniCard label="Críticos (Vencidos)" value={stats.critical} icon={AlertCircle} color="warning" />
         <KpiMiniCard label="Concluídos" value={stats.completed} icon={CheckCircle2} color="success" />
       </div>
 
@@ -265,127 +336,252 @@ export default function AtendimentosPage() {
         />
       </div>
 
-      {!isHistoryView ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 min-h-[600px]">
-          {COLUMNS.filter(c => c.id !== 'concluido').map(col => (
-            <div 
-              key={col.id} 
-              className={cn("flex flex-col gap-4 p-2 rounded-xl border-t-4 transition-all duration-300", col.color, col.bg)}
-              onDrop={(e) => handleDrop(e, col.id)}
-              onDragOver={handleDragOver}
-            >
-              <div className="flex items-center justify-between px-2 pt-1">
-                <h3 className="font-black text-[#2C4156] text-[11px] uppercase tracking-widest flex items-center gap-2">
-                  {col.title}
-                  <Badge variant="secondary" className="rounded-full px-1.5 h-5 min-w-5 text-[10px] bg-white border">
-                    {filteredTickets.filter(t => t.status === col.id).length}
-                  </Badge>
-                </h3>
-              </div>
-              
-              <ScrollArea className="h-[calc(100vh-350px)]">
-                <div className="flex flex-col gap-3 pr-2 pb-4">
-                  {loadingTickets ? (
-                    <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#1FA67A]" /></div>
-                  ) : filteredTickets.filter(t => t.status === col.id).length > 0 ? (
-                    filteredTickets.filter(t => t.status === col.id).map((ticket) => (
-                      <Card 
-                        key={ticket.id} 
-                        className="bg-white border-[#D2D7DB] shadow-sm hover:shadow-md transition-all group cursor-pointer active:cursor-grabbing hover:border-[#1FA67A]/40"
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, ticket.id)}
-                        onClick={() => setSelectedTicket(ticket)}
-                      >
-                      <CardContent className="p-4 space-y-3">
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-1">
-                            <p className="text-[9px] font-black text-[#1FA67A] uppercase truncate">{ticket.clientName}</p>
-                            <h4 className="text-xs font-black text-[#2C4156] leading-tight uppercase">{ticket.title}</h4>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 text-[#98A7AA]"><MoreVertical className="h-4 w-4" /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {COLUMNS.filter(c => c.id !== ticket.status).map(c => (
-                                <DropdownMenuItem key={c.id} onClick={() => updateStatus(ticket.id, c.id)} className="text-xs font-bold uppercase">
-                                  Mover para {c.title}
-                                </DropdownMenuItem>
-                              ))}
-                              <DropdownMenuItem onClick={() => handleDelete(ticket.id)} className="text-xs font-bold uppercase text-[#E74C3C]">
-                                Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+      <Card className="border-[#D2D7DB] shadow-sm overflow-hidden bg-white">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-12 text-slate-500 font-semibold text-xs"></TableHead>
+                <TableHead 
+                  className="text-slate-500 font-semibold text-xs cursor-pointer group select-none" 
+                  onClick={() => handleSort('clientName')}
+                >
+                  <div className="flex items-center gap-2">
+                    Empresa
+                    {sortField === 'clientName' ? (
+                      sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-slate-500 font-semibold text-xs cursor-pointer group select-none" 
+                  onClick={() => handleSort('title')}
+                >
+                  <div className="flex items-center gap-2">
+                    Demanda
+                    {sortField === 'title' ? (
+                      sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-slate-500 font-semibold text-xs cursor-pointer group select-none" 
+                  onClick={() => handleSort('responsibleName')}
+                >
+                  <div className="flex items-center gap-2">
+                    Responsável
+                    {sortField === 'responsibleName' ? (
+                      sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-slate-500 font-semibold text-xs cursor-pointer group select-none" 
+                  onClick={() => handleSort('createdAt')}
+                >
+                  <div className="flex items-center gap-2">
+                    Criação
+                    {sortField === 'createdAt' ? (
+                      sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-slate-500 font-semibold text-xs cursor-pointer group select-none" 
+                  onClick={() => handleSort('dueDate')}
+                >
+                  <div className="flex items-center gap-2">
+                    Prazo
+                    {sortField === 'dueDate' ? (
+                      sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-slate-500 font-semibold text-xs cursor-pointer group select-none" 
+                  onClick={() => handleSort('status')}
+                >
+                  <div className="flex items-center gap-2">
+                    Status
+                    {sortField === 'status' ? (
+                      sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead className="text-slate-500 font-semibold text-xs text-right pr-6">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loadingTickets ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-32 text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#2563EB]" />
+                    <p className="text-[10px] font-black text-[#98A7AA] uppercase mt-2">Carregando Demandas...</p>
+                  </TableCell>
+                </TableRow>
+              ) : sortedTickets.length > 0 ? (
+                sortedTickets.map((ticket: any) => {
+                  const isCompleted = ticket.status === 'concluido'
+                  const isOverdue = ticket.dueDate && ticket.dueDate < todayStr && !isCompleted
+                  return (
+                    <TableRow 
+                      key={ticket.id}
+                      className={cn(
+                        "transition-colors hover:bg-slate-50/50 cursor-pointer",
+                        isOverdue && "bg-red-50/30 hover:bg-red-50/50"
+                      )}
+                      onClick={() => setSelectedTicket(ticket)}
+                    >
+                      {/* Checkbox de Ação Rápida */}
+                      <TableCell className="pl-4" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => updateStatus(ticket.id, isCompleted ? 'novo' : 'concluido')}
+                          className={cn(
+                            "h-5 w-5 rounded-full border flex items-center justify-center transition-all duration-200",
+                            isCompleted 
+                              ? "bg-emerald-500 border-emerald-500 text-white" 
+                              : "border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 text-transparent hover:text-emerald-600"
+                          )}
+                          title={isCompleted ? "Reabrir Demanda" : "Concluir Demanda"}
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                        </button>
+                      </TableCell>
+
+                      {/* Empresa */}
+                      <TableCell>
+                        <span className="font-semibold text-blue-600 text-xs tracking-tight">
+                          {ticket.clientName}
+                        </span>
+                      </TableCell>
+
+                      {/* Título / Demanda */}
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className={cn("text-xs font-medium text-slate-800", isCompleted && "line-through text-slate-400")}>
+                            {ticket.title}
+                          </span>
+                          {ticket.restrita && (
+                            <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] px-1.5 py-0.5 font-semibold gap-1">
+                              <Lock className="h-2.5 w-2.5" /> Restrita
+                            </Badge>
+                          )}
                         </div>
+                      </TableCell>
 
-                          <div className="flex items-center gap-2 pt-2 border-t justify-between">
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-6 w-6 border">
-                                <AvatarFallback className="text-[8px] font-black bg-[#2C4156] text-white">
-                                  {ticket.responsibleName?.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex flex-col">
-                                <span className="text-[10px] font-black text-[#39586D] uppercase">{ticket.responsibleName}</span>
-                                <span className="text-[8px] text-[#98A7AA] font-bold">{new Date(ticket.createdAt).toLocaleDateString('pt-BR')}</span>
-                              </div>
-                            </div>
-                            {ticket.dueDate && (
-                               <div className="bg-[#FFF4E5] text-[#F2B705] text-[9px] font-black px-2 py-0.5 rounded uppercase border border-[#FADF98]">
-                                 Prazo: {new Date(ticket.dueDate).toLocaleDateString('pt-BR')}
-                               </div>
-                            )}
+                      {/* Responsável */}
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-6 w-6 border">
+                            <AvatarFallback className="text-[8px] font-semibold bg-slate-200 text-slate-700">
+                              {ticket.responsibleName?.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-xs text-slate-700 font-medium">{ticket.responsibleName}</span>
+                        </div>
+                      </TableCell>
+
+                      {/* Criação */}
+                      <TableCell className="text-xs text-slate-500">
+                        {new Date(ticket.createdAt).toLocaleDateString('pt-BR')}
+                      </TableCell>
+
+                      {/* Prazo */}
+                      <TableCell>
+                        {ticket.dueDate ? (
+                          <div className="flex items-center gap-1.5">
+                            {isOverdue && <AlertTriangle className="h-3.5 w-3.5 text-red-600 shrink-0" />}
+                            <span className={cn(
+                              "text-xs font-semibold px-2 py-0.5 rounded border",
+                              isOverdue 
+                                ? "bg-red-50 text-red-700 border-red-200 animate-pulse" 
+                                : isCompleted
+                                  ? "bg-slate-50 text-slate-400 border-slate-200"
+                                  : "bg-slate-50 text-slate-600 border-slate-200"
+                            )}>
+                              {new Date(ticket.dueDate + 'T12:00:00Z').toLocaleDateString('pt-BR')}
+                            </span>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))
-                  ) : (
-                    <div className="text-center py-12 text-[10px] font-black text-[#98A7AA] uppercase border-2 border-dashed rounded-xl">
-                      Solte as tarefas aqui
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-[#D2D7DB] shadow-sm overflow-hidden min-h-[500px]">
-          <div className="p-4 border-b bg-[#F4F5F7] flex justify-between items-center">
-             <h3 className="font-black text-[#2C4156] text-[11px] uppercase tracking-widest flex items-center gap-2">
-                Tarefas Concluídas
-                <Badge variant="secondary" className="rounded-full px-1.5 h-5 min-w-5 text-[10px] bg-white border">
-                  {filteredTickets.length}
-                </Badge>
-              </h3>
-          </div>
-          <ScrollArea className="h-[500px]">
-             {filteredTickets.length === 0 ? (
-                <div className="py-12 flex justify-center text-[10px] font-black uppercase text-[#98A7AA]">Nenhum histórico encontrado.</div>
-             ) : (
-                <div className="divide-y">
-                   {filteredTickets.map(ticket => (
-                      <div key={ticket.id} className="p-4 hover:bg-[#F9FAFB] cursor-pointer flex justify-between items-center transition-colors" onClick={() => setSelectedTicket(ticket)}>
-                         <div className="flex flex-col gap-1">
-                            <p className="text-[9px] font-black text-[#1FA67A] uppercase">{ticket.clientName}</p>
-                            <h4 className="text-xs font-black text-[#2C4156] leading-tight uppercase">{ticket.title}</h4>
-                            <div className="flex gap-4 mt-1 text-[10px] font-bold text-[#98A7AA]">
-                               <span>Concluído em: {new Date(ticket.updatedAt).toLocaleDateString('pt-BR')}</span>
-                               <span>Responsável: {ticket.responsibleName}</span>
-                            </div>
-                         </div>
-                         <Button variant="outline" size="sm" className="h-8 text-[10px] font-black uppercase" onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'novo') }}>Reabrir</Button>
-                      </div>
-                   ))}
-                </div>
-             )}
-          </ScrollArea>
-        </div>
-      )}
+                        ) : (
+                          <span className="text-xs text-slate-400 font-normal">-</span>
+                        )}
+                      </TableCell>
 
-      <Dialog open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen}>
-        <DialogContent className="max-w-xl p-0 overflow-hidden border-none shadow-2xl flex flex-col">
+                      {/* Status */}
+                      <TableCell>
+                        <Badge className={cn(
+                          "text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 border shadow-none",
+                          isCompleted 
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                            : "bg-blue-50 text-blue-700 border-blue-200"
+                        )}>
+                          {isCompleted ? "Concluído" : "Aberto"}
+                        </Badge>
+                      </TableCell>
+
+                      {/* Ações */}
+                      <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-700">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setSelectedTicket(ticket)} className="text-xs font-medium">
+                              <Eye className="h-3.5 w-3.5 mr-2 text-slate-500" /> Visualizar / Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => updateStatus(ticket.id, isCompleted ? 'novo' : 'concluido')} 
+                              className="text-xs font-medium"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-2 text-slate-500" />
+                              {isCompleted ? "Reabrir Demanda" : "Concluir Demanda"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={(e) => handleDelete(ticket.id, e)} 
+                              className="text-xs font-medium text-red-600 focus:text-red-700"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-2 text-red-500" /> Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-40 text-center">
+                    <div className="flex flex-col items-center justify-center text-slate-400 gap-2">
+                      <FolderOpen className="h-8 w-8 text-slate-300" />
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Nenhuma demanda encontrada</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen} modal={false}>
+        <DialogContent 
+          className="max-w-xl p-0 overflow-hidden border-none shadow-2xl flex flex-col"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
             <DialogTitle>Nova Demanda Interna</DialogTitle>
             <DialogDescription className="text-white/60">Inicie um fluxo de atendimento para a equipe.</DialogDescription>
@@ -394,25 +590,19 @@ export default function AtendimentosPage() {
             <div className="p-6 space-y-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Empresa</Label>
-                <ClientSearchSelect 
-                  clients={clients} 
+                <ClientCombobox 
                   value={newTicket.clientId} 
-                  onValueChange={(v: string) => setNewTicket({...newTicket, clientId: v})} 
+                  onChange={(v: string) => setNewTicket({...newTicket, clientId: v})} 
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Modelo</Label>
-                  <Select value={newTicket.templateId} onValueChange={(v) => setNewTicket({...newTicket, templateId: v})}>
-                    <SelectTrigger className="border-[#D2D7DB] h-11">
-                      <SelectValue placeholder="Opcional..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(templates || []).map(t => (
-                        <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <TemplateSearchSelect 
+                    templates={templates}
+                    value={newTicket.templateId}
+                    onValueChange={(v: string) => setNewTicket({...newTicket, templateId: v})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Responsável</Label>
@@ -438,6 +628,18 @@ export default function AtendimentosPage() {
                     onChange={(e) => setNewTicket({...newTicket, dueDate: e.target.value})} 
                   />
                 </div>
+                <div className="space-y-2 flex flex-col justify-center">
+                  <div className="flex items-center space-x-2 pt-4">
+                    <Switch 
+                      id="restricted-mode"
+                      checked={newTicket.isRestricted}
+                      onCheckedChange={(v) => setNewTicket({...newTicket, isRestricted: v})}
+                    />
+                    <Label htmlFor="restricted-mode" className="text-[10px] font-black uppercase text-[#98A7AA] cursor-pointer">
+                      Demanda Restrita (Visível apenas para mim)
+                    </Label>
+                  </div>
+                </div>
               </div>
               {!newTicket.templateId && (
                 <div className="space-y-2">
@@ -453,7 +655,7 @@ export default function AtendimentosPage() {
           </div>
           <DialogFooter className="p-6 bg-[#F7F7F7] border-t shrink-0">
             <Button variant="outline" onClick={() => setIsNewTicketOpen(false)}>Cancelar</Button>
-            <Button className="bg-[#1FA67A]" onClick={handleCreateTicket}>Enviar Demanda</Button>
+            <Button className="bg-[#2563EB]" onClick={handleCreateTicket}>Enviar Demanda</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -473,8 +675,8 @@ export default function AtendimentosPage() {
 function KpiMiniCard({ label, value, icon: Icon, color }: any) {
   const colors = {
     info: "border-l-[#2574A9] bg-[#2574A9]/5",
-    warning: "border-l-[#F2B705] bg-[#F2B705]/5",
-    success: "border-l-[#1FA67A] bg-[#1FA67A]/5",
+    warning: "border-l-[#E74C3C] bg-[#E74C3C]/5", // Red for warning/late critical demands
+    success: "border-l-[#2563EB] bg-[#2563EB]/5",
   }
   return (
     <Card className={cn("border-none border-l-4 shadow-sm bg-white h-20", colors[color as keyof typeof colors])}>

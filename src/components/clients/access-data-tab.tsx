@@ -56,7 +56,7 @@ export function AccessDataTab({ clientId }: AccessDataTabProps) {
   if (isUserLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" />
       </div>
     )
   }
@@ -107,23 +107,23 @@ export function AccessDataTab({ clientId }: AccessDataTabProps) {
   return (
     <div className="space-y-6">
       <Alert className="bg-emerald-50 border-emerald-200">
-        <ShieldCheck className="h-4 w-4 text-emerald-600" />
+        <ShieldCheck className="h-4 w-4 text-blue-600" />
         <AlertTitle className="text-emerald-800 font-bold uppercase text-[10px]">Protocolo de Segurança Prosperare</AlertTitle>
-        <AlertDescription className="text-emerald-700 text-xs font-medium">
+        <AlertDescription className="text-blue-700 text-xs font-medium">
           Este ambiente é criptografado. Cada visualização de senha é registrada no log de auditoria do sistema.
         </AlertDescription>
       </Alert>
 
       <div className="flex justify-between items-center">
         <h3 className="font-black text-[#2C4156] uppercase text-sm tracking-widest">Cofre de Senhas e Acessos</h3>
-        <Button size="sm" className="gap-2 bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-bold" onClick={() => setIsModalOpen(true)}>
+        <Button size="sm" className="gap-2 bg-[#2563EB] hover:bg-[#2563EB]/90 font-bold" onClick={() => setIsModalOpen(true)}>
           <Plus className="h-4 w-4" /> Novo Acesso
         </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
         {isLoading ? (
-          <div className="py-12 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" /></div>
+          <div className="py-12 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" /></div>
         ) : accesses && accesses.length > 0 ? (
           accesses.map((access) => (
             <Card key={access.id} className="hover:shadow-sm transition-shadow border-[#D2D7DB]">
@@ -136,7 +136,7 @@ export function AccessDataTab({ clientId }: AccessDataTabProps) {
                     <p className="font-bold flex items-center gap-2 text-[#2C4156]">
                       {access.site}
                       {access.url && (
-                        <a href={access.url} target="_blank" rel="noreferrer" className="text-[#98A7AA] hover:text-[#1FA67A]">
+                        <a href={access.url} target="_blank" rel="noreferrer" className="text-[#98A7AA] hover:text-[#2563EB]">
                           <ExternalLink className="h-3 w-3" />
                         </a>
                       )}
@@ -214,7 +214,7 @@ export function AccessDataTab({ clientId }: AccessDataTabProps) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-            <Button className="bg-[#1FA67A] font-bold" onClick={handleSaveAccess}>Salvar no Cofre</Button>
+            <Button className="bg-[#2563EB] font-bold" onClick={handleSaveAccess}>Salvar no Cofre</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

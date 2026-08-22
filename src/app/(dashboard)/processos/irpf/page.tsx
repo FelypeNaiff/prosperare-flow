@@ -22,7 +22,9 @@ import { IrpfKanban } from "@/components/irpf/irpf-kanban"
 import { IrpfList } from "@/components/irpf/irpf-list"
 import { IrpfDeclarationModal } from "@/components/irpf/irpf-declaration-modal"
 import { IrpfFlowManager } from "@/components/irpf/irpf-flow-manager"
-import { useUser } from "@/firebase"
+import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection, query, orderBy } from "firebase/firestore"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
 
 export default function IrpfPage() {
@@ -30,12 +32,28 @@ export default function IrpfPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isFlowManagerOpen, setIsFlowManagerOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+  const [filtroEtapa, setFiltroEtapa] = useState("Todas")
+  const [filtroPagamento, setFiltroPagamento] = useState("Todos")
+
   const { userData, isUserLoading } = useUser()
+  const firestore = useFirestore()
+
+  const stagesQuery = useMemoFirebase(() => query(collection(firestore, "irpf_stages"), orderBy("order", "asc")), [firestore])
+  const { data: dbStages } = useCollection(stagesQuery)
+
+  const DEFAULT_COLUMNS = [
+    { id: 'not_started', title: '⚪ NÃO INICIADO' },
+    { id: 'filling', title: '⚙️ EM PREENCHIMENTO' },
+    { id: 'awaiting_production', title: '⏳ AGUARDANDO PRODUÇÃO' },
+    { id: 'sent', title: '📤 ENVIADO RFB' },
+    { id: 'completed', title: '✅ CONCLUIDA' },
+  ]
+  const columns = (dbStages && dbStages.length > 0) ? dbStages : DEFAULT_COLUMNS
 
   if (isUserLoading) {
     return (
       <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" />
       </div>
     )
   }
@@ -64,13 +82,13 @@ export default function IrpfPage() {
               <Settings className="h-4 w-4" /> Etiquetas
             </Link>
           </Button>
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2" onClick={() => setIsModalOpen(true)}>
+          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2" onClick={() => setIsModalOpen(true)}>
             <Plus className="h-4 w-4" /> Nova Declaração
           </Button>
         </div>
         <div className="order-1 md:order-2 md:text-right">
           <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">
-            Gestão <span className="text-[#1FA67A]">IRPF 2026</span>
+            Gestão <span className="text-[#2563EB]">IRPF 2026</span>
           </h1>
           <p className="text-[#98A7AA] font-medium">Fluxo de declarações de Imposto de Renda Pessoa Física.</p>
         </div>
@@ -94,11 +112,35 @@ export default function IrpfPage() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
               <Input
                 placeholder="Buscar por nome ou CPF..."
-                className="pl-9 w-[250px] bg-white"
+                className="pl-9 w-[250px] bg-white text-sm border-[#D2D7DB]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+
+            <Select value={filtroEtapa} onValueChange={setFiltroEtapa}>
+              <SelectTrigger className="bg-white border-[#D2D7DB] rounded-md text-sm w-[180px]">
+                <SelectValue placeholder="Todas as Etapas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todas">Todas as Etapas</SelectItem>
+                {columns.map(col => (
+                  <SelectItem key={col.id} value={col.id}>{col.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filtroPagamento} onValueChange={setFiltroPagamento}>
+              <SelectTrigger className="bg-white border-[#D2D7DB] rounded-md text-sm w-[180px]">
+                <SelectValue placeholder="Todos os Pagamentos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todos">Todos os Pagamentos</SelectItem>
+                <SelectItem value="Pendente">Pendente</SelectItem>
+                <SelectItem value="Pago">Pago</SelectItem>
+              </SelectContent>
+            </Select>
+
             <Button variant="outline" size="icon" className="border-[#D2D7DB]">
               <Filter className="h-4 w-4" />
             </Button>
@@ -106,11 +148,16 @@ export default function IrpfPage() {
         </div>
 
         <TabsContent value="kanban" className="mt-6 border-none p-0">
-          <IrpfKanban searchTerm={searchTerm} />
+          <IrpfKanban searchTerm={searchTerm} filtroPagamento={filtroPagamento} />
         </TabsContent>
 
         <TabsContent value="lista" className="mt-6 border-none p-0">
-          <IrpfList searchTerm={searchTerm} />
+          <IrpfList 
+            searchTerm={searchTerm} 
+            filtroEtapa={filtroEtapa} 
+            filtroPagamento={filtroPagamento} 
+            columns={columns}
+          />
         </TabsContent>
       </Tabs>
 

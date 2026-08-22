@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useRef } from "react"
@@ -9,19 +8,20 @@ import {
   Search, 
   MoreVertical,
   Repeat,
-  ArrowUpRight,
-  FileSpreadsheet,
-  Loader2,
-  Save,
   Upload,
   RefreshCw,
   Trash2,
   CheckCircle2,
-  Clock,
   Mail,
-  Filter,
   Download,
-  TrendingUp
+  XCircle,
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+  Loader2,
+  Save,
+  Printer,
+  FileText
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -54,29 +54,55 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
-import { cn } from "@/lib/utils"
+import { cn, numberToExtensoBRL } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { useFirestore, useCollection, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase"
-import { collection, doc } from "firebase/firestore"
-import { format, addMonths, subMonths, startOfMonth } from "date-fns"
+import { collection, doc, query, where } from "firebase/firestore"
+import { format, addMonths, subMonths, startOfMonth, endOfMonth } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { ClientSearchSelect } from "@/components/clients/client-search-select"
+import { ClientCombobox } from "@/components/shared/client-combobox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 export default function ContasAReceberPage() {
   const firestore = useFirestore()
+  const { user } = useUser()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [isNewAccountOpen, setIsNewAccountOpen] = useState(false)
   const [selectedCompetence, setSelectedCompetence] = useState<Date>(startOfMonth(new Date()))
   const [activeFilter, setActiveFilter] = useState("Todos")
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [sortConfig, setSortConfig] = useState<{ key: string | null, direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' })
 
-  const receivablesQuery = useMemoFirebase(() => collection(firestore, "receivables"), [firestore])
+  // State for Receipt Modal
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false)
+  const [selectedReceiptItem, setSelectedReceiptItem] = useState<any>(null)
+
+  const [lastGenerationSummary, setLastGenerationSummary] = useState<{
+    competence: string
+    generated: number
+    skipped: number
+    invalid: number
+    totalValue: number
+    invalidReasons: string[]
+  } | null>(null)
+
+  const receivablesQuery = useMemoFirebase(() => {
+    const firstDay = format(startOfMonth(selectedCompetence), "yyyy-MM-dd")
+    const lastDay = format(endOfMonth(selectedCompetence), "yyyy-MM-dd")
+    return query(
+      collection(firestore, "receivables"),
+      where("data", ">=", firstDay),
+      where("data", "<=", lastDay)
+    )
+  }, [firestore, selectedCompetence])
   const { data: items = [], isLoading } = useCollection(receivablesQuery)
 
   const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
   const { data: clients = [] } = useCollection(clientsQuery)
+
+  const contractsQuery = useMemoFirebase(() => collection(firestore, "contracts"), [firestore])
+  const { data: contracts = [] } = useCollection(contractsQuery)
 
   const [newAccount, setNewAccount] = useState({
     descricao: "",
@@ -89,18 +115,100 @@ export default function ContasAReceberPage() {
     tipoValor: "Fixo"
   })
 
-  const filteredItems = useMemo(() => {
-    return (items || []).filter(item => {
+  const baseFilteredItems = useMemo(() => {
+    let baseItems = [...(items || [])]
+
+    if (activeFilter === "Sem Contrato") {
+      const monthPrefix = format(selectedCompetence, "yyyy-MM")
+      const monthItems = baseItems.filter(item => item.data && item.data.startsWith(monthPrefix))
+      const clientsWithRecords = new Set(monthItems.map(i => (i.cliente || "").toUpperCase()))
+
+      const missingClients = (clients || [])
+        .filter(c => c.corporateName && !clientsWithRecords.has(c.corporateName.toUpperCase()))
+        .map(c => ({
+          id: `missing-${c.id}`,
+          descricao: "SEM LANÇAMENTO NO MÊS",
+          cliente: c.corporateName,
+          pagamento: "--",
+          data: "",
+          valor: 0,
+          situacao: "Sem Contrato",
+          recorrente: false,
+          semContrato: true
+        }))
+        
+      baseItems = [...baseItems, ...missingClients]
+    }
+
+    return baseItems.filter(item => {
       const matchSearch = item.cliente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.descricao?.toLowerCase().includes(searchTerm.toLowerCase())
       
-      const matchStatus = activeFilter === "Todos" || item.situacao === activeFilter
+      let matchStatus = false
+      if (activeFilter === "Todos") {
+        matchStatus = true
+      } else if (activeFilter === "Sem Contrato") {
+        matchStatus = Number(item.valor) === 0 || !item.valor || item.semContrato === true
+      } else {
+        matchStatus = item.situacao === activeFilter
+      }
       
-      return matchSearch && matchStatus
+      let matchMonth = true
+      if (activeFilter === "Sem Contrato") {
+        const monthPrefix = format(selectedCompetence, "yyyy-MM")
+        matchMonth = !item.data || item.data.startsWith(monthPrefix)
+      }
+
+      return matchSearch && matchStatus && matchMonth
     })
-  }, [items, searchTerm, activeFilter])
+  }, [items, searchTerm, activeFilter, clients, selectedCompetence])
+
+  const filteredItems = useMemo(() => {
+    if (!sortConfig.key) return baseFilteredItems;
+    
+    return [...baseFilteredItems].sort((a: any, b: any) => {
+      let aValue = a[sortConfig.key as string];
+      let bValue = b[sortConfig.key as string];
+
+      if (sortConfig.key === 'valor') {
+        aValue = Number(aValue) || 0;
+        bValue = Number(bValue) || 0;
+      } else if (sortConfig.key === 'data') {
+        aValue = aValue ? new Date(aValue).getTime() : 0;
+        bValue = bValue ? new Date(bValue).getTime() : 0;
+      } else {
+        aValue = String(aValue || '').toLowerCase();
+        bValue = String(bValue || '').toLowerCase();
+      }
+
+      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [baseFilteredItems, sortConfig]);
 
   const totalValue = filteredItems.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0)
+
+  const handleSort = (key: string) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }))
+  }
+
+  const writeFinanceAuditLog = (action: string, payload: Record<string, any>) => {
+    const auditId = Math.random().toString(36).substr(2, 9)
+
+    setDocumentNonBlocking(doc(firestore, "financeAuditLogs", auditId), {
+      id: auditId,
+      module: "receivables",
+      action,
+      actorName: user?.displayName || user?.email || "Operador",
+      actorEmail: user?.email || null,
+      createdAt: new Date().toISOString(),
+      ...payload
+    }, { merge: true })
+  }
 
   const handleCreateAccount = () => {
     if (!newAccount.descricao || !newAccount.clientId || !newAccount.valor) {
@@ -120,6 +228,14 @@ export default function ContasAReceberPage() {
     }
 
     setDocumentNonBlocking(docRef, accountData, { merge: true })
+    writeFinanceAuditLog("receivable_created", {
+      receivableId: id,
+      clientId: newAccount.clientId,
+      clientName: selectedClient?.corporateName || "Cliente Avulso",
+      value: Number(newAccount.valor) || 0,
+      dueDate: newAccount.data,
+      source: "manual"
+    })
     
     setIsNewAccountOpen(false)
     setNewAccount({ descricao: "", clientId: "", pagamento: "PIX", data: "", valor: 0, situacao: "Pendente", recorrente: false, tipoValor: "Fixo" })
@@ -127,30 +243,61 @@ export default function ContasAReceberPage() {
   }
 
   const handleUpdateStatus = (id: string, newStatus: string, cliente: string) => {
-    updateDocumentNonBlocking(doc(firestore, "receivables", id), { situacao: newStatus })
+    const updateData: any = { situacao: newStatus }
+    if (newStatus === "Confirmado" || newStatus === "Pago") {
+      updateData.responsavelBaixa = user?.displayName || user?.email || "Operador"
+      updateData.dataRecebimento = new Date().toISOString()
+    }
+    
+    updateDocumentNonBlocking(doc(firestore, "receivables", id), updateData)
+    writeFinanceAuditLog("receivable_status_updated", {
+      receivableId: id,
+      clientName: cliente,
+      newStatus,
+      paidAt: updateData.dataRecebimento || null
+    })
     
     if (newStatus === "Confirmado") {
       toast({ 
         title: "Recebimento Confirmado!", 
-        description: `Enviando recibo por e-mail para ${cliente}...`,
-        className: "bg-[#1FA67A] text-white border-none"
+        description: `Recebimento confirmado para ${cliente}.`,
+        className: "bg-[#2563EB] text-white border-none"
       })
-      setTimeout(() => {
-        toast({ title: "Recibo Enviado!", description: "O cliente recebeu o comprovante de quitação." })
-      }, 2000)
     } else {
       toast({ title: "Status Atualizado" })
     }
   }
 
+  const handleCancelReceipt = async (contaId: string) => {
+    await updateDocumentNonBlocking(doc(firestore, "receivables", contaId), { 
+      situacao: "Pendente",
+      responsavelBaixa: null,
+      dataRecebimento: null
+    })
+    writeFinanceAuditLog("receivable_payment_cancelled", {
+      receivableId: contaId
+    })
+    toast({ 
+      title: "Recebimento Cancelado", 
+      description: "A situação da conta foi revertida para pendente.",
+    })
+  }
+
   const handleDelete = (id: string) => {
     deleteDocumentNonBlocking(doc(firestore, "receivables", id))
+    writeFinanceAuditLog("receivable_deleted", {
+      receivableId: id
+    })
     toast({ title: "Honorário removido", variant: "destructive" })
   }
 
   const handleBatchDelete = () => {
     if (confirm(`Deseja excluir permanentemente ${selectedIds.length} honorários?`)) {
       selectedIds.forEach(id => deleteDocumentNonBlocking(doc(firestore, "receivables", id)))
+      writeFinanceAuditLog("receivable_batch_deleted", {
+        receivableIds: selectedIds,
+        count: selectedIds.length
+      })
       toast({ title: "Itens excluídos", variant: "destructive" })
       setSelectedIds([])
     }
@@ -162,6 +309,8 @@ export default function ContasAReceberPage() {
 
   const changeMonth = (direction: 'next' | 'prev') => {
     setSelectedCompetence(prev => direction === 'next' ? addMonths(prev, 1) : subMonths(prev, 1))
+    setSearchTerm("")
+    setSortConfig({ key: null, direction: 'asc' })
   }
 
   const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -202,8 +351,289 @@ export default function ContasAReceberPage() {
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
+  const handleGenerateMonth = () => {
+    const monthPrefix = format(selectedCompetence, "yyyy-MM")
+    const competenceEnd = format(endOfMonth(selectedCompetence), "yyyy-MM-dd")
+    const generationId = Math.random().toString(36).substr(2, 9)
+    const invalidContracts: string[] = []
+    const activeContracts = (contracts || []).filter((contract: any) => {
+      const contractName = contract.clientName || contract.clientCnpj || contract.id || "Contrato sem identificacao"
+
+      if (contract.status !== "Ativo") return false
+
+      if (!contract.clientId) {
+        invalidContracts.push(`${contractName}: sem cliente vinculado`)
+        return false
+      }
+
+      if (!Number(contract.value)) {
+        invalidContracts.push(`${contractName}: sem valor de honorario`)
+        return false
+      }
+
+      if (!contract.startDate) return true
+
+      if (contract.startDate > competenceEnd) {
+        invalidContracts.push(`${contractName}: inicio posterior a competencia`)
+        return false
+      }
+
+      return contract.startDate <= competenceEnd
+    })
+
+    if (activeContracts.length === 0) {
+      setLastGenerationSummary({
+        competence: monthPrefix,
+        generated: 0,
+        skipped: 0,
+        invalid: invalidContracts.length,
+        totalValue: 0,
+        invalidReasons: invalidContracts.slice(0, 5)
+      })
+      writeFinanceAuditLog("monthly_generation_without_eligible_contracts", {
+        generationId,
+        competence: monthPrefix,
+        invalidContractsCount: invalidContracts.length,
+        invalidReasons: invalidContracts.slice(0, 20)
+      })
+      toast({
+        title: "Nenhum contrato ativo encontrado",
+        description: invalidContracts.length > 0
+          ? `${invalidContracts.length} contrato(s) precisam de ajuste antes da geracao.`
+          : "Nao ha contratos aptos para gerar honorarios nesta competencia.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    let generatedCount = 0
+    let skippedCount = 0
+    let generatedTotal = 0
+    const generatedReceivableIds: string[] = []
+    const skippedContracts: string[] = []
+
+    activeContracts.forEach((contract: any) => {
+      const dueDay = Math.min(Math.max(Number(contract.dueDay) || 10, 1), 28)
+      const dueDate = `${monthPrefix}-${String(dueDay).padStart(2, "0")}`
+
+      const alreadyExists = (items || []).some((item: any) => {
+        if (!item?.data?.startsWith(monthPrefix)) return false
+        if (contract.id && item.contractId === contract.id) return true
+        if (contract.clientId && item.clientId === contract.clientId && item.recorrente) return true
+        return false
+      })
+
+      if (alreadyExists) {
+        skippedCount++
+        skippedContracts.push(contract.clientName || contract.clientId || contract.id)
+        return
+      }
+
+      const receivableId = Math.random().toString(36).substr(2, 9)
+      const receivableRef = doc(firestore, "receivables", receivableId)
+      const servicesLabel = Array.isArray(contract.services) && contract.services.length > 0
+        ? contract.services.join(", ")
+        : "HONORARIOS MENSAIS"
+
+      const receivableValue = Number(contract.value) || 0
+      const receivableData = {
+        id: receivableId,
+        generationId,
+        contractId: contract.id,
+        clientId: contract.clientId,
+        cliente: contract.clientName || "CLIENTE AVULSO",
+        descricao: `HONORARIO - ${servicesLabel}`.toUpperCase(),
+        pagamento: "PIX",
+        data: dueDate,
+        valor: receivableValue,
+        situacao: "Pendente",
+        recorrente: true,
+        tipoValor: "Fixo",
+        competencia: monthPrefix,
+        generatedFromContract: true,
+        createdAt: new Date().toISOString()
+      }
+
+      setDocumentNonBlocking(receivableRef, receivableData, { merge: true })
+
+      generatedCount++
+      generatedTotal += receivableValue
+      generatedReceivableIds.push(receivableId)
+    })
+
+    setLastGenerationSummary({
+      competence: monthPrefix,
+      generated: generatedCount,
+      skipped: skippedCount,
+      invalid: invalidContracts.length,
+      totalValue: generatedTotal,
+      invalidReasons: invalidContracts.slice(0, 5)
+    })
+
+    writeFinanceAuditLog("monthly_receivables_generated", {
+      generationId,
+      competence: monthPrefix,
+      generatedCount,
+      skippedCount,
+      invalidContractsCount: invalidContracts.length,
+      generatedTotal,
+      generatedReceivableIds,
+      skippedContracts: skippedContracts.slice(0, 50),
+      invalidReasons: invalidContracts.slice(0, 50)
+    })
+
+    if (generatedCount === 0) {
+      toast({
+        title: "Competencia ja gerada",
+        description: skippedCount > 0
+          ? `Nenhum novo honorario foi criado. ${skippedCount} contrato(s) ja tinham lancamento neste mes.`
+          : "Nenhum novo honorario foi criado para esta competencia."
+      })
+      return
+    }
+
+    toast({
+      title: "Mes gerado com sucesso",
+      description: `${generatedCount} honorario(s) criado(s) para ${format(selectedCompetence, "MMMM yyyy", { locale: ptBR })}${skippedCount > 0 ? ` e ${skippedCount} ja existente(s) foram ignorado(s)` : ""}.`
+    })
+  }
+
+  // Derived properties for Receipt Modal (Imagem 2)
+  const receiptClient = useMemo(() => {
+    if (!selectedReceiptItem) return null
+    return (clients || []).find((c: any) => 
+      c.id === selectedReceiptItem.clientId || 
+      c.corporateName?.toUpperCase() === selectedReceiptItem.cliente?.toUpperCase()
+    )
+  }, [selectedReceiptItem, clients])
+
+  const receiptClientCnpj = useMemo(() => {
+    if (!selectedReceiptItem) return "00.000.000/0000-00"
+    return receiptClient?.cnpj || receiptClient?.cpfCnpj || selectedReceiptItem.clientCnpj || "00.000.000/0000-00"
+  }, [selectedReceiptItem, receiptClient])
+
+  const receiptValue = Number(selectedReceiptItem?.valor || 0)
+  const receiptValueFormatted = receiptValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const receiptValueExtenso = numberToExtensoBRL(receiptValue)
+
+  const receiptMonth = useMemo(() => {
+    if (!selectedReceiptItem?.data) return format(subMonths(selectedCompetence, 1), "MMMM 'de' yyyy", { locale: ptBR })
+    try {
+      const parts = selectedReceiptItem.data.split("-")
+      let d: Date
+      if (parts.length === 3) {
+        d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
+      } else {
+        d = new Date(selectedReceiptItem.data)
+      }
+      return format(subMonths(d, 1), "MMMM 'de' yyyy", { locale: ptBR })
+    } catch {
+      return format(subMonths(selectedCompetence, 1), "MMMM 'de' yyyy", { locale: ptBR })
+    }
+  }, [selectedReceiptItem, selectedCompetence])
+
+  const receiptDateStr = useMemo(() => {
+    if (!selectedReceiptItem) return format(new Date(), "dd / MM / yyyy")
+    const targetDateStr = selectedReceiptItem.dataRecebimento || selectedReceiptItem.data
+    if (!targetDateStr) return format(new Date(), "dd / MM / yyyy")
+    try {
+      if (targetDateStr.includes("T")) {
+        return format(new Date(targetDateStr), "dd / MM / yyyy")
+      }
+      const parts = targetDateStr.split("-")
+      if (parts.length === 3) {
+        return `${parts[2].padStart(2, "0")} / ${parts[1].padStart(2, "0")} / ${parts[0]}`
+      }
+      return format(new Date(targetDateStr), "dd / MM / yyyy")
+    } catch {
+      return format(new Date(), "dd / MM / yyyy")
+    }
+  }, [selectedReceiptItem])
+
+  const receiptNumber = selectedReceiptItem?.id ? selectedReceiptItem.id.substring(0, 8).toUpperCase() : "00000001"
+
+  const pagamentoUpper = (selectedReceiptItem?.pagamento || "PIX").toUpperCase()
+  const isPix = pagamentoUpper.includes("PIX")
+  const isDinheiro = pagamentoUpper.includes("DINHEIRO")
+  const isTransferencia = pagamentoUpper.includes("TRANSFER") || pagamentoUpper.includes("TED") || pagamentoUpper.includes("DOC")
+  const isBoleto = pagamentoUpper.includes("BOLETO")
+  const isOutro = !isPix && !isDinheiro && !isTransferencia && !isBoleto
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
+      {/* Print-specific Stylesheet */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          /* Esconder toda a estrutura do site ao fundo para eliminar folhas em branco extras */
+          body > *:not([data-radix-portal]) {
+            display: none !important;
+          }
+          
+          /* Resetar body e html para fluxo de impressão limpo */
+          html, body {
+            background: white !important;
+            height: auto !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          /* Mostrar apenas o recibo e seus descendentes */
+          #receipt-print-area, #receipt-print-area * {
+            visibility: visible !important;
+          }
+          
+          /* Ajustar posicionamento do recibo */
+          #receipt-print-area {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: white !important;
+            z-index: 99999 !important;
+          }
+
+          /* Forçar o DialogContent a ocupar o topo sem centralização e overlay */
+          div[role="dialog"],
+          div[class*="DialogContent"] {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            transform: none !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            max-height: none !important;
+            height: auto !important;
+            overflow: visible !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          
+          /* Ocultar overlay, botões e elementos de fechar */
+          div[class*="DialogOverlay"],
+          div[class*="bg-black/80"],
+          .no-print,
+          button,
+          [class*="Close"] {
+            display: none !important;
+            visibility: hidden !important;
+          }
+          
+          @page {
+            size: A4 portrait;
+            margin: 15mm;
+          }
+        }
+      `}} />
+
       <input 
         type="file" 
         ref={fileInputRef} 
@@ -213,14 +643,14 @@ export default function ContasAReceberPage() {
       />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h1 className="text-3xl font-black text-[#2C4156] tracking-tight">Contas a Receber</h1>
+        <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Contas a Receber</h1>
         
         <div className="flex items-center gap-3 bg-white border border-[#D2D7DB] rounded-xl px-2 py-1 shadow-sm">
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => changeMonth('prev')}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <div className="px-4 min-w-[140px] text-center">
-            <span className="text-sm font-black text-[#2C4156] uppercase">
+            <span className="text-sm font-medium text-[#2C4156]">
               {format(selectedCompetence, "MMMM yyyy", { locale: ptBR })}
             </span>
           </div>
@@ -232,7 +662,7 @@ export default function ContasAReceberPage() {
 
       <div className="flex flex-wrap gap-2">
         <Button 
-          className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs h-11 px-6 shadow-lg shadow-emerald-500/10" 
+          className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-semibold text-xs h-11 px-6 shadow-lg shadow-emerald-500/10" 
           onClick={() => setIsNewAccountOpen(true)}
         >
           <Plus className="h-4 w-4" /> Nova Conta
@@ -240,13 +670,13 @@ export default function ContasAReceberPage() {
         
         <Button 
           variant="outline" 
-          className="h-11 border-[#D2D7DB] gap-2 font-bold text-[#39586D] text-xs uppercase px-5"
+          className="h-11 border-[#D2D7DB] gap-2 font-semibold text-[#39586D] text-xs px-5"
           onClick={() => fileInputRef.current?.click()}
         >
           <Upload className="h-4 w-4" /> Importar Honorários
         </Button>
         
-        <Button variant="outline" className="h-11 border-[#D2D7DB] gap-2 font-bold text-[#39586D] text-xs uppercase px-5" onClick={() => toast({ title: "Processando recorrências..." })}>
+        <Button variant="outline" className="h-11 border-[#D2D7DB] gap-2 font-semibold text-[#39586D] text-xs px-5" onClick={handleGenerateMonth}>
           <RefreshCw className="h-4 w-4" /> Gerar Mês
         </Button>
 
@@ -261,12 +691,69 @@ export default function ContasAReceberPage() {
         )}
       </div>
 
+      {lastGenerationSummary && (
+        <Card className="border-slate-100 bg-white shadow-sm">
+          <CardContent className="p-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4 text-[#2563EB]" />
+                  <h2 className="text-xs font-black uppercase tracking-widest text-slate-700">
+                    Resumo da ultima geracao
+                  </h2>
+                </div>
+                <p className="mt-1 text-xs font-semibold text-slate-500">
+                  Competencia {lastGenerationSummary.competence} com rastreio salvo em financeAuditLogs.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <div className="rounded-xl bg-slate-50 px-4 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Gerados</p>
+                  <p className="text-xl font-black text-slate-800">{lastGenerationSummary.generated}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 px-4 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ignorados</p>
+                  <p className="text-xl font-black text-slate-800">{lastGenerationSummary.skipped}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 px-4 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ajustes</p>
+                  <p className="text-xl font-black text-amber-600">{lastGenerationSummary.invalid}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 px-4 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Valor novo</p>
+                  <p className="text-xl font-black text-[#2563EB]">
+                    {lastGenerationSummary.totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {lastGenerationSummary.invalidReasons.length > 0 && (
+              <div className="mt-4 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
+                <div className="mb-2 flex items-center gap-2 text-amber-700">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Contratos para revisar</span>
+                </div>
+                <ul className="space-y-1">
+                  {lastGenerationSummary.invalidReasons.map((reason) => (
+                    <li key={reason} className="text-xs font-semibold text-amber-800">
+                      {reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="space-y-4">
         <div className="relative">
           <Search className="absolute left-3 top-3.5 h-4 w-4 text-[#98A7AA]" />
           <Input 
             placeholder="Buscar por cliente ou descrição..." 
-            className="pl-10 h-12 bg-[#F7F7F7] border-[#D2D7DB] focus-visible:ring-[#1FA67A]" 
+            className="pl-10 h-12 bg-[#F7F7F7] border-[#D2D7DB] focus-visible:ring-[#2563EB]" 
             value={searchTerm} 
             onChange={(e) => setSearchTerm(e.target.value)} 
           />
@@ -274,15 +761,15 @@ export default function ContasAReceberPage() {
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex gap-2 p-1 bg-[#EBEDF0] rounded-lg w-fit">
-            {["Todos", "Pendente", "Confirmado", "Atrasado"].map((filter) => (
+            {["Todos", "Pendente", "Confirmado", "Atrasado", "Sem Contrato"].map((filter) => (
               <Button
                 key={filter}
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "h-8 px-4 text-[10px] font-black uppercase tracking-wider rounded-md transition-all",
+                  "h-8 px-4 text-[11px] font-medium rounded-md transition-all",
                   activeFilter === filter 
-                    ? "bg-[#1FA67A] text-white shadow-md" 
+                    ? "bg-[#2563EB] text-white shadow-sm" 
                     : "text-[#98A7AA] hover:bg-white/50"
                 )}
                 onClick={() => setActiveFilter(filter)}
@@ -293,8 +780,8 @@ export default function ContasAReceberPage() {
           </div>
 
           <div className="bg-white border border-[#D2D7DB] rounded-lg px-6 py-2 shadow-sm">
-            <span className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest mr-2">Total Filtrado:</span>
-            <span className="text-sm font-black text-[#1FA67A]">
+            <span className="text-[10px] font-semibold text-[#98A7AA] mr-2">Total Filtrado:</span>
+            <span className="text-sm font-semibold text-[#2563EB]">
               {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </span>
           </div>
@@ -304,7 +791,7 @@ export default function ContasAReceberPage() {
       <Card className="border-[#D2D7DB] shadow-sm bg-white overflow-hidden">
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-[#2C4156]">
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-12 text-center pl-4">
                   <Checkbox 
@@ -313,23 +800,59 @@ export default function ContasAReceberPage() {
                       if (checked) setSelectedIds(filteredItems.map(i => i.id))
                       else setSelectedIds([])
                     }}
-                    className="border-white/30 data-[state=checked]:bg-[#1FA67A] data-[state=checked]:border-[#1FA67A]"
+                    className="border-slate-200 data-[state=checked]:bg-[#2563EB] data-[state=checked]:border-[#2563EB]"
                   />
                 </TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Descrição</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Cliente</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Pagamento</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Vencimento</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-center">Situação</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Valor</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right pr-4">Ações</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Descrição</TableHead>
+                <TableHead 
+                  className="text-slate-500 font-medium text-sm cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  onClick={() => handleSort('cliente')}
+                >
+                  <div className="flex items-center gap-1">
+                    Cliente {sortConfig.key === 'cliente' && (sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
+                  </div>
+                </TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Pagamento</TableHead>
+                <TableHead 
+                  className="text-slate-500 font-medium text-sm cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  onClick={() => handleSort('data')}
+                >
+                  <div className="flex items-center gap-1">
+                    Vencimento {sortConfig.key === 'data' && (sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-slate-500 font-medium text-sm cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  onClick={() => handleSort('situacao')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Situação {sortConfig.key === 'situacao' && (sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-slate-500 font-medium text-sm cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  onClick={() => handleSort('responsavelBaixa')}
+                >
+                  <div className="flex items-center gap-1">
+                    Responsável {sortConfig.key === 'responsavelBaixa' && (sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-slate-500 font-medium text-sm cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                  onClick={() => handleSort('valor')}
+                >
+                  <div className="flex items-center justify-end gap-1">
+                    Valor {sortConfig.key === 'valor' && (sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
+                  </div>
+                </TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right pr-4">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-32 text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
+                  <TableCell colSpan={9} className="h-32 text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#2563EB]" />
                   </TableCell>
                 </TableRow>
               ) : filteredItems.length > 0 ? (
@@ -342,16 +865,16 @@ export default function ContasAReceberPage() {
                       <Checkbox 
                         checked={selectedIds.includes(item.id)}
                         onCheckedChange={() => toggleSelect(item.id)}
-                        className="data-[state=checked]:bg-[#1FA67A]"
+                        className="data-[state=checked]:bg-[#2563EB]"
                       />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-[#2C4156]">{item.descricao}</span>
-                        {item.recorrente && <Repeat className="h-3 w-3 text-[#1FA67A]" title={`Recorrência ${item.tipoValor}`} />}
+                        <span className="font-semibold text-[#2C4156]">{item.descricao}</span>
+                        {item.recorrente && <Repeat className="h-3 w-3 text-[#2563EB]" aria-label={`Recorrencia ${item.tipoValor || "Fixo"}`} />}
                       </div>
                     </TableCell>
-                    <TableCell className="text-[#39586D] font-medium uppercase text-xs">{item.cliente}</TableCell>
+                    <TableCell className="text-[#39586D] font-medium text-xs">{item.cliente}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-[9px] font-bold uppercase border-[#D2D7DB] text-[#98A7AA]">
                         {item.pagamento}
@@ -362,17 +885,22 @@ export default function ContasAReceberPage() {
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge className={cn(
-                        "text-[9px] font-black uppercase border-none px-3 py-1",
-                        item.situacao === 'Confirmado' ? "bg-[#7ED6B5] text-[#1FA67A]" :
-                        item.situacao === 'Atrasado' ? "bg-[#FEE2E2] text-[#E74C3C]" :
-                        "bg-[#FEF3C7] text-[#F2B705]"
+                        "text-[10px] font-medium border-none px-3 py-1",
+                        (item.situacao === 'Confirmado' || item.situacao === 'Pago') ? "bg-emerald-50 text-emerald-700" :
+                        item.situacao === 'Atrasado' ? "bg-red-50 text-red-700" :
+                        "bg-amber-50 text-amber-700"
                       )}>
-                        {item.situacao}
+                        {(item.situacao === 'Confirmado' || item.situacao === 'Pago') && item.dataRecebimento 
+                          ? format(new Date(item.dataRecebimento), "dd/MM/yyyy") 
+                          : item.situacao}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-[#98A7AA] text-[10px] font-medium uppercase truncate max-w-[120px]">
+                      {item.responsavelBaixa || <span className="text-gray-400">-</span>}
                     </TableCell>
                     <TableCell className={cn(
                       "text-right font-black",
-                      item.situacao === 'Confirmado' ? "text-[#1FA67A]" : "text-[#2C4156]"
+                      item.situacao === 'Confirmado' ? "text-[#2563EB]" : "text-[#2C4156]"
                     )}>
                       {Number(item.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </TableCell>
@@ -381,24 +909,53 @@ export default function ContasAReceberPage() {
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]"><MoreVertical className="h-4 w-4" /></Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuContent align="end" className="w-52">
                           {item.situacao !== 'Confirmado' && (
                             <DropdownMenuItem 
-                              className="gap-2 text-xs font-bold text-[#1FA67A] uppercase"
+                              className="gap-2 text-xs font-bold text-[#2563EB] uppercase cursor-pointer"
                               onClick={() => handleUpdateStatus(item.id, "Confirmado", item.cliente)}
                             >
                               <CheckCircle2 className="h-4 w-4" /> Confirmar Recebimento
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem className="gap-2 text-xs font-bold uppercase">
-                            <Download className="h-4 w-4" /> Gerar Recibo PDF
+                          {(item.situacao === 'Confirmado' || item.situacao === 'Pago') && (
+                            <DropdownMenuItem 
+                              className="gap-2 text-xs font-bold text-[#E74C3C] uppercase cursor-pointer"
+                              onClick={() => handleCancelReceipt(item.id)}
+                            >
+                              <XCircle className="h-4 w-4" /> Cancelar Recebimento
+                            </DropdownMenuItem>
+                          )}
+                          
+                          {/* GERAR RECIBO PDF (SEGUNDO SOLICITAÇÃO E IMAGENS 1 E 2) */}
+                          <DropdownMenuItem 
+                            className="gap-2 text-xs font-bold text-[#2563EB] uppercase cursor-pointer bg-blue-50/50 hover:bg-blue-100"
+                            onClick={() => {
+                              setSelectedReceiptItem(item)
+                              setIsReceiptModalOpen(true)
+                            }}
+                          >
+                            <Download className="h-4 w-4 text-[#2563EB]" /> Gerar Recibo PDF
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2 text-xs font-bold uppercase">
+
+                          <DropdownMenuItem 
+                            className="gap-2 text-xs font-bold uppercase cursor-pointer"
+                            onClick={() => {
+                              setSelectedReceiptItem(item)
+                              setIsReceiptModalOpen(true)
+                              toast({ 
+                                title: "Recibo Pronto para Envio", 
+                                description: `Comprovante gerado para ${item.cliente}.` 
+                              })
+                            }}
+                          >
                             <Mail className="h-4 w-4" /> Reenviar Recibo
                           </DropdownMenuItem>
+
                           <DropdownMenuSeparator />
+
                           <DropdownMenuItem 
-                            className="gap-2 text-xs font-bold text-[#E74C3C] uppercase"
+                            className="gap-2 text-xs font-bold text-[#E74C3C] uppercase cursor-pointer"
                             onClick={() => handleDelete(item.id)}
                           >
                             <Trash2 className="h-4 w-4" /> Excluir Registro
@@ -410,7 +967,7 @@ export default function ContasAReceberPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-32 text-center text-[#98A7AA] font-bold uppercase text-xs">
+                  <TableCell colSpan={9} className="h-32 text-center text-[#98A7AA] font-bold uppercase text-xs">
                     Nenhum honorário localizado para este filtro.
                   </TableCell>
                 </TableRow>
@@ -420,6 +977,7 @@ export default function ContasAReceberPage() {
         </CardContent>
       </Card>
 
+      {/* MODAL DE LANÇAMENTO DE HONORÁRIO */}
       <Dialog open={isNewAccountOpen} onOpenChange={setIsNewAccountOpen}>
         <DialogContent className="max-w-md border-none shadow-2xl p-0 overflow-hidden flex flex-col max-h-[90vh]">
           <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
@@ -436,16 +994,15 @@ export default function ContasAReceberPage() {
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Empresa / Cliente</Label>
-                <ClientSearchSelect 
-                  clients={clients} 
+                <ClientCombobox 
                   value={newAccount.clientId} 
-                  onValueChange={(v: string) => setNewAccount({...newAccount, clientId: v})} 
+                  onChange={(v: string) => setNewAccount({...newAccount, clientId: v})} 
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Valor (R$)</Label>
-                  <Input type="number" placeholder="0,00" value={newAccount.valor} onChange={(e) => setNewAccount({...newAccount, valor: Number(e.target.value)})} className="border-[#D2D7DB] font-black text-[#1FA67A]" />
+                  <Input type="number" placeholder="0,00" value={newAccount.valor} onChange={(e) => setNewAccount({...newAccount, valor: Number(e.target.value)})} className="border-[#D2D7DB] font-black text-[#2563EB]" />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Data de Vencimento</Label>
@@ -497,10 +1054,202 @@ export default function ContasAReceberPage() {
           </ScrollArea>
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => setIsNewAccountOpen(false)} className="font-bold uppercase text-xs">Cancelar</Button>
-            <Button className="bg-[#1FA67A] text-white font-black uppercase text-xs px-8 shadow-lg" onClick={handleCreateAccount}>
+            <Button className="bg-[#2563EB] text-white font-black uppercase text-xs px-8 shadow-lg" onClick={handleCreateAccount}>
               <Save className="h-4 w-4 mr-2" /> Salvar Honorário
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DO RECIBO DE PAGAMENTO DOS HONORÁRIOS CONTÁBEIS (IMAGEM 2) */}
+      <Dialog open={isReceiptModalOpen} onOpenChange={setIsReceiptModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto bg-slate-100 p-0 border-none">
+          <DialogHeader className="p-4 bg-white border-b sticky top-0 z-10 shadow-sm flex flex-row items-center justify-between no-print">
+            <div>
+              <DialogTitle className="text-lg font-bold text-[#003366]">
+                Recibo de Pagamento de Honorários Contábeis
+              </DialogTitle>
+              <DialogDescription className="text-xs font-medium text-slate-500">
+                Cliente: <strong className="text-slate-800">{selectedReceiptItem?.cliente}</strong> | Valor: R$ {receiptValueFormatted}
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="font-bold text-xs" 
+                onClick={() => setIsReceiptModalOpen(false)}
+              >
+                Fechar
+              </Button>
+              <Button 
+                size="sm" 
+                className="bg-[#003366] hover:bg-[#002244] text-white font-bold text-xs gap-1.5 shadow"
+                onClick={() => window.print()}
+              >
+                <Printer className="h-3.5 w-3.5" /> Imprimir / PDF
+              </Button>
+            </div>
+          </DialogHeader>
+
+          {/* FOLHA DO RECIBO FORMATADA IDENTICAMENTE À IMAGEM 2 */}
+          <div className="p-6 md:p-10 bg-white">
+            <div 
+              id="receipt-print-area" 
+              className="bg-white p-8 border border-slate-300 rounded-lg max-w-[850px] mx-auto text-slate-800 font-sans shadow-lg relative overflow-hidden print-container"
+            >
+              
+              {/* TOP HEADER */}
+              <div className="flex flex-row items-center justify-between pb-6 mb-6 border-b border-slate-300 gap-4">
+                {/* LOGO PROSPERARE */}
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-[#003366] text-white flex flex-col items-center justify-center rounded font-serif italic text-2xl font-bold shadow-md">
+                    Psc
+                  </div>
+                  <div className="flex flex-col border-l-2 border-slate-300 pl-4">
+                    <span className="text-3xl font-serif italic text-[#003366] font-bold tracking-tight">Prosperare</span>
+                    <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">SERVIÇOS CONTÁBEIS</span>
+                  </div>
+                </div>
+
+                {/* TITLE CENTER */}
+                <div className="text-center px-4">
+                  <h2 className="text-3xl font-serif font-black text-[#003366] tracking-wider leading-none">RECIBO</h2>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mt-1">DE PAGAMENTO DOS</p>
+                  <div className="mt-1 border-b-2 border-[#003366] pb-0.5">
+                    <span className="text-sm font-black uppercase text-[#003366] tracking-wider">HONORÁRIOS CONTÁBEIS</span>
+                  </div>
+                </div>
+
+                {/* RECEIPT NUMBER & DATE */}
+                <div className="flex flex-col items-end gap-3">
+                  <div className="bg-[#003366] text-white px-6 py-2 rounded-xl font-mono text-sm font-bold shadow">
+                    Nº {receiptNumber}
+                  </div>
+                  <div className="text-xs font-bold text-slate-600 font-mono tracking-widest">
+                    DATA: <span className="underline">{receiptDateStr}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* RECEIPT BODY TEXT */}
+              <div className="space-y-4 text-sm font-sans leading-relaxed text-slate-800 my-6">
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <span className="font-serif italic text-base">Recebi(emos) de</span>
+                  <span className="font-bold text-slate-900 border-b border-slate-400 flex-1 px-2 uppercase min-w-[200px]">
+                    {selectedReceiptItem?.cliente || "CLIENTE NÃO IDENTIFICADO"}
+                  </span>
+                  <span className="font-bold text-slate-700">CNPJ/CPF:</span>
+                  <span className="font-mono font-bold text-slate-900 border-b border-slate-400 w-52 text-center">
+                    {receiptClientCnpj}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <span className="font-serif italic text-base">a importância de R$</span>
+                  <span className="font-bold text-slate-900 border-b border-slate-400 px-3 min-w-[100px] text-center">
+                    {receiptValueFormatted}
+                  </span>
+                  <span className="font-serif italic text-base">(</span>
+                  <span className="font-bold text-slate-800 border-b border-slate-400 flex-1 px-2 text-center capitalize">
+                    {receiptValueExtenso}
+                  </span>
+                  <span className="font-serif italic text-base">)</span>
+                </div>
+
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <span className="font-serif italic text-base">referente aos honorários contábeis dos serviços prestados no mês de</span>
+                  <span className="font-bold text-slate-900 border-b border-slate-400 flex-1 text-center capitalize">
+                    {receiptMonth}
+                  </span>
+                  <span className="font-bold">.</span>
+                </div>
+              </div>
+
+              {/* FORMA DE PAGAMENTO BOX */}
+              <div className="my-6">
+                <div className="inline-block bg-[#003366] text-white text-[11px] font-black uppercase px-4 py-1 rounded-t-md tracking-wider">
+                  FORMA DE PAGAMENTO
+                </div>
+                <div className="border border-slate-300 rounded-b-md rounded-tr-md p-3.5 bg-slate-50 flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-slate-700">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={isDinheiro} readOnly className="w-4 h-4 accent-[#003366]" />
+                    <span>Dinheiro</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={isTransferencia} readOnly className="w-4 h-4 accent-[#003366]" />
+                    <span>Transferência</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={isPix} readOnly className="w-4 h-4 accent-[#003366]" />
+                    <span>PIX</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={isBoleto} readOnly className="w-4 h-4 accent-[#003366]" />
+                    <span>Boleto</span>
+                  </label>
+                  <div className="flex items-center gap-2 flex-1 max-w-[220px] ml-2">
+                    <span>Outro:</span>
+                    <span className="border-b border-slate-400 flex-1 font-mono text-[11px] px-1">
+                      {isOutro ? selectedReceiptItem?.pagamento : ""}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* DESCRIÇÃO & VALOR RECEBIDO GRID */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
+                {/* DESCRIÇÃO BOX */}
+                <div className="md:col-span-2 border border-slate-300 rounded-md p-3.5 bg-white">
+                  <div className="text-[11px] font-black uppercase text-[#003366] tracking-wider mb-1">
+                    DESCRIÇÃO
+                  </div>
+                  <p className="text-xs text-slate-700 font-medium">
+                    {selectedReceiptItem?.descricao || "Honorários contábeis conforme contrato de prestação de serviços."}
+                  </p>
+                </div>
+
+                {/* VALOR RECEBIDO BOX */}
+                <div className="border border-[#003366] rounded-md overflow-hidden bg-white shadow-sm flex flex-col justify-between">
+                  <div className="bg-[#003366] text-white text-[11px] font-black uppercase tracking-wider text-center py-1.5">
+                    VALOR RECEBIDO
+                  </div>
+                  <div className="p-3.5 text-center">
+                    <span className="text-2xl font-black text-slate-900">R$ {receiptValueFormatted}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* FOOTER SECTION */}
+              <div className="mt-8 pt-4 border-t border-slate-300 text-center space-y-0.5">
+                <p className="font-bold text-sm text-[#003366]">Prosperare Serviços Contábeis</p>
+                <p className="text-xs font-mono text-slate-500">CNPJ: 23.077.213/0001-17</p>
+              </div>
+
+              {/* DARK BLUE BOTTOM BANNER */}
+              <div className="mt-6 -mx-8 -mb-8 bg-[#003366] text-white p-4 rounded-b-lg relative overflow-hidden">
+                <div className="flex flex-col sm:flex-row justify-between items-center text-xs font-medium px-4 relative z-10 gap-2">
+                  <div className="flex items-center gap-3">
+                    <span>📞 (96) 98129-6544</span>
+                    <span>|</span>
+                    <span>📱 (96) 98133-4568</span>
+                  </div>
+                  <div>
+                    <span>✉️ pscsucesso@gmail.com</span>
+                  </div>
+                </div>
+                <div className="text-center text-[11px] italic font-serif text-slate-300 mt-2 border-t border-white/20 pt-2 relative z-10">
+                  Contabilidade com excelência, para o crescimento do seu negócio.
+                </div>
+
+                {/* Decorative Watermark 'P' */}
+                <div className="absolute right-2 bottom-[-10px] opacity-10 text-white font-serif italic text-8xl font-black pointer-events-none select-none">
+                  P
+                </div>
+              </div>
+
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

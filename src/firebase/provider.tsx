@@ -52,10 +52,19 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     const unsubscribeAuth = onAuthStateChanged(authInstance, (firebaseUser) => {
       if (firebaseUser) {
         // Provisionamento automático para administradores semente
-        const seedAdmins = ['pscsucesso@gmail.com', 'felypenaiff01@gmail.com', 'thalyssonluiz@gmail.com'];
+        const seedAdmins = [
+          'pscsucesso@gmail.com', 
+          'felypenaiff01@gmail.com', 
+          'thalyssonluiz@gmail.com',
+          'cpgama79@gmail.com',
+          'marrypassosmarques@gmail.com',
+          'thalyssonluiz20@gmail.com'
+        ];
         if (seedAdmins.includes(firebaseUser.email || "")) {
           const name = firebaseUser.email?.includes('felype') ? 'FELYPE NAIFF' : 
-                       firebaseUser.email?.includes('thalysson') ? 'THALYSSON LUIZ' : 'ADMINISTRADOR GERAL';
+                       firebaseUser.email?.includes('thalysson') ? 'THALYSSON LUIZ' : 
+                       firebaseUser.email?.includes('cpgama79') ? 'CP GAMA' :
+                       firebaseUser.email?.includes('marrypassosmarques') ? 'MARRY PASSOS' : 'ADMINISTRADOR GERAL';
           
           const userRef = doc(firestoreInstance, "users", firebaseUser.uid);
           setDoc(userRef, {

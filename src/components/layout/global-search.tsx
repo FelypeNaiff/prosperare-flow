@@ -1,81 +1,116 @@
-
 "use client"
 
 import * as React from "react"
-import { Search, Command, ArrowRight, History, Zap, PlusCircle, AlertCircle, Clock } from "lucide-react"
+import { ArrowRight, History, PlusCircle, Search, Zap, type LucideIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
+
+import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
 
-const PAGES = [
-  { title: "Dashboard Geral", url: "/dashboard", category: "Estratégico", keywords: "inicio home principal" },
-  { title: "Inteligência (BI)", url: "/inteligencia", category: "Estratégico", keywords: "graficos analise dados" },
-  { title: "Agenda de Reuniões", url: "/agenda", category: "Estratégico", keywords: "compromissos calendario google" },
-  { title: "Gestão de Clientes", url: "/clientes", category: "Relacionamento", keywords: "empresas base cadsatro" },
-  { title: "Central de Atendimentos", url: "/atendimentos", category: "Relacionamento", keywords: "tickets suporte chamados whatsapp", alert: "3 novos" },
-  { title: "Repositório de Documentos", url: "/documentos", category: "Relacionamento", keywords: "arquivos cloud cloud drive" },
-  { title: "Todos os Processos", url: "/processos", category: "Produção", keywords: "tarefas obrigações entregas", status: "8 atrasados" },
-  { title: "IRPF 2026", url: "/processos/irpf", category: "Produção", keywords: "imposto renda cpf", alert: "14 pendentes" },
-  { title: "Contas a Receber", url: "/financeiro/receber", category: "Financeiro", keywords: "ganhos faturamento honorarios" },
-  { title: "Contas a Pagar", url: "/financeiro/pagar", category: "Financeiro", keywords: "custos despesas boletos" },
-  { title: "DRE Gerencial", url: "/financeiro/dre", category: "Financeiro", keywords: "lucro prejuizo resultado" },
-  { title: "Meus Dados", url: "/configuracoes/meus-dados", category: "Configurações", keywords: "perfil escritorio endereço" },
+type SearchPage = {
+  title: string
+  url: string
+  category: string
+  keywords: string
+  status?: string
+  alert?: string
+}
+
+type SearchAction = {
+  title: string
+  url: string
+  icon: LucideIcon
+  category: string
+}
+
+const PAGES: SearchPage[] = [
+  { title: "Dashboard Geral", url: "/dashboard", category: "Estrategico", keywords: "inicio home principal painel indicadores kpi" },
+  { title: "Inteligencia BI", url: "/inteligencia", category: "Estrategico", keywords: "graficos analise dados relatorios" },
+  { title: "Agenda de Reunioes", url: "/agenda", category: "Estrategico", keywords: "compromissos calendario google reuniao" },
+  { title: "Gestao de Clientes", url: "/clientes", category: "Relacionamento", keywords: "empresas base cadastro cnpj cliente carteira" },
+  { title: "Login Cliente", url: "/login-cliente", category: "Relacionamento", keywords: "portal login cliente acesso credencial" },
+  { title: "Central de Atendimentos", url: "/atendimentos", category: "Producao", keywords: "tickets suporte chamados whatsapp atendimento" },
+  { title: "Certidoes CNDs", url: "/certidoes", category: "Conformidade", keywords: "regularidade fiscal cnd vencimento negativa positiva" },
+  { title: "Alvaras", url: "/alvaras", category: "Conformidade", keywords: "licencas validade vencimento vigilancia bombeiro prefeitura" },
+  { title: "Todos os Processos", url: "/processos", category: "Producao", keywords: "tarefas obrigacoes entregas processos fiscal contabil dp" },
+  { title: "Demandas Internas", url: "/atendimentos?status=interno", category: "Producao", keywords: "internas equipe pendencias tarefas" },
+  { title: "IRPF 2026", url: "/processos/irpf", category: "Producao", keywords: "imposto renda cpf declaracao irpf" },
+  { title: "Contratos", url: "/financeiro/contratos", category: "Financeiro", keywords: "honorarios contrato mensalidade recorrencia" },
+  { title: "Contas a Receber", url: "/financeiro/receber", category: "Financeiro", keywords: "ganhos faturamento honorarios receita receber cobranca" },
+  { title: "Contas a Pagar", url: "/financeiro/pagar", category: "Financeiro", keywords: "custos despesas boletos pagar fornecedor" },
+  { title: "Fluxo de Caixa", url: "/financeiro/fluxo", category: "Financeiro", keywords: "caixa entradas saidas saldo previsao" },
+  { title: "DRE Gerencial", url: "/financeiro/dre", category: "Financeiro", keywords: "lucro prejuizo resultado demonstrativo" },
+  { title: "Equipe", url: "/equipe", category: "Gestao", keywords: "colaboradores usuarios email pin permissao time" },
+  { title: "Meus Dados", url: "/configuracoes/meus-dados", category: "Configuracoes", keywords: "perfil escritorio endereco dados empresa" },
 ]
 
-const ACTIONS = [
-  { title: "Novo Cliente", url: "/clientes", icon: PlusCircle, category: "Ação Rápida" },
-  { title: "Nova Declaração IRPF", url: "/processos/irpf", icon: PlusCircle, category: "Ação Rápida" },
-  { title: "Agendar Reunião", url: "/agenda", icon: Zap, category: "Ação Rápida" },
-  { title: "Abrir Ticket", url: "/atendimentos", icon: Zap, category: "Ação Rápida" },
+const ACTIONS: SearchAction[] = [
+  { title: "Novo Cliente", url: "/clientes", icon: PlusCircle, category: "Acao Rapida" },
+  { title: "Nova Declaracao IRPF", url: "/processos/irpf", icon: PlusCircle, category: "Acao Rapida" },
+  { title: "Agendar Reuniao", url: "/agenda", icon: Zap, category: "Acao Rapida" },
+  { title: "Abrir Ticket", url: "/atendimentos", icon: Zap, category: "Acao Rapida" },
+  { title: "Gerar Mes Financeiro", url: "/financeiro/receber", icon: Zap, category: "Acao Rapida" },
 ]
+
+const normalizeSearch = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
 
 export function GlobalSearch() {
   const [open, setOpen] = React.useState(false)
   const [query, setQuery] = React.useState("")
-  const [recent, setRecent] = React.useState<{title: string, url: string}[]>([])
+  const [recent, setRecent] = React.useState<{ title: string; url: string }[]>([])
   const router = useRouter()
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
-        setOpen((open) => !open)
+        setOpen((current) => !current)
       }
     }
+
     document.addEventListener("keydown", down)
-    
-    const saved = localStorage.getItem("prosperare_recent_pages")
-    if (saved) setRecent(JSON.parse(saved))
+
+    try {
+      const saved = localStorage.getItem("prosperare_recent_pages")
+      if (saved) setRecent(JSON.parse(saved))
+    } catch {
+      localStorage.removeItem("prosperare_recent_pages")
+    }
 
     return () => document.removeEventListener("keydown", down)
   }, [])
 
-  const filteredPages = query === "" 
-    ? [] 
-    : PAGES.filter((page) => 
-        page.title.toLowerCase().includes(query.toLowerCase()) ||
-        page.category.toLowerCase().includes(query.toLowerCase()) ||
-        page.keywords.toLowerCase().includes(query.toLowerCase())
-      )
+  const normalizedQuery = normalizeSearch(query)
 
-  const filteredActions = query === ""
-    ? []
-    : ACTIONS.filter((action) => 
-        action.title.toLowerCase().includes(query.toLowerCase())
-      )
+  const filteredPages =
+    normalizedQuery === ""
+      ? []
+      : PAGES.filter((page) => {
+          const searchable = normalizeSearch(`${page.title} ${page.category} ${page.keywords}`)
+          return searchable.includes(normalizedQuery)
+        })
 
-  const handleSelect = (page: {title: string, url: string}) => {
-    const newRecent = [page, ...recent.filter(r => r.url !== page.url)].slice(0, 3)
+  const filteredActions =
+    normalizedQuery === ""
+      ? []
+      : ACTIONS.filter((action) => normalizeSearch(action.title).includes(normalizedQuery))
+
+  const handleSelect = (page: { title: string; url: string }) => {
+    const newRecent = [page, ...recent.filter((item) => item.url !== page.url)].slice(0, 3)
     setRecent(newRecent)
     localStorage.setItem("prosperare_recent_pages", JSON.stringify(newRecent))
-    
+
     router.push(page.url)
     setOpen(false)
     setQuery("")
@@ -85,115 +120,141 @@ export function GlobalSearch() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-[#98A7AA] bg-[#F7F7F7] border border-[#D2D7DB] rounded-lg hover:border-[#1FA67A] transition-all w-64 text-left group"
+        className="group flex w-64 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-left text-xs font-semibold text-slate-500 transition-all hover:border-blue-500 hover:bg-white hover:shadow-sm"
       >
-        <Search className="h-3.5 w-3.5 group-hover:text-[#1FA67A]" />
-        <span>Busca rápida...</span>
-        <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-[#D2D7DB] bg-white px-1.5 font-mono text-[10px] font-medium opacity-100">
-          <span className="text-xs">⌘</span>K
+        <Search className="h-3.5 w-3.5 group-hover:text-blue-600" />
+        <span>Busca rapida...</span>
+        <kbd className="pointer-events-none ml-auto inline-flex h-5 select-none items-center gap-1 rounded border border-slate-200 bg-white px-1.5 font-mono text-[10px] font-medium text-slate-500">
+          Ctrl K
         </kbd>
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[550px] p-0 gap-0 overflow-hidden border-[#D2D7DB] shadow-2xl">
-          <DialogHeader className="p-4 border-b bg-[#F7F7F7]">
+        <DialogContent className="gap-0 overflow-hidden border-slate-100 p-0 shadow-2xl sm:max-w-[580px]">
+          <DialogHeader className="border-b bg-slate-50 p-4">
+            <DialogTitle className="sr-only">Busca Global</DialogTitle>
             <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-[#98A7AA]" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Busque por páginas, ações ou pendências..."
-                className="pl-10 h-10 bg-white border-[#D2D7DB] focus-visible:ring-[#1FA67A] font-medium"
+                placeholder="Busque por paginas, acoes ou pendencias..."
+                className="h-11 border-slate-200 bg-white pl-10 font-medium focus-visible:ring-blue-600"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 autoFocus
               />
             </div>
           </DialogHeader>
-          <div className="max-h-[400px] overflow-hidden">
+
+          <div className="max-h-[420px] overflow-hidden">
             <ScrollArea className="h-full">
               {query === "" ? (
-                <div className="p-4 space-y-6">
+                <div className="space-y-6 p-4">
                   {recent.length > 0 && (
                     <div className="space-y-2">
-                      <h4 className="px-2 text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
-                        <History className="h-3 w-3" /> Visitados Recentemente
+                      <h4 className="flex items-center gap-2 px-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        <History className="h-3 w-3" /> Visitados recentemente
                       </h4>
                       <div className="space-y-1">
                         {recent.map((page) => (
                           <button
                             key={page.url}
                             onClick={() => handleSelect(page)}
-                            className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-[#F7F7F7] group transition-colors"
+                            className="group flex w-full items-center justify-between rounded-lg p-2 transition-colors hover:bg-slate-50"
                           >
-                            <span className="text-sm font-bold text-[#39586D]">{page.title}</span>
-                            <ArrowRight className="h-3 w-3 text-[#D2D7DB] opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <span className="text-sm font-bold text-slate-700">{page.title}</span>
+                            <ArrowRight className="h-3 w-3 text-slate-300 opacity-0 transition-opacity group-hover:opacity-100" />
                           </button>
                         ))}
                       </div>
                     </div>
                   )}
+
                   <div className="space-y-2">
-                    <h4 className="px-2 text-[10px] font-black uppercase text-[#98A7AA] tracking-widest flex items-center gap-2">
-                      <Zap className="h-3 w-3" /> Atalhos Úteis
+                    <h4 className="flex items-center gap-2 px-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <Zap className="h-3 w-3" /> Atalhos uteis
                     </h4>
                     <div className="grid grid-cols-2 gap-2">
-                      {ACTIONS.slice(0, 2).map((act) => (
+                      {ACTIONS.slice(0, 4).map((action) => (
                         <button
-                          key={act.title}
-                          onClick={() => handleSelect(act)}
-                          className="flex items-center gap-3 p-3 rounded-xl border border-[#D2D7DB] hover:border-[#1FA67A] hover:bg-[#1FA67A]/5 transition-all text-left"
+                          key={action.title}
+                          onClick={() => handleSelect(action)}
+                          className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 text-left shadow-[0_2px_10px_rgba(0,0,0,0.04)] transition-all hover:-translate-y-0.5 hover:border-blue-500 hover:bg-blue-50"
                         >
-                          <act.icon className="h-4 w-4 text-[#1FA67A]" />
-                          <span className="text-xs font-black text-[#2C4156] uppercase">{act.title}</span>
+                          <action.icon className="h-4 w-4 text-blue-600" />
+                          <span className="text-xs font-black uppercase text-slate-700">{action.title}</span>
                         </button>
                       ))}
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="p-2 space-y-4">
+                <div className="space-y-4 p-2">
                   <div className="space-y-1">
-                    <h4 className="px-2 text-[9px] font-black uppercase text-[#98A7AA] tracking-[0.2em]">Páginas e Módulos</h4>
+                    <h4 className="px-2 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
+                      Paginas e modulos
+                    </h4>
+
                     {filteredPages.length === 0 && filteredActions.length === 0 ? (
-                      <div className="p-8 text-center text-sm text-[#98A7AA]">
+                      <div className="p-8 text-center text-sm font-semibold text-slate-400">
                         Nenhum resultado para "{query}"
                       </div>
                     ) : (
-                      filteredPages.map((page) => (
-                        <button
-                          key={page.url}
-                          onClick={() => handleSelect(page)}
-                          className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-[#1FA67A]/5 group transition-all"
-                        >
-                          <div className="flex flex-col text-left">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-[#2C4156] group-hover:text-[#1FA67A]">{page.title}</span>
-                              {page.status && (
-                                <Badge className="bg-[#FEE2E2] text-[#E74C3C] border-none text-[8px] h-4 px-1.5 font-black uppercase">
-                                  {page.status}
-                                </Badge>
-                              )}
-                              {page.alert && (
-                                <Badge className="bg-[#FEF3C7] text-[#F2B705] border-none text-[8px] h-4 px-1.5 font-black uppercase">
-                                  {page.alert}
-                                </Badge>
-                              )}
+                      <>
+                        {filteredActions.map((action) => (
+                          <button
+                            key={action.title}
+                            onClick={() => handleSelect(action)}
+                            className="group flex w-full items-center justify-between rounded-lg p-3 transition-all hover:bg-blue-50"
+                          >
+                            <div className="flex items-center gap-3 text-left">
+                              <action.icon className="h-4 w-4 text-blue-600" />
+                              <div className="flex flex-col">
+                                <span className="text-sm font-bold text-slate-700 group-hover:text-blue-700">{action.title}</span>
+                                <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{action.category}</span>
+                              </div>
                             </div>
-                            <span className="text-[9px] uppercase font-bold text-[#98A7AA] tracking-tighter">{page.category}</span>
-                          </div>
-                          <ArrowRight className="h-4 w-4 text-[#D2D7DB] group-hover:text-[#1FA67A] translate-x-[-10px] opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all" />
-                        </button>
-                      ))
+                            <ArrowRight className="h-4 w-4 -translate-x-2 text-slate-300 opacity-0 transition-all group-hover:translate-x-0 group-hover:text-blue-600 group-hover:opacity-100" />
+                          </button>
+                        ))}
+
+                        {filteredPages.map((page) => (
+                          <button
+                            key={page.url}
+                            onClick={() => handleSelect(page)}
+                            className="group flex w-full items-center justify-between rounded-lg p-3 transition-all hover:bg-blue-50"
+                          >
+                            <div className="flex flex-col text-left">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-bold text-slate-700 group-hover:text-blue-700">{page.title}</span>
+                                {page.status && (
+                                  <Badge className="h-4 border-none bg-red-50 px-1.5 text-[8px] font-black uppercase text-red-600">
+                                    {page.status}
+                                  </Badge>
+                                )}
+                                {page.alert && (
+                                  <Badge className="h-4 border-none bg-amber-50 px-1.5 text-[8px] font-black uppercase text-amber-600">
+                                    {page.alert}
+                                  </Badge>
+                                )}
+                              </div>
+                              <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{page.category}</span>
+                            </div>
+                            <ArrowRight className="h-4 w-4 -translate-x-2 text-slate-300 opacity-0 transition-all group-hover:translate-x-0 group-hover:text-blue-600 group-hover:opacity-100" />
+                          </button>
+                        ))}
+                      </>
                     )}
                   </div>
                 </div>
               )}
             </ScrollArea>
           </div>
-          <div className="p-3 border-t bg-[#F7F7F7] flex items-center justify-between text-[9px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">
-            <span>Prosperare Navigator v3.0</span>
+
+          <div className="flex items-center justify-between border-t bg-slate-50 p-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
+            <span>Prosperare Navigator v3.1</span>
             <div className="flex gap-4">
-              <span className="flex items-center gap-1"><kbd className="bg-white px-1 rounded border">ESC</kbd> fechar</span>
-              <span className="flex items-center gap-1"><kbd className="bg-white px-1 rounded border">↵</kbd> selecionar</span>
+              <span className="flex items-center gap-1"><kbd className="rounded border bg-white px-1">ESC</kbd> fechar</span>
+              <span className="flex items-center gap-1"><kbd className="rounded border bg-white px-1">Enter</kbd> selecionar</span>
             </div>
           </div>
         </DialogContent>

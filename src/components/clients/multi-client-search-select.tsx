@@ -24,19 +24,23 @@ export function MultiClientSearchSelect({
   placeholder = "SELECIONAR EMPRESAS..." 
 }: any) {
   const [open, setOpen] = React.useState(false)
-  const [search, setSearch] = React.useState("")
+  const [searchTerm, setSearchTerm] = React.useState("")
   const inputRef = React.useRef<HTMLInputElement>(null)
 
-  const filteredClients = React.useMemo(() => {
-    const searchLower = search.toLowerCase()
-    const searchDigits = search.replace(/\D/g, '')
+  const clientesFiltrados = React.useMemo(() => {
+    if (!searchTerm || searchTerm.trim() === "") return clients || []
+
+    const searchLower = searchTerm.toLowerCase().trim()
+    const searchDigits = searchTerm.replace(/\D/g, '')
     
-    return (clients || []).filter((c: any) => 
-      c.corporateName?.toLowerCase().includes(searchLower) ||
-      c.nomeFantasia?.toLowerCase().includes(searchLower) ||
-      (searchDigits !== '' && c.cnpj?.replace(/\D/g, '').includes(searchDigits))
-    )
-  }, [clients, search])
+    return (clients || []).filter((c: any) => {
+      const nomeMatch = String(c.corporateName || "").toLowerCase().includes(searchLower) || 
+                        String(c.nomeFantasia || "").toLowerCase().includes(searchLower)
+      const cnpjMatch = searchDigits !== '' && String(c.cnpj || "").replace(/\D/g, '').includes(searchDigits)
+      
+      return nomeMatch || cnpjMatch
+    })
+  }, [clients, searchTerm])
 
   const toggleClient = (id: string) => {
     const newValue = value.includes(id)
@@ -62,7 +66,7 @@ export function MultiClientSearchSelect({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between h-11 border-[#D2D7DB] hover:border-[#1FA67A] transition-colors font-bold uppercase text-[11px] px-4 bg-white"
+            className="w-full justify-between h-11 border-[#D2D7DB] hover:border-[#2563EB] transition-colors font-bold uppercase text-[11px] px-4 bg-white"
           >
             <span className="truncate">
               {value.length > 0 ? `${value.length} EMPRESAS SELECIONADAS` : placeholder}
@@ -81,19 +85,21 @@ export function MultiClientSearchSelect({
                 ref={inputRef}
                 placeholder="PESQUISAR POR NOME OU CNPJ..."
                 className="flex h-11 w-full rounded-md bg-transparent py-3 text-xs outline-none border-none focus-visible:ring-0 shadow-none font-bold uppercase"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
               />
             </div>
             <ScrollArea className="h-72">
               <div className="p-1">
-                {filteredClients.map((client: any) => (
+                {clientesFiltrados.map((client: any) => (
                   <button
                     key={client.id}
                     type="button"
                     className={cn(
                       "relative flex w-full cursor-pointer select-none items-center rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none hover:bg-[#F7F7F7] transition-all text-left mb-1",
-                      value.includes(client.id) && "bg-[#1FA67A]/5 text-[#1FA67A]"
+                      value.includes(client.id) && "bg-[#2563EB]/5 text-[#2563EB]"
                     )}
                     onClick={(e) => {
                       e.preventDefault()
@@ -109,7 +115,7 @@ export function MultiClientSearchSelect({
                       <span className="text-[8px] font-mono opacity-60">{client.cnpj}</span>
                     </div>
                     {value.includes(client.id) && (
-                      <Check className="ml-2 h-4 w-4 shrink-0 text-[#1FA67A]" />
+                      <Check className="ml-2 h-4 w-4 shrink-0 text-[#2563EB]" />
                     )}
                   </button>
                 ))}

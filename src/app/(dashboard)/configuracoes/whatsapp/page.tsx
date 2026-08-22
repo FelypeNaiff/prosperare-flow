@@ -25,7 +25,7 @@ export default function WhatsappConfigPage() {
           <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">WhatsApp</h1>
           <p className="text-[#98A7AA] font-medium">Integração para envio de guias e comunicados instantâneos.</p>
         </div>
-        <Button className="bg-[#1FA67A] font-bold">Integrar número</Button>
+        <Button className="bg-[#2563EB] font-bold">Integrar número</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -33,7 +33,7 @@ export default function WhatsappConfigPage() {
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle className="text-lg">Modelos de Mensagem</CardTitle>
-              <Button variant="ghost" size="sm" className="text-[#1FA67A] font-bold"><Plus className="h-4 w-4 mr-1" /> Novo modelo</Button>
+              <Button variant="ghost" size="sm" className="text-[#2563EB] font-bold"><Plus className="h-4 w-4 mr-1" /> Novo modelo</Button>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -45,7 +45,7 @@ export default function WhatsappConfigPage() {
                     <p className="text-xs text-[#98A7AA] line-clamp-2 italic">"{tpl.text}"</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge className={tpl.active ? "bg-[#7ED6B5] text-[#1FA67A] border-none" : "bg-slate-200 text-slate-500"}>
+                    <Badge className={tpl.active ? "bg-[#7ED6B5] text-[#2563EB] border-none" : "bg-slate-200 text-slate-500"}>
                       {tpl.active ? 'Ativo' : 'Inativo'}
                     </Badge>
                     <Button variant="ghost" size="icon" className="h-8 w-8"><Edit className="h-4 w-4" /></Button>
@@ -63,8 +63,8 @@ export default function WhatsappConfigPage() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#1FA67A] animate-pulse" />
-                <span className="font-bold text-[#1FA67A]">Conectado</span>
+                <div className="w-3 h-3 rounded-full bg-[#2563EB] animate-pulse" />
+                <span className="font-bold text-[#2563EB]">Conectado</span>
               </div>
               <p className="text-xs text-[#98A7AA] mt-2">Instância: Macapá-01</p>
             </CardContent>
@@ -80,7 +80,7 @@ export default function WhatsappConfigPage() {
                   <RadioGroupItem value="link" id="link" />
                   <div className="grid gap-1.5 leading-none">
                     <Label htmlFor="link" className="text-sm font-bold">Via link (acesso externo)</Label>
-                    <Badge variant="outline" className="w-fit text-[9px] uppercase border-[#1FA67A] text-[#1FA67A] bg-[#7ED6B5]/10">✓ Rastreável</Badge>
+                    <Badge variant="outline" className="w-fit text-[9px] uppercase border-[#2563EB] text-[#2563EB] bg-[#7ED6B5]/10">✓ Rastreável</Badge>
                   </div>
                 </div>
                 <div className="flex items-start space-x-2 pt-2">
@@ -100,7 +100,7 @@ export default function WhatsappConfigPage() {
                   </AlertDescription>
                 </Alert>
               </div>
-              <Button className="w-full bg-[#1FA67A] font-bold text-xs mt-4">Salvar Configuração</Button>
+              <Button className="w-full bg-[#2563EB] font-bold text-xs mt-4">Salvar Configuração</Button>
             </CardContent>
           </Card>
         </div>

@@ -199,9 +199,9 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                     <div className="space-y-3">
                       <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Tipo de Fluxo</Label>
                       <RadioGroup value={formData.tipo} onValueChange={(v) => setFormData({...formData, tipo: v})} className="flex gap-4">
-                        <div className={cn("flex-1 flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer", formData.tipo === 'recorrente' ? "border-[#1FA67A] bg-[#1FA67A]/5" : "border-[#D2D7DB] bg-white")} onClick={() => setFormData({...formData, tipo: 'recorrente'})}>
+                        <div className={cn("flex-1 flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer", formData.tipo === 'recorrente' ? "border-[#2563EB] bg-[#2563EB]/5" : "border-[#D2D7DB] bg-white")} onClick={() => setFormData({...formData, tipo: 'recorrente'})}>
                           <div className="flex items-center gap-3">
-                            <Repeat className={cn("h-4 w-4", formData.tipo === 'recorrente' ? "text-[#1FA67A]" : "text-[#98A7AA]")} />
+                            <Repeat className={cn("h-4 w-4", formData.tipo === 'recorrente' ? "text-[#2563EB]" : "text-[#98A7AA]")} />
                             <span className="text-xs font-black text-[#2C4156] uppercase">Recorrente</span>
                           </div>
                           <RadioGroupItem value="recorrente" id="tipo-rec" className="sr-only" />
@@ -250,7 +250,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                       key={group.id} 
                       className={cn(
                         "flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all",
-                        formData.groupIds.includes(group.id) ? "border-[#1FA67A] bg-[#1FA67A]/5" : "border-[#D2D7DB] bg-white hover:bg-[#F7F7F7]"
+                        formData.groupIds.includes(group.id) ? "border-[#2563EB] bg-[#2563EB]/5" : "border-[#D2D7DB] bg-white hover:bg-[#F7F7F7]"
                       )} 
                       onClick={() => {
                         const ids = formData.groupIds.includes(group.id) 
@@ -270,18 +270,18 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                 <div className="bg-[#F7F7F7] p-8 rounded-2xl border space-y-8">
                   {formData.tipo === 'esporadico' ? (
                     <div className="flex flex-col items-center justify-center text-center p-6 space-y-4">
-                      <CalendarClock className="h-12 w-12 text-[#1FA67A] mb-2" />
+                      <CalendarClock className="h-12 w-12 text-[#2563EB] mb-2" />
                       <div>
                         <h4 className="text-lg font-black text-[#2C4156] uppercase">Prazo Sob Demanda</h4>
                         <p className="text-xs font-bold text-[#98A7AA] mt-1">Neste tipo de fluxo, não há prazo fixo predefinido.</p>
-                        <p className="text-[10px] font-black uppercase text-[#1FA67A] tracking-wider mt-4">A data de vencimento será escolhida através do calendário ao instanciar o processo.</p>
+                        <p className="text-[10px] font-black uppercase text-[#2563EB] tracking-wider mt-4">A data de vencimento será escolhida através do calendário ao instanciar o processo.</p>
                       </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                       <div className="space-y-4">
                         <Label className="text-sm font-black text-[#2C4156] uppercase flex items-center gap-2">
-                          <CalendarClock className="h-5 w-5 text-[#1FA67A]" /> Vencimento Fixo
+                          <CalendarClock className="h-5 w-5 text-[#2563EB]" /> Vencimento Fixo
                         </Label>
                         <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-[#D2D7DB]">
                           <span className="text-xs font-bold text-[#98A7AA] uppercase">Todo dia</span>
@@ -318,7 +318,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
               <TabsContent value="tarefas" className="m-0 space-y-6">
                 <div className="flex justify-between items-center mb-4">
                   <h4 className="text-xs font-black text-[#2C4156] uppercase tracking-widest flex items-center gap-2">
-                    <ClipboardList className="h-4 w-4 text-[#1FA67A]" /> Etapas do Checklist
+                    <ClipboardList className="h-4 w-4 text-[#2563EB]" /> Etapas do Checklist
                   </h4>
                   <Button size="sm" className="bg-[#2C4156] gap-2 text-[10px] font-black uppercase h-9 shadow-md" onClick={addTarefa}>
                     <Plus className="h-4 w-4" /> Adicionar Etapa
@@ -326,7 +326,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                 </div>
                 <div className="space-y-4">
                   {(formData.tarefas || []).map((tarefa, index) => (
-                    <div key={tarefa.id} className="flex flex-col gap-4 p-5 bg-white border border-[#D2D7DB] rounded-2xl shadow-sm hover:border-[#1FA67A] transition-all relative">
+                    <div key={tarefa.id} className="flex flex-col gap-4 p-5 bg-white border border-[#D2D7DB] rounded-2xl shadow-sm hover:border-[#2563EB] transition-all relative">
                       <div className="absolute top-5 left-[-12px] h-7 w-7 bg-[#2C4156] text-white rounded-full flex items-center justify-center text-[11px] font-black shadow-lg">{index + 1}</div>
                       <div className="flex justify-between items-start pl-4">
                         <Input 
@@ -379,7 +379,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
 
               <TabsContent value="recorrencia" className="m-0">
                 <div className="bg-[#2C4156] text-white p-10 rounded-[2rem] space-y-10 relative overflow-hidden shadow-2xl">
-                  <div className="absolute top-[-40px] right-[-40px] w-64 h-64 bg-[#1FA67A]/20 rounded-full blur-[80px]" />
+                  <div className="absolute top-[-40px] right-[-40px] w-64 h-64 bg-[#2563EB]/20 rounded-full blur-[80px]" />
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-2xl font-black uppercase tracking-tight">Status do Robô Prosperare</h4>
@@ -388,13 +388,13 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                     <Switch 
                       checked={formData.ativo} 
                       onCheckedChange={(v) => setFormData({...formData, ativo: !!v})} 
-                      className="data-[state=checked]:bg-[#1FA67A]"
+                      className="data-[state=checked]:bg-[#2563EB]"
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-8 border-t border-white/10">
                     <div className="space-y-4">
                       <Label className="text-[10px] font-black uppercase text-white/60 tracking-widest flex items-center gap-2">
-                        <RefreshCcw className="h-4 w-4 text-[#1FA67A]" /> Frequência de Geração
+                        <RefreshCcw className="h-4 w-4 text-[#2563EB]" /> Frequência de Geração
                       </Label>
                       <Select value={formData.recorrencia} onValueChange={(v) => setFormData({...formData, recorrencia: v})}>
                         <SelectTrigger className="bg-white/5 border-white/10 h-14 font-black text-white text-lg">
@@ -410,11 +410,11 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
                     </div>
                     <div className="space-y-4">
                       <Label className="text-[10px] font-black uppercase text-white/60 tracking-widest flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-[#1FA67A]" /> Dia do Mês (Gatilho)
+                        <Clock className="h-4 w-4 text-[#2563EB]" /> Dia do Mês (Gatilho)
                       </Label>
                       <Input 
                         type="number" min="1" max="31" 
-                        className="bg-white/5 border-white/10 h-14 font-black text-3xl text-center text-[#1FA67A]" 
+                        className="bg-white/5 border-white/10 h-14 font-black text-3xl text-center text-[#2563EB]" 
                         value={formData.dataGeracaoRecorrencia} 
                         onChange={(e) => setFormData({...formData, dataGeracaoRecorrencia: Number(e.target.value)})} 
                       />
@@ -427,7 +427,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
 
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => onOpenChange(false)} className="font-bold uppercase text-xs border-[#D2D7DB]">Cancelar</Button>
-            <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-10 shadow-lg shadow-emerald-500/20" onClick={handleSave}>
+            <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-10 shadow-lg shadow-blue-500/20" onClick={handleSave}>
               <Save className="h-4 w-4 mr-2" /> {model ? "Salvar Inteligência" : "Gerar Estrutura de Fluxo"}
             </Button>
           </DialogFooter>
@@ -441,7 +441,7 @@ function TabTrigger({ value, label }: { value: string, label: string }) {
   return (
     <TabsTrigger 
       value={value} 
-      className="data-[state=active]:bg-transparent data-[state=active]:text-[#1FA67A] data-[state=active]:border-b-2 data-[state=active]:border-[#1FA67A] rounded-none px-0 font-black uppercase text-[10px] tracking-widest shrink-0"
+      className="data-[state=active]:bg-transparent data-[state=active]:text-[#2563EB] data-[state=active]:border-b-2 data-[state=active]:border-[#2563EB] rounded-none px-0 font-black uppercase text-[10px] tracking-widest shrink-0"
     >
       {label}
     </TabsTrigger>

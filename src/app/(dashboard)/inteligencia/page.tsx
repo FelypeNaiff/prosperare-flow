@@ -29,7 +29,7 @@ const chartData: any[] = []
 const growthConfig = {
   valor: {
     label: "Faturamento",
-    color: "#1FA67A",
+    color: "#2563EB",
   },
 } satisfies ChartConfig
 
@@ -39,19 +39,19 @@ export default function InteligenciaPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight flex items-center gap-3">
-            <BrainCircuit className="h-8 w-8 text-[#1FA67A]" />
+            <BrainCircuit className="h-8 w-8 text-[#2563EB]" />
             Inteligência Prosperare
           </h1>
           <p className="text-[#98A7AA] font-bold text-sm">Visão analítica e estratégica da sua operação contábil.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold">Gerar Insight IA</Button>
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-bold shadow-lg shadow-emerald-500/20">Relatório Executivo</Button>
+          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-bold shadow-lg shadow-blue-500/20">Relatório Executivo</Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard label="Ticket Médio" value="R$ 0,00" icon={DollarSign} color="#1FA67A" />
+        <MetricCard label="Ticket Médio" value="R$ 0,00" icon={DollarSign} color="#2563EB" />
         <MetricCard label="Churn Rate" value="0%" icon={Users} color="#E74C3C" />
         <MetricCard label="Saúde Média" value="0%" icon={ShieldCheck} color="#2574A9" />
         <MetricCard label="Meta Global" value="0%" icon={Target} color="#F2B705" />
@@ -61,7 +61,7 @@ export default function InteligenciaPage() {
         <Card className="lg:col-span-2 border-[#D2D7DB] shadow-sm bg-white">
           <CardHeader className="bg-[#F7F7F7]/30 border-b">
             <CardTitle className="text-xs font-black text-[#2C4156] uppercase tracking-widest flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-[#1FA67A]" />
+              <TrendingUp className="h-4 w-4 text-[#2563EB]" />
               Projeção de Crescimento
             </CardTitle>
             <CardDescription className="text-xs font-bold text-[#98A7AA]">Os dados serão povoados conforme o faturamento do escritório.</CardDescription>
@@ -100,10 +100,10 @@ export default function InteligenciaPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-[#D2D7DB] bg-[#7ED6B5]/10 shadow-sm border-l-4 border-l-[#1FA67A]">
+        <Card className="border-[#D2D7DB] bg-[#7ED6B5]/10 shadow-sm border-l-4 border-l-[#2563EB]">
           <CardHeader>
             <CardTitle className="text-[#2C4156] text-sm font-black uppercase tracking-widest flex items-center gap-2">
-              <ArrowUpRight className="h-5 w-5 text-[#1FA67A]" />
+              <ArrowUpRight className="h-5 w-5 text-[#2563EB]" />
               Oportunidades de Up-sell
             </CardTitle>
           </CardHeader>

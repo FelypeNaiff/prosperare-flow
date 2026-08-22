@@ -35,7 +35,10 @@ import {
   CreditCard as InstallmentIcon,
   FileSignature,
   FileStack,
-  UsersRound
+  UsersRound,
+  ShieldCheck,
+  Landmark,
+  Scale
 } from "lucide-react"
 
 import {
@@ -57,27 +60,16 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from "@/firebase"
+import { useUser, useAuth, useFirestore, useDoc, useCollection, useMemoFirebase } from "@/firebase"
 import { initiateLogout } from "@/firebase/non-blocking-login"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { doc } from "firebase/firestore"
+import { doc, collection } from "firebase/firestore"
 
 const menuItems = [
-  {
-    title: "Painel Estratégico",
-    url: "/dashboard",
-    icon: LayoutDashboard,
-    profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
-    subItems: [
-      { title: "Dashboard Geral", url: "/dashboard", icon: LayoutDashboard },
-      { title: "Inteligência (BI)", url: "/inteligencia", icon: BrainCircuit },
-      { title: "Agenda de Reuniões", url: "/agenda", icon: Calendar },
-    ]
-  },
   {
     title: "Relacionamento",
     url: "/clientes",
@@ -85,8 +77,7 @@ const menuItems = [
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
     subItems: [
       { title: "Gestão de Clientes", url: "/clientes", icon: Users },
-      { title: "Central de Atendimentos", url: "/atendimentos", icon: TicketCheck },
-      { title: "Repositório de Documentos", url: "/documentos", icon: FolderOpen },
+      { title: "Login Cliente", url: "/login-cliente", icon: Lock },
     ]
   },
   {
@@ -96,11 +87,24 @@ const menuItems = [
     profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
     subItems: [
       { title: "Todos os Processos", url: "/processos", icon: Files },
-      { title: "Grupos de Obrigações", url: "/processos/grupos", icon: Layers },
-      { title: "Modelos de Checklist", url: "/processos/modelos", icon: FileText },
-      { title: "Calendário de Prazos", url: "/processos/calendario", icon: Calendar },
+      { title: "Demandas Internas", url: "/atendimentos", icon: TicketCheck },
+      { title: "Agenda de Obrigações", url: "/processos/calendario", icon: Calendar },
       { title: "IRPF 2026", url: "/processos/irpf", icon: ClipboardList },
       { title: "Parcelamentos", url: "/processos/parcelamentos", icon: InstallmentIcon },
+      { title: "Certidões Negativas", url: "/certidoes", icon: ShieldCheck },
+    ]
+  },
+  {
+    title: "Societário",
+    url: "/societario",
+    icon: Scale,
+    profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
+    subItems: [
+      { title: "Abertura", url: "/societario/abertura", icon: Building },
+      { title: "Alteração", url: "/societario/alteracao", icon: FileSignature },
+      { title: "Baixa", url: "/societario/baixa", icon: Landmark },
+      { title: "Legalizações (CNPJ)", url: "/legalizacoes", icon: Landmark },
+      { title: "Alvarás e Licenças", url: "/alvaras", icon: FileSignature },
     ]
   },
   {
@@ -111,6 +115,7 @@ const menuItems = [
     subItems: [
       { title: "Gerar Documentos", url: "/docs-flow", icon: FileSignature },
       { title: "Histórico de Docs", url: "/docs-flow/historico", icon: History },
+      { title: "Cofre de Senhas", url: "/cofre-senhas", icon: Lock },
     ]
   },
   {
@@ -136,6 +141,19 @@ const menuItems = [
       { title: "Colaboradores", url: "/equipe", icon: Users },
       { title: "Departamentos", url: "/equipe/departamentos", icon: Building2 },
       { title: "Permissões", url: "/equipe/permissoes", icon: Lock },
+    ]
+  },
+  {
+    title: "Cadastros",
+    url: "/cadastros",
+    icon: ClipboardList,
+    profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
+    subItems: [
+      { title: "Funcionários Clientes", url: "/cadastros/funcionarios", icon: Users },
+
+      { title: "Eventos Calima", url: "/cadastros/eventos", icon: Calendar },
+      { title: "Grupos de Obrigações", url: "/cadastros/grupos", icon: Layers },
+      { title: "Modelos de Processos", url: "/cadastros/modelos", icon: FileText },
     ]
   },
   {
@@ -165,27 +183,77 @@ export function AppSidebar() {
   // Busca o nome do escritório das configurações reais
   const officeRef = useMemoFirebase(() => doc(firestore, "officeSettings", "main"), [firestore])
   const { data: officeData } = useDoc(officeRef)
+
+  const profilesQuery = useMemoFirebase(() => collection(firestore, "accessProfiles"), [firestore])
+  const { data: dbProfiles = [] } = useCollection(profilesQuery)
   
   const filteredItems = React.useMemo(() => {
     if (!selectedUser) return []
-    return menuItems.filter(item => item.profiles.includes(selectedUser.profile))
-  }, [selectedUser?.profile])
+
+    // Encontrar o perfil do usuário na lista de perfis salvos do banco
+    const userProfileObj = (dbProfiles || []).find(p => p.name?.toUpperCase() === selectedUser.profile?.toUpperCase())
+
+    return menuItems.filter(item => {
+      // Mapeamento do item para a chave de permissão correspondente
+      let permKey = ""
+      if (item.title === "Relacionamento") permKey = "relacionamento"
+      else if (item.title === "Fluxo de Produção") permKey = "processos"
+      else if (item.title === "Societário") permKey = "societario"
+      else if (item.title === "Docs Flow") permKey = "docs_flow"
+      else if (item.title === "Financeiro") permKey = "financeiro"
+      else if (item.title === "Gestão de Equipe") permKey = "equipe"
+      else if (item.title === "Cadastros") permKey = "cadastros"
+      else if (item.title === "Configurações") permKey = "configuracoes"
+
+      // Se temos o perfil salvo no banco, usamos a permissão do banco
+      if (userProfileObj && userProfileObj.permissions) {
+        if (userProfileObj.permissions[permKey] !== undefined) {
+          return !!userProfileObj.permissions[permKey]
+        }
+      }
+
+      // Fallback para regras padrão se o perfil não estiver no banco
+      const profile = selectedUser.profile?.toUpperCase()
+      if (profile === "SÓCIO") return true
+      if (profile === "ADMINISTRADOR") return true
+      
+      if (item.title === "Financeiro") {
+        const isMaster = profile === "SÓCIO" || profile === "ADMINISTRADOR" || profile === "CONTADOR/GESTOR";
+        const hasFinanceiro = (selectedUser.departmentIds || []).some((d: string) => d.toUpperCase() === "FINANCEIRO");
+        return isMaster || hasFinanceiro;
+      }
+      
+      if (item.title === "Gestão de Equipe") {
+        return profile === "ADMINISTRADOR" || profile === "SÓCIO";
+      }
+      
+      if (item.title === "Cadastros") {
+        return profile === "ADMINISTRADOR" || profile === "SÓCIO" || profile === "CONTADOR/GESTOR" || profile === "ASSISTENTE";
+      }
+
+      if (item.title === "Configurações") {
+        return profile === "ADMINISTRADOR" || profile === "SÓCIO";
+      }
+
+      return true; // Relacionamento, Processos, Societário, Docs Flow ativos por padrão
+    })
+  }, [selectedUser, dbProfiles])
 
   const officeName = officeData?.nomeFantasia || officeData?.razaoSocial || "PROSPERARE"
 
   return (
-    <Sidebar className="border-r-0 bg-[#2C4156] text-white">
-      <SidebarHeader className="h-24 flex flex-col items-start px-6 justify-center">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-[#1FA67A] rounded-lg shadow-lg relative w-10 h-10 flex items-center justify-center">
-            <TrendingUp className="h-6 w-6 text-white z-10" />
+    <Sidebar className="border-r border-slate-200 bg-white text-slate-800">
+      <SidebarHeader className="h-24 flex flex-col items-start px-6 justify-center border-b border-slate-100">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 bg-gradient-to-tr from-blue-600 to-sky-500 rounded-xl shadow-md shadow-blue-500/10 relative w-10 h-10 flex items-center justify-center">
+            <TrendingUp className="h-5 w-5 text-white" />
           </div>
           <div className="flex flex-col">
-            <div className="flex items-center gap-1.5">
-              <span className="text-white font-bold text-lg leading-none tracking-tight uppercase">{officeName.split(' ')[0]}</span>
-              <span className="text-[#1FA67A] font-bold text-lg leading-none tracking-tight">FLOW</span>
+            <div className="flex items-center gap-1">
+              <span className="text-slate-900 font-extrabold text-lg leading-none tracking-tight uppercase">{officeName.split(' ')[0]}</span>
+              <span className="text-blue-600 font-extrabold text-lg leading-none tracking-tight">FLOW</span>
             </div>
-            <span className="text-[#98A7AA] text-[10px] uppercase font-bold tracking-[0.2em] mt-1">Gestão Team</span>
+            <span className="text-slate-400 text-[9px] uppercase font-bold tracking-[0.2em] mt-1.5">Gestão Team</span>
           </div>
         </div>
       </SidebarHeader>
@@ -206,28 +274,40 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton className={cn(
-                          "hover:bg-[#39586D] transition-all py-6 text-white group-data-[state=open]/collapsible:bg-[#39586D]/50",
-                          isActive && "bg-[#39586D] border-l-[3px] border-[#1FA67A]"
+                          "transition-all py-6 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg",
+                          isActive && "bg-blue-50/30 text-blue-700 font-semibold"
                         )}>
-                          <item.icon className={cn("h-5 w-5", isActive && "text-[#1FA67A]")} />
-                          <span className={cn("text-sm font-medium", isActive && "font-bold")}>{item.title}</span>
+                          <item.icon className={cn("h-5 w-5 transition-colors", isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600")} />
+                          <span className="text-sm font-medium">{item.title}</span>
                           <div className="ml-auto flex items-center gap-2">
-                            <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                            <ChevronDown className={cn("h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180", isActive ? "text-blue-600" : "text-slate-400")} />
                           </div>
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent className="animate-in slide-in-from-top-1 duration-200">
-                        <SidebarMenuSub className="border-l border-white/10 ml-4 space-y-1 py-1">
-                          {item.subItems?.map((sub) => (
-                            <SidebarMenuSubItem key={sub.title}>
-                              <SidebarMenuSubButton asChild isActive={pathname === sub.url} className="text-white/70 hover:text-white h-9">
-                                <Link href={sub.url} className="flex items-center gap-2">
-                                  <sub.icon className={cn("h-4 w-4 opacity-70", pathname === sub.url && "text-[#1FA67A] opacity-100")} />
-                                  <span className={cn(pathname === sub.url && "text-[#1FA67A] font-semibold")}>{sub.title}</span>
-                                </Link>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
+                        <SidebarMenuSub className="border-l border-slate-200 ml-4 space-y-1 py-1">
+                          {item.subItems?.map((sub) => {
+                            const isSubActive = pathname === sub.url;
+                            return (
+                              <SidebarMenuSubItem key={sub.title}>
+                                <SidebarMenuSubButton 
+                                  asChild 
+                                  isActive={isSubActive} 
+                                  className={cn(
+                                    "h-9 transition-all duration-200 flex items-center px-4",
+                                    isSubActive 
+                                      ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600 rounded-r-xl rounded-l-none" 
+                                      : "text-slate-500 hover:text-slate-700 hover:bg-slate-50/60 rounded-lg"
+                                  )}
+                                >
+                                  <Link href={sub.url}>
+                                    <sub.icon className={cn("h-4 w-4 shrink-0 transition-colors", isSubActive ? "text-blue-600 opacity-100" : "text-slate-400 opacity-70")} />
+                                    <span>{sub.title}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            );
+                          })}
                         </SidebarMenuSub>
                       </CollapsibleContent>
                     </SidebarMenuItem>
@@ -239,30 +319,30 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 bg-[#39586D]/30 border-t border-white/10">
+      <SidebarFooter className="p-4 bg-slate-50/50 border-t border-slate-100">
         {selectedUser && (
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative w-9 h-9">
-                <Avatar className="h-9 w-9 border-2 border-[#1FA67A]/50">
-                  <AvatarFallback className="bg-white text-[#2C4156] font-black text-xs">
+                <Avatar className="h-9 w-9 border border-slate-200">
+                  <AvatarFallback className="bg-blue-50 text-blue-700 font-bold text-xs">
                     {selectedUser.fullName?.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#1FA67A] border-2 border-[#39586D] rounded-full" />
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-blue-500 border-2 border-white rounded-full" />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-xs font-bold text-white truncate">{selectedUser.fullName?.split(' ')[0]}</span>
-                <span className="text-[8px] text-[#98A7AA] font-black uppercase tracking-wider truncate">
+                <span className="text-xs font-bold text-slate-700 truncate">{selectedUser.fullName?.split(' ')[0]}</span>
+                <span className="text-[8px] text-slate-400 font-black uppercase tracking-wider truncate">
                   {selectedUser.profile}
                 </span>
               </div>
             </div>
             <div className="flex gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/50 hover:text-[#2574A9]" onClick={() => router.push("/escolha-usuario")}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-slate-100" onClick={() => router.push("/escolha-usuario")}>
                 <UsersRound className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/50 hover:text-[#E74C3C]" onClick={() => initiateLogout(auth)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => initiateLogout(auth)}>
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>

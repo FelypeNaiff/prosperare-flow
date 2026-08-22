@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, AtSign, RefreshCw, Clock } from "lucide-react"
+import { Bell, AtSign, RefreshCw, Clock, Briefcase, TriangleAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -13,28 +13,53 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { useFirestore, useCollection, useMemoFirebase, useUser, updateDocumentNonBlocking } from "@/firebase"
-import { collection, query, where, orderBy, limit, doc } from "firebase/firestore"
+import { useFirestore, useUser, updateDocumentNonBlocking } from "@/firebase"
+import { useEffect, useState } from "react"
+import { collection, query, where, orderBy, doc, onSnapshot } from "firebase/firestore"
 
 export function NotificationBell() {
-  const { user, userLoaded, userData } = useUser()
+  const { user, selectedUser, userLoaded } = useUser()
   const firestore = useFirestore()
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const targetUserId = selectedUser?.id || user?.uid
 
-  const notificationsQuery = useMemoFirebase(() => {
-    // Só dispara a query se o usuário estiver totalmente carregado e identificado
-    if (!userLoaded || !userData?.id) return null
-    return query(
+  useEffect(() => {
+    if (!userLoaded || !targetUserId) {
+      setIsLoading(false)
+      return
+    }
+
+    const q = query(
       collection(firestore, "notifications"),
-      where("userId", "==", userData.id)
+      where("userId", "==", targetUserId),
+      orderBy("createdAt", "desc")
     )
-  }, [firestore, userLoaded, userData?.id])
 
-  const { data: rawNotifications = [], isLoading } = useCollection(notificationsQuery)
-  
-  // Sort and limit in memory to avoid needing a composite index
-  const notifications = [...(rawNotifications || [])]
-    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 20)
+    const qFallback = query(
+      collection(firestore, "notifications"),
+      where("userId", "==", targetUserId)
+    )
+
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        const notifs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        setNotifications(notifs)
+        setIsLoading(false)
+      }, 
+      (error) => {
+        console.warn("Falling back to client-side sort due to missing index:", error)
+        onSnapshot(qFallback, (snap) => {
+          const notifs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+            .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          setNotifications(notifs)
+          setIsLoading(false)
+        })
+      }
+    )
+
+    return () => unsubscribe()
+  }, [firestore, targetUserId, userLoaded])
 
   const unreadCount = notifications.filter((n: any) => !n.read).length
 
@@ -49,7 +74,33 @@ export function NotificationBell() {
     })
   }
 
-  if (!user) return null
+  const getNotificationVisual = (type: string) => {
+    switch (type) {
+      case "mention":
+        return {
+          icon: AtSign,
+          className: "bg-amber-100 text-amber-600",
+        }
+      case "task_overdue":
+        return {
+          icon: TriangleAlert,
+          className: "bg-red-100 text-red-600",
+        }
+      case "assignment":
+      case "task_new":
+        return {
+          icon: Briefcase,
+          className: "bg-blue-100 text-blue-600",
+        }
+      default:
+        return {
+          icon: Clock,
+          className: "bg-slate-100 text-slate-600",
+        }
+    }
+  }
+
+  if (!user || !targetUserId) return null
 
   return (
     <DropdownMenu>
@@ -71,7 +122,7 @@ export function NotificationBell() {
           <Button 
             variant="ghost" 
             size="sm" 
-            className="h-7 text-[10px] font-bold text-[#1FA67A] uppercase"
+            className="h-7 text-[10px] font-bold text-[#2563EB] uppercase"
             onClick={markAllAsRead}
           >
             Limpar tudo
@@ -84,27 +135,31 @@ export function NotificationBell() {
               <div className="py-20 text-center"><RefreshCw className="h-6 w-6 animate-spin mx-auto text-[#98A7AA]" /></div>
             ) : notifications && notifications.length > 0 ? (
               notifications.map((notif) => (
-                <DropdownMenuItem 
-                  key={notif.id} 
-                  className={cn(
-                    "p-4 flex gap-4 cursor-pointer focus:bg-[#F7F7F7] border-b last:border-0 items-start",
-                    !notif.read && "bg-[#1FA67A]/5"
-                  )}
-                  onSelect={() => markAsRead(notif.id)}
-                >
-                  <div className={cn(
-                    "mt-1 p-1.5 rounded-full shrink-0",
-                    notif.type === 'mention' ? "bg-amber-100 text-amber-600" : "bg-blue-100 text-blue-600"
-                  )}>
-                    {notif.type === 'mention' ? <AtSign className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-xs font-bold text-[#2C4156] leading-tight">{notif.title}</p>
-                    <p className="text-[10px] text-[#39586D] leading-relaxed">{notif.message}</p>
-                    <p className="text-[9px] text-[#98A7AA] font-medium">{new Date(notif.createdAt).toLocaleString('pt-BR')}</p>
-                  </div>
-                  {!notif.read && <div className="w-2 h-2 rounded-full bg-[#1FA67A] mt-2" />}
-                </DropdownMenuItem>
+                (() => {
+                  const visual = getNotificationVisual(notif.type)
+                  const Icon = visual.icon
+
+                  return (
+                    <DropdownMenuItem 
+                      key={notif.id} 
+                      className={cn(
+                        "p-4 flex gap-4 cursor-pointer focus:bg-[#F7F7F7] border-b last:border-0 items-start",
+                        !notif.read && "bg-[#2563EB]/5"
+                      )}
+                      onSelect={() => markAsRead(notif.id)}
+                    >
+                      <div className={cn("mt-1 p-1.5 rounded-full shrink-0", visual.className)}>
+                        <Icon className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-xs font-bold text-[#2C4156] leading-tight">{notif.title}</p>
+                        <p className="text-[10px] text-[#39586D] leading-relaxed">{notif.message}</p>
+                        <p className="text-[9px] text-[#98A7AA] font-medium">{new Date(notif.createdAt).toLocaleString('pt-BR')}</p>
+                      </div>
+                      {!notif.read && <div className="w-2 h-2 rounded-full bg-[#2563EB] mt-2" />}
+                    </DropdownMenuItem>
+                  )
+                })()
               ))
             ) : (
               <div className="py-20 text-center space-y-2 opacity-40">

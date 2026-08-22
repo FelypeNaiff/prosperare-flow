@@ -57,6 +57,8 @@ import { collection, doc } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 
+import { useEffect } from "react"
+
 const DEPARTMENTS_LIST = [
   "Fiscal", "Pessoal", "Contábil", "Financeiro", "Comercial", "Administrativo"
 ]
@@ -72,8 +74,47 @@ export default function EquipePage() {
   const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
   const { data: team = [], isLoading } = useCollection(usersQuery)
 
+  const profilesQuery = useMemoFirebase(() => collection(firestore, "accessProfiles"), [firestore])
+  const { data: dbProfiles = [] } = useCollection(profilesQuery)
+
+  // --- Função utilitária temporária para revogação em massa ---
+  useEffect(() => {
+    const runFix = async () => {
+      try {
+        const { getDocs, updateDoc, doc } = await import("firebase/firestore");
+        const snap = await getDocs(usersQuery);
+        snap.forEach((docSnap) => {
+          const data = docSnap.data();
+          const name = (data.fullName || "").toUpperCase();
+          if (name.includes("CHARLES PEREIRA") || name.includes("MARRYETH GIZELLE")) {
+            let changed = false;
+            let currentDepts = data.departmentIds || [];
+            
+            // Remover 'Financeiro' ou 'FINANCEIRO' ou 'financeiro' se houver
+            const hasFin = currentDepts.some((d: string) => d.toUpperCase() === "FINANCEIRO");
+            
+            if (hasFin) {
+              currentDepts = currentDepts.filter((d: string) => d.toUpperCase() !== "FINANCEIRO");
+              changed = true;
+            }
+            
+            if (changed) {
+              updateDoc(docSnap.ref, { departmentIds: currentDepts });
+              console.log(`[REVOGAÇÃO] Acesso FINANCEIRO removido de: ${name}`);
+            }
+          }
+        });
+      } catch (e) {
+        console.error("Erro na revogação em massa:", e);
+      }
+    };
+    runFix();
+  }, [usersQuery]);
+  // -------------------------------------------------------------
+
   const [newMember, setNewMember] = useState({
     fullName: "",
+    email: "",
     profile: "ASSISTENTE",
     departmentIds: [] as string[],
     status: "ATIVO",
@@ -82,14 +123,20 @@ export default function EquipePage() {
 
   const [editFormData, setEditFormData] = useState({
     fullName: "",
+    email: "",
     profile: "",
     departmentIds: [] as string[],
     pin: ""
   })
 
   const handleRegister = () => {
-    if (!newMember.fullName || !newMember.profile || !newMember.pin) {
-      toast({ title: "Erro", description: "Nome, Perfil e PIN são obrigatórios.", variant: "destructive" })
+    if (!newMember.fullName || !newMember.email || !newMember.profile || !newMember.pin) {
+      toast({ title: "Erro", description: "Nome, E-mail, Perfil e PIN são obrigatórios.", variant: "destructive" })
+      return
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newMember.email)) {
+      toast({ title: "Erro", description: "Informe um e-mail vÃ¡lido para o colaborador.", variant: "destructive" })
       return
     }
 
@@ -103,6 +150,7 @@ export default function EquipePage() {
     
     const userData = {
       ...newMember,
+      email: newMember.email.trim().toLowerCase(),
       id: userId,
       createdAt: new Date().toISOString()
     }
@@ -110,7 +158,7 @@ export default function EquipePage() {
     setIsInviteOpen(false)
     setDocumentNonBlocking(userRef, userData, { merge: true })
     
-    setNewMember({ fullName: "", profile: "ASSISTENTE", departmentIds: [], status: "ATIVO", pin: "1234" })
+    setNewMember({ fullName: "", email: "", profile: "ASSISTENTE", departmentIds: [], status: "ATIVO", pin: "1234" })
     toast({ title: "Colaborador Cadastrado!", description: `Perfil pronto para uso com PIN ${userData.pin}.` })
   }
 
@@ -118,6 +166,7 @@ export default function EquipePage() {
     setSelectedMember(member)
     setEditFormData({
       fullName: member.fullName || "",
+      email: member.email || "",
       profile: member.profile || "ASSISTENTE",
       departmentIds: member.departmentIds || [],
       pin: member.pin || "1234"
@@ -126,7 +175,12 @@ export default function EquipePage() {
   }
 
   const handleUpdateMember = () => {
-    if (!selectedMember || !editFormData.pin) return
+    if (!selectedMember || !editFormData.email || !editFormData.pin) return
+    
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editFormData.email)) {
+      toast({ title: "Erro", description: "Informe um e-mail vÃ¡lido para o colaborador.", variant: "destructive" })
+      return
+    }
     
     if (editFormData.pin.length !== 4) {
       toast({ title: "Erro", description: "O PIN deve ter exatamente 4 dígitos.", variant: "destructive" })
@@ -136,6 +190,7 @@ export default function EquipePage() {
     const userRef = doc(firestore, "users", selectedMember.id)
     updateDocumentNonBlocking(userRef, {
       ...editFormData,
+      email: editFormData.email.trim().toLowerCase(),
       updatedAt: new Date().toISOString()
     })
 
@@ -169,17 +224,18 @@ export default function EquipePage() {
   }
 
   const filteredTeam = (team || []).filter(m => 
-    m.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
+    m.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    m.email?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão da Equipe</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Gerencie as identidades operacionais do escritório.</p>
+          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Gestão da Equipe</h1>
+          <p className="text-[#98A7AA] font-medium text-sm">Gerencie as identidades operacionais do escritório.</p>
         </div>
-        <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-bold shadow-lg h-11" onClick={() => setIsInviteOpen(true)}>
+        <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-bold shadow-lg h-11" onClick={() => setIsInviteOpen(true)}>
           <UserPlus className="h-4 w-4" /> Novo Colaborador
         </Button>
       </div>
@@ -198,20 +254,21 @@ export default function EquipePage() {
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-[#2C4156]">
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px]">Identidade</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Departamentos</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Perfil</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Status</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Ações</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Identidade</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">E-mail</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Departamentos</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Perfil</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Status</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
+                  <TableCell colSpan={6} className="h-32 text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#2563EB]" />
                   </TableCell>
                 </TableRow>
               ) : filteredTeam.length > 0 ? (
@@ -225,35 +282,38 @@ export default function EquipePage() {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col">
-                          <span className="font-bold text-sm text-[#2C4156] uppercase">{member.fullName}</span>
-                          <span className="text-[9px] text-[#98A7AA] flex items-center gap-1 font-bold">
+                          <span className="font-semibold text-sm text-[#2C4156]">{member.fullName}</span>
+                          <span className="text-[9px] text-[#98A7AA] flex items-center gap-1 font-medium">
                             <Lock className="h-2 w-2" /> PIN: {member.pin || "----"}
                           </span>
                         </div>
                       </div>
                     </TableCell>
+                    <TableCell className="text-xs font-semibold text-[#39586D] lowercase">
+                      {member.email || "sem e-mail"}
+                    </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {member.departmentIds?.map((dept: string) => (
-                          <Badge key={dept} variant="secondary" className="text-[8px] font-black uppercase bg-[#F7F7F7] border-[#D2D7DB] text-[#39586D]">
+                          <Badge key={dept} variant="secondary" className="text-[8px] font-medium bg-[#F7F7F7] border-[#D2D7DB] text-[#39586D]">
                             {dept}
                           </Badge>
                         ))}
                         {(!member.departmentIds || member.departmentIds.length === 0) && (
-                          <span className="text-[9px] text-[#98A7AA] font-bold italic">Sem Alocação</span>
+                          <span className="text-[9px] text-[#98A7AA] font-medium italic">Sem Alocação</span>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge className={cn(
-                        "border-none text-[9px] font-black uppercase",
-                        member.profile === 'ADMINISTRADOR' ? "bg-amber-100 text-amber-700" : "bg-[#E3F0F9] text-[#2574A9]"
+                        "border-none text-[9px] font-medium",
+                        member.profile === 'ADMINISTRADOR' ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-700"
                       )}>
                         {member.profile}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge className="bg-[#7ED6B5] text-[#1FA67A] border-none text-[9px] font-black uppercase">
+                      <Badge className="bg-emerald-50 text-emerald-700 border-none text-[9px] font-medium">
                         {member.status || 'ATIVO'}
                       </Badge>
                     </TableCell>
@@ -264,7 +324,7 @@ export default function EquipePage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem className="gap-2 text-xs font-bold uppercase cursor-pointer" onClick={() => handleOpenEdit(member)}>
-                            <Edit2 className="h-3.5 w-3.5 text-[#1FA67A]" /> Editar Regras
+                            <Edit2 className="h-3.5 w-3.5 text-[#2563EB]" /> Editar Regras
                           </DropdownMenuItem>
                           <DropdownMenuItem className="gap-2 text-xs font-bold uppercase cursor-pointer" onClick={() => router.push('/equipe/permissoes')}>
                             <ShieldCheck className="h-3.5 w-3.5 text-[#2574A9]" /> Permissões Avançadas
@@ -283,7 +343,7 @@ export default function EquipePage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center text-[#98A7AA] font-bold uppercase text-xs">
+                  <TableCell colSpan={6} className="h-32 text-center text-[#98A7AA] font-bold uppercase text-xs">
                     Nenhuma identidade localizada.
                   </TableCell>
                 </TableRow>
@@ -315,6 +375,18 @@ export default function EquipePage() {
               </div>
 
               <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">E-mail de Login</Label>
+                <Input 
+                  type="email"
+                  placeholder="colaborador@empresa.com" 
+                  value={newMember.email} 
+                  onChange={(e) => setNewMember({...newMember, email: e.target.value.trim().toLowerCase()})}
+                  className="border-[#D2D7DB] font-bold lowercase h-11"
+                />
+                <p className="text-[9px] font-bold text-[#98A7AA] uppercase">Este e-mail poderÃ¡ acessar pelo Google se o status estiver ativo.</p>
+              </div>
+
+              <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Senha de Acesso (PIN 4 Dígitos)</Label>
                 <Input 
                   placeholder="Ex: 1234" 
@@ -332,10 +404,21 @@ export default function EquipePage() {
                     <SelectValue placeholder="Nível de acesso" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="SÓCIO" className="text-xs font-bold">SÓCIO / PROPRIETÁRIO</SelectItem>
-                    <SelectItem value="ADMINISTRADOR" className="text-xs font-bold">ADMINISTRADOR</SelectItem>
-                    <SelectItem value="CONTADOR/GESTOR" className="text-xs font-bold">CONTADOR / GESTOR</SelectItem>
-                    <SelectItem value="ASSISTENTE" className="text-xs font-bold">ASSISTENTE / ANALISTA</SelectItem>
+                    {(dbProfiles || []).length > 0 ? (
+                      (dbProfiles || []).map((p) => (
+                        <SelectItem key={p.id} value={p.name} className="text-xs font-bold">
+                          {p.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <>
+                        <SelectItem value="SÓCIO" className="text-xs font-bold">SÓCIO / PROPRIETÁRIO</SelectItem>
+                        <SelectItem value="ADMINISTRADOR" className="text-xs font-bold">ADMINISTRADOR</SelectItem>
+                        <SelectItem value="SUPERVISOR" className="text-xs font-bold">SUPERVISOR</SelectItem>
+                        <SelectItem value="CONTADOR/GESTOR" className="text-xs font-bold">CONTADOR / GESTOR</SelectItem>
+                        <SelectItem value="ASSISTENTE" className="text-xs font-bold">ASSISTENTE / ANALISTA</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -362,7 +445,7 @@ export default function EquipePage() {
 
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => setIsInviteOpen(false)} className="font-bold text-xs uppercase h-11">Cancelar</Button>
-            <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-8 shadow-lg h-11" onClick={handleRegister}>
+            <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-8 shadow-lg h-11" onClick={handleRegister}>
               <Save className="h-4 w-4 mr-2" /> Salvar Identidade
             </Button>
           </DialogFooter>
@@ -390,6 +473,17 @@ export default function EquipePage() {
               </div>
 
               <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">E-mail de Login</Label>
+                <Input 
+                  type="email"
+                  value={editFormData.email} 
+                  onChange={(e) => setEditFormData({...editFormData, email: e.target.value.trim().toLowerCase()})}
+                  className="border-[#D2D7DB] font-bold lowercase h-11"
+                />
+                <p className="text-[9px] font-bold text-[#98A7AA] uppercase">Colaboradores ativos com este e-mail podem entrar pelo Google.</p>
+              </div>
+
+              <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Senha de Acesso (PIN 4 Dígitos)</Label>
                 <Input 
                   maxLength={4}
@@ -406,10 +500,21 @@ export default function EquipePage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="SÓCIO" className="text-xs font-bold">SÓCIO / PROPRIETÁRIO</SelectItem>
-                    <SelectItem value="ADMINISTRADOR" className="text-xs font-bold">ADMINISTRADOR</SelectItem>
-                    <SelectItem value="CONTADOR/GESTOR" className="text-xs font-bold">CONTADOR / GESTOR</SelectItem>
-                    <SelectItem value="ASSISTENTE" className="text-xs font-bold">ASSISTENTE / ANALISTA</SelectItem>
+                    {(dbProfiles || []).length > 0 ? (
+                      (dbProfiles || []).map((p) => (
+                        <SelectItem key={p.id} value={p.name} className="text-xs font-bold">
+                          {p.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <>
+                        <SelectItem value="SÓCIO" className="text-xs font-bold">SÓCIO / PROPRIETÁRIO</SelectItem>
+                        <SelectItem value="ADMINISTRADOR" className="text-xs font-bold">ADMINISTRADOR</SelectItem>
+                        <SelectItem value="SUPERVISOR" className="text-xs font-bold">SUPERVISOR</SelectItem>
+                        <SelectItem value="CONTADOR/GESTOR" className="text-xs font-bold">CONTADOR / GESTOR</SelectItem>
+                        <SelectItem value="ASSISTENTE" className="text-xs font-bold">ASSISTENTE / ANALISTA</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
