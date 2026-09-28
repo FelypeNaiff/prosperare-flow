@@ -18,7 +18,8 @@ import {
   FolderOpen,
   ArrowUpDown,
   SortAsc,
-  SortDesc
+  SortDesc,
+  PlayCircle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -76,7 +77,7 @@ export default function AtendimentosPage() {
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false)
   const [filtroResponsavel, setFiltroResponsavel] = useState("todas")
   const [filtroPrazo, setFiltroPrazo] = useState("Todos")
-  const [filtroStatus, setFiltroStatus] = useState<"todos" | "aberto" | "concluido">("aberto")
+  const [filtroStatus, setFiltroStatus] = useState<"todos" | "aberto" | "em_andamento" | "concluido">("aberto")
   const [selectedTicket, setSelectedTicket] = useState<any>(null)
   const [sortField, setSortField] = useState<'clientName' | 'title' | 'responsibleName' | 'createdAt' | 'dueDate' | 'status'>('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
@@ -95,7 +96,7 @@ export default function AtendimentosPage() {
     [firestore, userLoaded]
   )
   const { data: rawTickets, isLoading: loadingTickets } = useCollection(tasksQuery)
-  const tickets = (rawTickets || []).filter((t: any) => ['novo', 'atendimento', 'pendente', 'concluido'].includes(t.status))
+  const tickets = (rawTickets || []).filter((t: any) => ['novo', 'aberto', 'atendimento', 'pendente', 'em_andamento', 'concluido'].includes(t.status) || !t.status)
 
   const clientsQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "clients") : null, 
@@ -209,7 +210,9 @@ export default function AtendimentosPage() {
 
   const filteredTickets = baseFilteredTickets.filter((t: any) => {
     const isCompleted = t.status === 'concluido'
-    if (filtroStatus === 'aberto') return !isCompleted
+    const isEmAndamento = t.status === 'em_andamento'
+    if (filtroStatus === 'aberto') return !isCompleted && !isEmAndamento
+    if (filtroStatus === 'em_andamento') return isEmAndamento
     if (filtroStatus === 'concluido') return isCompleted
     return true
   })
@@ -236,7 +239,8 @@ export default function AtendimentosPage() {
 
   const todayStr = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0')
   const stats = {
-    open: baseFilteredTickets.filter((t: any) => t.status !== 'concluido').length,
+    open: baseFilteredTickets.filter((t: any) => t.status !== 'concluido' && t.status !== 'em_andamento').length,
+    inProgress: baseFilteredTickets.filter((t: any) => t.status === 'em_andamento').length,
     critical: baseFilteredTickets.filter((t: any) => t.status !== 'concluido' && t.dueDate && t.dueDate < todayStr).length,
     completed: baseFilteredTickets.filter((t: any) => t.status === 'concluido').length,
   }
@@ -302,6 +306,7 @@ export default function AtendimentosPage() {
           <span className="text-[10px] font-semibold text-[#98A7AA]">Filtrar por Status:</span>
           {[
             { id: 'aberto', label: 'Em Aberto' },
+            { id: 'em_andamento', label: 'Em Andamento' },
             { id: 'concluido', label: 'Concluídos' },
             { id: 'todos', label: 'Todos' }
           ].map(s => (
@@ -311,7 +316,7 @@ export default function AtendimentosPage() {
               onClick={() => setFiltroStatus(s.id as any)}
               className={cn(
                 "h-8 text-xs font-medium rounded-full transition-all border shadow-none",
-                filtroStatus === s.id ? "bg-blue-50 text-blue-700 hover:bg-blue-100 border-none" : "bg-slate-100 text-slate-600 hover:bg-slate-200 border-none"
+                filtroStatus === s.id ? "bg-blue-50 text-blue-700 hover:bg-blue-100 border-none font-semibold" : "bg-slate-100 text-slate-600 hover:bg-slate-200 border-none"
               )}
             >
               {s.label}
@@ -320,8 +325,9 @@ export default function AtendimentosPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiMiniCard label="Em Aberto" value={stats.open} icon={Clock} color="info" />
+        <KpiMiniCard label="Em Andamento" value={stats.inProgress} icon={PlayCircle} color="inProgress" />
         <KpiMiniCard label="Críticos (Vencidos)" value={stats.critical} icon={AlertCircle} color="warning" />
         <KpiMiniCard label="Concluídos" value={stats.completed} icon={CheckCircle2} color="success" />
       </div>
@@ -520,15 +526,37 @@ export default function AtendimentosPage() {
                       </TableCell>
 
                       {/* Status */}
-                      <TableCell>
-                        <Badge className={cn(
-                          "text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 border shadow-none",
-                          isCompleted 
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
-                            : "bg-blue-50 text-blue-700 border-blue-200"
-                        )}>
-                          {isCompleted ? "Concluído" : "Aberto"}
-                        </Badge>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="focus:outline-none">
+                              <Badge className={cn(
+                                "text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 border shadow-none cursor-pointer flex items-center gap-1.5 transition-all hover:opacity-80 select-none",
+                                isCompleted 
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                                  : ticket.status === 'em_andamento'
+                                    ? "bg-amber-50 text-amber-700 border-amber-300"
+                                    : "bg-blue-50 text-blue-700 border-blue-200"
+                              )}>
+                                {isCompleted && <CheckCircle2 className="h-3 w-3 text-emerald-600" />}
+                                {ticket.status === 'em_andamento' && <Loader2 className="h-3 w-3 text-amber-600 animate-spin" />}
+                                {!isCompleted && ticket.status !== 'em_andamento' && <Clock className="h-3 w-3 text-blue-600" />}
+                                {isCompleted ? "Concluído" : ticket.status === 'em_andamento' ? "Em Andamento" : "Aberto"}
+                              </Badge>
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-36">
+                            <DropdownMenuItem onClick={() => updateStatus(ticket.id, 'novo')} className="text-xs font-medium cursor-pointer">
+                              <div className="h-2 w-2 rounded-full bg-blue-500 mr-2" /> Em Aberto
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateStatus(ticket.id, 'em_andamento')} className="text-xs font-medium cursor-pointer">
+                              <div className="h-2 w-2 rounded-full bg-amber-500 mr-2" /> Em Andamento
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateStatus(ticket.id, 'concluido')} className="text-xs font-medium cursor-pointer">
+                              <div className="h-2 w-2 rounded-full bg-emerald-500 mr-2" /> Concluído
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
 
                       {/* Ações */}
@@ -540,19 +568,35 @@ export default function AtendimentosPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setSelectedTicket(ticket)} className="text-xs font-medium">
+                            <DropdownMenuItem onClick={() => setSelectedTicket(ticket)} className="text-xs font-medium cursor-pointer">
                               <Eye className="h-3.5 w-3.5 mr-2 text-slate-500" /> Visualizar / Editar
                             </DropdownMenuItem>
+                            {ticket.status !== 'em_andamento' && !isCompleted && (
+                              <DropdownMenuItem 
+                                onClick={() => updateStatus(ticket.id, 'em_andamento')} 
+                                className="text-xs font-medium text-amber-700 focus:text-amber-800 cursor-pointer"
+                              >
+                                <PlayCircle className="h-3.5 w-3.5 mr-2 text-amber-600" /> Iniciar (Em Andamento)
+                              </DropdownMenuItem>
+                            )}
+                            {ticket.status === 'em_andamento' && (
+                              <DropdownMenuItem 
+                                onClick={() => updateStatus(ticket.id, 'novo')} 
+                                className="text-xs font-medium text-slate-600 cursor-pointer"
+                              >
+                                <Clock className="h-3.5 w-3.5 mr-2 text-slate-500" /> Voltar p/ Em Aberto
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem 
                               onClick={() => updateStatus(ticket.id, isCompleted ? 'novo' : 'concluido')} 
-                              className="text-xs font-medium"
+                              className="text-xs font-medium cursor-pointer"
                             >
                               <CheckCircle2 className="h-3.5 w-3.5 mr-2 text-slate-500" />
                               {isCompleted ? "Reabrir Demanda" : "Concluir Demanda"}
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={(e) => handleDelete(ticket.id, e)} 
-                              className="text-xs font-medium text-red-600 focus:text-red-700"
+                              className="text-xs font-medium text-red-600 focus:text-red-700 cursor-pointer"
                             >
                               <Trash2 className="h-3.5 w-3.5 mr-2 text-red-500" /> Excluir
                             </DropdownMenuItem>
@@ -675,6 +719,7 @@ export default function AtendimentosPage() {
 function KpiMiniCard({ label, value, icon: Icon, color }: any) {
   const colors = {
     info: "border-l-[#2574A9] bg-[#2574A9]/5",
+    inProgress: "border-l-[#D97706] bg-[#D97706]/5", // Amber for in progress
     warning: "border-l-[#E74C3C] bg-[#E74C3C]/5", // Red for warning/late critical demands
     success: "border-l-[#2563EB] bg-[#2563EB]/5",
   }

@@ -8,7 +8,7 @@ import {
   createAppNotification,
 } from "@/lib/notifications"
 
-const ACTIVE_TASK_STATUSES = ["novo", "atendimento", "pendente"]
+const ACTIVE_TASK_STATUSES = ["novo", "atendimento", "pendente", "em_andamento"]
 
 export function TaskNotificationSync() {
   const firestore = useFirestore()

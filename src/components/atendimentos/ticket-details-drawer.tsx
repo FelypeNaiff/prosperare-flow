@@ -56,7 +56,8 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
     clientId: "",
     templateId: "",
     responsibleId: "",
-    dueDate: ""
+    dueDate: "",
+    status: "novo"
   })
   
   const [newComment, setNewComment] = useState("")
@@ -78,7 +79,8 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
         clientId: ticket.clientId || "none",
         templateId: ticket.templateId || "none",
         responsibleId: ticket.responsibleId || "",
-        dueDate: ticket.dueDate || ""
+        dueDate: ticket.dueDate || "",
+        status: ticket.status || "novo"
       })
     }
   }, [ticket?.id, open])
@@ -95,6 +97,7 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
         templateId: localData.templateId,
         responsibleId: localData.responsibleId,
         dueDate: localData.dueDate,
+        status: localData.status,
         updatedAt: new Date().toISOString()
       }
 
@@ -277,6 +280,20 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-wider">Status do Andamento</Label>
+                  <Select value={localData.status} onValueChange={(v) => setLocalData(prev => ({ ...prev, status: v }))}>
+                    <SelectTrigger className="border-[#D2D7DB] font-bold text-[#2C4156] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="novo" className="text-xs font-semibold uppercase text-blue-600">🔵 Em Aberto</SelectItem>
+                      <SelectItem value="em_andamento" className="text-xs font-semibold uppercase text-amber-600">🟡 Em Andamento</SelectItem>
+                      <SelectItem value="concluido" className="text-xs font-semibold uppercase text-emerald-600">🟢 Concluído</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
                   <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-wider">Empresa</Label>
                   <Select value={localData.clientId} onValueChange={(v) => setLocalData(prev => ({ ...prev, clientId: v }))}>
                     <SelectTrigger className="border-[#D2D7DB] font-bold text-[#2C4156] text-xs">
@@ -327,7 +344,7 @@ export function TicketDetailsDrawer({ open, onOpenChange, ticket, clients, team,
                   </Select>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 md:col-span-2">
                   <Label className="text-[10px] font-black text-[#98A7AA] uppercase tracking-wider">Prazo de Conclusão</Label>
                   <div className="relative">
                     <CalendarDays className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
