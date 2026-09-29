@@ -9,7 +9,7 @@ import {
   setDocumentNonBlocking
 } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
-import { Plus, AlertTriangle, MessageCircle, Clock, ChevronRight, Building, User } from "lucide-react"
+import { Plus, AlertTriangle, MessageCircle, Clock, ChevronRight, Building, User, PlayCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -208,6 +208,12 @@ export default function MobileDemandasPage() {
                            <User className="h-3 w-3" />
                            {ticket.responsibleName?.split(' ')[0]}
                         </span>
+                        {ticket.status === 'em_andamento' && (
+                          <span className="bg-amber-100/50 text-amber-700 px-2 py-0.5 rounded-full text-[9px] font-black uppercase flex items-center gap-1 border border-amber-200">
+                             <PlayCircle className="h-3 w-3" />
+                             Em Andamento
+                          </span>
+                        )}
                         {ticket.dueDate && (
                            <span className={cn(
                              "px-2 py-0.5 rounded-full text-[9px] font-black uppercase flex items-center gap-1 border",
