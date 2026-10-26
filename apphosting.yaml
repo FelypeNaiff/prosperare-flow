@@ -7,10 +7,5 @@ runConfig:
   maxInstances: 1
   timeoutSeconds: 300
 
-env:
-  # Chave do Gemini (Análise Fiscal IA). Crie o secret com:
-  #   firebase apphosting:secrets:set GEMINI_API_KEY
-  - variable: GEMINI_API_KEY
-    secret: GEMINI_API_KEY
-    availability:
-      - RUNTIME
+# GEMINI_API_KEY é configurada pelo Console do Firebase
+# (App Hosting > backend > Configurações > Ambiente).
