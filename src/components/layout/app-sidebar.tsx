@@ -92,6 +92,7 @@ const menuItems = [
       { title: "IRPF 2026", url: "/processos/irpf", icon: ClipboardList },
       { title: "Parcelamentos", url: "/processos/parcelamentos", icon: InstallmentIcon },
       { title: "Certidões Negativas", url: "/certidoes", icon: ShieldCheck },
+      { title: "Análise Fiscal IA", url: "/analise-fiscal", icon: BrainCircuit },
     ]
   },
   {

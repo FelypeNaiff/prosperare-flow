@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
   /* config options here */
   allowedDevOrigins: ['192.168.1.79'],
   outputFileTracingRoot: process.cwd(),
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '25mb', // upload de PDFs para Análise Fiscal IA
+    },
+  },
   images: {
     remotePatterns: [
       {
