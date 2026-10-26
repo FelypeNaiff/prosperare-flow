@@ -106,7 +106,8 @@ export default function AnaliseFiscalIAPage() {
         files: payload, documentType: docType,
         clientName: selectedClient?.corporateName, observacoes,
       })
-      setAnalysis(result)
+      if (!result.ok) throw new Error(result.error)
+      setAnalysis(result.data)
       toast({ title: "Análise concluída!", description: "Revise o conteúdo antes de gerar o PDF." })
     } catch (e: any) {
       console.error(e)

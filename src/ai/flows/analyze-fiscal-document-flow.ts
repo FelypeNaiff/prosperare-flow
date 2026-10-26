@@ -61,7 +61,21 @@ Regras:
 - situacaoGeral: REGULAR (sem pendências), ATENCAO (pendências que não impedem CPEN ou estão suspensas), IRREGULAR (impede certidão).
 - Escreva em português do Brasil.`;
 
-export async function analyzeFiscalDocument(input: AnalyzeFiscalInput): Promise<FiscalAnalysis> {
+export type AnalyzeFiscalResult = { ok: true; data: FiscalAnalysis } | { ok: false; error: string };
+
+export async function analyzeFiscalDocument(input: AnalyzeFiscalInput): Promise<AnalyzeFiscalResult> {
+  try {
+    if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_GENAI_API_KEY && !process.env.GOOGLE_API_KEY) {
+      return { ok: false, error: 'Chave da API Gemini não configurada no servidor (GEMINI_API_KEY).' };
+    }
+    return { ok: true, data: await runAnalysis(input) };
+  } catch (e: any) {
+    console.error('[analyzeFiscalDocument]', e);
+    return { ok: false, error: e?.message || String(e) };
+  }
+}
+
+async function runAnalysis(input: AnalyzeFiscalInput): Promise<FiscalAnalysis> {
   if (!input.files?.length) throw new Error('Nenhum arquivo enviado.');
 
   const parts: any[] = [];
