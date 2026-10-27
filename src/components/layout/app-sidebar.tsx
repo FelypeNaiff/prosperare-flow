@@ -169,6 +169,7 @@ const menuItems = [
       { title: "Agendamento Automático", url: "/configuracoes/agendamento", icon: CalendarClock },
       { title: "WhatsApp", url: "/configuracoes/whatsapp", icon: MessageSquare },
       { title: "Aparência", url: "/configuracoes/aparencia", icon: Palette },
+      { title: "Papel Timbrado", url: "/configuracoes/papel-timbrado", icon: FileText },
       { title: "Integrações", url: "/configuracoes/integracoes", icon: LinkIcon },
     ]
   },

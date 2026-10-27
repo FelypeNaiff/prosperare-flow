@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef } from "react"
 import { 
   Plus, 
   FileText, 
@@ -50,30 +50,19 @@ import { cn, numberToExtensoBRL } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 import { ClientCombobox } from "@/components/shared/client-combobox"
+import { TAX_REGIMES, buildContract, buildContractData, normalizeRegime } from "@/lib/contract-templates"
+import { useLetterhead, letterheadToDataUrl } from "@/hooks/use-letterhead"
+import { BlocksRenderer, LetterheadSheet, printWithLetterhead } from "@/components/shared/official-document"
 
-const formatDateExtenso = (dateStr?: string) => {
-  if (!dateStr) return "01 de janeiro de 2026"
-  const parts = dateStr.split("-")
-  if (parts.length !== 3) return dateStr
-
-  const months = [
-    "janeiro", "fevereiro", "março", "abril", "maio", "junho",
-    "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
-  ]
-  
-  const day = parseInt(parts[2], 10)
-  const monthIdx = parseInt(parts[1], 10) - 1
-  const year = parts[0]
-
-  return `${day.toString().padStart(2, "0")} de ${months[monthIdx] || "janeiro"} de ${year}`
+function findSocioAdm(client: any) {
+  const qsa = client?.qsa || []
+  if (qsa.length === 0) return {}
+  return qsa.find((s: any) =>
+    s.condicaoAdministrador?.toLowerCase().includes("administrador") ||
+    s.qualificacao?.toLowerCase().includes("administrador") ||
+    s.condicaoSocio?.toLowerCase().includes("administrador")
+  ) || qsa[0]
 }
-
-const AVAILABLE_SERVICES = [
-  { id: "pessoal", label: "DEPARTAMENTO PESSOAL" },
-  { id: "tributario", label: "DEPARTAMENTO TRIBUTÁRIO" },
-  { id: "contabil", label: "DEPARTAMENTO CONTÁBIL" },
-  { id: "legalizacao", label: "ABERTURA E LEGALIZAÇÃO" }
-]
 
 export default function ContatosPage() {
   const firestore = useFirestore()
@@ -83,6 +72,8 @@ export default function ContatosPage() {
   const [selectedContract, setSelectedContract] = useState<any>(null)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [isGeneratingDocx, setIsGeneratingDocx] = useState(false)
+  const { letterhead } = useLetterhead()
+  const sheetRef = useRef<HTMLDivElement>(null)
 
   const contractsQuery = useMemoFirebase(() => collection(firestore, "contracts"), [firestore])
   const { data: contracts = [], isLoading } = useCollection(contractsQuery)
@@ -93,7 +84,7 @@ export default function ContatosPage() {
   const [formData, setFormData] = useState({
     clientId: "",
     employeeCount: 0,
-    services: ["DEPARTAMENTO PESSOAL", "DEPARTAMENTO TRIBUTÁRIO"] as string[],
+    taxRegime: "Simples Nacional" as string,
     value: 0,
     startDate: new Date().toISOString().split('T')[0],
     dueDay: 10,
@@ -113,7 +104,7 @@ export default function ContatosPage() {
     setFormData({
       clientId: "",
       employeeCount: 0,
-      services: ["DEPARTAMENTO PESSOAL", "DEPARTAMENTO TRIBUTÁRIO"],
+      taxRegime: "Simples Nacional",
       value: 0,
       startDate: new Date().toISOString().split('T')[0],
       dueDay: 10,
@@ -128,9 +119,7 @@ export default function ContatosPage() {
     setFormData({
       clientId: contract.clientId,
       employeeCount: contract.employeeCount !== undefined ? contract.employeeCount : 0,
-      services: Array.isArray(contract.services) && contract.services.length > 0 
-        ? contract.services 
-        : ["DEPARTAMENTO PESSOAL", "DEPARTAMENTO TRIBUTÁRIO"],
+      taxRegime: normalizeRegime(contract.taxRegime || contract.clientRegime),
       value: contract.value,
       startDate: contract.startDate,
       dueDay: contract.dueDay,
@@ -146,8 +135,8 @@ export default function ContatosPage() {
       return
     }
 
-    if (!formData.services || formData.services.length === 0) {
-      toast({ title: "Selecione Serviços", description: "Escolha ao menos um serviço contratado para continuar.", variant: "destructive" })
+    if (!formData.taxRegime) {
+      toast({ title: "Selecione o Regime", description: "Escolha o tipo de tributação para continuar.", variant: "destructive" })
       return
     }
 
@@ -161,7 +150,7 @@ export default function ContatosPage() {
       employeeCount: Number(formData.employeeCount ?? 0),
       clientName: client?.corporateName || "Empresa não identificada",
       clientCnpj: client?.cnpj || "00.000.000/0000-00",
-      clientRegime: client?.taxRegime || "Simples Nacional",
+      clientRegime: formData.taxRegime,
       updatedAt: new Date().toISOString(),
       createdAt: editingId ? ((contracts || []).find(c => c.id === editingId)?.createdAt || new Date().toISOString()) : new Date().toISOString()
     }
@@ -175,7 +164,7 @@ export default function ContatosPage() {
       const today = new Date()
       const vencimentoStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${formData.dueDay.toString().padStart(2, '0')}`
 
-      const servicosResumo = formData.services.join(", ")
+      const servicosResumo = formData.taxRegime
       const receivableData = {
         id: receivableId,
         descricao: `HONORÁRIO CONTÁBIL - ${servicosResumo} (${formData.employeeCount ?? 0} FUNC)`.toUpperCase(),
@@ -215,15 +204,19 @@ export default function ContatosPage() {
     setIsGeneratingDocx(true)
     try {
       const client = (clients || []).find((c: any) => c.id === contract.clientId) || {}
-      const socio = client?.qsa?.[0] || {}
+      const socio = findSocioAdm(client)
+      const imageDataUrl = await letterheadToDataUrl(letterhead.imageDataUrl)
 
       const res = await fetch("/api/financeiro/gerar-contrato-servicos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contrato: contract, cliente: client, socio })
+        body: JSON.stringify({ contrato: contract, cliente: client, socio, letterhead: { ...letterhead, imageDataUrl } })
       })
 
-      if (!res.ok) throw new Error("Falha na geração do documento Word.")
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "Falha na geração do documento Word.")
+      }
 
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
@@ -253,21 +246,16 @@ export default function ContatosPage() {
     return (clients || []).find((c: any) => c.id === selectedContract.clientId)
   }, [selectedContract, clients])
 
-  const socioAdm = useMemo(() => {
-    if (!selectedClient?.qsa || selectedClient.qsa.length === 0) {
-      return {
-        nome: selectedClient?.corporateName ? `SÓCIO ADMINISTRADOR DE ${selectedClient.corporateName}` : "ANA PATRICIA CORDEIRO RAMOS",
-        cpfCnpj: "724.255.982-00",
-        qualificacao: "Sócio-Administrador"
-      }
-    }
-    const found = selectedClient.qsa.find((s: any) => 
-      s.condicaoAdministrador?.toLowerCase().includes("administrador") || 
-      s.qualificacao?.toLowerCase().includes("administrador") ||
-      s.condicaoSocio?.toLowerCase().includes("administrador")
-    )
-    return found || selectedClient.qsa[0]
-  }, [selectedClient])
+  const contractBlocks = useMemo(() => {
+    if (!selectedContract) return null
+    const data = buildContractData(selectedContract, selectedClient, findSocioAdm(selectedClient), numberToExtensoBRL)
+    return buildContract(selectedContract.taxRegime || selectedContract.clientRegime, data)
+  }, [selectedContract, selectedClient])
+
+  const handlePrint = () => {
+    if (!sheetRef.current) return
+    printWithLetterhead(sheetRef.current.innerHTML, letterhead, `Contrato - ${selectedContract?.clientName || ""}`)
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -429,17 +417,18 @@ export default function ContatosPage() {
               />
             </div>
 
-            {/* SERVIÇOS CONTRATADOS (MÚLTIPLA ESCOLHA - CONFORME IMAGEM 2) */}
+            {/* TIPO DE TRIBUTAÇÃO (cada regime possui seu modelo de contrato) */}
             <div className="col-span-2 space-y-2 border border-slate-200 rounded-xl p-4 bg-slate-50/50">
               <Label className="text-xs font-black text-[#2C4156] uppercase tracking-wider block">
-                SERVIÇOS CONTRATADOS (MÚLTIPLA ESCOLHA)
+                TIPO DE TRIBUTAÇÃO
               </Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                {AVAILABLE_SERVICES.map((s) => {
-                  const isSelected = formData.services.includes(s.label)
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                {TAX_REGIMES.map((r) => {
+                  const isSelected = formData.taxRegime === r.id
                   return (
                     <label 
-                      key={s.id} 
+                      key={r.id} 
+                      id={`regime-${r.id.replace(/\s+/g, "-").toLowerCase()}`}
                       className={cn(
                         "flex items-center gap-3 p-3 rounded-xl border text-xs font-bold cursor-pointer transition-all",
                         isSelected 
@@ -448,19 +437,16 @@ export default function ContatosPage() {
                       )}
                     >
                       <input 
-                        type="checkbox"
+                        type="radio"
+                        name="taxRegime"
                         checked={isSelected}
-                        onChange={() => {
-                          setFormData(prev => ({
-                            ...prev,
-                            services: isSelected 
-                              ? prev.services.filter(item => item !== s.label)
-                              : [...prev.services, s.label]
-                          }))
-                        }}
-                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600"
+                        onChange={() => setFormData(prev => ({ ...prev, taxRegime: r.id }))}
+                        className="h-4 w-4 accent-blue-600"
                       />
-                      <span className="uppercase text-[11px] font-extrabold tracking-tight">{s.label}</span>
+                      <span className="flex flex-col">
+                        <span className="uppercase text-[11px] font-extrabold tracking-tight">{r.label}</span>
+                        <span className="text-[9px] font-medium text-slate-400">{r.description}</span>
+                      </span>
                     </label>
                   )
                 })}
@@ -598,274 +584,27 @@ export default function ContatosPage() {
               <Button 
                 size="sm" 
                 className="bg-[#2563EB] hover:bg-blue-700 text-white font-bold text-xs gap-1.5 shadow"
-                onClick={() => window.print()}
+                onClick={handlePrint}
+                disabled={!contractBlocks}
               >
                 <Printer className="h-3.5 w-3.5" /> Imprimir / PDF
               </Button>
             </div>
           </DialogHeader>
           
-          {/* FOLHA DO CONTRATO FORMATADA COM DESTAQUES EM AMARELO */}
-          <div className="p-12 md:p-16 bg-white shadow-xl mx-auto my-6 w-full max-w-[850px] text-slate-800 text-[13px] leading-relaxed font-sans border border-slate-200 print-container">
-            
-            {/* LOGO TIMBRADO PROSPERARE */}
-            <div className="flex items-center justify-between pb-6 mb-8 border-b-2 border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded bg-[#003366] text-white font-serif italic text-xl flex items-center justify-center font-bold shadow-sm">
-                  Psc
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-2xl font-bold italic text-[#003366] leading-none font-serif">Prosperare</span>
-                  <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500 mt-1">Serviços Contábeis</span>
-                </div>
-              </div>
+          {contractBlocks ? (
+            <div className="overflow-x-auto">
+              <LetterheadSheet ref={sheetRef} letterhead={letterhead}>
+                <BlocksRenderer blocks={contractBlocks} />
+              </LetterheadSheet>
             </div>
-
-            {/* TÍTULO DO INSTRUMENTO */}
-            <div className="text-center my-8">
-              <h2 className="text-base font-extrabold uppercase tracking-wide text-slate-900">
-                CONTRATO DE PRESTAÇÃO DE SERVIÇOS CONTÁBEIS
-              </h2>
+          ) : (
+            <div className="m-6 p-10 bg-white rounded-xl border border-dashed border-amber-300 text-center">
+              <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto mb-3" />
+              <p className="font-bold text-[#2C4156]">Modelo de contrato para {normalizeRegime(selectedContract?.taxRegime || selectedContract?.clientRegime)} ainda não cadastrado.</p>
+              <p className="text-xs text-slate-500 mt-1">Envie o texto do modelo para que ele seja incluído no sistema.</p>
             </div>
-            
-            <div className="space-y-6 text-justify">
-              {/* CONTRATADA */}
-              <p>
-                <strong className="font-bold text-slate-900">CONTRATADA: </strong>
-                PROSPERARE SERVIÇOS CONTÁBEIS LTDA, inscrita no CNPJ/MF sob o nº 23.077.213/0001-17, CRC nº AP-000149/O, com sede na Avenida Acelino de Leão, 1046, Letra B, Trem, Macapá/AP, representada por seu sócio administrador FELYPE MACIEL NAIFF, CPF nº 917.722.812-04.
-              </p>
-
-              {/* CONTRATANTE */}
-              <p>
-                <strong className="font-bold text-slate-900">CONTRATANTE: </strong>
-                <span className="bg-yellow-300 text-slate-900 font-bold px-1.5 py-0.5 rounded border border-yellow-400">
-                  {selectedContract?.clientName?.toUpperCase() || "A. P. CORDEIRO RAMOS"}
-                </span>, inscrita no CNPJ sob o nº{" "}
-                <span className="bg-yellow-300 text-slate-900 font-bold px-1.5 py-0.5 rounded border border-yellow-400">
-                  {selectedContract?.clientCnpj || "470.341.0001/21"}
-                </span>, com sede na{" "}
-                <span className="bg-yellow-300 text-slate-900 font-bold px-1.5 py-0.5 rounded border border-yellow-400">
-                  {selectedClient?.address ? `${selectedClient.address}, ${selectedClient.neighborhood || ""}, ${selectedClient.city || "Macapá"}/${selectedClient.state || "AP"}` : "Avenida Paraíba, 770, Pacoval, Macapá/AP"}
-                </span>, representada por sua sócia administradora{" "}
-                <span className="bg-yellow-300 text-slate-900 font-bold px-1.5 py-0.5 rounded border border-yellow-400">
-                  {socioAdm?.nome?.toUpperCase() || "ANA PATRICIA CORDEIRO RAMOS"}
-                </span>, CPF nº{" "}
-                <span className="bg-yellow-300 text-slate-900 font-bold px-1.5 py-0.5 rounded border border-yellow-400">
-                  {socioAdm?.cpfCnpj || socioAdm?.cpf || "724.255.982-00"}
-                </span>.
-              </p>
-
-              {/* CLÁUSULA PRIMEIRA */}
-              <div>
-                <h3 className="font-bold uppercase text-slate-900 mb-1">
-                  CLÁUSULA PRIMEIRA – DO OBJETO
-                </h3>
-                <p>
-                  O presente contrato tem por objeto a prestação de serviços profissionais de assessoria de{" "}
-                  <strong>
-                    {Array.isArray(selectedContract?.services) && selectedContract.services.length > 0 
-                      ? selectedContract.services.join(", ") 
-                      : "Departamento Pessoal e Departamento Tributário"}
-                  </strong>{" "}
-                  para a CONTRATANTE, nos limites estabelecidos neste instrumento.
-                </p>
-              </div>
-
-              {/* CLÁUSULA SEGUNDA */}
-              <div className="space-y-2">
-                <h3 className="font-bold uppercase text-slate-900 mb-1">
-                  CLÁUSULA SEGUNDA – DOS SERVIÇOS INCLUSOS NO PACOTE MENSAL
-                </h3>
-                
-                {(!selectedContract?.services || selectedContract.services.some((s: string) => s.toUpperCase().includes("TRIBUTÁRIO") || s.toUpperCase().includes("TRIBUTARIO") || s.toUpperCase().includes("FISCAL"))) && (
-                  <>
-                    <p className="font-bold text-slate-900">2.1. Área Fiscal e Tributária:</p>
-                    <ol className="list-decimal pl-6 space-y-1">
-                      <li>Apuração mensal dos tributos (DAS/PGDAS-D) e monitoramento das regras operacionais vigentes.</li>
-                      <li>Cumprimento das obrigações acessórias fiscais de rotina (DEFIS, EFD-Reinf e acompanhamento do IBS/CBS).</li>
-                    </ol>
-                  </>
-                )}
-
-                {(!selectedContract?.services || selectedContract.services.some((s: string) => s.toUpperCase().includes("PESSOAL"))) && (
-                  <>
-                    <p className="font-bold text-slate-900 mt-3">
-                      2.2. Departamento Pessoal (para{" "}
-                      <span className="bg-yellow-300 text-slate-900 font-bold px-1.5 py-0.5 rounded border border-yellow-400">
-                        {(selectedContract?.employeeCount !== undefined ? selectedContract.employeeCount : 0).toString().padStart(2, "0")}
-                      </span>{" "}
-                      funcionário/sócio):
-                    </p>
-                    <ol className="list-decimal pl-6 space-y-1">
-                      <li>Processamento de folha de pagamento, pró-labore, férias e rescisões.</li>
-                      <li>Transmissão mensal das obrigações no eSocial, DCTFWeb e emissão das guias de FGTS Digital e INSS.</li>
-                    </ol>
-                  </>
-                )}
-
-                {selectedContract?.services?.some((s: string) => s.toUpperCase().includes("CONTÁBIL") || s.toUpperCase().includes("CONTABIL")) && (
-                  <>
-                    <p className="font-bold text-slate-900 mt-3">2.3. Área Contábil:</p>
-                    <ol className="list-decimal pl-6 space-y-1">
-                      <li>Escrituração contábil regular conforme as normas vigentes.</li>
-                    </ol>
-                  </>
-                )}
-
-                {selectedContract?.services?.some((s: string) => s.toUpperCase().includes("LEGALIZAÇÃO") || s.toUpperCase().includes("LEGALIZACAO") || s.toUpperCase().includes("ABERTURA")) && (
-                  <>
-                    <p className="font-bold text-slate-900 mt-3">2.4. Abertura e Legalização:</p>
-                    <ol className="list-decimal pl-6 space-y-1">
-                      <li>Assessoria e trâmites de alterações cadastrais e suporte de regularização junto aos órgãos públicos.</li>
-                    </ol>
-                  </>
-                )}
-
-                <p className="italic text-slate-700 mt-2 pl-2 border-l-2 border-slate-300">
-                  <strong>Parágrafo Único:</strong> A inclusão de funcionários excedentes gerará um acréscimo de R$ 50,00 (cinquenta reais) por funcionário/mês na fatura.
-                </p>
-              </div>
-
-              {/* CLÁUSULA TERCEIRA */}
-              <div className="space-y-2">
-                <h3 className="font-bold uppercase text-slate-900 mb-1">
-                  CLÁUSULA TERCEIRA – DOS SERVIÇOS EXCLUÍDOS E CONTABILIDADE AVULSA
-                </h3>
-                <p>
-                  <strong>3.1. A ESCRITURAÇÃO CONTÁBIL PROPRIAMENTE DITA</strong> (elaboração de Balanço Patrimonial, Demonstração do Resultado do Exercício - DRE, Livro Diário, Livro Razão e Sped Contábil/ECD) <strong>NÃO ESTÁ INCLUSA</strong> na parcela fixa mensal contratada.
-                </p>
-                <p>
-                  <strong>3.2.</strong> Caso a CONTRATANTE solicite a elaboração de Balanço Patrimonial ou demonstrações contábeis para fins bancários, licitações ou encerramento do exercício, os serviços serão orçados e cobrados à parte em contrato aditivo específico.
-                </p>
-                <p>
-                  <strong>3.3.</strong> Quaisquer serviços extraordinários (alterações contratuais, parcelamentos de débitos antigos, certidões específicas, regularizações de pendências fiscais anteriores) serão cobrados separadamente mediante aprovação prévia.
-                </p>
-              </div>
-
-              {/* CLÁUSULA QUARTA */}
-              <div className="space-y-2">
-                <h3 className="font-bold uppercase text-slate-900 mb-1">
-                  CLÁUSULA QUARTA – DAS OBRIGAÇÕES E RESPONSABILIDADES DA CONTRATANTE
-                </h3>
-                <p>
-                  <strong>4.1.</strong> A CONTRATANTE obriga-se a fornecer toda a documentação fiscal, financeira e trabalhista idônea e completa <strong>até o dia 5 (cinco) do mês subsequente</strong> ao da prestação dos serviços.
-                </p>
-                <p>
-                  <strong>4.2.</strong> A não entrega dos documentos no prazo isenta a CONTRATADA de qualquer responsabilidade por multas, juros ou atrasos na entrega de obrigações acessórias, os quais serão de inteira responsabilidade da CONTRATANTE.
-                </p>
-                <p>
-                  <strong>4.3.</strong> A CONTRATANTE responde civil e criminalmente pela veracidade e autenticidade dos dados, extratos bancários e documentos fornecidos.
-                </p>
-              </div>
-
-              {/* CLÁUSULA QUINTA */}
-              <div className="space-y-2">
-                <h3 className="font-bold uppercase text-slate-900 mb-1">
-                  CLÁUSULA QUINTA – DOS HONORÁRIOS E DA INADIMPLÊNCIA
-                </h3>
-                <p>
-                  <strong>5.1.</strong> Pelos serviços prestados da Cláusula Segunda, a CONTRATANTE pagará o valor mensal de{" "}
-                  <span className="bg-yellow-300 text-slate-900 font-bold px-1.5 py-0.5 rounded border border-yellow-400">
-                    R$ {Number(selectedContract?.value || 400).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} ({numberToExtensoBRL(Number(selectedContract?.value || 400))})
-                  </span>, com vencimento todo dia{" "}
-                  <span className="bg-yellow-300 text-slate-900 font-bold px-1.5 py-0.5 rounded border border-yellow-400">
-                    {selectedContract?.dueDay || 10}
-                  </span>{" "}
-                  do mês subsequente.
-                </p>
-                <p>
-                  <strong>5.2. Do 13º Honorário:</strong> No mês de dezembro de cada ano, será devido o valor correspondente a 01 (um) honorário mensal adicional, referente ao encerramento da carga operacional anual e obrigações trabalhistas decorrentes do exercício.
-                </p>
-                <p>
-                  <strong>5.3. Inadimplência:</strong> O atraso no pagamento sujeitará o débito à multa moratória de 2%, acrescida de juros de 1% ao mês e atualização monetária.
-                </p>
-                <p>
-                  <strong>5.4. Suspensão dos Serviços por Atraso:</strong> O atraso no pagamento por período superior a 30 (trinta) dias ensejará a suspensão do envio de guias e declarações, ficando a CONTRATADA isenta de qualquer prejuízo fiscal ou trabalhista gerado por esta paralisação.
-                </p>
-                <p>
-                  <strong>5.5. Atraso Superior a 90 Dias:</strong>
-                </p>
-                <ul className="list-disc pl-6 space-y-1 font-medium">
-                  <li><strong>A)</strong> O título/contrato será levado a protesto extrajudicial e inclusão nos órgãos de proteção ao crédito (SPC/SERASA).</li>
-                  <li><strong>B)</strong> Cobrança judicial com acréscimo de custas processuais e honorários advocatícios fixados em 20% sobre o valor total da dívida.</li>
-                </ul>
-              </div>
-
-              {/* CLÁUSULA SEXTA */}
-              <div className="space-y-2">
-                <h3 className="font-bold uppercase text-slate-900 mb-1">
-                  CLÁUSULA SEXTA – DA PROTEÇÃO DE DADOS (LGPD)
-                </h3>
-                <p>
-                  <strong>6.1.</strong> As partes declaram cumprir a Lei nº 13.709/2018. A CONTRATADA tratará os dados recebidos exclusivamente para os fins deste contrato e cumprimentos de deveres legais.
-                </p>
-                <p>
-                  <strong>6.2.</strong> A CONTRATANTE autoriza o compartilhamento de dados com órgãos governamentais (Receita Federal, eSocial, Ministério do Trabalho, Secretarias de Finanças) para cumprimento das rotinas operacionais.
-                </p>
-              </div>
-
-              {/* CLÁUSULA SÉTIMA */}
-              <div className="space-y-2">
-                <h3 className="font-bold uppercase text-slate-900 mb-1">
-                  CLÁUSULA SÉTIMA – DA RESCISÃO E BLINDAGEM DE TRANSIÇÃO
-                </h3>
-                <p>
-                  <strong>7.1.</strong> O presente contrato vigora por prazo indeterminado. Qualquer das partes poderá rescindi-lo mediante <strong>aviso prévio por escrito com antecedência mínima de 30 (trinta) dias</strong>, devendo os honorários desse período ser quitados normalmente.
-                </p>
-                <p>
-                  <strong>7.2.</strong> A rescisão contratual ou a transferência da responsabilidade técnica fica condicionada à <strong>quitação integral de todos os débitos e honorários em aberto</strong> com a CONTRATADA.
-                </p>
-                <p>
-                  <strong>7.3.</strong> Em caso de inadimplência superior a 60 (sessenta) dias, a CONTRATADA poderá rescindir o contrato imediatamente por justa causa, notificando o cliente e isentando-se das obrigações futuras.
-                </p>
-              </div>
-
-              {/* CLÁUSULA OITAVA */}
-              <div>
-                <h3 className="font-bold uppercase text-slate-900 mb-1">
-                  CLÁUSULA OITAVA – DO FORO
-                </h3>
-                <p>
-                  Fica eleito o Foro da Comarca de <strong>Macapá/AP</strong> para dirimir quaisquer dúvidas ou litígios oriundos do presente contrato, com renúncia expressa de qualquer outro por mais privilegiado que seja.
-                </p>
-              </div>
-
-              {/* DATA DE VIGÊNCIA FORMATADA */}
-              <div className="text-right pt-6">
-                <p>
-                  Macapá/AP,{" "}
-                  <span className="bg-yellow-300 text-slate-900 font-bold px-1.5 py-0.5 rounded border border-yellow-400">
-                    {formatDateExtenso(selectedContract?.startDate)}
-                  </span>.
-                </p>
-              </div>
-
-              {/* BLOCOS DE ASSINATURA */}
-              <div className="pt-16 grid grid-cols-1 md:grid-cols-2 gap-12 text-center">
-                <div className="space-y-1">
-                  <div className="border-t-2 border-slate-800 pt-2"></div>
-                  <p className="bg-yellow-300 text-slate-900 font-bold px-1 py-0.5 rounded inline-block text-xs">
-                    {socioAdm?.nome?.toUpperCase() || "CAMILA MORAIS DO NASCIMENTO"}
-                  </p>
-                  <br />
-                  <p className="bg-yellow-300 text-slate-900 font-bold px-1 py-0.5 rounded inline-block text-[11px] text-slate-700">
-                    {socioAdm?.qualificacao || socioAdm?.condicaoSocio || "Sócio-Administrador"}
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="border-t-2 border-slate-800 pt-2"></div>
-                  <p className="font-bold text-xs text-slate-900">
-                    FELYPER MACIEL NAIFF
-                  </p>
-                  <p className="text-[11px] font-medium text-slate-700">
-                    Prosperare Serviços Contábeis
-                  </p>
-                </div>
-              </div>
-
-            </div>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
