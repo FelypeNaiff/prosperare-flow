@@ -24,11 +24,11 @@ const AVAILABLE_TAGS = [
   { name: 'FINALIZADO!', color: 'bg-[#3498DB] text-white' },
   { name: 'PAGO', color: 'bg-[#2E86C1] text-white' },
   { name: '2 FATORES', color: 'bg-[#5DADE2] text-white' },
-  { name: 'EM PROCESSAMENTO', color: 'bg-[#1FA67A] text-white' },
+  { name: 'EM PROCESSAMENTO', color: 'bg-[#2563EB] text-white' },
   { name: 'GOV', color: 'bg-[#566573] text-white' },
 ]
 
-export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
+export function IrpfKanban({ searchTerm, filtroPagamento = "Todos" }: { searchTerm: string, filtroPagamento?: string }) {
   const { selectedUser } = useUser()
   const firestore = useFirestore()
   const [selectedDeclaration, setSelectedDeclaration] = useState<any>(null)
@@ -57,10 +57,14 @@ export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
   )
   const { data: declarations, isLoading: loadingDecls } = useCollection(irpfQuery)
 
-  const filteredCards = (declarations || []).filter(c => 
-    c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.cpf?.includes(searchTerm)
-  )
+  const filteredCards = (declarations || []).filter(c => {
+    const matchesSearch = c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || c.cpf?.includes(searchTerm);
+    const matchesPagamento = filtroPagamento === "Todos" 
+      || (filtroPagamento === "Pago" && c.isPaid === true) 
+      || (filtroPagamento === "Pendente" && c.isPaid !== true);
+      
+    return matchesSearch && matchesPagamento;
+  })
 
   const handleOpenDetails = (card: any) => {
     setSelectedDeclaration(card)
@@ -103,7 +107,7 @@ export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
   if (loadingStages || loadingDecls) {
     return (
       <div className="h-64 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" />
       </div>
     )
   }
@@ -169,7 +173,7 @@ export function IrpfKanban({ searchTerm }: { searchTerm: string }) {
                           <div className="flex items-center gap-1">
                             <span className="text-[9px] font-black text-[#98A7AA]">{card.progress || 0}%</span>
                             <div className="w-10 h-1 bg-slate-100 rounded-full">
-                              <div className="h-full bg-[#1FA67A]" style={{ width: `${card.progress || 0}%` }} />
+                              <div className="h-full bg-[#2563EB]" style={{ width: `${card.progress || 0}%` }} />
                             </div>
                           </div>
                         </div>

@@ -29,7 +29,7 @@ export default function UnauthorizedPage() {
           <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Acesso Negado</h1>
           <div className="space-y-2">
             <p className="text-[#39586D] font-medium leading-relaxed">
-              Este e-mail não está cadastrado como colaborador no <span className="font-bold text-[#1FA67A]">Prosperare Flow</span>.
+              Este e-mail não está cadastrado como colaborador no <span className="font-bold text-[#2563EB]">Prosperare Flow</span>.
             </p>
             <p className="text-xs text-[#98A7AA] font-bold uppercase tracking-widest">
               Solicite acesso ao administrador do escritório.
@@ -57,7 +57,7 @@ export default function UnauthorizedPage() {
         <div className="pt-8 opacity-20 grayscale pointer-events-none">
           <div className="flex items-center justify-center gap-2">
             <span className="text-xs font-black tracking-tighter">PROSPERARE</span>
-            <span className="text-xs font-black tracking-tighter text-[#1FA67A]">FLOW</span>
+            <span className="text-xs font-black tracking-tighter text-[#2563EB]">FLOW</span>
           </div>
         </div>
       </div>

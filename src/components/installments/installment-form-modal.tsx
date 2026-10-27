@@ -25,7 +25,9 @@ import { CreditCard, Loader2, Save } from "lucide-react"
 import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 
-export function InstallmentFormModal({ open, onOpenChange, clientId: initialClientId }: any) {
+import React from 'react'
+
+export function InstallmentFormModal({ open, onOpenChange, clientId: initialClientId, initialData }: any) {
   const firestore = useFirestore()
   const [loading, setLoading] = useState(false)
 
@@ -33,17 +35,48 @@ export function InstallmentFormModal({ open, onOpenChange, clientId: initialClie
   const { data: clients = [] } = useCollection(clientsQuery)
 
   const [formData, setFormData] = useState({
-    clientId: initialClientId || "",
-    tipo: "",
-    descricao: "",
-    totalParcels: "60",
-    currentParcel: "1",
-    value: "",
-    dueDay: "20",
-    startMonth: "",
-    notes: "",
-    status: "Ativo"
+    clientId: initialData?.clientId || initialClientId || "",
+    tipo: initialData?.tipo || "",
+    descricao: initialData?.descricao || "",
+    totalParcels: initialData?.totalParcels || "60",
+    currentParcel: initialData?.currentParcel || "1",
+    value: initialData?.value || "",
+    dueDay: initialData?.dueDay || "20",
+    startMonth: initialData?.startMonth || "",
+    notes: initialData?.notes || "",
+    status: initialData?.status || "Ativo"
   })
+
+  // Permite recarregar dados se o initialData mudar depois de aberto
+  React.useEffect(() => {
+    if (initialData && open) {
+      setFormData({
+        clientId: initialData.clientId || "",
+        tipo: initialData.tipo || "",
+        descricao: initialData.descricao || "",
+        totalParcels: String(initialData.totalParcels || "60"),
+        currentParcel: String(initialData.currentParcel || "1"),
+        value: String(initialData.value || ""),
+        dueDay: String(initialData.dueDay || "20"),
+        startMonth: initialData.startMonth || "",
+        notes: initialData.notes || "",
+        status: initialData.status || "Ativo"
+      })
+    } else if (!initialData && open) {
+      setFormData({
+        clientId: initialClientId || "",
+        tipo: "",
+        descricao: "",
+        totalParcels: "60",
+        currentParcel: "1",
+        value: "",
+        dueDay: "20",
+        startMonth: "",
+        notes: "",
+        status: "Ativo"
+      })
+    }
+  }, [initialData, open, initialClientId])
 
   const handleSave = () => {
     if (!formData.clientId || !formData.tipo || !formData.value) {
@@ -51,7 +84,7 @@ export function InstallmentFormModal({ open, onOpenChange, clientId: initialClie
       return
     }
 
-    const id = Math.random().toString(36).substr(2, 9)
+    const id = initialData?.id || Math.random().toString(36).substr(2, 9)
     const docRef = doc(firestore, "installments", id)
     const client = (clients || []).find(c => c.id === formData.clientId)
 
@@ -59,7 +92,7 @@ export function InstallmentFormModal({ open, onOpenChange, clientId: initialClie
       ...formData,
       id,
       clientName: client?.corporateName || "Cliente Avulso",
-      createdAt: new Date().toISOString(),
+      createdAt: initialData?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       value: Number(formData.value),
       totalParcels: Number(formData.totalParcels),
@@ -93,7 +126,7 @@ export function InstallmentFormModal({ open, onOpenChange, clientId: initialClie
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl p-0 overflow-hidden flex flex-col">
         <DialogHeader className="p-6 bg-white border-b shrink-0">
-          <div className="flex items-center gap-2 text-[#1FA67A] mb-2">
+          <div className="flex items-center gap-2 text-[#2563EB] mb-2">
             <CreditCard className="h-6 w-6" />
             <DialogTitle className="text-2xl font-black text-[#2C4156]">Novo Parcelamento</DialogTitle>
           </div>
@@ -201,7 +234,7 @@ export function InstallmentFormModal({ open, onOpenChange, clientId: initialClie
 
         <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button className="bg-[#1FA67A] font-bold px-8 shadow-lg" onClick={handleSave}>
+          <Button className="bg-[#2563EB] font-bold px-8 shadow-lg" onClick={handleSave}>
             <Save className="h-4 w-4 mr-2" /> Salvar Parcelamento
           </Button>
         </DialogFooter>

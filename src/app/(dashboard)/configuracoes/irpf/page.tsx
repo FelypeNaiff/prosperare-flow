@@ -13,8 +13,8 @@ const DEFAULT_TAGS = [
   { name: 'Prioritário', color: '#E74C3C' },
   { name: 'Aguardando retorno', color: '#F2B705' },
   { name: 'Documentos pendentes', color: '#F2B705' },
-  { name: 'Em dia', color: '#1FA67A' },
-  { name: 'Restituição', color: '#1FA67A' },
+  { name: 'Em dia', color: '#2563EB' },
+  { name: 'Restituição', color: '#2563EB' },
   { name: 'A pagar', color: '#E74C3C' },
   { name: 'Malha fiscal', color: '#2C4156' },
 ]
@@ -35,7 +35,7 @@ export default function ConfigIrpfPage() {
         <Card className="border-[#D2D7DB]">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Tag className="h-5 w-5 text-[#1FA67A]" />
+              <Tag className="h-5 w-5 text-[#2563EB]" />
               Etiquetas de Status
             </CardTitle>
             <CardDescription>Tags coloridas para identificar rapidamente o estado das declarações.</CardDescription>
@@ -102,7 +102,7 @@ export default function ConfigIrpfPage() {
             </div>
           </CardContent>
           <CardFooter className="bg-[#F7F7F7] border-t p-4 flex justify-end">
-            <Button onClick={handleSave} className="bg-[#1FA67A] font-bold px-8">Salvar Alterações</Button>
+            <Button onClick={handleSave} className="bg-[#2563EB] font-bold px-8">Salvar Alterações</Button>
           </CardFooter>
         </Card>
       </div>

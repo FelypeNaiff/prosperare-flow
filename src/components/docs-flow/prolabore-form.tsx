@@ -132,9 +132,9 @@ export function ProlaboreForm() {
               >
                 <div className={cn(
                   "flex-1 flex items-center gap-3 p-3 rounded-xl border-2 transition-all cursor-pointer",
-                  docType === 'prolabore' ? "border-[#1FA67A] bg-[#1FA67A]/5" : "border-[#D2D7DB] bg-white"
+                  docType === 'prolabore' ? "border-[#2563EB] bg-[#2563EB]/5" : "border-[#D2D7DB] bg-white"
                 )} onClick={() => setDocType('prolabore')}>
-                  <FileText className={cn("h-5 w-5", docType === 'prolabore' ? "text-[#1FA67A]" : "text-[#98A7AA]")} />
+                  <FileText className={cn("h-5 w-5", docType === 'prolabore' ? "text-[#2563EB]" : "text-[#98A7AA]")} />
                   <div className="flex flex-col">
                     <span className="text-xs font-black text-[#2C4156] uppercase">Declaração</span>
                     <RadioGroupItem value="prolabore" id="t-pro" className="sr-only" />
@@ -155,7 +155,7 @@ export function ProlaboreForm() {
 
             <div className="flex items-center justify-between border-t pt-4">
               <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Identificação da Empresa</h4>
-              <Button variant="ghost" size="sm" className="text-[10px] font-bold text-[#1FA67A]" onClick={() => {
+              <Button variant="ghost" size="sm" className="text-[10px] font-bold text-[#2563EB]" onClick={() => {
                 setIsManual(!isManual)
                 setFormData({...formData, empresa: "", cnpj: "", clientId: ""})
               }}>
@@ -239,7 +239,7 @@ export function ProlaboreForm() {
               <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Pré-visualização</CardTitle>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setIsPreviewOpen(false)}><X className="h-4 w-4 mr-1" /> Fechar</Button>
-                <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold uppercase text-[10px]" onClick={() => window.print()}>
+                <Button size="sm" className="bg-[#2563EB] gap-2 font-bold uppercase text-[10px]" onClick={() => window.print()}>
                   <Printer className="h-3 w-3" /> GERAR PDF
                 </Button>
               </div>
@@ -266,7 +266,7 @@ export function ProlaboreForm() {
                       </p>
 
                       <div className="bg-[#F7F7F7] p-6 rounded-xl border-2 border-black space-y-3">
-                        <h3 className="font-black text-[9px] uppercase tracking-widest text-[#1FA67A]">Resumo de Valores</h3>
+                        <h3 className="font-black text-[9px] uppercase tracking-widest text-[#2563EB]">Resumo de Valores</h3>
                         <div className="flex justify-between border-b border-black pb-2">
                           <span>Rendimento Bruto:</span>
                           <span className="font-bold">R$ {formatCurrency(valorBrutoNum)}</span>
@@ -281,7 +281,7 @@ export function ProlaboreForm() {
                         </div>
                         <div className="flex justify-between pt-2 text-lg">
                           <span className="font-black">VALOR LÍQUIDO:</span>
-                          <span className="font-black text-[#1FA67A]">R$ {formatCurrency(valorLiquido)}</span>
+                          <span className="font-black text-[#2563EB]">R$ {formatCurrency(valorLiquido)}</span>
                         </div>
                       </div>
 

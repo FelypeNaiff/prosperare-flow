@@ -26,21 +26,23 @@ export function ClientSearchSelect({
   disabled = false
 }: any) {
   const [open, setOpen] = React.useState(false)
-  const [search, setSearch] = React.useState("")
+  const [searchTerm, setSearchTerm] = React.useState("")
   const inputRef = React.useRef<HTMLInputElement>(null)
 
-  const filteredClients = React.useMemo(() => {
-    const searchLower = search.toLowerCase()
-    const searchDigits = search.replace(/\D/g, '')
+  const clientesFiltrados = React.useMemo(() => {
+    if (!searchTerm || searchTerm.trim() === "") return clients || []
+    
+    const searchLower = searchTerm.toLowerCase().trim()
+    const searchDigits = searchTerm.replace(/\D/g, '')
 
     return (clients || []).filter((c: any) => {
-      const nameMatch = c.corporateName?.toLowerCase().includes(searchLower) ||
-                       c.nomeFantasia?.toLowerCase().includes(searchLower)
-      const cnpjMatch = searchDigits !== '' && c.cnpj?.replace(/\D/g, '').includes(searchDigits)
+      const nomeMatch = String(c.corporateName || "").toLowerCase().includes(searchLower) || 
+                        String(c.nomeFantasia || "").toLowerCase().includes(searchLower)
+      const cnpjMatch = searchDigits !== '' && String(c.cnpj || "").replace(/\D/g, '').includes(searchDigits)
       
-      return nameMatch || cnpjMatch
+      return nomeMatch || cnpjMatch
     })
-  }, [clients, search])
+  }, [clients, searchTerm])
 
   const selectedClient = React.useMemo(() => {
     return (clients || []).find((c: any) => c.id === value)
@@ -65,8 +67,8 @@ export function ClientSearchSelect({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "w-full justify-between h-11 border-[#D2D7DB] hover:border-[#1FA67A] transition-colors font-bold uppercase text-[11px] px-4 bg-white",
-            open && "border-[#1FA67A] ring-1 ring-[#1FA67A]/20",
+            "w-full justify-between h-11 border-[#D2D7DB] hover:border-[#2563EB] transition-colors font-bold uppercase text-[11px] px-4 bg-white",
+            open && "border-[#2563EB] ring-1 ring-[#2563EB]/20",
             className
           )}
         >
@@ -77,42 +79,49 @@ export function ClientSearchSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-[500px] max-w-[calc(100vw-40px)] p-0 border-[#D2D7DB] shadow-2xl z-[9999]"
+        className="w-[500px] max-w-[calc(100vw-40px)] p-0 border-[#D2D7DB] shadow-2xl z-[10000] pointer-events-auto"
         align="start"
         onOpenAutoFocus={(e) => e.preventDefault()} // Impede o Dialog de roubar o foco
+        onCloseAutoFocus={(e) => e.preventDefault()} // Impede o foco de travar no select ao fechar
+        onPointerDownOutside={(e) => e.preventDefault()} // Impede que o clique fora fecha ou trava se não quiser
       >
         <div className="flex flex-col">
           <div className="flex items-center border-b px-3 bg-[#F7F7F7]">
             <Search className="mr-2 h-4 w-4 shrink-0 text-[#98A7AA]" />
             <Input
               ref={inputRef}
+              autoFocus
               placeholder="PESQUISAR POR NOME OU CNPJ..."
-              className="flex h-12 w-full rounded-md bg-transparent py-3 text-[11px] outline-none border-none focus-visible:ring-0 shadow-none font-bold uppercase"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              className="flex h-12 w-full rounded-md bg-transparent py-3 text-[11px] outline-none border-none focus-visible:ring-0 shadow-none font-bold uppercase pointer-events-auto"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
             />
           </div>
           <ScrollArea className="h-72">
             <div className="p-1">
-              {filteredClients.length === 0 ? (
+              {clientesFiltrados.length === 0 ? (
                 <div className="p-8 text-center text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">
                   Nenhum cliente localizado
                 </div>
               ) : (
-                filteredClients.map((client: any) => (
+                clientesFiltrados.map((client: any) => (
                   <button
                     key={client.id}
                     type="button"
                     className={cn(
-                      "relative flex w-full cursor-pointer select-none items-center rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none hover:bg-[#1FA67A] hover:text-white transition-all text-left mb-1 last:mb-0",
-                      value === client.id ? "bg-[#1FA67A] text-white" : "text-[#2C4156]"
+                      "relative flex w-full cursor-pointer select-none items-center rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none hover:bg-[#2563EB] hover:text-white transition-all text-left mb-1 last:mb-0",
+                      value === client.id ? "bg-[#2563EB] text-white" : "text-[#2C4156]"
                     )}
                     onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
                       onValueChange(client.id)
                       setOpen(false)
-                      setSearch("")
+                      setSearchTerm("")
                     }}
                   >
                     <div className="flex flex-col flex-1 overflow-hidden">

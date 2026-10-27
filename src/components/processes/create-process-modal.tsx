@@ -205,14 +205,14 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
 
             {isSporadic && (
               <div className="space-y-2 border-t pt-4">
-                <Label className="text-[10px] font-black uppercase text-[#1FA67A] tracking-widest flex items-center gap-2">
-                  <Calendar className="h-3 w-3 text-[#1FA67A]" /> Prazo / Vencimento do Processo
+                <Label className="text-[10px] font-black uppercase text-[#2563EB] tracking-widest flex items-center gap-2">
+                  <Calendar className="h-3 w-3 text-[#2563EB]" /> Prazo / Vencimento do Processo
                 </Label>
                 <Input 
                   type="date" 
                   value={formData.customDeadline} 
                   onChange={(e) => setFormData({...formData, customDeadline: e.target.value})}
-                  className="border-[#1FA67A] focus-visible:ring-[#1FA67A] h-11 font-bold text-[#2C4156]"
+                  className="border-[#2563EB] focus-visible:ring-[#2563EB] h-11 font-bold text-[#2C4156]"
                 />
                 <p className="text-[10px] font-bold text-[#98A7AA] uppercase">Por se tratar de um fluxo esporádico, defina o prazo real de entrega.</p>
               </div>
@@ -223,7 +223,7 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
         <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="font-bold uppercase text-xs border-[#D2D7DB]">Cancelar</Button>
           <Button 
-            className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-8 shadow-lg shadow-emerald-500/20" 
+            className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-8 shadow-lg shadow-blue-500/20" 
             onClick={handleCreate}
             disabled={isSaving}
           >

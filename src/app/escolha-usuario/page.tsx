@@ -70,7 +70,7 @@ export default function EscolhaUsuarioPage() {
   if (isUserLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#2C4156]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" />
       </div>
     )
   }
@@ -78,17 +78,17 @@ export default function EscolhaUsuarioPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#2C4156] text-white p-4 overflow-hidden relative">
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-10">
-        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#1FA67A] rounded-full blur-[120px]" />
+        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#2563EB] rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#2574A9] rounded-full blur-[120px]" />
       </div>
 
       <div className="w-full max-w-5xl space-y-12 z-10 animate-in fade-in zoom-in duration-700">
         <div className="flex flex-col items-center text-center space-y-4">
           <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-xl border border-white/10 mb-4">
-            <TrendingUp className="h-8 w-8 text-[#1FA67A]" />
+            <TrendingUp className="h-8 w-8 text-[#2563EB]" />
           </div>
           <h1 className="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none">
-            Quem está <span className="text-[#1FA67A]">operando agora?</span>
+            Quem está <span className="text-[#2563EB]">operando agora?</span>
           </h1>
           <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Selecione sua identidade operacional</p>
         </div>
@@ -96,7 +96,7 @@ export default function EscolhaUsuarioPage() {
         <div className="flex flex-wrap justify-center gap-8 md:gap-12">
           {isLoading ? (
             <div className="py-20 flex flex-col items-center gap-4">
-              <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
+              <Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" />
               <p className="text-[10px] font-black uppercase text-white/40">Carregando Identidades...</p>
             </div>
           ) : team && team.length > 0 ? (
@@ -106,7 +106,7 @@ export default function EscolhaUsuarioPage() {
                 onClick={() => handleSelect(member)}
                 className="group flex flex-col items-center space-y-4 transition-all duration-300"
               >
-                <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-[2.5rem] overflow-hidden border-4 border-transparent group-hover:border-[#1FA67A] group-hover:scale-105 transition-all duration-500 shadow-xl">
+                <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-[2.5rem] overflow-hidden border-4 border-transparent group-hover:border-[#2563EB] group-hover:scale-105 transition-all duration-500 shadow-xl">
                   <Avatar className="w-full h-full rounded-none">
                     <AvatarFallback className="text-4xl font-black text-white rounded-none bg-[#39586D]">
                       {member.fullName?.charAt(0)}
@@ -118,7 +118,7 @@ export default function EscolhaUsuarioPage() {
                   <p className="text-sm md:text-base font-black uppercase tracking-tight text-white/80 group-hover:text-white transition-colors">
                     {member.fullName}
                   </p>
-                  <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest border-white/10 text-white/40 group-hover:bg-[#1FA67A] group-hover:text-white group-hover:border-none transition-all">
+                  <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest border-white/10 text-white/40 group-hover:bg-[#2563EB] group-hover:text-white group-hover:border-none transition-all">
                     {member.profile}
                   </Badge>
                 </div>
@@ -163,12 +163,12 @@ export default function EscolhaUsuarioPage() {
               maxLength={4}
               value={pin}
               onChange={(e) => setPin(e.target.value)}
-              className="text-center h-14 text-2xl font-black tracking-[0.5em] bg-[#F7F7F7] border-[#D2D7DB] focus-visible:ring-[#1FA67A]"
+              className="text-center h-14 text-2xl font-black tracking-[0.5em] bg-[#F7F7F7] border-[#D2D7DB] focus-visible:ring-[#2563EB]"
               placeholder="••••"
               autoFocus
               onKeyDown={(e) => e.key === 'Enter' && handleVerifyPin()}
             />
-            <Button className="w-full h-14 bg-[#1FA67A] font-black uppercase text-xs tracking-widest shadow-lg" onClick={handleVerifyPin}>
+            <Button className="w-full h-14 bg-[#2563EB] font-black uppercase text-xs tracking-widest shadow-lg" onClick={handleVerifyPin}>
               Confirmar Identidade
             </Button>
           </div>

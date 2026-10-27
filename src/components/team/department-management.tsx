@@ -38,7 +38,7 @@ interface Department {
 const DEFAULT_DEPARTMENTS: Department[] = [
   { id: '1', name: 'PESSOAL', color: '#2574A9', members: 4, isDefault: true },
   { id: '2', name: 'ADMINISTRATIVO', color: '#39586D', members: 2, isDefault: true },
-  { id: '3', name: 'FISCAL', color: '#1FA67A', members: 3, isDefault: true },
+  { id: '3', name: 'FISCAL', color: '#2563EB', members: 3, isDefault: true },
   { id: '4', name: 'COMERCIAL', color: '#F2B705', members: 1, isDefault: true },
   { id: '5', name: 'FINANCEIRO', color: '#2C4156', members: 2, isDefault: true },
 ]
@@ -46,7 +46,7 @@ const DEFAULT_DEPARTMENTS: Department[] = [
 export function DepartmentManagement() {
   const [departments, setDepartments] = useState<Department[]>(DEFAULT_DEPARTMENTS)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [newDept, setNewDept] = useState({ name: '', color: '#1FA67A' })
+  const [newDept, setNewDept] = useState({ name: '', color: '#2563EB' })
 
   const handleAddDepartment = () => {
     if (!newDept.name) return;
@@ -59,7 +59,7 @@ export function DepartmentManagement() {
     };
     setDepartments([...departments, dept]);
     setIsModalOpen(false);
-    setNewDept({ name: '', color: '#1FA67A' });
+    setNewDept({ name: '', color: '#2563EB' });
     toast({ title: "Departamento Criado", description: `O departamento ${dept.name} foi adicionado.` });
   }
 
@@ -91,10 +91,10 @@ export function DepartmentManagement() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-bold text-[#2C4156] flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-[#1FA67A]" />
+          <Building2 className="h-5 w-5 text-[#2563EB]" />
           Estrutura Organizacional
         </h3>
-        <Button onClick={() => setIsModalOpen(true)} className="bg-[#1FA67A] gap-2">
+        <Button onClick={() => setIsModalOpen(true)} className="bg-[#2563EB] gap-2">
           <Plus className="h-4 w-4" /> Novo Departamento
         </Button>
       </div>
@@ -136,7 +136,7 @@ export function DepartmentManagement() {
                 {dept.isDefault ? (
                   <Badge variant="outline" className="text-[9px] uppercase font-bold text-[#98A7AA] border-[#D2D7DB]">Padrão Sistema</Badge>
                 ) : (
-                  <Badge variant="outline" className="text-[9px] uppercase font-bold text-[#1FA67A] border-[#1FA67A]/20">Personalizado</Badge>
+                  <Badge variant="outline" className="text-[9px] uppercase font-bold text-[#2563EB] border-[#2563EB]/20">Personalizado</Badge>
                 )}
                 <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold text-[#39586D] uppercase gap-1">
                   Ver Membros <ChevronRight className="h-3 w-3" />
@@ -178,7 +178,7 @@ export function DepartmentManagement() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-            <Button className="bg-[#1FA67A]" onClick={handleAddDepartment}>Criar Departamento</Button>
+            <Button className="bg-[#2563EB]" onClick={handleAddDepartment}>Criar Departamento</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

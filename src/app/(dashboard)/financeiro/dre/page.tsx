@@ -27,7 +27,7 @@ const DRE_DATA: any[] = []
 const chartData: any[] = []
 
 const chartConfig = {
-  receitas: { label: "Receitas", color: "#1FA67A" },
+  receitas: { label: "Receitas", color: "#2563EB" },
   despesas: { label: "Despesas", color: "#E74C3C" },
 } satisfies ChartConfig
 
@@ -36,8 +36,8 @@ export default function DreGerencialPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">DRE Gerencial</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Demonstrativo de Resultados do Exercício do Escritório.</p>
+          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">DRE Gerencial</h1>
+          <p className="text-[#98A7AA] font-medium text-sm">Demonstrativo de Resultados do Exercício do Escritório.</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center bg-white border border-[#D2D7DB] rounded-lg px-3 py-1 text-xs font-black text-[#2C4156]">
@@ -59,11 +59,11 @@ export default function DreGerencialPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 border-[#D2D7DB] bg-white">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-black text-[#2C4156] uppercase flex items-center gap-2">
-              <PieChart className="h-4 w-4 text-[#1FA67A]" />
+            <CardTitle className="text-sm font-semibold text-[#2C4156] flex items-center gap-2">
+              <PieChart className="h-4 w-4 text-[#2563EB]" />
               Evolução de Resultados
             </CardTitle>
-            <CardDescription className="text-xs font-bold text-[#98A7AA]">Histórico de faturamento vs custos operacionais.</CardDescription>
+            <CardDescription className="text-xs font-medium text-[#98A7AA]">Histórico de faturamento vs custos operacionais.</CardDescription>
           </CardHeader>
           <CardContent className="h-[350px] pt-4">
             <ChartContainer config={chartConfig} className="h-full w-full">
@@ -90,10 +90,10 @@ export default function DreGerencialPage() {
             <div className="space-y-3">
               <div className="flex justify-between items-end">
                 <p className="text-[10px] font-black uppercase text-white/60">Margem de Lucro</p>
-                <p className="text-lg font-black text-[#1FA67A]">0.0%</p>
+                <p className="text-lg font-black text-[#2563EB]">0.0%</p>
               </div>
               <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-[#1FA67A] w-0 shadow-[0_0_10px_rgba(31,166,122,0.5)]" />
+                <div className="h-full bg-[#2563EB] w-0 shadow-[0_0_10px_rgba(31,166,122,0.5)]" />
               </div>
             </div>
             <div className="p-4 bg-white/5 rounded-xl border border-white/10">
@@ -107,16 +107,16 @@ export default function DreGerencialPage() {
 
       <Card className="border-[#D2D7DB] bg-white">
         <CardHeader className="bg-[#F7F7F7]/50 border-b">
-          <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Detalhamento Analítico</CardTitle>
-          <CardDescription className="text-xs font-bold text-[#98A7AA]">Visão por categoria de receita e despesa.</CardDescription>
+          <CardTitle className="text-sm font-semibold text-[#2C4156]">Detalhamento Analítico</CardTitle>
+          <CardDescription className="text-xs font-medium text-[#98A7AA]">Visão por categoria de receita e despesa.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-[#2C4156]">
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px] w-[400px]">Categoria / Lançamento</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Valor (R$)</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">% Receita</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm w-[400px]">Categoria / Lançamento</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right">Valor (R$)</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right">% Receita</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -125,18 +125,18 @@ export default function DreGerencialPage() {
                   <TableRow key={i} className={cn(
                     "hover:bg-[#F7F7F7]/50 transition-colors",
                     item.subtotal ? "bg-[#F7F7F7]/30 font-black" : "",
-                    item.highlight ? "text-lg bg-[#1FA67A]/5" : ""
+                    item.highlight ? "text-lg bg-[#2563EB]/5" : ""
                   )}>
                     <TableCell className={cn(
                       "py-4",
-                      item.highlight ? "text-[#1FA67A]" : "text-[#39586D]",
+                      item.highlight ? "text-[#2563EB]" : "text-[#39586D]",
                       !item.subtotal ? "pl-8 text-xs opacity-80" : "text-sm"
                     )}>
                       {item.categoria}
                     </TableCell>
                     <TableCell className={cn(
                       "text-right font-mono font-bold",
-                      item.valor < 0 ? "text-[#E74C3C]" : (item.positive ? "text-[#1FA67A]" : "")
+                      item.valor < 0 ? "text-[#E74C3C]" : (item.positive ? "text-[#2563EB]" : "")
                     )}>
                       {item.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </TableCell>

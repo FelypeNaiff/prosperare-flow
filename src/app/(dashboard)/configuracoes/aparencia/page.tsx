@@ -11,7 +11,7 @@ import { toast } from "@/hooks/use-toast"
 
 export default function AparenciaPage() {
   const handleSave = () => {
-    toast({ title: "Preferências de aparência salvas!", className: "bg-[#1FA67A] text-white" })
+    toast({ title: "Preferências de aparência salvas!", className: "bg-[#2563EB] text-white" })
   }
 
   return (
@@ -25,7 +25,7 @@ export default function AparenciaPage() {
         <Card className="border-[#D2D7DB]">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Palette className="h-5 w-5 text-[#1FA67A]" />
+              <Palette className="h-5 w-5 text-[#2563EB]" />
               Logo do Sistema
             </CardTitle>
             <CardDescription>Esta imagem substituirá o texto no topo da barra lateral.</CardDescription>
@@ -61,7 +61,7 @@ export default function AparenciaPage() {
                 <RadioGroupItem value="light" id="light" className="peer sr-only" />
                 <Label
                   htmlFor="light"
-                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#1FA67A] [&:has([data-state=checked])]:border-[#1FA67A] cursor-pointer"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#2563EB] [&:has([data-state=checked])]:border-[#2563EB] cursor-pointer"
                 >
                   <Sun className="mb-3 h-6 w-6" />
                   <span className="text-[10px] font-bold uppercase">Claro</span>
@@ -71,7 +71,7 @@ export default function AparenciaPage() {
                 <RadioGroupItem value="dark" id="dark" className="peer sr-only" />
                 <Label
                   htmlFor="dark"
-                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#1FA67A] [&:has([data-state=checked])]:border-[#1FA67A] cursor-pointer"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#2563EB] [&:has([data-state=checked])]:border-[#2563EB] cursor-pointer"
                 >
                   <Moon className="mb-3 h-6 w-6" />
                   <span className="text-[10px] font-bold uppercase">Escuro</span>
@@ -81,7 +81,7 @@ export default function AparenciaPage() {
                 <RadioGroupItem value="system" id="system" className="peer sr-only" />
                 <Label
                   htmlFor="system"
-                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#1FA67A] [&:has([data-state=checked])]:border-[#1FA67A] cursor-pointer"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#2563EB] [&:has([data-state=checked])]:border-[#2563EB] cursor-pointer"
                 >
                   <Monitor className="mb-3 h-6 w-6" />
                   <span className="text-[10px] font-bold uppercase">Auto</span>
@@ -90,7 +90,7 @@ export default function AparenciaPage() {
             </RadioGroup>
           </CardContent>
           <CardFooter className="bg-[#F7F7F7]/50 pt-4">
-            <Button className="w-full bg-[#1FA67A] font-bold" onClick={handleSave}>Salvar Preferências</Button>
+            <Button className="w-full bg-[#2563EB] font-bold" onClick={handleSave}>Salvar Preferências</Button>
           </CardFooter>
         </Card>
       </div>

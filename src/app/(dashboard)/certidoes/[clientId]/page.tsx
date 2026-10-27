@@ -91,7 +91,7 @@ export default function DetalhesEmpresaCertidoesPage() {
       toast({ 
         title: "Sincronização Concluída!", 
         description: "Certidões Federal e FGTS atualizadas com sucesso.",
-        className: "bg-[#1FA67A] text-white border-none"
+        className: "bg-[#2563EB] text-white border-none"
       })
     } catch (error) {
       toast({ variant: "destructive", title: "Erro na automação", description: "Falha ao validar os dados no portal." })
@@ -103,7 +103,7 @@ export default function DetalhesEmpresaCertidoesPage() {
   if (isLoading) {
     return (
       <div className="h-64 flex flex-col items-center justify-center gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-[#1FA67A]" />
+        <Loader2 className="h-10 w-10 animate-spin text-[#2563EB]" />
         <p className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Sincronizando Auditoria...</p>
       </div>
     )
@@ -142,7 +142,7 @@ export default function DetalhesEmpresaCertidoesPage() {
             }
           />
           <Button 
-            className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-[10px] h-10 px-6 shadow-lg shadow-emerald-500/20"
+            className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-black uppercase text-[10px] h-10 px-6 shadow-lg shadow-blue-500/20"
             onClick={handleSyncAutomation}
             disabled={isSyncing}
           >
@@ -154,14 +154,14 @@ export default function DetalhesEmpresaCertidoesPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-1 border-[#D2D7DB] overflow-hidden bg-white shadow-sm">
-          <div className="h-1.5 bg-[#1FA67A]" />
+          <div className="h-1.5 bg-[#2563EB]" />
           <CardHeader className="pb-2">
             <CardTitle className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Score de Saúde Fiscal</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-2 mb-2">
               <span className="text-4xl font-black text-[#2C4156]">{client.healthScore || 0}%</span>
-              <TrendingUp className="h-6 w-6 text-[#1FA67A] mb-1" />
+              <TrendingUp className="h-6 w-6 text-[#2563EB] mb-1" />
             </div>
             <Progress value={client.healthScore || 0} className="h-1.5 bg-[#F7F7F7]" />
           </CardContent>
@@ -172,7 +172,7 @@ export default function DetalhesEmpresaCertidoesPage() {
             <CardTitle className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest">Resumo de Status das CNDs</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center justify-around py-4">
-            <StatusMetric label="Válidas" value={stats.valid} color="#1FA67A" />
+            <StatusMetric label="Válidas" value={stats.valid} color="#2563EB" />
             <StatusMetric label="Vencidas / Alerta" value={stats.expired} color="#E74C3C" />
           </CardContent>
         </Card>

@@ -54,7 +54,7 @@ export default function AgendamentoAutomaticoPage() {
       <Card className="border-[#D2D7DB]">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <CalendarClock className="h-5 w-5 text-[#1FA67A]" />
+            <CalendarClock className="h-5 w-5 text-[#2563EB]" />
             Cronograma de Automação
           </CardTitle>
           <CardDescription>Defina os gatilhos mensais para geração e envio das obrigações.</CardDescription>
@@ -82,7 +82,7 @@ export default function AgendamentoAutomaticoPage() {
           </div>
         </CardContent>
         <CardFooter className="bg-[#F7F7F7] p-4 flex justify-end border-t">
-          <Button onClick={handleSave} className="bg-[#1FA67A] font-bold gap-2">
+          <Button onClick={handleSave} className="bg-[#2563EB] font-bold gap-2">
             <Save className="h-4 w-4" /> Salvar configurações
           </Button>
         </CardFooter>

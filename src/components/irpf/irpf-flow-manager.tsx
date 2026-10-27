@@ -68,7 +68,7 @@ export function IrpfFlowManager({ open, onOpenChange }: { open: boolean, onOpenC
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <div className="flex items-center gap-2 text-[#1FA67A] mb-2">
+          <div className="flex items-center gap-2 text-[#2563EB] mb-2">
             <ListRestart className="h-6 w-6" />
             <DialogTitle className="text-2xl font-black text-[#2C4156]">Gerenciar Fluxos</DialogTitle>
           </div>
@@ -83,7 +83,7 @@ export function IrpfFlowManager({ open, onOpenChange }: { open: boolean, onOpenC
               onChange={(e) => setNewFlowTitle(e.target.value)}
               className="bg-[#F7F7F7] border-[#D2D7DB] font-bold uppercase text-xs"
             />
-            <Button className="bg-[#1FA67A] font-bold" onClick={handleAddFlow}>
+            <Button className="bg-[#2563EB] font-bold" onClick={handleAddFlow}>
               <Plus className="h-4 w-4" />
             </Button>
           </div>
@@ -92,7 +92,7 @@ export function IrpfFlowManager({ open, onOpenChange }: { open: boolean, onOpenC
             <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Etapas Atuais (Ordem Visual)</Label>
             <div className="border rounded-xl divide-y bg-white overflow-hidden shadow-sm">
               {isLoading ? (
-                <div className="p-8 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#1FA67A]" /></div>
+                <div className="p-8 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#2563EB]" /></div>
               ) : stages && stages.length > 0 ? (
                 stages.map((stage, index) => (
                   <div key={stage.id} className="p-3 flex items-center justify-between group hover:bg-[#F7F7F7] transition-colors">

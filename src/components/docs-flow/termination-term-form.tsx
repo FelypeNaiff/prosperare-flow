@@ -124,7 +124,7 @@ export function TerminationTermForm() {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="text-[10px] font-bold text-[#1FA67A] uppercase gap-1"
+                  className="text-[10px] font-bold text-[#2563EB] uppercase gap-1"
                   onClick={() => {
                     setIsManualClient(!isManualClient)
                     setFormData({...formData, empresa: "", cnpj: "", clientId: ""})
@@ -213,7 +213,7 @@ export function TerminationTermForm() {
               <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Pré-visualização</CardTitle>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setIsPreviewOpen(false)}><X className="h-4 w-4 mr-1" /> Fechar</Button>
-                <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold uppercase text-[10px]" onClick={() => window.print()}>
+                <Button size="sm" className="bg-[#2563EB] gap-2 font-bold uppercase text-[10px]" onClick={() => window.print()}>
                   <Printer className="h-3 w-3" /> GERAR PDF
                 </Button>
               </div>

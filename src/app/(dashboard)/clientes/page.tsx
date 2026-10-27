@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Save,
   Loader2,
+  RefreshCw,
   ShieldCheck,
   Eye,
   Trash2,
@@ -20,9 +21,11 @@ import {
   Copy,
   SortAsc,
   SortDesc,
-  User
+  User,
+  ArrowUpDown
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { 
   Table, 
@@ -34,6 +37,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/empty-state"
 import { 
   Dialog, 
   DialogContent, 
@@ -76,13 +80,28 @@ export default function ClientesPage() {
   const [isNewClientOpen, setIsNewClientOpen] = useState(false)
   const [isLoadingCnpj, setIsLoadingCnpj] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('asc')
+  const [statusConsultingId, setStatusConsultingId] = useState<string | null>(null)
+  const [isBatchReceitaChecking, setIsBatchReceitaChecking] = useState(false)
+  const [selectedClientIds, setSelectedClientIds] = useState<string[]>([])
+  const [currentBatchClientId, setCurrentBatchClientId] = useState<string | null>(null)
+  
+  const [sortField, setSortField] = useState<'corporateName' | 'cnpj' | 'taxRegime' | 'accountingContactUserId'>('corporateName')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  
+  const [filterRegime, setFilterRegime] = useState<string>("todos")
+  const [filterResponsible, setFilterResponsible] = useState<string>("todos")
+  const [filterStatus, setFilterStatus] = useState<string>("todos")
   
   const clientsQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "clients") : null, 
     [firestore, userLoaded]
   )
   const { data: clients = [], isLoading } = useCollection(clientsQuery)
+
+  const responsibles = useMemo(() => {
+    const list = (clients || []).map(c => c.accountingContactUserId || "Geral")
+    return ["todos", ...Array.from(new Set(list))]
+  }, [clients])
   
   const [newClient, setNewClient] = useState({
     corporateName: "",
@@ -91,6 +110,7 @@ export default function ClientesPage() {
     taxRegime: "Simples Nacional",
     accountingContactUserId: "Geral",
     companyContactPerson: "",
+    companyStatus: "",
     status: "ATIVO",
     email: "",
     phone: "",
@@ -159,6 +179,7 @@ export default function ClientesPage() {
       taxRegime: "Simples Nacional", 
       accountingContactUserId: "Geral", 
       companyContactPerson: "",
+      companyStatus: "",
       status: "ATIVO", 
       email: "",
       phone: "",
@@ -180,13 +201,162 @@ export default function ClientesPage() {
     }
   }
 
+  const handleReceitaCheck = async (client: any) => {
+    const cleanCnpj = String(client.cnpj || "").replace(/\D/g, "")
+    if (cleanCnpj.length !== 14) {
+      toast({ variant: "destructive", title: "CNPJ inválido", description: "Não é possível consultar a Receita Federal sem um CNPJ válido." })
+      return
+    }
+
+    setStatusConsultingId(client.id)
+    try {
+      const data = await lookupCnpjAction(cleanCnpj)
+      let updatedRegime = client.taxRegime;
+      if (data.taxRegime === "MEI" || data.taxRegime === "Simples Nacional") {
+        updatedRegime = data.taxRegime;
+      } else if ((client.taxRegime === "MEI" || client.taxRegime === "Simples Nacional") && data.taxRegime === "Outros") {
+        updatedRegime = "Outros";
+      }
+
+      const clientRef = doc(firestore, "clients", client.id);
+      setDocumentNonBlocking(clientRef, {
+        companyStatus: data.companyStatus?.toUpperCase?.() ? data.companyStatus.toUpperCase() : data.companyStatus || "",
+        taxRegime: updatedRegime
+      }, { merge: true })
+
+      toast({
+        title: "Consulta Receita Federal concluída",
+        description: data.companyStatus?.toUpperCase?.() === 'INAPTO'
+          ? 'Empresa INAPTO atualizada. Registro destacado em vermelho.'
+          : `Status atualizado: ${data.companyStatus || 'Não informado'}`
+      })
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Falha na consulta", description: error.message || "Não foi possível consultar a Receita Federal." })
+    } finally {
+      setStatusConsultingId(null)
+    }
+  }
+
   const handleCopyCNPJ = (cnpj: string) => {
     navigator.clipboard.writeText(cnpj)
     toast({ title: "CNPJ Copiado!", description: cnpj })
   }
 
-  const handleExportPDF = () => {
-    window.print()
+  const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+  const handleBatchReceitaCheck = async () => {
+    if (selectedClientIds.length === 0) {
+      toast({ title: "Selecione clientes", description: "Escolha ao menos um cliente para consultar em lote.", variant: "destructive" })
+      return
+    }
+
+    setIsBatchReceitaChecking(true)
+    setCurrentBatchClientId(selectedClientIds[0])
+
+    let successCount = 0
+    let failureCount = 0
+
+    try {
+      for (let index = 0; index < selectedClientIds.length; index++) {
+        const clientId = selectedClientIds[index]
+        const client = (clients || []).find((item: any) => item.id === clientId)
+
+        if (!client) {
+          failureCount++
+          continue
+        }
+
+        const cleanCnpj = String(client.cnpj || "").replace(/\D/g, "")
+        if (cleanCnpj.length !== 14) {
+          failureCount++
+          continue
+        }
+
+        setCurrentBatchClientId(clientId)
+
+        try {
+          const data = await lookupCnpjAction(cleanCnpj)
+          let updatedRegime = client.taxRegime;
+          if (data.taxRegime === "MEI" || data.taxRegime === "Simples Nacional") {
+            updatedRegime = data.taxRegime;
+          } else if ((client.taxRegime === "MEI" || client.taxRegime === "Simples Nacional") && data.taxRegime === "Outros") {
+            updatedRegime = "Outros";
+          }
+
+          const clientRef = doc(firestore, "clients", clientId)
+          setDocumentNonBlocking(clientRef, {
+            companyStatus: data.companyStatus?.toUpperCase?.() ? data.companyStatus.toUpperCase() : data.companyStatus || "",
+            taxRegime: updatedRegime
+          }, { merge: true })
+          successCount++
+        } catch (error) {
+          failureCount++
+        }
+
+        if (index < selectedClientIds.length - 1) {
+          await wait(20000)
+        }
+      }
+
+      toast({
+        title: "Consulta em lote concluída",
+        description: `${successCount} de ${selectedClientIds.length} clientes atualizados.${failureCount > 0 ? ` ${failureCount} falha(s) ignorada(s).` : ""}`
+      })
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erro na consulta em lote", description: error.message || "Não foi possível concluir a consulta em lote." })
+    } finally {
+      setIsBatchReceitaChecking(false)
+      setCurrentBatchClientId(null)
+      setSelectedClientIds([])
+    }
+  }
+
+  const handleExportPDF = async () => {
+    const element = document.getElementById('pdf-export-content')
+    if (!element) return
+
+    try {
+      toast({ title: "Gerando PDF...", description: "Aguarde um momento enquanto capturamos os dados." })
+      
+      const html2canvas = (await import('html2canvas')).default
+      const { jsPDF } = await import('jspdf')
+
+      const header = document.getElementById('pdf-header')
+      const footer = document.getElementById('pdf-footer')
+      const actions = document.querySelectorAll('.action-col')
+      
+      if (header) { header.classList.remove('hidden'); header.classList.add('block'); }
+      if (footer) { footer.classList.remove('hidden'); footer.classList.add('block'); }
+      actions.forEach(el => el.classList.add('hidden'))
+      
+      const canvas = await html2canvas(element, { 
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      })
+      
+      if (header) { header.classList.add('hidden'); header.classList.remove('block'); }
+      if (footer) { footer.classList.add('hidden'); footer.classList.remove('block'); }
+      actions.forEach(el => el.classList.remove('hidden'))
+      
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      })
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+      pdf.save('Relatorio_Clientes_Prosperare.pdf')
+      toast({ title: "Sucesso", description: "Download do PDF concluído." })
+    } catch (error) {
+       console.error(error)
+       toast({ variant: "destructive", title: "Erro", description: "Falha ao gerar o PDF." })
+    }
   }
 
   const handleDownloadModel = () => {
@@ -270,26 +440,46 @@ export default function ClientesPage() {
 
   const filteredClients = useMemo(() => {
     const searchLower = searchTerm.toLowerCase()
-    let list = (clients || []).filter(c => 
-      c.corporateName?.toLowerCase().includes(searchLower) || 
-      c.nomeFantasia?.toLowerCase().includes(searchLower) ||
-      c.cnpj?.includes(searchTerm)
-    )
+    let list = (clients || []).filter(c => {
+      const matchesSearch = c.corporateName?.toLowerCase().includes(searchLower) || 
+                            c.nomeFantasia?.toLowerCase().includes(searchLower) ||
+                            c.cnpj?.includes(searchTerm) ||
+                            c.codigoInterno?.toLowerCase().includes(searchLower);
+      
+      const matchesRegime = filterRegime === "todos" || c.taxRegime === filterRegime;
+      
+      const matchesResponsible = filterResponsible === "todos" || (c.accountingContactUserId || "Geral") === filterResponsible;
+      
+      const clientStatus = c.status || "Ativa";
+      const matchesStatus = filterStatus === "todos" || 
+        (filterStatus === "Ativa" && clientStatus !== "Inativa") || 
+        (filterStatus === "Inativa" && clientStatus === "Inativa");
 
-    if (sortOrder) {
-      list = [...list].sort((a, b) => {
-        const nameA = a.corporateName?.toLowerCase() || ""
-        const nameB = b.corporateName?.toLowerCase() || ""
-        if (sortOrder === 'asc') return nameA.localeCompare(nameB)
-        return nameB.localeCompare(nameA)
-      })
-    }
+      return matchesSearch && matchesRegime && matchesResponsible && matchesStatus;
+    })
+
+    list = [...list].sort((a, b) => {
+      let valA = a[sortField] || ""
+      let valB = b[sortField] || ""
+      
+      if (typeof valA === 'string') valA = valA.toLowerCase()
+      if (typeof valB === 'string') valB = valB.toLowerCase()
+
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1
+      return 0
+    })
 
     return list
-  }, [clients, searchTerm, sortOrder])
+  }, [clients, searchTerm, filterRegime, filterResponsible, filterStatus, sortField, sortOrder])
 
-  const toggleSort = () => {
-    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
+  const handleSort = (field: 'corporateName' | 'cnpj' | 'taxRegime' | 'accountingContactUserId') => {
+    if (sortField === field) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortOrder('asc')
+    }
   }
 
   return (
@@ -305,7 +495,7 @@ export default function ClientesPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div className="flex flex-wrap gap-2 order-2 md:order-1">
           <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={handleDownloadModel}>
-            <FileSpreadsheet className="h-4 w-4 text-[#1FA67A]" /> Modelo Excel
+            <FileSpreadsheet className="h-4 w-4 text-[#2563EB]" /> Modelo Excel
           </Button>
           <Button 
             variant="outline" 
@@ -319,13 +509,13 @@ export default function ClientesPage() {
           <Button variant="outline" className="border-[#D2D7DB] text-[#39586D] font-bold gap-2" onClick={handleExportPDF}>
             <FileDown className="h-4 w-4" /> Exportar PDF
           </Button>
-          <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-bold shadow-lg" onClick={() => setIsNewClientOpen(true)}>
+          <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-bold shadow-lg" onClick={() => setIsNewClientOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Novo Cliente
           </Button>
         </div>
         <div className="order-1 md:order-2 md:text-right">
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão de Clientes</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Administre sua base de empresas e acompanhe a regularidade.</p>
+          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Gestão de Clientes</h1>
+          <p className="text-[#98A7AA] font-medium text-sm">Administre sua base de empresas e acompanhe a regularidade.</p>
         </div>
       </div>
 
@@ -336,67 +526,240 @@ export default function ClientesPage() {
         <KpiCard label="Procurações OK" value={0} icon={FileSignature} color="success" />
         <KpiCard label="Alertas Críticos" value={0} icon={AlertTriangle} color="destructive" />
       </div>
+      {selectedClientIds.length > 0 && (
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 rounded-xl border border-[#D2D7DB] bg-[#F7F7F7] p-4 print:hidden">
+          <div>
+            <p className="text-sm font-black text-[#2C4156]">{selectedClientIds.length} cliente(s) selecionado(s)</p>
+            <p className="text-xs text-[#98A7AA]">A consulta em lote será executada com intervalo de 20 segundos entre cada CNPJ.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="outline" 
+              className="border-[#D2D7DB] text-[#39586D] font-bold"
+              onClick={() => setSelectedClientIds([])}
+              disabled={isBatchReceitaChecking}
+            >
+              Limpar Seleção
+            </Button>
+            <Button 
+              className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-bold shadow-lg"
+              onClick={handleBatchReceitaCheck}
+              disabled={isBatchReceitaChecking}
+            >
+              {isBatchReceitaChecking ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4" />}
+              Consultar Receita em Lote
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Card className="border-[#D2D7DB] shadow-sm overflow-hidden print:border-none print:shadow-none">
-        <CardHeader className="pb-3 border-b bg-[#F7F7F7]/50 print:hidden">
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
-            <Input
-              placeholder="Buscar por nome ou CNPJ..."
-              className="pl-10 bg-white border-[#D2D7DB]"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+        <CardHeader className="pb-4 border-b bg-[#F7F7F7]/50 print:hidden space-y-3">
+          <div className="flex flex-col lg:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#98A7AA]" />
+              <Input
+                placeholder="Buscar por nome ou CNPJ..."
+                className="pl-10 bg-white border-[#D2D7DB]"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Regime Tributário */}
+              <div className="w-[180px]">
+                <Select value={filterRegime} onValueChange={setFilterRegime}>
+                  <SelectTrigger className="bg-white border-[#D2D7DB] text-slate-700 h-10 font-medium text-xs">
+                    <SelectValue placeholder="Regime Tributário" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos" className="text-xs font-medium">Todos os Regimes</SelectItem>
+                    <SelectItem value="Simples Nacional" className="text-xs font-medium">Simples Nacional</SelectItem>
+                    <SelectItem value="MEI" className="text-xs font-medium">MEI</SelectItem>
+                    <SelectItem value="Lucro Presumido" className="text-xs font-medium">Lucro Presumido</SelectItem>
+                    <SelectItem value="Lucro Real" className="text-xs font-medium">Lucro Real</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Responsável */}
+              <div className="w-[180px]">
+                <Select value={filterResponsible} onValueChange={setFilterResponsible}>
+                  <SelectTrigger className="bg-white border-[#D2D7DB] text-slate-700 h-10 font-medium text-xs">
+                    <SelectValue placeholder="Responsável" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos" className="text-xs font-medium">Todos os Responsáveis</SelectItem>
+                    {responsibles.filter(r => r !== "todos").map(r => (
+                      <SelectItem key={r} value={r} className="text-xs font-medium">{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Status */}
+              <div className="w-[140px]">
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="bg-white border-[#D2D7DB] text-slate-700 h-10 font-medium text-xs">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos" className="text-xs font-medium">Todos os Status</SelectItem>
+                    <SelectItem value="Ativa" className="text-xs font-medium">Ativa</SelectItem>
+                    <SelectItem value="Inativa" className="text-xs font-medium">Inativa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Reset button if any filter is active */}
+              {(filterRegime !== "todos" || filterResponsible !== "todos" || filterStatus !== "todos" || searchTerm !== "") && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setFilterRegime("todos")
+                    setFilterResponsible("todos")
+                    setFilterStatus("todos")
+                    setSearchTerm("")
+                  }}
+                  className="text-xs font-bold text-slate-500 hover:text-slate-900 gap-1 h-10"
+                >
+                  Limpar
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         
-        <div className="hidden print:block p-8 border-b-2 border-[#2C4156] mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-3xl font-black text-[#2C4156] uppercase tracking-tighter">PROSPERARE <span className="text-[#1FA67A]">FLOW</span></h2>
-              <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.4em] mt-1">Relatório Oficial de Clientes Cadastrados</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] font-bold text-[#39586D] uppercase">Documento Interno de Gestão</p>
-              <p className="text-[9px] text-[#98A7AA] font-mono mt-1">Gerado em: {new Date().toLocaleString('pt-BR')}</p>
+        <div id="pdf-export-content" className="bg-white">
+          <div id="pdf-header" className="hidden p-8 border-b-2 border-[#2C4156] mb-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-3xl font-black text-[#2C4156] uppercase tracking-tighter">PROSPERARE <span className="text-[#2563EB]">FLOW</span></h2>
+                <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.4em] mt-1">Relatório Oficial de Clientes Cadastrados</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-[#39586D] uppercase">Documento Interno de Gestão</p>
+                <p className="text-[9px] text-[#98A7AA] font-mono mt-1">Gerado em: {new Date().toLocaleString('pt-BR')}</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <CardContent className="p-0">
-          <Table className="print:w-full">
-            <TableHeader className="bg-[#2C4156] print:bg-[#2C4156]">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px] print:text-white cursor-pointer group" onClick={toggleSort}>
-                  <div className="flex items-center gap-2">
-                    Empresa / Razão Social
-                    {sortOrder === 'asc' ? <SortAsc className="h-3 w-3 text-[#1FA67A]" /> : <SortDesc className="h-3 w-3 text-[#1FA67A]" />}
-                  </div>
+          <CardContent className="p-0">
+            <Table className="print:w-full">
+              <TableHeader className="bg-slate-50 border-b border-slate-200">
+                <TableRow className="hover:bg-transparent">
+                <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500">
+                  <Checkbox 
+                    checked={selectedClientIds.length === filteredClients.length && filteredClients.length > 0}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedClientIds(filteredClients.map((client) => client.id))
+                      } else {
+                        setSelectedClientIds([])
+                      }
+                    }}
+                    className="border-slate-300 data-[state=checked]:bg-blue-600"
+                  />
                 </TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] print:text-white">CNPJ</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] print:text-white">Regime Tributário</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] print:text-white">Responsável</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right print:hidden">Ações</TableHead>
+                  <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500 cursor-pointer group select-none" onClick={() => handleSort('corporateName')}>
+                    <div className="flex items-center gap-2">
+                      Empresa / Razão Social
+                      {sortField === 'corporateName' ? (
+                        sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500 cursor-pointer group select-none" onClick={() => handleSort('cnpj')}>
+                    <div className="flex items-center gap-2">
+                      CNPJ
+                      {sortField === 'cnpj' ? (
+                        sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500 cursor-pointer group select-none" onClick={() => handleSort('taxRegime')}>
+                    <div className="flex items-center gap-2">
+                      Regime Tributário
+                      {sortField === 'taxRegime' ? (
+                        sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-slate-500 font-medium text-sm print:text-slate-500 cursor-pointer group select-none" onClick={() => handleSort('accountingContactUserId')}>
+                    <div className="flex items-center gap-2">
+                      Responsável
+                      {sortField === 'accountingContactUserId' ? (
+                        sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5 text-blue-600" /> : <SortDesc className="h-3.5 w-3.5 text-blue-600" />
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-slate-500 font-medium text-sm text-right action-col">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow className="print:hidden">
                   <TableCell colSpan={5} className="h-32 text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#2563EB]" />
                     <p className="text-[10px] font-black text-[#98A7AA] uppercase mt-2">Sincronizando Base...</p>
                   </TableCell>
                 </TableRow>
               ) : filteredClients.length > 0 ? (
                 filteredClients.map((client) => (
-                  <TableRow key={client.id} className="hover:bg-[#F7F7F7]/50 transition-colors print:border-b print:border-[#D2D7DB]">
+                  <TableRow
+                    key={client.id}
+                    className={cn(
+                      "transition-colors print:border-b print:border-[#D2D7DB]",
+                      client.companyStatus?.toUpperCase?.() === 'INAPTO'
+                        ? 'bg-[#FEE2E6] text-[#991B1B]'
+                        : 'hover:bg-[#F7F7F7]/50',
+                      selectedClientIds.includes(client.id) ? 'bg-[#E6FFFA]' : ''
+                    )}
+                  >
                     <TableCell className="py-4">
+                      <Checkbox 
+                        checked={selectedClientIds.includes(client.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedClientIds((prev) => [...new Set([...prev, client.id])])
+                          } else {
+                            setSelectedClientIds((prev) => prev.filter((id) => id !== client.id))
+                          }
+                        }}
+                        className="mb-2"
+                      />
                       <div className="flex flex-col gap-0.5">
-                        <span className="font-bold text-[#2C4156] uppercase text-xs">
-                          {client.corporateName}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-[#2C4156] text-xs">
+                            {client.corporateName}
+                          </span>
+                          {client.companyStatus && (
+                            <span className={cn(
+                              "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wide",
+                              client.companyStatus.toUpperCase() === 'INAPTO'
+                                ? 'bg-[#FEE2E6] border-[#FECACA] text-[#B91C1C]'
+                                : 'bg-[#E6FFFA] border-[#B7F0DB] text-[#0F766E]'
+                            )}>
+                              {client.companyStatus.toUpperCase()}
+                            </span>
+                          )}
+                          {client.codigoInterno && (
+                            <Badge variant="outline" className="border-slate-300 text-slate-500 bg-slate-50 font-black text-[9px] uppercase tracking-wider px-1.5 py-0">
+                              Cód: {client.codigoInterno}
+                            </Badge>
+                          )}
+                        </div>
                         {client.nomeFantasia && client.nomeFantasia !== client.corporateName && (
-                          <span className="text-[9px] text-[#98A7AA] font-bold uppercase italic tracking-wider">
+                          <span className="text-[9px] text-[#98A7AA] font-medium italic tracking-wider">
                             {client.nomeFantasia}
                           </span>
                         )}
@@ -407,7 +770,7 @@ export default function ClientesPage() {
                         {client.cnpj}
                         <button 
                           onClick={() => handleCopyCNPJ(client.cnpj)}
-                          className="p-1 rounded hover:bg-[#EBEDF0] text-[#98A7AA] hover:text-[#1FA67A] opacity-0 group-hover/cnpj:opacity-100 transition-all print:hidden"
+                          className="p-1 rounded hover:bg-[#EBEDF0] text-[#98A7AA] hover:text-[#2563EB] opacity-0 group-hover/cnpj:opacity-100 transition-all action-col"
                           title="Copiar CNPJ"
                         >
                           <Copy className="h-3 w-3" />
@@ -415,14 +778,14 @@ export default function ClientesPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="font-black text-[9px] uppercase border-[#D2D7DB] text-[#39586D] print:border-[#D2D7DB]">
+                      <Badge variant="outline" className="font-medium text-[10px] border-slate-200 text-slate-600 print:border-slate-200">
                         {client.taxRegime}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-[10px] font-bold text-[#39586D] uppercase">
+                    <TableCell className="text-[11px] font-medium text-[#39586D]">
                       {client.accountingContactUserId || "Geral"}
                     </TableCell>
-                    <TableCell className="text-right print:hidden">
+                    <TableCell className="text-right action-col">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="text-[#98A7AA]"><MoreHorizontal className="h-4 w-4" /></Button>
@@ -430,9 +793,21 @@ export default function ClientesPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem 
                             className="flex items-center gap-2 cursor-pointer text-xs font-bold"
+                            onSelect={() => handleReceitaCheck(client)}
+                            disabled={statusConsultingId === client.id || isBatchReceitaChecking}
+                          >
+                            {statusConsultingId === client.id ? (
+                              <Loader2 className="h-3 w-3 text-[#2563EB] animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-3 w-3 text-[#2563EB]" />
+                            )}
+                            Consulta na Receita Federal
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="flex items-center gap-2 cursor-pointer text-xs font-bold"
                             onSelect={() => router.push(`/clientes/${client.id}`)}
                           >
-                            <Eye className="h-3 w-3 text-[#1FA67A]" /> Ver Ficha 360º
+                            <Eye className="h-3 w-3 text-[#2563EB]" /> Ver Ficha 360º
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
@@ -448,8 +823,14 @@ export default function ClientesPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center text-[#98A7AA] font-bold uppercase text-xs">
-                    Nenhum cliente localizado na base de dados.
+                  <TableCell colSpan={5} className="py-10">
+                    <EmptyState
+                      icon={Building2}
+                      title="Nenhum cliente localizado"
+                      description="Ajuste a busca ou cadastre um novo cliente para iniciar a gestao da carteira."
+                      actionLabel="Novo Cliente"
+                      onAction={() => setIsNewClientOpen(true)}
+                    />
                   </TableCell>
                 </TableRow>
               )}
@@ -457,10 +838,11 @@ export default function ClientesPage() {
           </Table>
         </CardContent>
         
-        <div className="hidden print:block p-12 text-center border-t border-[#D2D7DB] mt-8">
+        <div id="pdf-footer" className="hidden p-12 text-center border-t border-[#D2D7DB] mt-8">
           <p className="text-[8px] font-black text-[#98A7AA] uppercase tracking-[0.3em]">
             Prosperare Flow — Inteligência e Gestão Contábil Digital • www.prosperare.flow
           </p>
+        </div>
         </div>
       </Card>
 
@@ -485,7 +867,7 @@ export default function ClientesPage() {
                     onBlur={(e) => lookupCnpj(e.target.value)}
                     className="font-mono font-bold border-[#D2D7DB] pr-10"
                   />
-                  {isLoadingCnpj && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-[#1FA67A]" />}
+                  {isLoadingCnpj && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-[#2563EB]" />}
                 </div>
               </div>
 
@@ -500,6 +882,11 @@ export default function ClientesPage() {
                     <SelectItem value="Lucro Real">Lucro Real</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="col-span-2 md:col-span-1 space-y-2">
+                <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Status Receita</Label>
+                <Input value={newClient.companyStatus || "Não consultado"} readOnly className="border-[#D2D7DB] bg-[#F7F7F7] text-[#39586D] font-bold uppercase" />
               </div>
 
               <div className="col-span-2 space-y-2">
@@ -567,7 +954,7 @@ export default function ClientesPage() {
               </div>
 
               <div className="col-span-2 pt-2 border-t mt-2">
-                <h4 className="text-[10px] font-black text-[#1FA67A] uppercase tracking-widest mb-4">Localização e Sede</h4>
+                <h4 className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest mb-4">Localização e Sede</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2 space-y-2">
                     <Label className="text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">Endereço</Label>
@@ -602,7 +989,7 @@ export default function ClientesPage() {
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
             <Button variant="outline" onClick={() => setIsNewClientOpen(false)} className="font-bold text-xs uppercase">Cancelar</Button>
             <Button 
-              className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-10 shadow-lg" 
+              className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-10 shadow-lg" 
               onClick={handleCreateClient}
               disabled={isLoadingCnpj}
             >

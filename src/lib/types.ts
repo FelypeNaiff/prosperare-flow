@@ -12,6 +12,24 @@ export interface User {
 
 export type TaxRegime = 'MEI' | 'Simples Nacional' | 'Lucro Presumido' | 'Lucro Real' | 'Produtor Rural' | 'Pessoa Física' | 'Outros';
 
+export interface Partner {
+  nome: string;
+  cpfCnpj: string;
+  qualificacao: string;
+  dataIngresso: string;
+  participacao: number;
+  percentualQuota?: number;
+  rg?: string;
+  rgOrgaoEmissor?: string;
+  rgUf?: string;
+  dataNascimento?: string;
+  estadoCivil?: string;
+  regimeBens?: string;
+  profissao?: string;
+  nacionalidade?: string;
+  email?: string;
+}
+
 export interface Client {
   id: string;
   razaoSocial: string;
@@ -24,6 +42,17 @@ export interface Client {
   honorarioValor: number;
   healthScore: number;
   status: 'ATIVO' | 'INATIVO';
+  codigoInterno?: string;
+  
+  // Lotações (Departamentos / Setores) associados à empresa
+  lotacoes?: string[];
+  
+  // Dados societários e QSA
+  capitalSocial?: number;
+  dataInicioAtividade?: string;
+  nire?: string;
+  naturezaJuridica?: string;
+  qsa?: Partner[];
 }
 
 export interface Task {

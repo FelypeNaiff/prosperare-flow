@@ -15,7 +15,7 @@ const INTEGRATIONS = [
     description: 'A mais completa: Consulta de CNPJ, CEP, Bancos, FIPE e Feriados nacionais.', 
     status: 'Conectado', 
     icon: Globe, 
-    color: 'text-[#1FA67A]',
+    color: 'text-[#2563EB]',
     url: 'https://brasilapi.com.br'
   },
   { 
@@ -91,7 +91,7 @@ export default function IntegracoesPage() {
               </div>
               <Badge className={cn(
                 "text-[9px] uppercase font-black tracking-widest border-none",
-                item.status === 'Conectado' ? "bg-[#7ED6B5] text-[#1FA67A]" : "bg-slate-100 text-slate-500"
+                item.status === 'Conectado' ? "bg-[#7ED6B5] text-[#2563EB]" : "bg-slate-100 text-slate-500"
               )}>
                 {item.status}
               </Badge>
@@ -103,7 +103,7 @@ export default function IntegracoesPage() {
                   href={item.url} 
                   target="_blank" 
                   rel="noreferrer" 
-                  className="inline-flex items-center gap-1 text-[10px] font-black text-[#1FA67A] uppercase mt-4 hover:underline"
+                  className="inline-flex items-center gap-1 text-[10px] font-black text-[#2563EB] uppercase mt-4 hover:underline"
                 >
                   Documentação <ExternalLink className="h-2 w-2" />
                 </a>
@@ -115,7 +115,7 @@ export default function IntegracoesPage() {
                 size="sm" 
                 className={cn(
                   "w-full text-[10px] font-black uppercase tracking-widest",
-                  item.status === 'Conectado' ? "border-[#D2D7DB] text-[#2C4156]" : "bg-[#1FA67A] hover:bg-[#1FA67A]/90"
+                  item.status === 'Conectado' ? "border-[#D2D7DB] text-[#2C4156]" : "bg-[#2563EB] hover:bg-[#2563EB]/90"
                 )}
                 onClick={() => handleConnect(item.name)}
               >

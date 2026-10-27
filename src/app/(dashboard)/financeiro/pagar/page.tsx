@@ -18,7 +18,8 @@ import {
   Clock,
   AlertTriangle,
   Repeat,
-  TrendingUp
+  TrendingUp,
+  Undo
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -116,6 +117,13 @@ export default function ContasAPagarPage() {
     }
   }
 
+  const handleTogglePaymentStatus = (contaId: string, statusAtual: string) => {
+    const docRef = doc(firestore, "payables", contaId)
+    const newStatus = statusAtual === 'Pago' ? 'Pendente' : 'Pago'
+    setDocumentNonBlocking(docRef, { situacao: newStatus }, { merge: true })
+    toast({ title: newStatus === 'Pago' ? "Conta marcada como paga" : "Conta retornou para pendente" })
+  }
+
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])
   }
@@ -169,14 +177,14 @@ export default function ContasAPagarPage() {
       />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h1 className="text-3xl font-black text-[#2C4156] tracking-tight">Contas A Pagar</h1>
+        <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Contas a Pagar</h1>
         
         <div className="flex items-center gap-3 bg-white border border-[#D2D7DB] rounded-xl px-2 py-1 shadow-sm">
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => changeMonth('prev')}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <div className="px-4 min-w-[140px] text-center">
-            <span className="text-sm font-black text-[#2C4156] uppercase">
+            <span className="text-sm font-medium text-[#2C4156]">
               {format(selectedCompetence, "MMMM yyyy", { locale: ptBR })}
             </span>
           </div>
@@ -188,7 +196,7 @@ export default function ContasAPagarPage() {
 
       <div className="flex flex-wrap gap-2">
         <Button 
-          className="bg-[#E74C3C] hover:bg-[#E74C3C]/90 gap-2 font-black uppercase text-xs h-11 px-6 shadow-lg shadow-red-500/10" 
+          className="bg-[#E74C3C] hover:bg-[#E74C3C]/90 gap-2 font-semibold text-xs h-11 px-6 shadow-lg shadow-red-500/10" 
           onClick={() => setIsNewAccountOpen(true)}
         >
           <Plus className="h-4 w-4" /> Nova Conta
@@ -196,13 +204,13 @@ export default function ContasAPagarPage() {
         
         <Button 
           variant="outline" 
-          className="h-11 border-[#D2D7DB] gap-2 font-bold text-[#39586D] text-xs uppercase px-5"
+          className="h-11 border-[#D2D7DB] gap-2 font-semibold text-[#39586D] text-xs px-5"
           onClick={() => fileInputRef.current?.click()}
         >
           <Upload className="h-4 w-4" /> Importar Planilha
         </Button>
         
-        <Button variant="outline" className="h-11 border-[#D2D7DB] gap-2 font-bold text-[#39586D] text-xs uppercase px-5" onClick={() => toast({ title: "Gerando competência..." })}>
+        <Button variant="outline" className="h-11 border-[#D2D7DB] gap-2 font-semibold text-[#39586D] text-xs px-5" onClick={() => toast({ title: "Gerando competência..." })}>
           <RefreshCw className="h-4 w-4" /> Gerar Mês
         </Button>
 
@@ -236,9 +244,9 @@ export default function ContasAPagarPage() {
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "h-8 px-4 text-[10px] font-black uppercase tracking-wider rounded-md transition-all",
+                  "h-8 px-4 text-[11px] font-medium rounded-md transition-all",
                   activeFilter === filter 
-                    ? "bg-[#E74C3C] text-white shadow-md" 
+                    ? "bg-[#E74C3C] text-white shadow-sm" 
                     : "text-[#98A7AA] hover:bg-white/50"
                 )}
                 onClick={() => setActiveFilter(filter)}
@@ -249,8 +257,8 @@ export default function ContasAPagarPage() {
           </div>
 
           <div className="bg-white border border-[#D2D7DB] rounded-lg px-6 py-2 shadow-sm">
-            <span className="text-[10px] font-black text-[#98A7AA] uppercase tracking-widest mr-2">Total:</span>
-            <span className="text-sm font-black text-[#2C4156]">
+            <span className="text-[10px] font-semibold text-[#98A7AA] mr-2">Total:</span>
+            <span className="text-sm font-semibold text-[#2C4156]">
               {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </span>
           </div>
@@ -260,7 +268,7 @@ export default function ContasAPagarPage() {
       <Card className="border-[#D2D7DB] shadow-sm bg-white overflow-hidden">
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-[#2C4156]">
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-12 text-center pl-4">
                   <Checkbox 
@@ -269,16 +277,16 @@ export default function ContasAPagarPage() {
                       if (checked) setSelectedIds(filteredItems.map(i => i.id))
                       else setSelectedIds([])
                     }}
-                    className="border-white/30 data-[state=checked]:bg-[#E74C3C] data-[state=checked]:border-[#E74C3C]"
+                    className="border-slate-200 data-[state=checked]:bg-[#E74C3C] data-[state=checked]:border-[#E74C3C]"
                   />
                 </TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Descrição</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Fornecedor</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Categoria</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Vencimento</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-center">Situação</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Valor</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right pr-4">Ações</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Descrição</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Fornecedor</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Categoria</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Vencimento</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-center">Situação</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right">Valor</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right pr-4">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -303,37 +311,59 @@ export default function ContasAPagarPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-[#2C4156]">{item.descricao}</span>
-                        {item.recorrente && <Repeat className="h-3 w-3 text-[#1FA67A]" title={`Recorrência ${item.tipoValor}`} />}
+                        <span className="font-semibold text-[#2C4156]">{item.descricao}</span>
+                        {item.recorrente && <Repeat className="h-3 w-3 text-[#2563EB]" aria-label={`Recorrencia ${item.tipoValor}`} />}
                       </div>
                     </TableCell>
                     <TableCell className="text-[#39586D] font-medium">{item.entidade}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-[9px] font-bold uppercase border-[#D2D7DB] text-[#98A7AA]">
+                      <Badge variant="outline" className="text-[9px] font-medium border-[#D2D7DB] text-[#98A7AA]">
                         {item.categoria}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs font-mono font-bold text-[#39586D]">
+                    <TableCell className="text-xs font-mono font-medium text-[#39586D]">
                       {item.data ? format(new Date(item.data), "dd/MM/yyyy") : '--'}
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge className={cn(
-                        "text-[9px] font-black uppercase border-none px-3 py-1",
-                        item.situacao === 'Pago' ? "bg-[#7ED6B5] text-[#1FA67A]" :
-                        item.situacao === 'Vencido' ? "bg-[#FEE2E2] text-[#E74C3C]" :
-                        "bg-[#FEF3C7] text-[#F2B705]"
+                        "text-[10px] font-medium border-none px-3 py-1",
+                        item.situacao === 'Pago' ? "bg-emerald-50 text-emerald-700" :
+                        item.situacao === 'Vencido' ? "bg-red-50 text-red-700" :
+                        "bg-amber-50 text-amber-700"
                       )}>
                         {item.situacao}
                       </Badge>
                     </TableCell>
                     <TableCell className={cn(
                       "text-right font-black",
-                      item.situacao === 'Pago' ? "text-[#1FA67A]" : "text-[#E74C3C]"
+                      item.situacao === 'Pago' ? "text-[#2563EB]" : "text-[#E74C3C]"
                     )}>
                       {Number(item.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </TableCell>
                     <TableCell className="text-right pr-4">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]"><MoreVertical className="h-4 w-4" /></Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className={cn(
+                            "h-8 w-8 transition-colors rounded-full",
+                            item.situacao === 'Pago' 
+                              ? "hover:bg-gray-100 text-gray-400 hover:text-gray-600" 
+                              : "hover:bg-green-50 text-[#2563EB]/60 hover:text-[#2563EB]"
+                          )}
+                          onClick={() => handleTogglePaymentStatus(item.id, item.situacao)}
+                          title={item.situacao === 'Pago' ? "Retornar para Pendente" : "Marcar como Pago"}
+                        >
+                          {item.situacao === 'Pago' ? (
+                            <Undo className="h-4 w-4" />
+                          ) : (
+                            <CheckCircle2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-[#98A7AA]">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
