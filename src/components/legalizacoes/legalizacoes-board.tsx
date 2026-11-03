@@ -48,6 +48,7 @@ import {
   FileDown
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { loadOfficialLetterheadDataUrl, OFFICIAL_LETTERHEAD_MARGINS_MM } from "@/lib/official-letterhead"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -78,6 +79,13 @@ type Client = {
   name: string
 }
 
+type TeamMember = {
+  id: string
+  name: string
+  initials: string
+  color: string
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DEFAULT_COLUMNS: ColumnConfig[] = [
@@ -101,15 +109,16 @@ const AVAILABLE_TAGS: Tag[] = [
   { name: "SEFAZ", color: "bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100" },
 ]
 
-// Mock Team Members
-const TEAM_MEMBERS = [
-  { id: "u1", name: "Felype Naiff", initials: "FN", color: "bg-blue-600" },
-  { id: "u2", name: "Charles Pereira", initials: "CP", color: "bg-blue-600" },
-  { id: "u3", name: "Marryeth Gizelle", initials: "MG", color: "bg-purple-600" },
-  { id: "u4", name: "Rodrigo Santos", initials: "RS", color: "bg-orange-600" },
-]
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getInitials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("") || "?"
+}
 
 function calcProgress(checklist: ChecklistItem[]) {
   if (!checklist.length) return 0
@@ -132,6 +141,7 @@ function ProcessModal({
   templates = [],
   clientes,
   boardColumns,
+  teamMembers,
 }: {
   process: Process | null
   open: boolean
@@ -141,9 +151,13 @@ function ProcessModal({
   templates?: Process[]
   clientes: Client[]
   boardColumns: ColumnConfig[]
+  teamMembers: TeamMember[]
 }) {
   const { selectedUser } = useUser()
   const firstColumnId = boardColumns[0]?.id ?? "abertura"
+  const defaultResponsibleId = teamMembers.some((member) => member.id === selectedUser?.id)
+    ? selectedUser!.id
+    : teamMembers[0]?.id || ""
   const empty: Process = {
     id: crypto.randomUUID(),
     title: "",
@@ -156,7 +170,7 @@ function ProcessModal({
     comments: [],
     tags: [],
     checklist: [],
-    responsibleId: selectedUser?.id || "u1",
+    responsibleId: defaultResponsibleId,
     isModelo: false,
     arquivado: false,
   }
@@ -179,7 +193,7 @@ function ProcessModal({
       }
       setSelectedTemplateId("")
     }
-  }, [process, open, firstColumnId])
+  }, [process, open, firstColumnId, defaultResponsibleId])
 
   const progress = calcProgress(form.checklist)
 
@@ -243,10 +257,10 @@ function ProcessModal({
 
   const mentionQuery = newCommentText.match(/(?:^|\s)@([\wÀ-ú]*)$/)?.[1] ?? ""
   const mentionCandidates = mentionQuery
-    ? TEAM_MEMBERS.filter((member) => member.name.toLowerCase().includes(mentionQuery.toLowerCase()))
+    ? teamMembers.filter((member) => member.name.toLowerCase().includes(mentionQuery.toLowerCase()))
     : []
 
-  const insertMention = (member: typeof TEAM_MEMBERS[number]) => {
+  const insertMention = (member: TeamMember) => {
     setNewCommentText((current) => {
       return current.replace(/(?:^|\s)@([\wÀ-ú]*)?$/, ` @${member.name} `).trimStart()
     })
@@ -413,7 +427,7 @@ function ProcessModal({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {TEAM_MEMBERS.map((t) => (
+                  {teamMembers.map((t) => (
                     <SelectItem key={t.id} value={t.id} className="text-xs font-semibold">
                       {t.name}
                     </SelectItem>
@@ -657,6 +671,7 @@ function ProcessCard({
   onComplete,
   onArchive,
   onUseTemplate,
+  teamMembers,
 }: {
   process: Process
   onClick: () => void
@@ -665,6 +680,7 @@ function ProcessCard({
   onComplete: (e: React.MouseEvent) => void
   onArchive?: (e: React.MouseEvent) => void
   onUseTemplate?: (e: React.MouseEvent) => void
+  teamMembers: TeamMember[]
 }) {
   const progress = calcProgress(process.checklist)
   const done = process.checklist.filter((i) => i.done).length
@@ -672,7 +688,7 @@ function ProcessCard({
   const overdue = isOverdue(process.deadline)
   const isCompleted = progress === 100
 
-  const responsible = TEAM_MEMBERS.find((u) => u.id === process.responsibleId) || TEAM_MEMBERS[0]
+  const responsible = teamMembers.find((u) => u.id === process.responsibleId)
 
   return (
     <Card
@@ -773,11 +789,11 @@ function ProcessCard({
           <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 mt-2">
             {/* Responsible visual */}
             <div className="flex items-center gap-1.5">
-              <div className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black text-white shrink-0 shadow-sm", responsible.color)}>
-                {responsible.initials}
+              <div className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black text-white shrink-0 shadow-sm", responsible?.color || "bg-slate-400")}>
+                {responsible?.initials || "?"}
               </div>
               <span className="text-[10px] font-semibold text-slate-500 truncate max-w-[70px]">
-                {responsible.name.split(" ")[0]}
+                {responsible?.name.split(" ")[0] || "Não atribuído"}
               </span>
             </div>
 
@@ -823,6 +839,7 @@ export function LegalizacoesBoard() {
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected] = useState<Process | null>(null)
   const [clientes, setClientes] = useState<Client[]>([])
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS)
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null)
   const [columnTitleDraft, setColumnTitleDraft] = useState<Record<string, string>>({})
@@ -853,30 +870,23 @@ export function LegalizacoesBoard() {
         format: "a4",
       })
 
-      const margin = 15
+      const officialLetterhead = await loadOfficialLetterheadDataUrl()
+      const margin = OFFICIAL_LETTERHEAD_MARGINS_MM.left
       const pageWidth = 210
       const pageHeight = 297
-      const maxWritableHeight = pageHeight - margin
-      let y = 20
+      const maxWritableHeight = pageHeight - OFFICIAL_LETTERHEAD_MARGINS_MM.bottom
+      let y = OFFICIAL_LETTERHEAD_MARGINS_MM.top + 6
 
       const drawPageHeader = () => {
-        pdf.setFont("helvetica", "bold")
-        pdf.setFontSize(8)
-        pdf.setTextColor(152, 167, 170)
-        pdf.text(
-          "PROSPERARE FLOW - RELATÓRIO DE ACOMPANHAMENTO DE LEGALIZAÇÕES",
-          margin,
-          margin
-        )
-        pdf.setDrawColor(209, 213, 219)
-        pdf.setLineWidth(0.2)
-        pdf.line(margin, margin + 2, pageWidth - margin, margin + 2)
+        pdf.addImage(officialLetterhead, "PNG", 0, 0, pageWidth, pageHeight, undefined, "FAST")
       }
+
+      drawPageHeader()
 
       const checkPage = (neededHeight: number) => {
         if (y + neededHeight > maxWritableHeight) {
           pdf.addPage()
-          y = margin + 10
+          y = OFFICIAL_LETTERHEAD_MARGINS_MM.top + 6
           drawPageHeader()
         }
       }
@@ -922,7 +932,7 @@ export function LegalizacoesBoard() {
         const deadlineFormatted = process.deadline
           ? new Date(process.deadline + "T12:00:00Z").toLocaleDateString("pt-BR")
           : "Não definido"
-        const responsibleName = TEAM_MEMBERS.find((u) => u.id === process.responsibleId)?.name || "Não definido"
+        const responsibleName = teamMembers.find((u) => u.id === process.responsibleId)?.name || "Não atribuído"
 
         // Check space for the process card header (at least 30mm)
         checkPage(30)
@@ -1089,22 +1099,14 @@ export function LegalizacoesBoard() {
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i)
         
-        if (i > 1) {
-          drawPageHeader()
-        }
-
         pdf.setFont("helvetica", "normal")
         pdf.setFontSize(8)
         pdf.setTextColor(148, 163, 184)
         pdf.text(
           `Página ${i} de ${totalPages}`,
-          pageWidth - margin - 20,
-          pageHeight - 8
-        )
-        pdf.text(
-          "Prosperare Flow - Controle de Legalizações e Prazos",
-          margin,
-          pageHeight - 8
+          pageWidth - margin,
+          pageHeight - OFFICIAL_LETTERHEAD_MARGINS_MM.bottom + 5,
+          { align: "right" }
         )
       }
 
@@ -1161,7 +1163,7 @@ export function LegalizacoesBoard() {
             comments: data.comments ?? (data.notes ? [{ id: crypto.randomUUID(), userId: "system", userName: "Sistema", text: data.notes, createdAt: new Date().toISOString() }] : []),
             tags: data.tags ?? [],
             checklist: data.checklist ?? [],
-            responsibleId: data.responsibleId ?? "u1",
+            responsibleId: data.responsibleId ?? "",
             isModelo: data.isModelo ?? false,
             arquivado: data.arquivado ?? false,
           }
@@ -1207,6 +1209,34 @@ export function LegalizacoesBoard() {
     }
 
     loadClientes()
+  }, [])
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, "users"),
+      (snapshot) => {
+        const activeMembers = snapshot.docs
+          .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Record<string, any> & { id: string }))
+          .filter((user) => String(user.status || "ATIVO").toUpperCase() === "ATIVO")
+          .filter((user) => String(user.profile || "").toUpperCase() !== "CLIENTE")
+          .map((user) => {
+            const name = String(user.fullName || user.name || user.email || "").trim()
+            return {
+              id: user.id,
+              name,
+              initials: getInitials(name),
+              color: "bg-blue-600",
+            }
+          })
+          .filter((user) => Boolean(user.name))
+          .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+
+        setTeamMembers(activeMembers)
+      },
+      (error) => console.error("Erro ao carregar usuários ativos:", error),
+    )
+
+    return () => unsubscribe()
   }, [])
 
   const saveColumnsConfig = async (updatedColumns: ColumnConfig[]) => {
@@ -1618,7 +1648,7 @@ export function LegalizacoesBoard() {
               className="bg-transparent border-0 text-xs font-bold text-slate-700 focus:ring-0 outline-none pr-1"
             >
               <option value="todos">Todos Responsáveis</option>
-              {TEAM_MEMBERS.map((u) => (
+              {teamMembers.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
                 </option>
@@ -1730,6 +1760,7 @@ export function LegalizacoesBoard() {
                       onComplete={(e) => { e.stopPropagation(); handleComplete(p.id) }}
                       onArchive={(e) => { e.stopPropagation(); handleToggleArchive(p.id) }}
                       onUseTemplate={(e) => { e.stopPropagation(); handleCloneFromTemplate(p) }}
+                      teamMembers={teamMembers}
                     />
                   ))}
                   {cards.length === 0 && (
@@ -1769,6 +1800,7 @@ export function LegalizacoesBoard() {
         templates={allTemplates}
         clientes={clientes}
         boardColumns={columns}
+        teamMembers={teamMembers}
       />
     </div>
   )

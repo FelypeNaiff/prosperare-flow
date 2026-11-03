@@ -60,6 +60,7 @@ import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, d
 import { collection, doc } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
 import { cn, numberToExtensoBRL } from "@/lib/utils"
+import { addCanvasToOfficialPdf } from "@/lib/official-letterhead"
 
 interface CnaeItem {
   code: string;
@@ -462,8 +463,6 @@ export default function AberturaSocietariaPage() {
           backgroundColor: '#ffffff'
         })
 
-        const imgData = canvas.toDataURL('image/png')
-        
         // Formato Retrato A4: 210mm x 297mm
         const pdf = new jsPDF({
           orientation: 'portrait',
@@ -471,22 +470,7 @@ export default function AberturaSocietariaPage() {
           format: 'a4'
         })
 
-        const pdfWidth = pdf.internal.pageSize.getWidth()
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width
-        
-        const pageHeight = 295; // A4 útil
-        let heightLeft = pdfHeight;
-        let position = 0;
-
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight)
-        heightLeft -= pageHeight
-
-        while (heightLeft > 0) {
-          position = heightLeft - pdfHeight
-          pdf.addPage()
-          pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight)
-          heightLeft -= pageHeight
-        }
+        await addCanvasToOfficialPdf(pdf, canvas)
 
         const cleanLabel = (open.label || "Ficha_Abertura").replace(/\s+/g, "_")
         pdf.save(`Ficha_${cleanLabel}.pdf`)

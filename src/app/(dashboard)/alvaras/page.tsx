@@ -39,6 +39,7 @@ import { collection, doc } from "firebase/firestore"
 import { format, parseISO, isBefore, addDays, isValid, differenceInDays } from "date-fns"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { addCanvasToOfficialPdf } from "@/lib/official-letterhead"
 
 const ALVARA_TYPES = [
   "Bombeiro",
@@ -256,17 +257,13 @@ export default function AlvarasPage() {
       if (footer) { footer.classList.add('hidden'); footer.classList.remove('block'); }
       actions.forEach(el => el.classList.remove('hidden'))
       
-      const imgData = canvas.toDataURL('image/png')
       const pdf = new jsPDF({
-        orientation: 'landscape',
+        orientation: 'portrait',
         unit: 'mm',
         format: 'a4'
       })
       
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+      await addCanvasToOfficialPdf(pdf, canvas)
       pdf.save('Relatorio_Alvaras_Prosperare.pdf')
       toast({ title: "Sucesso", description: "Download do PDF concluído." })
     } catch (error) {

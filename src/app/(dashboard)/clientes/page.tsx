@@ -70,6 +70,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
 import * as XLSX from 'xlsx'
+import { addCanvasToOfficialPdf } from "@/lib/official-letterhead"
 
 export default function ClientesPage() {
   const firestore = useFirestore()
@@ -340,17 +341,13 @@ export default function ClientesPage() {
       if (footer) { footer.classList.add('hidden'); footer.classList.remove('block'); }
       actions.forEach(el => el.classList.remove('hidden'))
       
-      const imgData = canvas.toDataURL('image/png')
       const pdf = new jsPDF({
-        orientation: 'landscape',
+        orientation: 'portrait',
         unit: 'mm',
         format: 'a4'
       })
       
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+      await addCanvasToOfficialPdf(pdf, canvas)
       pdf.save('Relatorio_Clientes_Prosperare.pdf')
       toast({ title: "Sucesso", description: "Download do PDF concluído." })
     } catch (error) {
