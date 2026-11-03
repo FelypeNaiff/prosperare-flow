@@ -25,7 +25,8 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { 
-  Save, 
+  Save,
+  Loader2,
   Plus, 
   Trash2, 
   Users, 
@@ -43,14 +44,15 @@ import {
   History
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
-import { useFirestore, setDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase"
-import { doc, collection } from "firebase/firestore"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { doc, collection, setDoc } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 export function ProcessModelModal({ open, onOpenChange, model }: any) {
   const firestore = useFirestore()
+  const [isSaving, setIsSaving] = useState(false)
   const [activeTab, setActiveTab] = useState("geral")
   const [searchTerm, setSearchTerm] = useState("")
 
@@ -110,33 +112,70 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
     }
   }, [model, open])
 
-  const handleSave = () => {
-    if (!formData.nome) {
+  const handleSave = async () => {
+    const normalizedName = formData.nome.trim()
+    if (!normalizedName) {
       toast({ title: "Nome do modelo é obrigatório", variant: "destructive" })
       return
     }
-    const id = model?.id || Math.random().toString(36).substr(2, 9)
-    const docRef = doc(firestore, "processoModelos", id)
-    
-    // Garantir que todos os campos técnicos sejam salvos
-    const finalData = {
-      ...formData,
-      id,
-      updatedAt: new Date().toISOString(),
-      prazoFixo: Number(formData.prazoFixo),
-      dataGeracaoRecorrencia: Number(formData.dataGeracaoRecorrencia)
+
+    if ((formData.tarefas || []).some(task => !String(task.titulo || "").trim())) {
+      toast({ title: "Checklist incompleto", description: "Todas as tarefas precisam de um título.", variant: "destructive" })
+      setActiveTab("tarefas")
+      return
     }
 
-    setDocumentNonBlocking(docRef, finalData, { merge: true })
-    onOpenChange(false)
-    toast({ title: model ? "Modelo Atualizado" : "Modelo Criado!" })
+    const taskNames = (formData.tarefas || []).map(task => String(task.titulo).trim().toLowerCase())
+    if (new Set(taskNames).size !== taskNames.length) {
+      toast({ title: "Tarefas duplicadas", description: "O checklist possui tarefas com o mesmo título.", variant: "destructive" })
+      setActiveTab("tarefas")
+      return
+    }
+
+    const prazoFixo = Number(formData.prazoFixo)
+    const generationDay = Number(formData.dataGeracaoRecorrencia)
+    if (formData.tipo === "recorrente" && (!Number.isInteger(prazoFixo) || prazoFixo < 1 || prazoFixo > 31 || !Number.isInteger(generationDay) || generationDay < 1 || generationDay > 31)) {
+      toast({ title: "Datas inválidas", description: "Os dias de geração e vencimento devem estar entre 1 e 31.", variant: "destructive" })
+      return
+    }
+
+    const id = model?.id || doc(collection(firestore, "processoModelos")).id
+    const docRef = doc(firestore, "processoModelos", id)
+    const finalData = {
+      ...formData,
+      nome: normalizedName,
+      descricao: formData.descricao.trim(),
+      id,
+      createdAt: model?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      prazoFixo,
+      dataGeracaoRecorrencia: generationDay,
+      tarefas: (formData.tarefas || []).map(task => ({
+        ...task,
+        id: task.id || crypto.randomUUID(),
+        titulo: String(task.titulo).trim(),
+        descricao: String(task.descricao || "").trim()
+      }))
+    }
+
+    setIsSaving(true)
+    try {
+      await setDoc(docRef, finalData, { merge: true })
+      onOpenChange(false)
+      toast({ title: model ? "Modelo atualizado" : "Modelo criado!" })
+    } catch (error) {
+      console.error("Falha ao salvar modelo de processo:", error)
+      toast({ title: "Não foi possível salvar o modelo", description: "Nenhuma confirmação foi recebida do Firestore.", variant: "destructive" })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const addTarefa = () => {
     setFormData(prev => ({
       ...prev,
       tarefas: [...(prev.tarefas || []), {
-        id: Math.random().toString(36).substr(2, 5),
+        id: crypto.randomUUID(),
         titulo: "",
         descricao: "",
         departamento: prev.departamento,
@@ -164,7 +203,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(nextOpen) => !isSaving && onOpenChange(nextOpen)}>
       <DialogContent className="max-w-5xl p-0 overflow-hidden flex flex-col border-none shadow-2xl">
         <DialogHeader className="p-6 bg-[#2C4156] text-white shrink-0">
           <DialogTitle className="text-2xl font-black uppercase tracking-tight">
@@ -426,9 +465,9 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
           </div>
 
           <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="font-bold uppercase text-xs border-[#D2D7DB]">Cancelar</Button>
-            <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-10 shadow-lg shadow-blue-500/20" onClick={handleSave}>
-              <Save className="h-4 w-4 mr-2" /> {model ? "Salvar Inteligência" : "Gerar Estrutura de Fluxo"}
+            <Button variant="outline" disabled={isSaving} onClick={() => onOpenChange(false)} className="font-bold uppercase text-xs border-[#D2D7DB]">Cancelar</Button>
+            <Button disabled={isSaving} className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-10 shadow-lg shadow-blue-500/20" onClick={handleSave}>
+              {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />} {model ? "Salvar Inteligência" : "Gerar Estrutura de Fluxo"}
             </Button>
           </DialogFooter>
         </Tabs>

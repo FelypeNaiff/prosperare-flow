@@ -26,8 +26,8 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
-import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase"
-import { collection, query, orderBy, doc } from "firebase/firestore"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection, query, orderBy, doc, deleteDoc } from "firebase/firestore"
 import { ProcessModelModal } from "@/components/processes/model-modal"
 import { toast } from "@/hooks/use-toast"
 
@@ -36,9 +36,13 @@ export default function ModelosProcessosPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingModel, setEditingModel] = useState<any>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const modelsQuery = useMemoFirebase(() => query(collection(firestore, "processoModelos"), orderBy("nome", "asc")), [firestore])
   const { data: models, isLoading } = useCollection(modelsQuery)
+
+  const groupsQuery = useMemoFirebase(() => collection(firestore, "obligation_groups"), [firestore])
+  const { data: groups = [] } = useCollection(groupsQuery)
 
   const filteredModels = (models || []).filter(m => 
     m.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -50,9 +54,31 @@ export default function ModelosProcessosPage() {
     setIsModalOpen(true)
   }
 
-  const handleDelete = (id: string) => {
-    deleteDocumentNonBlocking(doc(firestore, "processoModelos", id))
-    toast({ title: "Modelo Removido", variant: "destructive" })
+  const handleDelete = async (id: string) => {
+    const linkedGroups = (groups || []).filter(group =>
+      (group.processes || []).some((process: any) => process.templateId === id)
+      || group.linkedModelId === id
+    )
+    if (linkedGroups.length > 0) {
+      toast({
+        title: "Modelo vinculado a grupos",
+        description: `Remova este modelo de ${linkedGroups.length} grupo(s) antes de excluí-lo.`,
+        variant: "destructive"
+      })
+      return
+    }
+    if (!window.confirm("Excluir permanentemente este modelo? Os processos já gerados não serão removidos.")) return
+
+    setDeletingId(id)
+    try {
+      await deleteDoc(doc(firestore, "processoModelos", id))
+      toast({ title: "Modelo removido" })
+    } catch (error) {
+      console.error("Falha ao excluir modelo de processo:", error)
+      toast({ title: "Não foi possível excluir o modelo", variant: "destructive" })
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   return (
@@ -128,7 +154,7 @@ export default function ModelosProcessosPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem className="text-xs font-bold uppercase gap-2"><Copy className="h-3.5 w-3.5" /> Duplicar</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDelete(model.id)} className="text-xs font-bold uppercase gap-2 text-[#E74C3C]"><Trash2 className="h-3.5 w-3.5" /> Excluir</DropdownMenuItem>
+                      <DropdownMenuItem disabled={deletingId === model.id} onClick={() => handleDelete(model.id)} className="text-xs font-bold uppercase gap-2 text-[#E74C3C]"><Trash2 className="h-3.5 w-3.5" /> {deletingId === model.id ? "Excluindo..." : "Excluir"}</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

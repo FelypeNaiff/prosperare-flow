@@ -34,12 +34,9 @@ import {
   useFirestore, 
   useCollection, 
   useMemoFirebase, 
-  useUser,
-  setDocumentNonBlocking, 
-  updateDocumentNonBlocking,
-  deleteDocumentNonBlocking
+  useUser
 } from "@/firebase"
-import { collection, doc } from "firebase/firestore"
+import { collection, doc, writeBatch } from "firebase/firestore"
 import {
   Dialog,
   DialogContent,
@@ -60,7 +57,7 @@ import {
 import { ClientCombobox } from "@/components/shared/client-combobox"
 import { TemplateSearchSelect } from "@/components/atendimentos/template-search-select"
 import { TicketDetailsDrawer } from "@/components/atendimentos/ticket-details-drawer"
-import { buildTaskAssignmentNotificationKey, createAppNotification } from "@/lib/notifications"
+import { buildTaskAssignmentNotificationKey } from "@/lib/notifications"
 import {
   Table,
   TableBody,
@@ -79,6 +76,7 @@ export default function AtendimentosPage() {
   const [filtroPrazo, setFiltroPrazo] = useState("Todos")
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "aberto" | "em_andamento" | "concluido">("aberto")
   const [selectedTicket, setSelectedTicket] = useState<any>(null)
+  const [isMutating, setIsMutating] = useState(false)
   const [sortField, setSortField] = useState<'clientName' | 'title' | 'responsibleName' | 'createdAt' | 'dueDate' | 'status'>('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
@@ -126,61 +124,148 @@ export default function AtendimentosPage() {
     isRestricted: false
   })
 
-  const handleCreateTicket = () => {
+  const handleCreateTicket = async () => {
     if (!newTicket.clientId || !newTicket.responsibleId || (!newTicket.templateId && !newTicket.title)) {
       toast({ title: "Erro", description: "Preencha os campos obrigatórios.", variant: "destructive" })
       return
     }
 
-    const id = Math.random().toString(36).substr(2, 9)
     const client = (clients || []).find(c => c.id === newTicket.clientId)
     const template = (templates || []).find(t => t.id === newTicket.templateId)
     const responsible = (team || []).find(u => u.id === newTicket.responsibleId)
+    if (!client || !responsible || (newTicket.templateId && !template)) {
+      toast({ title: "Cadastro desatualizado", description: "Cliente, responsável ou modelo não foi localizado. Atualize a página e tente novamente.", variant: "destructive" })
+      return
+    }
+
+    const taskRef = doc(collection(firestore, "tasks"))
+    const id = taskRef.id
+    const createdAt = new Date().toISOString()
+    const title = String(template?.nome || newTicket.title).trim()
 
     const ticketData = {
       id,
       clientId: newTicket.clientId,
       clientName: client?.corporateName || "Empresa Avulsa",
       templateId: newTicket.templateId || null,
-      title: template?.nome || newTicket.title,
+      title,
       responsibleId: newTicket.responsibleId,
       responsibleName: responsible?.fullName || "Responsável",
-      notes: newTicket.notes,
+      notes: newTicket.notes.trim(),
       dueDate: newTicket.dueDate || null,
       status: 'novo',
       restrita: newTicket.isRestricted,
       criadorId: selectedUser?.id || "",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt,
+      updatedAt: createdAt
     }
 
-    setDocumentNonBlocking(doc(firestore, "tasks", id), ticketData, { merge: true })
-    
-    createAppNotification(firestore, {
-      userId: newTicket.responsibleId,
-      title: "Nova Demanda Interna",
-      message: `Você foi designado para a demanda: ${ticketData.title}`,
-      type: "task_new",
-      link: "/atendimentos",
-      taskId: id,
-      remetente: selectedUser?.fullName || "Sistema",
-      metaKey: buildTaskAssignmentNotificationKey(id, newTicket.responsibleId),
-    })
+    setIsMutating(true)
+    try {
+      const batch = writeBatch(firestore)
+      batch.set(taskRef, ticketData)
+      const notificationId = buildTaskAssignmentNotificationKey(id, newTicket.responsibleId)
+      batch.set(doc(firestore, "notifications", notificationId), {
+        id: notificationId,
+        userId: newTicket.responsibleId,
+        title: "Nova Demanda Interna",
+        message: `Você foi designado para a demanda: ${title}`,
+        type: "task_new",
+        read: false,
+        createdAt,
+        link: "/atendimentos",
+        taskId: id,
+        processId: null,
+        remetente: selectedUser?.fullName || "Sistema",
+        metaKey: notificationId,
+      })
+      const auditRef = doc(collection(firestore, "taskAuditLogs"))
+      batch.set(auditRef, {
+        id: auditRef.id,
+        taskId: id,
+        action: "TASK_CREATED",
+        actorId: selectedUser?.id || null,
+        actorName: selectedUser?.fullName || "Sistema",
+        occurredAt: createdAt,
+        newValue: { status: "novo", responsibleId: newTicket.responsibleId }
+      })
+      await batch.commit()
 
-    setIsNewTicketOpen(false)
-    setNewTicket({ clientId: "", templateId: "", responsibleId: "", notes: "", title: "", dueDate: "", isRestricted: false })
-    toast({ title: "Demanda Enviada!", description: "O colaborador foi notificado." })
+      setIsNewTicketOpen(false)
+      setNewTicket({ clientId: "", templateId: "", responsibleId: "", notes: "", title: "", dueDate: "", isRestricted: false })
+      toast({ title: "Demanda enviada!", description: "A demanda e a notificação foram confirmadas." })
+    } catch (error) {
+      console.error("Falha ao criar demanda interna:", error)
+      toast({ title: "Não foi possível criar a demanda", description: "Nenhuma alteração foi confirmada.", variant: "destructive" })
+    } finally {
+      setIsMutating(false)
+    }
   }
 
-  const updateStatus = (id: string, newStatus: string) => {
-    updateDocumentNonBlocking(doc(firestore, "tasks", id), { status: newStatus, updatedAt: new Date().toISOString() })
-    toast({ title: "Status Atualizado" })
+  const updateStatus = async (id: string, newStatus: string) => {
+    if (isMutating) return
+    const ticket = (rawTickets || []).find((item: any) => item.id === id)
+    if (!ticket || ticket.status === newStatus) return
+    setIsMutating(true)
+    const occurredAt = new Date().toISOString()
+    try {
+      const batch = writeBatch(firestore)
+      batch.update(doc(firestore, "tasks", id), {
+        status: newStatus,
+        updatedAt: occurredAt,
+        updatedById: selectedUser?.id || null,
+        updatedByName: selectedUser?.fullName || "Sistema",
+        completedAt: newStatus === "concluido" ? occurredAt : null,
+      })
+      const auditRef = doc(collection(firestore, "taskAuditLogs"))
+      batch.set(auditRef, {
+        id: auditRef.id,
+        taskId: id,
+        action: "STATUS_CHANGED",
+        actorId: selectedUser?.id || null,
+        actorName: selectedUser?.fullName || "Sistema",
+        occurredAt,
+        previousValue: ticket.status || null,
+        newValue: newStatus,
+      })
+      await batch.commit()
+      toast({ title: "Status atualizado" })
+    } catch (error) {
+      console.error("Falha ao atualizar status da demanda:", error)
+      toast({ title: "Não foi possível atualizar o status", variant: "destructive" })
+    } finally {
+      setIsMutating(false)
+    }
   }
 
-  const handleDelete = (id: string, e?: React.MouseEvent) => {
-    if(e) e.stopPropagation();
-    deleteDocumentNonBlocking(doc(firestore, "tasks", id))
-    toast({ title: "Ticket Removido", variant: "destructive" })
+  const handleDelete = async (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    if (isMutating || !window.confirm("Excluir esta demanda? A ação ficará registrada na auditoria.")) return
+    const ticket = (rawTickets || []).find((item: any) => item.id === id)
+    if (!ticket) return
+    setIsMutating(true)
+    const occurredAt = new Date().toISOString()
+    try {
+      const batch = writeBatch(firestore)
+      const auditRef = doc(collection(firestore, "taskAuditLogs"))
+      batch.set(auditRef, {
+        id: auditRef.id,
+        taskId: id,
+        action: "TASK_DELETED",
+        actorId: selectedUser?.id || null,
+        actorName: selectedUser?.fullName || "Sistema",
+        occurredAt,
+        previousValue: { title: ticket.title || null, status: ticket.status || null, responsibleId: ticket.responsibleId || null }
+      })
+      batch.delete(doc(firestore, "tasks", id))
+      await batch.commit()
+      toast({ title: "Demanda removida" })
+    } catch (error) {
+      console.error("Falha ao excluir demanda:", error)
+      toast({ title: "Não foi possível excluir a demanda", variant: "destructive" })
+    } finally {
+      setIsMutating(false)
+    }
   }
 
   const visibleTickets = (tickets || []).filter((t: any) => {
@@ -699,7 +784,10 @@ export default function AtendimentosPage() {
           </div>
           <DialogFooter className="p-6 bg-[#F7F7F7] border-t shrink-0">
             <Button variant="outline" onClick={() => setIsNewTicketOpen(false)}>Cancelar</Button>
-            <Button className="bg-[#2563EB]" onClick={handleCreateTicket}>Enviar Demanda</Button>
+            <Button className="bg-[#2563EB]" disabled={isMutating} onClick={handleCreateTicket}>
+              {isMutating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Enviar Demanda
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
