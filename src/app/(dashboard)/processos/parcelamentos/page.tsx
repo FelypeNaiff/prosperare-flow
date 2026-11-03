@@ -48,6 +48,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { InstallmentFormModal } from "@/components/installments/installment-form-modal"
+import { InstallmentPaymentModal } from "@/components/installments/installment-payment-modal"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Dialog,
@@ -70,6 +71,7 @@ export default function ParcelamentosPage() {
   // Novos Componentes de Estado
   const [editingInst, setEditingInst] = useState<any>(null)
   const [historyInst, setHistoryInst] = useState<any>(null)
+  const [paymentInst, setPaymentInst] = useState<any>(null)
   const [openGroups, setOpenGroups] = useState<string[]>([])
   
   // Filtros de Sheet
@@ -325,7 +327,12 @@ export default function ParcelamentosPage() {
                                           </div>
                                         </TableCell>
                                         <TableCell className="w-1/4 p-4">
-                                          <div className="flex flex-col gap-1">
+                                          <button
+                                            type="button"
+                                            className="flex w-full flex-col gap-1 rounded-lg p-2 text-left transition-colors hover:bg-[#2563EB]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
+                                            onClick={() => setPaymentInst(item)}
+                                            aria-label={`Abrir evolução e pagamento de ${item.tipo}`}
+                                          >
                                             <span className="text-[9px] font-semibold text-[#98A7AA]">Evolução / Pagamento</span>
                                             <div className="flex items-center gap-2">
                                               <span className="text-xs font-semibold text-[#2C4156]">{item.currentParcel || 0} / {item.totalParcels || 0}</span>
@@ -336,7 +343,14 @@ export default function ParcelamentosPage() {
                                                 />
                                               </div>
                                             </div>
-                                          </div>
+                                            {item.lastSentAt ? (
+                                              <span className="text-[9px] font-semibold text-emerald-600">
+                                                {item.lastDeliveryAction === "resent" ? "Reenviada" : "Enviada"} ao cliente
+                                              </span>
+                                            ) : item.sendDeadline ? (
+                                              <span className="text-[9px] font-semibold text-amber-600">Envio previsto: {new Date(`${item.sendDeadline}T12:00:00`).toLocaleDateString("pt-BR")}</span>
+                                            ) : null}
+                                          </button>
                                         </TableCell>
                                         <TableCell className="p-4">
                                              <div className="flex flex-col gap-1">
@@ -399,6 +413,12 @@ export default function ParcelamentosPage() {
             if (!v) setEditingInst(null)
          }} 
          initialData={editingInst} 
+      />
+
+      <InstallmentPaymentModal
+        installment={paymentInst}
+        open={!!paymentInst}
+        onOpenChange={(nextOpen) => !nextOpen && setPaymentInst(null)}
       />
 
       <Dialog open={!!historyInst} onOpenChange={(v: boolean) => !v && setHistoryInst(null)}>
