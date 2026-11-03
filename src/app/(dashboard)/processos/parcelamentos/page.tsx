@@ -344,12 +344,12 @@ export default function ParcelamentosPage() {
                                               </div>
                                             </div>
                                             {item.lastSentAt ? (
-                                              <span className="text-[9px] font-semibold text-emerald-600">
-                                                {item.lastDeliveryAction === "resent" ? "Reenviada" : "Enviada"} ao cliente
+                                              <span className="max-w-[220px] truncate text-[9px] font-semibold text-emerald-600" title={item.lastSentByName || "Usuário não registrado"}>
+                                                {item.lastDeliveryAction === "resent" ? "Reenviada" : "Enviada"} por {item.lastSentByName || "usuário não registrado"}
                                               </span>
-                                            ) : item.sendDeadline ? (
-                                              <span className="text-[9px] font-semibold text-amber-600">Envio previsto: {new Date(`${item.sendDeadline}T12:00:00`).toLocaleDateString("pt-BR")}</span>
-                                            ) : null}
+                                            ) : (
+                                              <span className="text-[9px] font-semibold text-amber-600">Envio mensal até o dia 25</span>
+                                            )}
                                           </button>
                                         </TableCell>
                                         <TableCell className="p-4">

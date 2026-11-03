@@ -19,8 +19,8 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
-import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
-import { collection, doc } from "firebase/firestore"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection, doc, writeBatch } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
 import { Layers, Building2, Calendar, Save, Loader2, User } from "lucide-react"
 import { format, parse, addMonths, lastDayOfMonth, setDate } from "date-fns"
@@ -61,6 +61,11 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
       return
     }
 
+    if (formData.clientIds.length > 500) {
+      toast({ title: "Limite excedido", description: "Gere no máximo 500 processos por vez.", variant: "destructive" })
+      return
+    }
+
     setIsSaving(true)
     try {
       const model = selectedModel
@@ -73,8 +78,8 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
         const [year, month, day] = formData.customDeadline.split("-")
         finalDueDateStr = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0).toISOString()
       } else {
-        const day = model.prazoFixo || 20
-        let dueDate = setDate(competenceDate, day)
+        const day = Number(model.prazoFixo) || 20
+        let dueDate = competenceDate
         
         if (model.competencia === 'mes_anterior') {
           dueDate = addMonths(dueDate, 1) 
@@ -82,19 +87,25 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
           dueDate = addMonths(dueDate, -1)
         }
 
-        const lastDay = lastDayOfMonth(dueDate)
-        if (dueDate > lastDay) dueDate = lastDay
+        const lastDay = lastDayOfMonth(dueDate).getDate()
+        dueDate = setDate(dueDate, Math.min(Math.max(day, 1), lastDay))
         finalDueDateStr = dueDate.toISOString()
       }
 
-      formData.clientIds.forEach(clientId => {
+      const selectedClients = formData.clientIds.map(clientId => {
         const client = (clients || []).find(c => c.id === clientId)
-        if (!client) return
+        if (!client) throw new Error(`Cliente não localizado: ${clientId}`)
+        return client
+      })
 
-        const id = Math.random().toString(36).substr(2, 9)
-        const processRef = doc(firestore, "processes", id)
+      const batch = writeBatch(firestore)
+      const createdAt = new Date().toISOString()
 
-        let finalResponsible = formData.responsavelId === "Padrao" 
+      selectedClients.forEach(client => {
+        const processRef = doc(collection(firestore, "processes"))
+        const id = processRef.id
+
+        const finalResponsible = formData.responsavelId === "Padrao"
           ? (model.responsavelPadraoId !== "Geral" ? model.responsavelPadraoId : (client.accountingContactUserId || "Geral"))
           : formData.responsavelId
 
@@ -109,26 +120,29 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
           prazo: finalDueDateStr,
           prazoMeta: finalDueDateStr,
           competencia: competenceDate.toISOString(),
-          criadoEm: new Date().toISOString(),
+          criadoEm: createdAt,
           tarefas: (model.tarefas || []).map((t: any) => ({
-            id: Math.random().toString(36).substr(2, 5),
+            id: crypto.randomUUID(),
             modeloTarefaId: t.id,
             titulo: t.titulo,
             situacao: "a_fazer"
           }))
         }
 
-        setDocumentNonBlocking(processRef, newProcess, { merge: true })
+        batch.set(processRef, newProcess)
       })
+
+      await batch.commit()
       
       toast({ 
         title: "Geração em Lote Concluída!", 
-        description: `${formData.clientIds.length} processos foram criados com sucesso.` 
+        description: `${selectedClients.length} processos foram criados com sucesso.`
       })
       onOpenChange(false)
       setFormData({ modeloId: "", clientIds: [], competencia: format(new Date(), "yyyy-MM"), responsavelId: "Padrao", customDeadline: "" })
-    } catch (e) {
-      toast({ title: "Erro ao criar", description: "Houve uma falha na geração dos processos.", variant: "destructive" })
+    } catch (error) {
+      console.error("Falha ao gerar processos em lote:", error)
+      toast({ title: "Nenhum processo foi criado", description: "A geração foi cancelada porque o Firestore não confirmou todas as gravações.", variant: "destructive" })
     } finally {
       setIsSaving(false)
     }

@@ -43,11 +43,9 @@ import {
   useFirestore, 
   useCollection, 
   useMemoFirebase,
-  useUser,
-  deleteDocumentNonBlocking,
-  updateDocumentNonBlocking
+  useUser
 } from "@/firebase"
-import { collection, query, orderBy, doc } from "firebase/firestore"
+import { collection, query, orderBy, doc, writeBatch, type WriteBatch } from "firebase/firestore"
 import { cn } from "@/lib/utils"
 import { ProcessDetailsDrawer } from "@/components/processes/process-details-drawer"
 import { CreateProcessModal } from "@/components/processes/create-process-modal"
@@ -139,6 +137,8 @@ import {
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
+const BATCH_SELECTION_LIMIT = 250
+
 export default function ProcessosPage() {
   const firestore = useFirestore()
   const { userData, userLoaded } = useUser()
@@ -181,19 +181,67 @@ export default function ProcessosPage() {
   const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
   const { data: team = [] } = useCollection(usersQuery)
 
+  const getSelectedProcesses = () => {
+    if (selectedIds.length === 0) return []
+    if (selectedIds.length > BATCH_SELECTION_LIMIT) {
+      toast({
+        title: "Limite da ação em lote",
+        description: `Selecione no máximo ${BATCH_SELECTION_LIMIT} processos por operação.`,
+        variant: "destructive"
+      })
+      return null
+    }
+
+    const selected = selectedIds
+      .map(id => (rawProcesses || []).find(process => process.id === id))
+      .filter(Boolean)
+
+    if (selected.length !== selectedIds.length) {
+      toast({ title: "Seleção desatualizada", description: "Atualize a página e selecione os processos novamente.", variant: "destructive" })
+      return null
+    }
+    return selected
+  }
+
+  const addAuditEntry = (batch: WriteBatch, process: any, action: string, previousValue: unknown, newValue: unknown, occurredAt: string) => {
+    const auditRef = doc(collection(firestore, "processAuditLogs"))
+    batch.set(auditRef, {
+      id: auditRef.id,
+      processId: process.id,
+      clientId: process.clienteId || null,
+      processName: process.nomeProcesso || null,
+      action,
+      previousValue: previousValue ?? null,
+      newValue: newValue ?? null,
+      actorId: userData?.id || userData?.uid || null,
+      actorName: userData?.fullName || userData?.email || "Usuário não identificado",
+      occurredAt
+    })
+  }
+
   const handleBatchAssign = async () => {
-    if (!batchAssignee || selectedIds.length === 0) return;
+    if (!batchAssignee) return
+    const selected = getSelectedProcesses()
+    if (!selected || selected.length === 0) return
     setIsBatchUpdating(true);
     try {
-      for (const id of selectedIds) {
-        const docRef = doc(firestore, "processes", id);
-        updateDocumentNonBlocking(docRef, { responsavelId: batchAssignee });
-      }
-      toast({ title: "Responsáveis atualizados", description: `${selectedIds.length} processos foram alterados com sucesso.` });
+      const batch = writeBatch(firestore)
+      const occurredAt = new Date().toISOString()
+      selected.forEach(process => {
+        batch.update(doc(firestore, "processes", process.id), {
+          responsavelId: batchAssignee,
+          atualizadoEm: occurredAt,
+          atualizadoPor: userData?.fullName || userData?.email || "Usuário não identificado"
+        })
+        addAuditEntry(batch, process, "RESPONSAVEL_ALTERADO", process.responsavelId, batchAssignee, occurredAt)
+      })
+      await batch.commit()
+      toast({ title: "Responsáveis atualizados", description: `${selected.length} processos foram alterados e auditados.` });
       setIsBatchAssignOpen(false);
       setSelectedIds([]);
       setBatchAssignee("");
-    } catch (e) {
+    } catch (error) {
+      console.error("Falha ao atribuir processos em lote:", error)
       toast({ title: "Erro ao atualizar", variant: "destructive", description: "Ocorreu um erro ao realizar a alteração em lote." });
     } finally {
       setIsBatchUpdating(false);
@@ -201,18 +249,29 @@ export default function ProcessosPage() {
   }
 
   const handleBatchStatusChange = async () => {
-    if (!batchStatusValue || selectedIds.length === 0) return;
+    if (!batchStatusValue) return
+    const selected = getSelectedProcesses()
+    if (!selected || selected.length === 0) return
     setIsBatchUpdating(true);
     try {
-      for (const id of selectedIds) {
-        const docRef = doc(firestore, "processes", id);
-        updateDocumentNonBlocking(docRef, { situacao: batchStatusValue });
-      }
-      toast({ title: "Status atualizado", description: `${selectedIds.length} processos foram alterados com sucesso.` });
+      const batch = writeBatch(firestore)
+      const occurredAt = new Date().toISOString()
+      selected.forEach(process => {
+        batch.update(doc(firestore, "processes", process.id), {
+          situacao: batchStatusValue,
+          atualizadoEm: occurredAt,
+          atualizadoPor: userData?.fullName || userData?.email || "Usuário não identificado",
+          ...(batchStatusValue === "concluido" ? { concluidoEm: occurredAt } : {})
+        })
+        addAuditEntry(batch, process, "STATUS_ALTERADO", process.situacao, batchStatusValue, occurredAt)
+      })
+      await batch.commit()
+      toast({ title: "Status atualizado", description: `${selected.length} processos foram alterados e auditados.` });
       setIsBatchStatusOpen(false);
       setSelectedIds([]);
       setBatchStatusValue("");
-    } catch (e) {
+    } catch (error) {
+      console.error("Falha ao alterar status em lote:", error)
       toast({ title: "Erro ao atualizar", variant: "destructive", description: "Ocorreu um erro ao realizar a alteração em lote." });
     } finally {
       setIsBatchUpdating(false);
@@ -220,17 +279,22 @@ export default function ProcessosPage() {
   }
 
   const handleBatchDelete = async () => {
-    if (selectedIds.length === 0) return;
+    const selected = getSelectedProcesses()
+    if (!selected || selected.length === 0) return
     setIsBatchUpdating(true);
     try {
-      for (const id of selectedIds) {
-        const docRef = doc(firestore, "processes", id);
-        deleteDocumentNonBlocking(docRef);
-      }
-      toast({ title: "Processos excluídos", description: `${selectedIds.length} processos foram removidos permanentemente.` });
+      const batch = writeBatch(firestore)
+      const occurredAt = new Date().toISOString()
+      selected.forEach(process => {
+        addAuditEntry(batch, process, "PROCESSO_EXCLUIDO", process.situacao, null, occurredAt)
+        batch.delete(doc(firestore, "processes", process.id))
+      })
+      await batch.commit()
+      toast({ title: "Processos excluídos", description: `${selected.length} processos foram removidos e a auditoria foi preservada.` });
       setIsBatchDeleteOpen(false);
       setSelectedIds([]);
-    } catch (e) {
+    } catch (error) {
+      console.error("Falha ao excluir processos em lote:", error)
       toast({ title: "Erro ao excluir", variant: "destructive", description: "Ocorreu um erro ao excluir os processos." });
     } finally {
       setIsBatchUpdating(false);
