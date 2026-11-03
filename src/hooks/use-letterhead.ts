@@ -2,6 +2,11 @@
 
 import { doc } from "firebase/firestore"
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase"
+import {
+  OFFICIAL_LETTERHEAD_FILE_NAME,
+  OFFICIAL_LETTERHEAD_MARGINS_MM,
+  OFFICIAL_LETTERHEAD_PATH,
+} from "@/lib/official-letterhead"
 
 /**
  * Papel timbrado oficial do escritório.
@@ -20,12 +25,12 @@ export interface LetterheadSettings {
 }
 
 export const DEFAULT_LETTERHEAD: LetterheadSettings = {
-  imageDataUrl: "/timbrado-padrao.png",
-  fileName: "timbrado com endereço.png",
-  marginTopMm: 38,
-  marginBottomMm: 32,
-  marginLeftMm: 20,
-  marginRightMm: 20,
+  imageDataUrl: OFFICIAL_LETTERHEAD_PATH,
+  fileName: OFFICIAL_LETTERHEAD_FILE_NAME,
+  marginTopMm: OFFICIAL_LETTERHEAD_MARGINS_MM.top,
+  marginBottomMm: OFFICIAL_LETTERHEAD_MARGINS_MM.bottom,
+  marginLeftMm: OFFICIAL_LETTERHEAD_MARGINS_MM.left,
+  marginRightMm: OFFICIAL_LETTERHEAD_MARGINS_MM.right,
 }
 
 export const LETTERHEAD_DOC_PATH = ["officeSettings", "letterhead"] as const

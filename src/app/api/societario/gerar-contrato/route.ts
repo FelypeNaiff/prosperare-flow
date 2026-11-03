@@ -10,8 +10,14 @@ import {
   TableCell, 
   AlignmentType, 
   WidthType, 
-  BorderStyle 
+  BorderStyle,
+  Header,
+  ImageRun,
+  HorizontalPositionRelativeFrom,
+  VerticalPositionRelativeFrom,
 } from "docx";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 // Grammatic gender flexer for premium contracts
 const getGenderedWord = (word: string, gender: string) => {
@@ -1278,6 +1284,8 @@ export async function POST(req: NextRequest) {
       );
     });
 
+    const officialLetterhead = await readFile(join(process.cwd(), "public", "timbrado-padrao.png"));
+
     // Generate document
     const doc = new Document({
       sections: [
@@ -1285,12 +1293,31 @@ export async function POST(req: NextRequest) {
           properties: {
             page: {
               margin: {
-                top: 1440,    // 1 inch = 1440 twips = 2.54 cm
-                bottom: 1440,
-                left: 1440,
-                right: 1440,
+                top: 2155,
+                bottom: 1814,
+                left: 1134,
+                right: 1134,
+                header: 0,
+                footer: 0,
               }
             }
+          },
+          headers: {
+            default: new Header({
+              children: [new Paragraph({
+                children: [new ImageRun({
+                  type: "png",
+                  data: officialLetterhead,
+                  transformation: { width: 794, height: 1123 },
+                  floating: {
+                    horizontalPosition: { relative: HorizontalPositionRelativeFrom.PAGE, offset: 0 },
+                    verticalPosition: { relative: VerticalPositionRelativeFrom.PAGE, offset: 0 },
+                    behindDocument: true,
+                    allowOverlap: true,
+                  },
+                } as any)],
+              })],
+            }),
           },
           children: children,
         },

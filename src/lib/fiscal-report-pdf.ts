@@ -1,5 +1,6 @@
 import jsPDF from "jspdf"
 import type { FiscalAnalysis } from "@/ai/flows/analyze-fiscal-document-flow"
+import { loadOfficialLetterheadDataUrl } from "@/lib/official-letterhead"
 
 export type Letterhead = {
   headerImage?: string   // data URL (PNG/JPG) - faixa do topo
@@ -45,6 +46,11 @@ export async function generateFiscalReportPdf(
   lh: Letterhead,
   opts: { clientName?: string; preparedBy?: string } = {}
 ) {
+  const effectiveLetterhead: Letterhead = {
+    ...lh,
+    fullPageImage: lh.fullPageImage || await loadOfficialLetterheadDataUrl(),
+  }
+  lh = effectiveLetterhead
   const doc = new jsPDF({ unit: "mm", format: "a4" })
   const color = hexToRgb(lh.primaryColor)
 

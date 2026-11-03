@@ -18,6 +18,8 @@ import {
 } from "docx";
 import { numberToExtensoBRL } from "@/lib/utils";
 import { buildContract, buildContractData, normalizeRegime, Seg, Block } from "@/lib/contract-templates";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 const FONT = "Calibri";
 const SIZE = 21; // 10.5pt
@@ -103,15 +105,21 @@ export async function POST(req: NextRequest) {
     // Papel timbrado como imagem de fundo (página A4 inteira, atrás do texto)
     let headers: { default: Header } | undefined;
     const lh = letterhead || {};
-    if (typeof lh.imageDataUrl === "string" && lh.imageDataUrl.startsWith("data:image")) {
-      const [meta, b64] = lh.imageDataUrl.split(",");
-      const type = meta.includes("png") ? "png" : "jpg";
+    const configuredImage = typeof lh.imageDataUrl === "string" && lh.imageDataUrl.startsWith("data:image")
+      ? lh.imageDataUrl
+      : null;
+    const imageData = configuredImage
+      ? Buffer.from(configuredImage.split(",")[1], "base64")
+      : await readFile(join(process.cwd(), "public", "timbrado-padrao.png"));
+    const type = configuredImage && !configuredImage.split(",")[0].includes("png") ? "jpg" : "png";
+
+    if (imageData.length > 0) {
       headers = {
         default: new Header({
           children: [new Paragraph({
             children: [new ImageRun({
               type,
-              data: Buffer.from(b64, "base64"),
+              data: imageData,
               transformation: { width: 794, height: 1123 }, // A4 @96dpi
               floating: {
                 horizontalPosition: { relative: HorizontalPositionRelativeFrom.PAGE, offset: 0 },
