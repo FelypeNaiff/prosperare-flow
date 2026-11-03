@@ -54,11 +54,11 @@ import {
   deleteDocumentNonBlocking, 
   updateDocumentNonBlocking 
 } from "@/firebase"
-import { collection, doc, query, where, getDocs, setDoc } from "firebase/firestore"
+import { collection, doc, getDocs, runTransaction } from "firebase/firestore"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { format, parse, addMonths, lastDayOfMonth, setDate, parseISO } from "date-fns"
-import { ptBR } from "date-fns/locale"
+import { format, parse, lastDayOfMonth, setDate } from "date-fns"
+import { getProcessDocumentId } from "@/lib/process-generation"
 
 export default function GruposObrigacoesPage() {
   const firestore = useFirestore()
@@ -164,64 +164,113 @@ export default function GruposObrigacoesPage() {
       const competenceDate = parse(genCompetencia, "yyyy-MM", new Date())
       const competenceKey = format(competenceDate, "yyyy-MM")
 
-      // 1. Verificar se já existem processos para este grupo e competência
-      const processesQuery = query(
-        collection(firestore, "processes"),
-        where("groupId", "==", selectedGroupForGen.id),
-        where("competenciaKey", "==", competenceKey)
-      )
-      const existing = await getDocs(processesQuery)
-      
-      if (!existing.empty) {
-        if (!confirm(`Já existem processos gerados para ${format(competenceDate, 'MMMM/yyyy', { locale: ptBR })} neste grupo. Deseja regenerar? (Isso não apagará os existentes, criará novos)`)) {
-          setIsGenerating(false)
-          return
-        }
-      }
-
-      // 2. Gerar processos para cada cliente vinculado
       const clientsToProcess = selectedGroupForGen.clientesVinculados || []
-      let count = 0
+      const candidates: Array<{ client: any; model: any; modelRef: any; duplicateKey: string }> = []
+      const invalidReferences: string[] = []
 
       for (const clientId of clientsToProcess) {
         const client = (allClients || []).find(c => c.id === clientId)
-        if (!client) continue
+        if (!client) {
+          invalidReferences.push(`Cliente ${clientId}`)
+          continue
+        }
 
-        // Gerar um processo para cada modelo vinculado ao grupo
         for (const modelRef of (selectedGroupForGen.processes || [])) {
           const model = (templates || []).find(t => t.id === modelRef.templateId)
-          if (!model) continue
+          if (!model) {
+            invalidReferences.push(`Modelo ${modelRef.templateId || modelRef.title}`)
+            continue
+          }
+          candidates.push({
+            client,
+            model,
+            modelRef,
+            duplicateKey: getProcessDocumentId(model.id, client.id, competenceKey)
+          })
+        }
+      }
 
-          const id = Math.random().toString(36).substr(2, 9)
-          const day = parseInt(modelRef.dueDay) || 20
-          let dueDate = setDate(competenceDate, day)
-          
-          const processData = {
-            id,
+      if (invalidReferences.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Vínculos inválidos no grupo",
+          description: `${invalidReferences.length} vínculo(s) não foram localizado(s). Corrija o grupo antes de gerar.`
+        })
+        return
+      }
+
+      if (candidates.length > 500) {
+        toast({ variant: "destructive", title: "Limite excedido", description: "O grupo gera mais de 500 processos. Divida a geração em grupos menores." })
+        return
+      }
+
+      const existingSnapshot = await getDocs(collection(firestore, "processes"))
+      const existingProcesses = existingSnapshot.docs.map(snapshot => snapshot.data())
+      const duplicates = new Set<string>()
+      const eligibleCandidates = candidates.filter(candidate => {
+        const duplicate = existingProcesses.some(existing =>
+          existing.duplicateKey === candidate.duplicateKey
+          || (
+            existing.modeloId === candidate.model.id
+            && existing.clienteId === candidate.client.id
+            && (existing.competenciaKey === competenceKey || String(existing.competencia || "").slice(0, 7) === competenceKey)
+          )
+        )
+        if (duplicate) duplicates.add(candidate.duplicateKey)
+        return !duplicate
+      })
+
+      if (eligibleCandidates.length === 0) {
+        toast({ title: "Nenhum processo criado", description: `Os ${duplicates.size} processos deste grupo já existem para ${competenceKey}.` })
+        return
+      }
+
+      const createdAt = new Date().toISOString()
+      await runTransaction(firestore, async transaction => {
+        const entries = eligibleCandidates.map(candidate => ({
+          ...candidate,
+          processRef: doc(firestore, "processes", candidate.duplicateKey)
+        }))
+        const snapshots = await Promise.all(entries.map(entry => transaction.get(entry.processRef)))
+        if (snapshots.some(snapshot => snapshot.exists())) {
+          throw new Error("Um processo deste grupo foi criado por outro usuário durante a geração.")
+        }
+
+        entries.forEach(({ client, model, modelRef, duplicateKey, processRef }) => {
+          const requestedDay = parseInt(modelRef.dueDay) || 20
+          const dueDay = Math.min(Math.max(requestedDay, 1), lastDayOfMonth(competenceDate).getDate())
+          const dueDate = setDate(competenceDate, dueDay)
+          transaction.set(processRef, {
+            id: processRef.id,
+            duplicateKey,
+            modeloId: model.id,
             groupId: selectedGroupForGen.id,
             groupName: selectedGroupForGen.name,
             clienteId: client.id,
             nomeProcesso: modelRef.title || model.nome,
             situacao: "a_fazer",
-            departamento: selectedGroupForGen.dept || "Fiscal",
-            responsavelId: client.accountingContactUserId || "Geral",
+            departamento: selectedGroupForGen.dept || model.departamento || "Fiscal",
+            responsavelId: client.accountingContactUserId || model.responsavelPadraoId || "Geral",
             prazo: dueDate.toISOString(),
+            prazoMeta: dueDate.toISOString(),
             competencia: competenceDate.toISOString(),
             competenciaKey: competenceKey,
-            criadoEm: new Date().toISOString(),
-            tarefas: (model.tarefas || []).map((t: any) => ({
-              id: Math.random().toString(36).substr(2, 5),
-              titulo: t.titulo,
+            criadoEm: createdAt,
+            origemCriacao: "GRUPO",
+            tarefas: (model.tarefas || []).map((task: any) => ({
+              id: crypto.randomUUID(),
+              modeloTarefaId: task.id || null,
+              titulo: task.titulo,
               situacao: "a_fazer"
             }))
-          }
+          })
+        })
+      })
 
-          await setDoc(doc(firestore, "processes", id), processData)
-          count++
-        }
-      }
-
-      toast({ title: "Geração Concluída!", description: `${count} processos foram instanciados para ${clientsToProcess.length} clientes.` })
+      toast({
+        title: "Geração concluída!",
+        description: `${eligibleCandidates.length} processos criados${duplicates.size > 0 ? `; ${duplicates.size} duplicados ignorados` : ""}.`
+      })
       setIsGenModalOpen(false)
     } catch (error) {
       console.error(error)

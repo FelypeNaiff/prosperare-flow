@@ -422,7 +422,7 @@ export default function ParcelamentosPage() {
       />
 
       <Dialog open={!!historyInst} onOpenChange={(v: boolean) => !v && setHistoryInst(null)}>
-         <DialogContent className="sm:max-w-[425px] border-[#D2D7DB] bg-[#F7F7F7]">
+         <DialogContent className="sm:max-w-[680px] border-[#D2D7DB] bg-[#F7F7F7]">
             <DialogHeader>
                <DialogTitle className="text-[#2C4156] font-black uppercase text-xl flex items-center gap-2">
                   <History className="h-5 w-5 text-[#98A7AA]" />
@@ -458,6 +458,7 @@ export default function ParcelamentosPage() {
                         </div>
                      </div>
                   </div>
+                  <InstallmentDeliveryTimeline installment={historyInst} />
                </div>
             )}
             <DialogFooter>
@@ -490,5 +491,109 @@ function KpiMini({ label, value, icon: Icon, color }: any) {
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+type MemorialDeliveryEvent = {
+  id?: string
+  action?: "sent" | "resent"
+  sentAt?: string
+  recordedAt?: string
+  parcelNumber?: number
+  sentByName?: string
+  updatedAt?: string
+  updatedByName?: string
+}
+
+const formatMemorialDate = (value?: string) => {
+  if (!value) return "Data não registrada"
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? "Data não registrada" : date.toLocaleDateString("pt-BR")
+}
+
+const formatMemorialTime = (value?: string) => {
+  if (!value) return "--:--"
+  const date = new Date(value)
+  return Number.isNaN(date.getTime())
+    ? "--:--"
+    : date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+}
+
+function InstallmentDeliveryTimeline({ installment }: { installment: any }) {
+  const totalParcels = Math.max(Number(installment.totalParcels) || 0, 1)
+  const history = Array.isArray(installment.deliveryHistory)
+    ? installment.deliveryHistory as MemorialDeliveryEvent[]
+    : []
+
+  const eventsByParcel = new Map<number, MemorialDeliveryEvent[]>()
+  history.forEach(event => {
+    const parcelNumber = Number(event.parcelNumber)
+    if (!Number.isInteger(parcelNumber) || parcelNumber < 1) return
+    const currentEvents = eventsByParcel.get(parcelNumber) || []
+    currentEvents.push(event)
+    eventsByParcel.set(parcelNumber, currentEvents)
+  })
+
+  eventsByParcel.forEach(events => {
+    events.sort((a, b) => new Date(a.recordedAt || a.sentAt || 0).getTime() - new Date(b.recordedAt || b.sentAt || 0).getTime())
+  })
+
+  return (
+    <section className="overflow-hidden rounded-xl border border-[#D2D7DB] bg-white shadow-sm">
+      <div className="flex items-center justify-between gap-3 border-b bg-slate-50 px-4 py-3">
+        <div>
+          <h4 className="text-[10px] font-black uppercase tracking-wider text-[#2C4156]">Relação de parcelas e envios</h4>
+          <p className="mt-1 text-[10px] text-[#71818D]">Data, hora de registro e responsável por cada envio.</p>
+        </div>
+        <Badge variant="outline" className="shrink-0 border-[#2563EB]/30 text-[#2563EB]">
+          {eventsByParcel.size} de {totalParcels} com envio
+        </Badge>
+      </div>
+
+      <div className="max-h-[42vh] divide-y overflow-y-auto">
+        {Array.from({ length: totalParcels }, (_, index) => index + 1).map(parcelNumber => {
+          const events = eventsByParcel.get(parcelNumber) || []
+          return (
+            <div className="grid grid-cols-[90px_1fr] gap-3 px-4 py-3" key={parcelNumber}>
+              <div>
+                <p className="text-xs font-black text-[#2C4156]">Parcela {parcelNumber}</p>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "mt-1 h-5 text-[9px]",
+                    events.length > 0 ? "border-emerald-300 text-emerald-700" : "border-slate-200 text-slate-500"
+                  )}
+                >
+                  {events.length > 0 ? `${events.length} envio${events.length > 1 ? "s" : ""}` : "Sem envio"}
+                </Badge>
+              </div>
+
+              {events.length > 0 ? (
+                <div className="space-y-2">
+                  {events.map((event, eventIndex) => (
+                    <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5" key={event.id || `${event.sentAt}-${eventIndex}`}>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[10px] font-bold text-[#39586D]">{event.action === "resent" ? "Reenvio" : "Envio"}</span>
+                        <span className="text-[10px] font-semibold text-[#2C4156]">
+                          {formatMemorialDate(event.sentAt)} às {formatMemorialTime(event.recordedAt || event.sentAt)}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[10px] text-[#71818D]">Enviado por: <strong>{event.sentByName || "Usuário não registrado"}</strong></p>
+                      {event.updatedAt ? (
+                        <p className="mt-1 text-[9px] text-amber-700">
+                          Editado por {event.updatedByName || "Usuário não registrado"} em {formatMemorialDate(event.updatedAt)} às {formatMemorialTime(event.updatedAt)}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center text-[10px] italic text-slate-400">Nenhum envio ou reenvio registrado para esta parcela.</div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </section>
   )
 }

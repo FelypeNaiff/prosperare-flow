@@ -20,11 +20,20 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection, doc, writeBatch } from "firebase/firestore"
+import { collection, doc, runTransaction } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
 import { Layers, Building2, Calendar, Save, Loader2, User } from "lucide-react"
 import { format, parse, addMonths, lastDayOfMonth, setDate } from "date-fns"
 import { MultiClientSearchSelect } from "@/components/clients/multi-client-search-select"
+import { getProcessDocumentId } from "@/lib/process-generation"
+
+const getCompetenceKey = (value: any) => {
+  if (!value) return ""
+  if (typeof value === "string") return value.slice(0, 7)
+  if (typeof value.toDate === "function") return format(value.toDate(), "yyyy-MM")
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? "" : format(date, "yyyy-MM")
+}
 
 export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOpenChange: (v: boolean) => void }) {
   const firestore = useFirestore()
@@ -38,6 +47,9 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
 
   const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
   const { data: team = [] } = useCollection(usersQuery)
+
+  const processesQuery = useMemoFirebase(() => collection(firestore, "processes"), [firestore])
+  const { data: existingProcesses = [] } = useCollection(processesQuery)
 
   const [formData, setFormData] = useState({
     modeloId: "",
@@ -98,45 +110,78 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
         return client
       })
 
-      const batch = writeBatch(firestore)
-      const createdAt = new Date().toISOString()
-
-      selectedClients.forEach(client => {
-        const processRef = doc(collection(firestore, "processes"))
-        const id = processRef.id
-
-        const finalResponsible = formData.responsavelId === "Padrao"
-          ? (model.responsavelPadraoId !== "Geral" ? model.responsavelPadraoId : (client.accountingContactUserId || "Geral"))
-          : formData.responsavelId
-
-        const newProcess = {
-          id,
-          modeloId: model.id,
-          clienteId: client.id,
-          nomeProcesso: model.nome,
-          situacao: "a_fazer",
-          departamento: model.departamento || "Geral",
-          responsavelId: finalResponsible,
-          prazo: finalDueDateStr,
-          prazoMeta: finalDueDateStr,
-          competencia: competenceDate.toISOString(),
-          criadoEm: createdAt,
-          tarefas: (model.tarefas || []).map((t: any) => ({
-            id: crypto.randomUUID(),
-            modeloTarefaId: t.id,
-            titulo: t.titulo,
-            situacao: "a_fazer"
-          }))
-        }
-
-        batch.set(processRef, newProcess)
+      const duplicateClients: any[] = []
+      const eligibleClients = selectedClients.filter(client => {
+        const duplicateKey = getProcessDocumentId(model.id, client.id, formData.competencia, isSporadic ? formData.customDeadline : undefined)
+        const duplicate = (existingProcesses || []).some(existing => {
+          if (existing.duplicateKey === duplicateKey) return true
+          const sameModel = existing.modeloId
+            ? existing.modeloId === model.id
+            : String(existing.nomeProcesso || "").trim().toLowerCase() === String(model.nome || "").trim().toLowerCase()
+          const sameBase = sameModel
+            && existing.clienteId === client.id
+            && getCompetenceKey(existing.competencia) === formData.competencia
+          if (!sameBase) return false
+          return !isSporadic || String(existing.prazo || "").slice(0, 10) === formData.customDeadline
+        })
+        if (duplicate) duplicateClients.push(client)
+        return !duplicate
       })
 
-      await batch.commit()
+      if (eligibleClients.length === 0) {
+        toast({
+          title: "Nenhum processo criado",
+          description: `Todos os ${duplicateClients.length} processos já existem para esta competência.`,
+          variant: "destructive"
+        })
+        return
+      }
+
+      const createdAt = new Date().toISOString()
+
+      await runTransaction(firestore, async transaction => {
+        const processEntries = eligibleClients.map(client => {
+          const duplicateKey = getProcessDocumentId(model.id, client.id, formData.competencia, isSporadic ? formData.customDeadline : undefined)
+          return { client, duplicateKey, processRef: doc(firestore, "processes", duplicateKey) }
+        })
+        const snapshots = await Promise.all(processEntries.map(entry => transaction.get(entry.processRef)))
+        if (snapshots.some(snapshot => snapshot.exists())) {
+          throw new Error("Um dos processos foi criado por outro usuário durante esta operação.")
+        }
+
+        processEntries.forEach(({ client, duplicateKey, processRef }) => {
+          const finalResponsible = formData.responsavelId === "Padrao"
+            ? (model.responsavelPadraoId !== "Geral" ? model.responsavelPadraoId : (client.accountingContactUserId || "Geral"))
+            : formData.responsavelId
+
+          transaction.set(processRef, {
+            id: processRef.id,
+            duplicateKey,
+            modeloId: model.id,
+            clienteId: client.id,
+            nomeProcesso: model.nome,
+            situacao: "a_fazer",
+            departamento: model.departamento || "Geral",
+            responsavelId: finalResponsible,
+            prazo: finalDueDateStr,
+            prazoMeta: finalDueDateStr,
+            competencia: competenceDate.toISOString(),
+            competenciaKey: formData.competencia,
+            criadoEm: createdAt,
+            origemCriacao: "AVULSO",
+            tarefas: (model.tarefas || []).map((t: any) => ({
+              id: crypto.randomUUID(),
+              modeloTarefaId: t.id,
+              titulo: t.titulo,
+              situacao: "a_fazer"
+            }))
+          })
+        })
+      })
       
       toast({ 
         title: "Geração em Lote Concluída!", 
-        description: `${selectedClients.length} processos foram criados com sucesso.`
+        description: `${eligibleClients.length} processos criados${duplicateClients.length > 0 ? `; ${duplicateClients.length} duplicados ignorados` : ""}.`
       })
       onOpenChange(false)
       setFormData({ modeloId: "", clientIds: [], competencia: format(new Date(), "yyyy-MM"), responsavelId: "Padrao", customDeadline: "" })
