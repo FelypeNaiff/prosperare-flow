@@ -15,21 +15,21 @@ export default function PlanoAssinaturaPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="border-[#1FA67A] border-2 shadow-md relative overflow-hidden">
-          <div className="absolute top-0 right-0 bg-[#1FA67A] text-white text-[10px] font-bold px-4 py-1 rounded-bl-lg uppercase">Plano Atual</div>
+        <Card className="border-[#2563EB] border-2 shadow-md relative overflow-hidden">
+          <div className="absolute top-0 right-0 bg-[#2563EB] text-white text-[10px] font-bold px-4 py-1 rounded-bl-lg uppercase">Plano Atual</div>
           <CardHeader>
             <CardTitle className="text-2xl font-black text-[#2C4156]">FLOW PRO</CardTitle>
             <CardDescription>Escritórios de médio e grande porte.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-black text-[#1FA67A]">R$ 499</span>
+              <span className="text-4xl font-black text-[#2563EB]">R$ 499</span>
               <span className="text-sm font-bold text-[#98A7AA]">/mês</span>
             </div>
             <ul className="space-y-2">
               {['Clientes Ilimitados', 'Processos Automáticos', 'IA Redatora Full', 'WhatsApp Ilimitado', 'Suporte Prioritário'].map((feat, i) => (
                 <li key={i} className="flex items-center gap-2 text-sm font-medium text-[#39586D]">
-                  <div className="bg-[#7ED6B5] rounded-full p-0.5"><Check className="h-3 w-3 text-[#1FA67A]" /></div>
+                  <div className="bg-[#7ED6B5] rounded-full p-0.5"><Check className="h-3 w-3 text-[#2563EB]" /></div>
                   {feat}
                 </li>
               ))}
@@ -64,7 +64,7 @@ export default function PlanoAssinaturaPage() {
 
           <Card className="bg-[#2C4156] text-white border-none">
             <CardContent className="p-6 flex items-center gap-4">
-              <div className="p-3 bg-white/10 rounded-xl"><Rocket className="h-8 w-8 text-[#1FA67A]" /></div>
+              <div className="p-3 bg-white/10 rounded-xl"><Rocket className="h-8 w-8 text-[#2563EB]" /></div>
               <div>
                 <p className="font-bold">Indique e Ganhe</p>
                 <p className="text-xs text-white/70">Ganhe 1 mês de isenção para cada escritório que contratar o Prosperare Flow.</p>

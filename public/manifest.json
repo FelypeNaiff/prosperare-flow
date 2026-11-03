@@ -1,0 +1,15 @@
+{
+  "name": "Prosperare Flow",
+  "short_name": "Flow",
+  "start_url": "/mobile/demandas",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#111827",
+  "icons": [
+    {
+       "src": "/favicon.ico",
+       "sizes": "64x64",
+       "type": "image/x-icon"
+    }
+  ]
+}

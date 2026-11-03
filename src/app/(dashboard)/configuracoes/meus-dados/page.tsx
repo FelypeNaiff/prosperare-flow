@@ -49,7 +49,7 @@ export default function MeusDadosPage() {
     }
     
     setDocumentNonBlocking(officeRef, { ...officeData, updatedAt: new Date().toISOString() }, { merge: true })
-    toast({ title: "Configurações salvas!", className: "bg-[#1FA67A] text-white border-none" })
+    toast({ title: "Configurações salvas!", className: "bg-[#2563EB] text-white border-none" })
     setIsDirty(false)
   }
 
@@ -89,7 +89,7 @@ export default function MeusDadosPage() {
   }
 
   if (isFetching) {
-    return <div className="h-64 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" /></div>
+    return <div className="h-64 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" /></div>
   }
 
   return (
@@ -109,7 +109,7 @@ export default function MeusDadosPage() {
       <Card className="border-[#D2D7DB] shadow-sm bg-white">
         <CardHeader className="border-b bg-[#F7F7F7]/50">
           <CardTitle className="text-lg font-black text-[#2C4156] uppercase flex items-center gap-2">
-            <Building className="h-5 w-5 text-[#1FA67A]" />
+            <Building className="h-5 w-5 text-[#2563EB]" />
             Perfil do Escritório
           </CardTitle>
           <CardDescription className="font-medium">Dados usados na geração automática de documentos.</CardDescription>
@@ -127,7 +127,7 @@ export default function MeusDadosPage() {
                     onBlur={(e) => lookupCnpj(e.target.value)}
                     className={cn("border-[#D2D7DB] font-mono font-bold pr-10", cnpjError && "border-[#E74C3C]")}
                   />
-                  {isLoadingCnpj ? <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-[#1FA67A]" /> : <Search className="absolute right-3 top-2.5 h-4 w-4 text-[#98A7AA]" />}
+                  {isLoadingCnpj ? <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-[#2563EB]" /> : <Search className="absolute right-3 top-2.5 h-4 w-4 text-[#98A7AA]" />}
                 </div>
               </div>
               <div className="space-y-2">
@@ -142,7 +142,7 @@ export default function MeusDadosPage() {
           </div>
 
           <div className="space-y-4">
-            <h4 className="text-[10px] font-black text-[#1FA67A] uppercase tracking-[0.2em] flex items-center gap-2">
+            <h4 className="text-[10px] font-black text-[#2563EB] uppercase tracking-[0.2em] flex items-center gap-2">
               <MapPin className="h-3 w-3" /> Endereço Sede
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -162,7 +162,7 @@ export default function MeusDadosPage() {
           </div>
         </CardContent>
         <CardFooter className="bg-[#F7F7F7] flex justify-end p-4 border-t border-[#D2D7DB]">
-          <Button onClick={handleSave} className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-black uppercase text-xs px-8 shadow-lg">
+          <Button onClick={handleSave} className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-black uppercase text-xs px-8 shadow-lg">
             <Save className="h-4 w-4" /> Salvar Configurações
           </Button>
         </CardFooter>

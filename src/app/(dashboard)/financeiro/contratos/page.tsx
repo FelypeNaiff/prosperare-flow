@@ -1,23 +1,20 @@
-
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef } from "react"
 import { 
   Plus, 
   FileText, 
   Search, 
   Download, 
-  MoreHorizontal,
-  FileCheck,
-  TrendingUp,
+  FileCheck, 
+  History, 
+  AlertTriangle, 
+  Loader2, 
+  Save, 
+  Trash2, 
+  Edit2,
   Printer,
-  History,
-  CheckCircle2,
-  AlertTriangle,
-  Loader2,
-  Save,
-  Trash2,
-  Edit2
+  Users
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -36,7 +33,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogDescription
 } from "@/components/ui/dialog"
@@ -49,19 +45,24 @@ import {
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils"
-import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase"
+import { cn, numberToExtensoBRL } from "@/lib/utils"
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
-import { ClientSearchSelect } from "@/components/clients/client-search-select"
+import { ClientCombobox } from "@/components/shared/client-combobox"
+import { TAX_REGIMES, buildContract, buildContractData, normalizeRegime } from "@/lib/contract-templates"
+import { useLetterhead, letterheadToDataUrl } from "@/hooks/use-letterhead"
+import { BlocksRenderer, LetterheadSheet, printWithLetterhead } from "@/components/shared/official-document"
 
-const SERVICE_OPTIONS = [
-  { id: "pessoal", label: "Departamento Pessoal" },
-  { id: "tributario", label: "Departamento Tributário" },
-  { id: "contabil", label: "Departamento Contábil" },
-  { id: "legalizacao", label: "Abertura e Legalização" },
-]
+function findSocioAdm(client: any) {
+  const qsa = client?.qsa || []
+  if (qsa.length === 0) return {}
+  return qsa.find((s: any) =>
+    s.condicaoAdministrador?.toLowerCase().includes("administrador") ||
+    s.qualificacao?.toLowerCase().includes("administrador") ||
+    s.condicaoSocio?.toLowerCase().includes("administrador")
+  ) || qsa[0]
+}
 
 export default function ContatosPage() {
   const firestore = useFirestore()
@@ -70,6 +71,9 @@ export default function ContatosPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [selectedContract, setSelectedContract] = useState<any>(null)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+  const [isGeneratingDocx, setIsGeneratingDocx] = useState(false)
+  const { letterhead } = useLetterhead()
+  const sheetRef = useRef<HTMLDivElement>(null)
 
   const contractsQuery = useMemoFirebase(() => collection(firestore, "contracts"), [firestore])
   const { data: contracts = [], isLoading } = useCollection(contractsQuery)
@@ -79,7 +83,8 @@ export default function ContatosPage() {
 
   const [formData, setFormData] = useState({
     clientId: "",
-    services: [] as string[],
+    employeeCount: 0,
+    taxRegime: "Simples Nacional" as string,
     value: 0,
     startDate: new Date().toISOString().split('T')[0],
     dueDay: 10,
@@ -98,7 +103,8 @@ export default function ContatosPage() {
     setEditingId(null)
     setFormData({
       clientId: "",
-      services: [],
+      employeeCount: 0,
+      taxRegime: "Simples Nacional",
       value: 0,
       startDate: new Date().toISOString().split('T')[0],
       dueDay: 10,
@@ -112,57 +118,56 @@ export default function ContatosPage() {
     setEditingId(contract.id)
     setFormData({
       clientId: contract.clientId,
-      services: contract.services || [],
+      employeeCount: contract.employeeCount !== undefined ? contract.employeeCount : 0,
+      taxRegime: normalizeRegime(contract.taxRegime || contract.clientRegime),
       value: contract.value,
       startDate: contract.startDate,
       dueDay: contract.dueDay,
       notes: contract.notes || "",
-      status: contract.status
+      status: contract.status || "Ativo"
     })
     setIsModalOpen(true)
   }
 
-  const toggleService = (serviceLabel: string) => {
-    setFormData(prev => ({
-      ...prev,
-      services: prev.services.includes(serviceLabel)
-        ? prev.services.filter(s => s !== serviceLabel)
-        : [...prev.services, serviceLabel]
-    }))
-  }
-
   const handleSaveContract = () => {
-    if (!formData.clientId || !formData.value || formData.services.length === 0) {
-      toast({ title: "Erro", description: "Preencha cliente, valor e ao menos um serviço.", variant: "destructive" })
+    if (!formData.clientId || !formData.value) {
+      toast({ title: "Campo Obrigatório", description: "Selecione o cliente e preencha o valor mensal.", variant: "destructive" })
+      return
+    }
+
+    if (!formData.taxRegime) {
+      toast({ title: "Selecione o Regime", description: "Escolha o tipo de tributação para continuar.", variant: "destructive" })
       return
     }
 
     const client = (clients || []).find(c => c.id === formData.clientId)
     const id = editingId || Math.random().toString(36).substr(2, 9)
     const contractRef = doc(firestore, "contracts", id)
-    
+
     const contractData = {
       ...formData,
       id,
+      employeeCount: Number(formData.employeeCount ?? 0),
       clientName: client?.corporateName || "Empresa não identificada",
       clientCnpj: client?.cnpj || "00.000.000/0000-00",
-      clientRegime: client?.taxRegime || "Não informado",
+      clientRegime: formData.taxRegime,
       updatedAt: new Date().toISOString(),
-      createdAt: editingId ? (contracts.find(c => c.id === editingId)?.createdAt || new Date().toISOString()) : new Date().toISOString()
+      createdAt: editingId ? ((contracts || []).find(c => c.id === editingId)?.createdAt || new Date().toISOString()) : new Date().toISOString()
     }
 
     setDocumentNonBlocking(contractRef, contractData, { merge: true })
 
-    // Se for novo contrato, gera o primeiro contas a receber
+    // Se for novo contrato, gera a primeira parcela em Contas a Receber
     if (!editingId) {
       const receivableId = Math.random().toString(36).substr(2, 9)
       const receivableRef = doc(firestore, "receivables", receivableId)
       const today = new Date()
       const vencimentoStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${formData.dueDay.toString().padStart(2, '0')}`
 
+      const servicosResumo = formData.taxRegime
       const receivableData = {
         id: receivableId,
-        descricao: `HONORÁRIO - ${formData.services.join(", ")}`.toUpperCase(),
+        descricao: `HONORÁRIO CONTÁBIL - ${servicosResumo} (${formData.employeeCount ?? 0} FUNC)`.toUpperCase(),
         cliente: client?.corporateName || "Cliente Avulso",
         clientId: formData.clientId,
         pagamento: "PIX",
@@ -179,20 +184,56 @@ export default function ContatosPage() {
     setIsModalOpen(false)
     toast({ 
       title: editingId ? "Contrato Atualizado!" : "Contrato Ativado!", 
-      description: editingId ? "As alterações foram salvas." : "O contrato foi salvo e o honorário lançado." 
+      description: "Parâmetros do contrato salvos com sucesso." 
     })
   }
 
   const handleDelete = (id: string) => {
-    if (confirm("Excluir permanentemente este contrato?")) {
+    if (confirm("Deseja realmente excluir este contrato?")) {
       deleteDocumentNonBlocking(doc(firestore, "contracts", id))
       toast({ title: "Contrato removido", variant: "destructive" })
     }
   }
 
-  const handleGeneratePDF = (contract: any) => {
+  const handleOpenPreview = (contract: any) => {
     setSelectedContract(contract)
     setIsPreviewOpen(true)
+  }
+
+  const handleDownloadDocx = async (contract: any) => {
+    setIsGeneratingDocx(true)
+    try {
+      const client = (clients || []).find((c: any) => c.id === contract.clientId) || {}
+      const socio = findSocioAdm(client)
+      const imageDataUrl = await letterheadToDataUrl(letterhead.imageDataUrl)
+
+      const res = await fetch("/api/financeiro/gerar-contrato-servicos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contrato: contract, cliente: client, socio, letterhead: { ...letterhead, imageDataUrl } })
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "Falha na geração do documento Word.")
+      }
+
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `contrato_prestacao_servicos_${(client.corporateName || contract.clientName || "empresa").replace(/\s+/g, "_")}.docx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+
+      toast({ title: "Documento Word Gerado!", description: "O contrato .docx foi baixado com sucesso." })
+    } catch (err: any) {
+      toast({ title: "Erro na geração", description: err.message || "Erro desconhecido ao gerar contrato.", variant: "destructive" })
+    } finally {
+      setIsGeneratingDocx(false)
+    }
   }
 
   const filteredContracts = (contracts || []).filter(c => 
@@ -200,24 +241,38 @@ export default function ContatosPage() {
     c.clientCnpj?.includes(searchTerm)
   )
 
+  const selectedClient = useMemo(() => {
+    if (!selectedContract?.clientId) return null
+    return (clients || []).find((c: any) => c.id === selectedContract.clientId)
+  }, [selectedContract, clients])
+
+  const contractBlocks = useMemo(() => {
+    if (!selectedContract) return null
+    const data = buildContractData(selectedContract, selectedClient, findSocioAdm(selectedClient), numberToExtensoBRL)
+    return buildContract(selectedContract.taxRegime || selectedContract.clientRegime, data)
+  }, [selectedContract, selectedClient])
+
+  const handlePrint = () => {
+    if (!sheetRef.current) return
+    printWithLetterhead(sheetRef.current.innerHTML, letterhead, `Contrato - ${selectedContract?.clientName || ""}`)
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Inversão: Botão para a esquerda */}
-        <Button className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 gap-2 font-bold shadow-lg shadow-emerald-500/20 h-11 px-6 order-2 md:order-1" onClick={handleOpenNew}>
+        <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 gap-2 font-semibold shadow-lg shadow-blue-500/20 h-11 px-6 order-2 md:order-1" onClick={handleOpenNew}>
           <Plus className="h-4 w-4" /> Novo Contrato
         </Button>
 
-        {/* Inversão: Título para a direita com alinhamento adequado */}
         <div className="text-left md:text-right order-1 md:order-2">
-          <h1 className="text-3xl font-black text-[#2C4156] uppercase tracking-tight">Gestão de Contratos</h1>
-          <p className="text-[#98A7AA] font-bold text-sm">Controle jurídico e faturamento recorrente.</p>
+          <h1 className="text-3xl font-semibold text-[#2C4156] tracking-tight">Gestão de Contratos</h1>
+          <p className="text-[#98A7AA] font-medium text-sm">Controle jurídico e faturamento de serviços contábeis.</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <MetricCard label="Contratos Ativos" value={stats.active} icon={FileText} color="#2C4156" />
-        <MetricCard label="Receita Recorrente" value={`R$ ${stats.revenue.toLocaleString('pt-BR')}`} icon={FileCheck} color="#1FA67A" />
+        <MetricCard label="Receita Recorrente" value={`R$ ${stats.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={FileCheck} color="#2563EB" />
         <MetricCard label="A Renovar (30d)" value="0" icon={History} color="#F2B705" />
         <MetricCard label="Suspensos" value="0" icon={AlertTriangle} color="#E74C3C" />
       </div>
@@ -225,14 +280,14 @@ export default function ContatosPage() {
       <Card className="border-[#D2D7DB]">
         <CardHeader className="bg-[#F7F7F7]/50 border-b flex flex-row items-center justify-between space-y-0">
           <div>
-            <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Contratos Vigentes</CardTitle>
-            <CardDescription className="text-xs font-bold text-[#98A7AA]">Listagem completa de honorários recorrentes.</CardDescription>
+            <CardTitle className="text-sm font-semibold text-[#2C4156]">Contratos Vigentes</CardTitle>
+            <CardDescription className="text-xs font-medium text-[#98A7AA]">Listagem completa de honorários recorrentes.</CardDescription>
           </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
             <Input 
-              placeholder="Buscar empresa..." 
-              className="pl-9 h-9 w-[250px] bg-white border-[#D2D7DB]" 
+              placeholder="Buscar por empresa ou CNPJ..." 
+              className="pl-9 h-9 w-[280px] bg-white border-[#D2D7DB]" 
               value={searchTerm} 
               onChange={(e) => setSearchTerm(e.target.value)} 
             />
@@ -240,21 +295,21 @@ export default function ContatosPage() {
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-[#2C4156]">
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-white font-black uppercase text-[10px]">Empresa / CNPJ</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Serviços Contratados</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px]">Início</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Honorário</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-center">Status</TableHead>
-                <TableHead className="text-white font-black uppercase text-[10px] text-right">Ações</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Empresa / CNPJ</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-center">Qtd. Funcionários</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm">Início da Vigência</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right">Honorário Mensal</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-center">Status</TableHead>
+                <TableHead className="text-slate-500 font-medium text-sm text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-32 text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#1FA67A]" />
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#2563EB]" />
                   </TableCell>
                 </TableRow>
               ) : filteredContracts.length > 0 ? (
@@ -262,32 +317,65 @@ export default function ContatosPage() {
                   <TableRow key={item.id} className="hover:bg-[#F7F7F7]/50">
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-bold text-[#2C4156]">{item.clientName}</span>
+                        <span className="font-semibold text-[#2C4156]">{item.clientName}</span>
                         <span className="text-[10px] text-[#98A7AA] font-mono">{item.clientCnpj}</span>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1 max-w-[300px]">
-                        {(item.services || []).map((s: string) => (
-                          <Badge key={s} variant="secondary" className="text-[8px] font-black uppercase bg-white border">
-                            {s}
-                          </Badge>
-                        ))}
-                      </div>
+                    <TableCell className="text-center">
+                      <Badge variant="secondary" className="text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5">
+                        <Users className="h-3 w-3 mr-1" /> {item.employeeCount !== undefined ? item.employeeCount : 0} func/sócio
+                      </Badge>
                     </TableCell>
-                    <TableCell className="text-xs font-bold text-[#39586D]">{item.startDate}</TableCell>
-                    <TableCell className="text-right font-black text-[#1FA67A]">R$ {Number(item.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-xs font-semibold text-[#39586D]">
+                      {item.startDate ? new Date(item.startDate).toLocaleDateString('pt-BR') : '--'}
+                    </TableCell>
+                    <TableCell className="text-right font-bold text-[#2563EB]">
+                      R$ {Number(item.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </TableCell>
                     <TableCell className="text-center">
                       <Badge className={cn(
-                        "text-[9px] font-black uppercase border-none",
-                        item.status === 'Ativo' ? 'bg-[#7ED6B5] text-[#1FA67A]' : 'bg-[#F3F4F6] text-[#98A7AA]'
-                      )}>{item.status}</Badge>
+                        "text-[9px] font-medium border-none",
+                        item.status === 'Ativo' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'
+                      )}>{item.status || "Ativo"}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-[#2574A9]" onClick={() => handleEdit(item)}><Edit2 className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-[#2C4156]" onClick={() => handleGeneratePDF(item)}><Printer className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C]" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4" /></Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 text-blue-600 hover:text-blue-800 font-bold text-xs gap-1" 
+                          onClick={() => handleOpenPreview(item)}
+                          title="Visualizar Contrato em Tela"
+                        >
+                          <Printer className="h-3.5 w-3.5" /> Visualizar
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 text-emerald-600 hover:text-emerald-800 font-bold text-xs gap-1" 
+                          onClick={() => handleDownloadDocx(item)}
+                          title="Baixar Contrato em Word (.docx)"
+                        >
+                          <Download className="h-3.5 w-3.5" /> .DOCX
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-[#2574A9]" 
+                          onClick={() => handleEdit(item)}
+                          title="Editar Parâmetros do Contrato"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-[#E74C3C]" 
+                          onClick={() => handleDelete(item.id)}
+                          title="Excluir Contrato"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -295,7 +383,7 @@ export default function ContatosPage() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={6} className="h-32 text-center text-[#98A7AA] font-bold">
-                    Nenhum contrato localizado no banco de dados.
+                    Nenhum contrato cadastrado até o momento.
                   </TableCell>
                 </TableRow>
               )}
@@ -304,188 +392,219 @@ export default function ContatosPage() {
         </CardContent>
       </Card>
 
+      {/* MODAL DE CADASTRO/EDIÇÃO DE CONTRATO (IMAGEM 1) */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-black text-[#2C4156] uppercase">
-              {editingId ? "Editar Contrato" : "Novo Contrato Contábil"}
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="border-b pb-4">
+            <DialogTitle className="text-xl font-bold text-[#2C4156] uppercase tracking-wide">
+              {editingId ? "EDITAR CONTRATO CONTÁBIL" : "NOVO CONTRATO CONTÁBIL"}
             </DialogTitle>
-            <DialogDescription className="font-medium">Defina o escopo de serviços e os parâmetros de faturamento.</DialogDescription>
+            <DialogDescription className="text-xs text-[#98A7AA] font-medium">
+              Defina o escopo de serviços e os parâmetros de faturamento.
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-6 py-4">
-            <div className="col-span-2 space-y-2">
-              <Label className="text-xs font-black text-[#98A7AA] uppercase">Empresa (Cliente)</Label>
-              <ClientSearchSelect 
-                clients={clients} 
+
+          <div className="grid grid-cols-2 gap-4 py-4">
+            {/* EMPRESA (CLIENTE) */}
+            <div className="col-span-2 space-y-1.5">
+              <Label className="text-xs font-black text-[#2C4156] uppercase tracking-wider">
+                EMPRESA (CLIENTE)
+              </Label>
+              <ClientCombobox 
                 value={formData.clientId} 
-                onValueChange={(v: string) => setFormData({...formData, clientId: v})} 
+                onChange={(v: string) => setFormData({...formData, clientId: v})} 
                 disabled={!!editingId}
               />
             </div>
 
-            <div className="col-span-2 space-y-3">
-              <Label className="text-xs font-black text-[#98A7AA] uppercase">Serviços Contratados (Múltipla Escolha)</Label>
-              <div className="grid grid-cols-2 gap-3 p-4 bg-[#F7F7F7] rounded-xl border">
-                {SERVICE_OPTIONS.map((service) => (
-                  <div key={service.id} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={service.id} 
-                      checked={formData.services.includes(service.label)}
-                      onCheckedChange={() => toggleService(service.label)}
-                    />
-                    <label htmlFor={service.id} className="text-xs font-bold uppercase text-[#39586D] cursor-pointer">
-                      {service.label}
+            {/* TIPO DE TRIBUTAÇÃO (cada regime possui seu modelo de contrato) */}
+            <div className="col-span-2 space-y-2 border border-slate-200 rounded-xl p-4 bg-slate-50/50">
+              <Label className="text-xs font-black text-[#2C4156] uppercase tracking-wider block">
+                TIPO DE TRIBUTAÇÃO
+              </Label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                {TAX_REGIMES.map((r) => {
+                  const isSelected = formData.taxRegime === r.id
+                  return (
+                    <label 
+                      key={r.id} 
+                      id={`regime-${r.id.replace(/\s+/g, "-").toLowerCase()}`}
+                      className={cn(
+                        "flex items-center gap-3 p-3 rounded-xl border text-xs font-bold cursor-pointer transition-all",
+                        isSelected 
+                          ? "bg-blue-50/80 border-blue-600 text-blue-900 shadow-sm" 
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100/50"
+                      )}
+                    >
+                      <input 
+                        type="radio"
+                        name="taxRegime"
+                        checked={isSelected}
+                        onChange={() => setFormData(prev => ({ ...prev, taxRegime: r.id }))}
+                        className="h-4 w-4 accent-blue-600"
+                      />
+                      <span className="flex flex-col">
+                        <span className="uppercase text-[11px] font-extrabold tracking-tight">{r.label}</span>
+                        <span className="text-[9px] font-medium text-slate-400">{r.description}</span>
+                      </span>
                     </label>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs font-black text-[#98A7AA] uppercase">Valor Mensal (R$)</Label>
+            {/* QUANTIDADE DE FUNCIONÁRIOS (PERMITE 0 FUNCIONÁRIOS CONFORME IMAGEM 1) */}
+            <div className="col-span-2 space-y-1.5">
+              <Label className="text-xs font-black text-[#2C4156] uppercase tracking-wider">
+                QUANTIDADE DE FUNCIONÁRIOS
+              </Label>
+              <Input 
+                type="number" 
+                min="0" 
+                placeholder="Ex: 0" 
+                className="border-[#D2D7DB] bg-white font-bold" 
+                value={formData.employeeCount}
+                onChange={(e) => setFormData({...formData, employeeCount: Math.max(0, Number(e.target.value))})}
+              />
+            </div>
+
+            {/* VALOR MENSAL (R$) */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-black text-[#2C4156] uppercase tracking-wider">
+                VALOR MENSAL (R$)
+              </Label>
               <Input 
                 type="number" 
                 placeholder="0,00" 
-                className="border-[#D2D7DB]" 
-                value={formData.value}
+                className="border-[#D2D7DB] bg-white font-bold text-blue-700" 
+                value={formData.value || ""}
                 onChange={(e) => setFormData({...formData, value: Number(e.target.value)})}
               />
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-black text-[#98A7AA] uppercase">Início da Vigência</Label>
+
+            {/* INÍCIO DA VIGÊNCIA */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-black text-[#2C4156] uppercase tracking-wider">
+                INÍCIO DA VIGÊNCIA
+              </Label>
               <Input 
                 type="date" 
-                className="border-[#D2D7DB]" 
+                className="border-[#D2D7DB] bg-white" 
                 value={formData.startDate}
                 onChange={(e) => setFormData({...formData, startDate: e.target.value})}
               />
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-black text-[#98A7AA] uppercase">Dia de Vencimento</Label>
+
+            {/* DIA DE VENCIMENTO */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-black text-[#2C4156] uppercase tracking-wider">
+                DIA DE VENCIMENTO
+              </Label>
               <Input 
                 type="number" 
                 min="1" 
                 max="28" 
-                className="border-[#D2D7DB]" 
+                placeholder="Ex: 10" 
+                className="border-[#D2D7DB] bg-white font-bold" 
                 value={formData.dueDay}
                 onChange={(e) => setFormData({...formData, dueDay: Number(e.target.value)})}
               />
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-black text-[#98A7AA] uppercase">Status do Contrato</Label>
+
+            {/* STATUS DO CONTRATO */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-black text-[#2C4156] uppercase tracking-wider">
+                STATUS DO CONTRATO
+              </Label>
               <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
-                <SelectTrigger className="border-[#D2D7DB]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="border-[#D2D7DB] bg-white font-bold"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Ativo">ATIVO</SelectItem>
-                  <SelectItem value="Suspenso">SUSPENSO</SelectItem>
-                  <SelectItem value="Cancelado">CANCELADO</SelectItem>
+                  <SelectItem value="Ativo" className="font-bold text-emerald-700">ATIVO</SelectItem>
+                  <SelectItem value="Suspenso" className="font-bold text-amber-700">SUSPENSO</SelectItem>
+                  <SelectItem value="Cancelado" className="font-bold text-red-700">CANCELADO</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-2 space-y-2">
-              <Label className="text-xs font-black text-[#98A7AA] uppercase">Observações Internas</Label>
+
+            {/* OBSERVAÇÕES INTERNAS */}
+            <div className="col-span-2 space-y-1.5">
+              <Label className="text-xs font-black text-[#2C4156] uppercase tracking-wider">
+                OBSERVAÇÕES INTERNAS
+              </Label>
               <Textarea 
                 placeholder="Detalhes sobre fidelidade, bonificações, etc..." 
-                className="border-[#D2D7DB]" 
+                className="border-[#D2D7DB] bg-white text-xs" 
+                rows={3}
                 value={formData.notes}
                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
               />
             </div>
           </div>
-          <DialogFooter className="bg-[#F7F7F7] -mx-6 -mb-6 p-6 border-t mt-4">
+
+          <DialogFooter className="bg-[#F7F7F7] -mx-6 -mb-6 p-4 border-t flex justify-end gap-2">
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-            <Button className="bg-[#1FA67A] font-bold px-8" onClick={handleSaveContract}>
-              <Save className="h-4 w-4 mr-2" /> {editingId ? "Salvar Alterações" : "Ativar Contrato"}
+            <Button className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-bold px-6 shadow-md" onClick={handleSaveContract}>
+              <Save className="h-4 w-4 mr-2" /> Ativar Contrato
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* MODAL DE VISUALIZAÇÃO DO CONTRATO COMPLETO (IMAGENS 2, 3, 4) */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#F7F7F7] p-0 border-none">
-          <DialogHeader className="p-6 bg-white border-b sticky top-0 z-10 no-print">
-            <div className="flex justify-between items-center">
-              <div>
-                <DialogTitle className="text-xl font-black text-[#2C4156]">Visualização do Contrato</DialogTitle>
-                <DialogDescription className="text-xs font-bold text-[#98A7AA]">Ref: {selectedContract?.id?.toUpperCase()}</DialogDescription>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setIsPreviewOpen(false)}>Fechar</Button>
-                <Button className="bg-[#1FA67A] gap-2 font-bold" onClick={() => window.print()}>
-                  <Printer className="h-4 w-4" /> Imprimir / PDF
-                </Button>
-              </div>
+        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto bg-slate-100 p-0 border-none">
+          <DialogHeader className="p-4 bg-white border-b sticky top-0 z-10 shadow-sm flex flex-row items-center justify-between no-print">
+            <div>
+              <DialogTitle className="text-lg font-bold text-[#2C4156]">
+                Contrato de Prestação de Serviços Contábeis
+              </DialogTitle>
+              <DialogDescription className="text-xs font-medium text-slate-500">
+                Cliente: <strong className="text-slate-800">{selectedContract?.clientName}</strong> | CNPJ: {selectedContract?.clientCnpj}
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="font-bold text-xs" 
+                onClick={() => setIsPreviewOpen(false)}
+              >
+                Fechar
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="font-bold text-xs gap-1.5 border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+                onClick={() => handleDownloadDocx(selectedContract)}
+                disabled={isGeneratingDocx}
+              >
+                {isGeneratingDocx ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                Baixar Word (.DOCX)
+              </Button>
+              <Button 
+                size="sm" 
+                className="bg-[#2563EB] hover:bg-blue-700 text-white font-bold text-xs gap-1.5 shadow"
+                onClick={handlePrint}
+                disabled={!contractBlocks}
+              >
+                <Printer className="h-3.5 w-3.5" /> Imprimir / PDF
+              </Button>
             </div>
           </DialogHeader>
           
-          <div className="p-16 bg-white shadow-xl mx-auto my-8 w-full min-h-[297mm] text-[#2C4156] text-[12px] leading-relaxed font-serif border print-container">
-            {/* Header Timbrado */}
-            <div className="flex justify-between items-start mb-12 border-b-2 border-[#003366] pb-8">
-              <div className="flex items-start gap-4">
-                <div className="flex flex-col">
-                  <span className="text-2xl font-serif italic text-[#003366] tracking-tighter">Prosperare</span>
-                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#98A7AA]">Serviços Contábeis</span>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-black uppercase text-[#98A7AA]">Contrato de Prestação de Serviços</p>
-                <p className="text-[9px] font-bold">Nº {selectedContract?.id?.substr(0,8).toUpperCase()}</p>
-              </div>
+          {contractBlocks ? (
+            <div className="overflow-x-auto">
+              <LetterheadSheet ref={sheetRef} letterhead={letterhead}>
+                <BlocksRenderer blocks={contractBlocks} />
+              </LetterheadSheet>
             </div>
-
-            <div className="text-center space-y-4 mb-12">
-              <h2 className="text-xl font-black uppercase underline underline-offset-8">INSTRUMENTO PARTICULAR DE CONTRATO DE PRESTAÇÃO DE SERVIÇOS CONTÁBEIS</h2>
+          ) : (
+            <div className="m-6 p-10 bg-white rounded-xl border border-dashed border-amber-300 text-center">
+              <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto mb-3" />
+              <p className="font-bold text-[#2C4156]">Modelo de contrato para {normalizeRegime(selectedContract?.taxRegime || selectedContract?.clientRegime)} ainda não cadastrado.</p>
+              <p className="text-xs text-slate-500 mt-1">Envie o texto do modelo para que ele seja incluído no sistema.</p>
             </div>
-            
-            <div className="space-y-8 text-justify">
-              <section className="space-y-3">
-                <h3 className="font-black text-[11px] uppercase text-[#003366] border-b">1. DAS PARTES</h3>
-                <p><strong>CONTRATADA:</strong> PROSPERARE FLOW SERVIÇOS CONTÁBEIS LTDA, inscrita no CNPJ sob o nº 12.345.678/0001-90, com sede administrativa em Macapá - AP.</p>
-                <p><strong>CONTRATANTE:</strong> {selectedContract?.clientName?.toUpperCase()}, inscrita no CNPJ sob o nº {selectedContract?.clientCnpj}, com sede no endereço cadastrado em nossa base de dados.</p>
-              </section>
-
-              <section className="space-y-3">
-                <h3 className="font-black text-[11px] uppercase text-[#003366] border-b">2. DO OBJETO</h3>
-                <p>O presente instrumento tem por objeto a prestação de serviços especializados abrangendo as seguintes áreas:</p>
-                <ul className="list-disc pl-8 space-y-1 font-bold">
-                  {(selectedContract?.services || []).map((s: string) => (
-                    <li key={s}>{s.toUpperCase()}</li>
-                  ))}
-                </ul>
-                <p>Os serviços serão executados em conformidade com o regime tributário <strong>{selectedContract?.clientRegime}</strong> da CONTRATANTE.</p>
-              </section>
-
-              <section className="space-y-3">
-                <h3 className="font-black text-[11px] uppercase text-[#003366] border-b">3. DOS HONORÁRIOS</h3>
-                <p>Pelos serviços ora contratados, a CONTRATANTE pagará à CONTRATADA o valor mensal de <strong>R$ {Number(selectedContract?.value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>.</p>
-                <p>O vencimento ocorrerá impreterivelmente todo <strong>dia {selectedContract?.dueDay}</strong> de cada mês subsequente ao serviço prestado, através de boleto bancário ou PIX.</p>
-              </section>
-
-              <section className="space-y-3">
-                <h3 className="font-black text-[11px] uppercase text-[#003366] border-b">4. DA VIGÊNCIA</h3>
-                <p>Este contrato inicia seus efeitos em <strong>{selectedContract?.startDate ? new Date(selectedContract.startDate).toLocaleDateString('pt-BR') : '--'}</strong>, com prazo de validade indeterminado, podendo ser rescindido por qualquer das partes mediante aviso prévio de 30 (trinta) dias.</p>
-              </section>
-            </div>
-
-            <div className="mt-32 flex justify-between gap-16 px-12">
-              <div className="flex-1 text-center space-y-2">
-                <div className="border-t-2 border-[#2C4156] pt-2 font-black text-[10px]">PROSPERARE FLOW</div>
-                <p className="text-[8px] font-bold text-[#98A7AA] uppercase">CONTRATADA</p>
-              </div>
-              <div className="flex-1 text-center space-y-2">
-                <div className="border-t-2 border-[#2C4156] pt-2 font-black text-[10px]">{selectedContract?.clientName}</div>
-                <p className="text-[8px] font-bold text-[#98A7AA] uppercase">CONTRATANTE</p>
-              </div>
-            </div>
-
-            {/* Footer Timbrado */}
-            <div className="mt-auto pt-12">
-              <div className="bg-[#003366] p-4 flex justify-between items-center text-white text-[9px] font-bold rounded-sm">
-                <span className="uppercase">PROSPERARE SERVIÇOS CONTÁBEIS LTDA</span>
-                <span className="font-normal italic">Emitido via Prosperare Flow em {new Date().toLocaleDateString('pt-BR')}</span>
-              </div>
-            </div>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
@@ -494,7 +613,7 @@ export default function ContatosPage() {
 
 function MetricCard({ label, value, icon: Icon, color }: any) {
   return (
-    <Card className="border-[#D2D7DB] hover:border-[#1FA67A] transition-colors group bg-white">
+    <Card className="border-[#D2D7DB] hover:border-[#2563EB] transition-colors group bg-white">
       <CardContent className="p-4 flex items-center gap-4">
         <div className="p-3 rounded-xl group-hover:bg-[#F7F7F7] transition-colors" style={{ color }}>
           <Icon className="h-6 w-6" />

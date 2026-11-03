@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import { toast } from "@/hooks/use-toast"
 
 const ACCESSES = [
@@ -25,15 +26,15 @@ export default function SegurancaLogsPage() {
   return (
     <div className="max-w-5xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-[#2C4156]">Segurança e Logs</h1>
-        <p className="text-[#98A7AA] font-medium">Controle de acesso e monitoramento de integridade do sistema.</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-[#2C4156]">Segurança e Logs</h1>
+        <p className="text-[#98A7AA] font-medium text-sm">Controle de acesso e monitoramento de integridade do sistema.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Card className="border-[#D2D7DB]">
             <CardHeader className="bg-[#F7F7F7]/50">
-              <CardTitle className="text-lg flex items-center gap-2">
+              <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <Monitor className="h-5 w-5 text-[#2C4156]" />
                 Acessos Recentes
               </CardTitle>
@@ -41,22 +42,22 @@ export default function SegurancaLogsPage() {
             </CardHeader>
             <CardContent className="p-0">
               <Table>
-                <TableHeader className="bg-[#2C4156]">
+                <TableHeader className="bg-slate-50 border-b border-slate-200">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-white text-[10px] uppercase font-bold">Usuário</TableHead>
-                    <TableHead className="text-white text-[10px] uppercase font-bold">Data/Hora</TableHead>
-                    <TableHead className="text-white text-[10px] uppercase font-bold">IP / Dispositivo</TableHead>
-                    <TableHead className="text-white text-[10px] uppercase font-bold text-center">Status</TableHead>
+                    <TableHead className="text-slate-500 font-medium text-sm">Usuário</TableHead>
+                    <TableHead className="text-slate-500 font-medium text-sm">Data/Hora</TableHead>
+                    <TableHead className="text-slate-500 font-medium text-sm">IP / Dispositivo</TableHead>
+                    <TableHead className="text-slate-500 font-medium text-sm text-center">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {ACCESSES.map((acc, i) => (
                     <TableRow key={i} className="text-xs">
-                      <TableCell className="font-bold">{acc.user}</TableCell>
-                      <TableCell>{acc.time}</TableCell>
+                      <TableCell className="font-semibold text-slate-700">{acc.user}</TableCell>
+                      <TableCell className="text-slate-600">{acc.time}</TableCell>
                       <TableCell className="text-[#98A7AA]">{acc.ip} <br/> {acc.device}</TableCell>
                       <TableCell className="text-center">
-                        <Badge className={acc.status === 'Sucesso' ? "bg-[#7ED6B5] text-[#1FA67A] border-none" : "bg-[#FEE2E2] text-[#E74C3C] border-none"}>
+                        <Badge className={acc.status === 'Sucesso' ? "bg-emerald-50 text-emerald-700 border-none" : "bg-red-50 text-red-700 border-none"}>
                           {acc.status}
                         </Badge>
                       </TableCell>
@@ -70,7 +71,7 @@ export default function SegurancaLogsPage() {
           <Card className="border-[#D2D7DB]">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <History className="h-5 w-5 text-[#1FA67A]" />
+                <History className="h-5 w-5 text-[#2563EB]" />
                 Histórico de Alterações
               </CardTitle>
               <CardDescription>Log de quem alterou o quê nas configurações.</CardDescription>

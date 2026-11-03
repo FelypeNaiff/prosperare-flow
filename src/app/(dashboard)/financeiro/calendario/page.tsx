@@ -94,7 +94,7 @@ export default function FinanceiroCalendarioPage() {
     const today = new Date()
     const isOverdue = !isPaid && isBefore(eventDate, today)
 
-    if (isPaid) return "bg-[#7ED6B5] text-[#1FA67A]"
+    if (isPaid) return "bg-[#7ED6B5] text-[#2563EB]"
     if (isOverdue) return "bg-[#FEE2E2] text-[#E74C3C]"
     return "bg-[#FEF3C7] text-[#F2B705]"
   }
@@ -105,7 +105,7 @@ export default function FinanceiroCalendarioPage() {
     const today = new Date()
     const isOverdue = !isPaid && isBefore(eventDate, today)
 
-    if (isPaid) return "bg-[#1FA67A]"
+    if (isPaid) return "bg-[#2563EB]"
     if (isOverdue) return "bg-[#E74C3C]"
     return "bg-[#F2B705]"
   }
@@ -113,7 +113,7 @@ export default function FinanceiroCalendarioPage() {
   if (!currentDate || loadingPayables || loadingReceivables) {
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-[#1FA67A]" />
+        <Loader2 className="h-10 w-10 animate-spin text-[#2563EB]" />
         <p className="text-xs font-black uppercase text-[#98A7AA] tracking-widest">Sincronizando Agenda Financeira...</p>
       </div>
     )
@@ -126,7 +126,7 @@ export default function FinanceiroCalendarioPage() {
         
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-4 text-[10px] font-black uppercase text-[#98A7AA] tracking-widest">
-            <span className="flex items-center gap-1.5"><Circle className="h-2 w-2 fill-[#1FA67A] text-[#1FA67A]" /> Pago</span>
+            <span className="flex items-center gap-1.5"><Circle className="h-2 w-2 fill-[#2563EB] text-[#2563EB]" /> Pago</span>
             <span className="flex items-center gap-1.5"><Circle className="h-2 w-2 fill-[#F2B705] text-[#F2B705]" /> Pendente</span>
             <span className="flex items-center gap-1.5"><Circle className="h-2 w-2 fill-[#E74C3C] text-[#E74C3C]" /> Vencido</span>
           </div>
@@ -172,7 +172,7 @@ export default function FinanceiroCalendarioPage() {
                 <div className="flex justify-between items-center">
                   <span className={cn(
                     "text-xs font-bold w-7 h-7 flex items-center justify-center rounded-full transition-all",
-                    isToday ? "bg-[#1FA67A] text-white shadow-lg shadow-emerald-500/30" : "text-[#2C4156]",
+                    isToday ? "bg-[#2563EB] text-white shadow-lg shadow-emerald-500/30" : "text-[#2C4156]",
                     !isCurrentMonth && "opacity-20"
                   )}>
                     {format(day, 'd')}

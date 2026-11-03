@@ -152,7 +152,7 @@ export function RevenueDeclarationForm() {
           <CardContent className="p-6 space-y-6">
             <div className="flex items-center justify-between">
               <h4 className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.2em]">Identificação da Empresa</h4>
-              <Button variant="ghost" size="sm" className="text-[10px] font-bold text-[#1FA67A] uppercase gap-1" onClick={() => setIsManualClient(!isManualClient)}>
+              <Button variant="ghost" size="sm" className="text-[10px] font-bold text-[#2563EB] uppercase gap-1" onClick={() => setIsManualClient(!isManualClient)}>
                 <RefreshCcw className="h-4 w-4" /> {isManualClient ? "Base de Dados" : "Digitar Manual"}
               </Button>
             </div>
@@ -239,7 +239,7 @@ export function RevenueDeclarationForm() {
               <CardTitle className="text-sm font-black text-[#2C4156] uppercase">Pré-visualização do Relatório</CardTitle>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setIsPreviewOpen(false)}><X className="h-4 w-4 mr-1" /> Fechar</Button>
-                <Button size="sm" className="bg-[#1FA67A] gap-2 font-bold uppercase text-[10px]" onClick={() => window.print()}>
+                <Button size="sm" className="bg-[#2563EB] gap-2 font-bold uppercase text-[10px]" onClick={() => window.print()}>
                   <Printer className="h-3 w-3" /> Gerar PDF
                 </Button>
               </div>

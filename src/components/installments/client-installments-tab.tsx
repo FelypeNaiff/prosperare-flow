@@ -87,11 +87,11 @@ export function ClientInstallmentsTab({ clientId }: { clientId: string }) {
 
       <div className="flex justify-between items-center bg-[#F7F7F7] p-4 rounded-xl border">
         <div className="flex gap-6">
-          <StatItem label="Ativos" value={stats.ativos} color="text-[#1FA67A]" />
+          <StatItem label="Ativos" value={stats.ativos} color="text-[#2563EB]" />
           <StatItem label="Cancelados" value={stats.cancelados} color="text-[#E74C3C]" />
           <StatItem label="Quitados" value={stats.quitados} color="text-[#2574A9]" />
         </div>
-        <Button size="sm" className="bg-[#1FA67A] font-bold gap-2" onClick={() => setIsNewModalOpen(true)}>
+        <Button size="sm" className="bg-[#2563EB] font-bold gap-2" onClick={() => setIsNewModalOpen(true)}>
           <Plus className="h-4 w-4" /> Novo Parcelamento
         </Button>
       </div>
@@ -114,7 +114,7 @@ export function ClientInstallmentsTab({ clientId }: { clientId: string }) {
                         <div className="flex justify-between items-start">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <CreditCard className={cn("h-4 w-4", isCancelled ? "text-slate-400" : "text-[#1FA67A]")} />
+                              <CreditCard className={cn("h-4 w-4", isCancelled ? "text-slate-400" : "text-[#2563EB]")} />
                               <span className={cn("text-sm font-black text-[#2C4156] uppercase tracking-tight", isCancelled && "line-through")}>
                                 {inst.tipo}
                               </span>
@@ -123,7 +123,7 @@ export function ClientInstallmentsTab({ clientId }: { clientId: string }) {
                           </div>
                           <Badge className={cn(
                             "text-[9px] font-black uppercase border-none",
-                            inst.status === 'Ativo' ? "bg-[#7ED6B5] text-[#1FA67A]" : "bg-[#FEE2E2] text-[#E74C3C]"
+                            inst.status === 'Ativo' ? "bg-[#7ED6B5] text-[#2563EB]" : "bg-[#FEE2E2] text-[#E74C3C]"
                           )}>
                             {inst.status === 'Ativo' ? 'Ativo' : `Cancelado`}
                           </Badge>
@@ -136,7 +136,7 @@ export function ClientInstallmentsTab({ clientId }: { clientId: string }) {
                           </div>
                           <div className="space-y-0.5 text-right">
                             <p className="text-[10px] font-bold text-[#98A7AA] uppercase tracking-widest">Valor Mensal</p>
-                            <p className="text-sm font-black text-[#1FA67A]">R$ {(inst.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                            <p className="text-sm font-black text-[#2563EB]">R$ {(inst.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                           </div>
                         </div>
 

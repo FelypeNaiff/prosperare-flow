@@ -35,7 +35,7 @@ export function ChatWidget() {
     return (
       <Button 
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-[#1FA67A] hover:bg-[#1FA67A]/90 z-50 group"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl bg-[#2563EB] hover:bg-[#2563EB]/90 z-50 group"
       >
         <MessageSquare className="h-6 w-6 text-white" />
         {unreadCount > 0 && (
@@ -54,7 +54,7 @@ export function ChatWidget() {
     )}>
       <CardHeader className="p-3 bg-[#2C4156] text-white rounded-t-lg flex flex-row items-center justify-between space-y-0">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-[#1FA67A] animate-pulse" />
+          <div className="w-2 h-2 rounded-full bg-[#2563EB] animate-pulse" />
           <CardTitle className="text-sm font-bold tracking-tight">COMUNICAÇÃO FLOW</CardTitle>
         </div>
         <div className="flex items-center gap-1">
@@ -120,7 +120,7 @@ export function ChatWidget() {
                   <div className="relative">
                     <AtSign className="absolute left-2.5 top-2.5 h-4 w-4 text-[#98A7AA]" />
                     <Input placeholder="Escreva uma mensagem... (@mencionar)" className="pl-9 h-10 bg-white text-sm" />
-                    <Button size="icon" className="absolute right-1 top-1 h-8 w-8 bg-[#1FA67A]">
+                    <Button size="icon" className="absolute right-1 top-1 h-8 w-8 bg-[#2563EB]">
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
@@ -146,7 +146,7 @@ export function ChatWidget() {
                             </Avatar>
                             <div className={cn(
                               "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white",
-                              user.status === 'online' ? 'bg-[#1FA67A]' : user.status === 'away' ? 'bg-[#F2B705]' : 'bg-[#D2D7DB]'
+                              user.status === 'online' ? 'bg-[#2563EB]' : user.status === 'away' ? 'bg-[#F2B705]' : 'bg-[#D2D7DB]'
                             )} />
                           </div>
                           <div className="flex-1 text-left">
@@ -172,7 +172,7 @@ export function ChatWidget() {
                         <div key={act.id} className="flex gap-3 items-start border-b pb-3 last:border-0">
                           <div className={cn(
                             "mt-1 w-2 h-2 rounded-full shrink-0",
-                            act.type === 'system' ? 'bg-[#2C4156]' : 'bg-[#1FA67A]'
+                            act.type === 'system' ? 'bg-[#2C4156]' : 'bg-[#2563EB]'
                           )} />
                           <div className="flex-1">
                             <p className="text-xs text-[#39586D] leading-tight font-medium">{act.text}</p>

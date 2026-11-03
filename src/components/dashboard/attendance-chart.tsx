@@ -6,7 +6,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 
 const data = [
   { name: "Pessoal", value: 8, color: "#2574A9" },
-  { name: "Fiscal", value: 5, color: "#1FA67A" },
+  { name: "Fiscal", value: 5, color: "#2563EB" },
   { name: "Contábil", value: 3, color: "#C0392B" },
   { name: "Adm", value: 2, color: "#39586D" },
 ]
