@@ -20,7 +20,8 @@ import {
   Calendar,
   AlertTriangle,
   RefreshCcw,
-  Zap
+  Zap,
+  Copy
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -154,6 +155,27 @@ export default function GruposObrigacoesPage() {
   const handleOpenGenModal = (group: any) => {
     setSelectedGroupForGen(group)
     setIsGenModalOpen(true)
+  }
+
+  const handleDuplicateGroup = (group: any) => {
+    setSearchVinculadas("")
+    setSearchNova("")
+    setEditingGroup(null)
+    setFormData({
+      name: `${group.name || "GRUPO"} — CÓPIA`,
+      dept: group.dept || "Fiscal",
+      icon: group.icon || "📋",
+      color: group.color || "#2563EB",
+      active: group.active !== false,
+      processes: (group.processes || []).map((process: any) => ({
+        ...process,
+        id: crypto.randomUUID(),
+      })),
+      clientesVinculados: [...(group.clientesVinculados || [])],
+      linkedModelId: group.linkedModelId || "",
+    })
+    setActiveTab("config")
+    setIsModalOpen(true)
   }
 
   const handleGenerateProcessos = async () => {
@@ -422,6 +444,15 @@ export default function GruposObrigacoesPage() {
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" className="h-8 text-[9px] font-black uppercase border-[#D2D7DB] gap-1 flex-1 text-[#2C4156]" onClick={() => handleOpenModal(group)}>
                         <Edit className="h-3 w-3" /> Gerenciar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-[9px] font-black uppercase border-[#D2D7DB] gap-1 flex-1 text-[#2C4156]"
+                        onClick={() => handleDuplicateGroup(group)}
+                        title={`Duplicar ${group.name}`}
+                      >
+                        <Copy className="h-3 w-3" /> Duplicar
                       </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C] hover:bg-[#E74C3C]/10" onClick={() => handleDeleteGroup(group.id)}>
                         <Trash2 className="h-4 w-4" />
