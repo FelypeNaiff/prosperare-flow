@@ -35,6 +35,7 @@ import {
   CreditCard as InstallmentIcon,
   FileSignature,
   FileStack,
+  Receipt,
   UsersRound,
   ShieldCheck,
   Landmark,
@@ -120,6 +121,16 @@ const menuItems = [
     ]
   },
   {
+    title: "Fiscal",
+    url: "/fiscal/nfse",
+    icon: Receipt,
+    profiles: ["SÓCIO", "ADMINISTRADOR", "CONTADOR/GESTOR", "ASSISTENTE"],
+    subItems: [
+      { title: "NFS-e", url: "/fiscal/nfse", icon: Receipt },
+      { title: "Configurações", url: "/fiscal/configuracoes", icon: Settings },
+    ]
+  },
+  {
     title: "Financeiro",
     url: "/financeiro",
     icon: DollarSign,
@@ -202,6 +213,7 @@ export function AppSidebar() {
       else if (item.title === "Fluxo de Produção") permKey = "processos"
       else if (item.title === "Societário") permKey = "societario"
       else if (item.title === "Docs Flow") permKey = "docs_flow"
+      else if (item.title === "Fiscal") permKey = "fiscal"
       else if (item.title === "Financeiro") permKey = "financeiro"
       else if (item.title === "Gestão de Equipe") permKey = "equipe"
       else if (item.title === "Cadastros") permKey = "cadastros"

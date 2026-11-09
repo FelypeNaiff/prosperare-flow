@@ -1,0 +1,45 @@
+import * as crypto from 'crypto';
+import { SignedXml } from 'xml-crypto';
+
+export interface EmitirNfseParams {
+  certBuffer: Buffer;
+  certPassword: string;
+  dpsXml: string;
+}
+
+/**
+ * Assina digitalmente o XML do DPS usando o certificado digital A1 (.pfx).
+ */
+export function assinarDps(
+  dpsXml: string,
+  certBuffer: Buffer,
+  password: string,
+): string {
+  // Extrai chave e certificado do PFX.
+  const pfxParsed = crypto.pkcs12.parsePkcs12(certBuffer, password);
+  const privateKey = pfxParsed.key;
+
+  const signedXml = new SignedXml();
+  signedXml.signingKey = privateKey;
+
+  // Configuração padrão de assinatura exigida pelo Padrão Nacional NFS-e.
+  signedXml.addReference(
+    "//*[local-name(.)='DPS']",
+    [
+      'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
+      'http://www.w3.org/2001/04/xmlenc#sha256',
+    ],
+    'http://www.w3.org/2001/04/xmlenc#sha256',
+    '',
+    '',
+    '',
+    true,
+  );
+
+  signedXml.computeSignature(dpsXml, {
+    prefix: 'ds',
+    location: { reference: "//*[local-name(.)='DPS']", action: 'append' },
+  });
+
+  return signedXml.getSignedXml();
+}
