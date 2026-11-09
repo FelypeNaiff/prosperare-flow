@@ -13,7 +13,7 @@ const data = [
 ]
 
 const config = {
-  concluido: { label: "Concluído", color: "#1FA67A" },
+  concluido: { label: "Concluído", color: "#2563EB" },
   pendente: { label: "Pendente", color: "#F2B705" },
   atrasado: { label: "Atrasado", color: "#E74C3C" },
 }

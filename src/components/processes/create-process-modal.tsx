@@ -19,12 +19,21 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
-import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
-import { collection, doc } from "firebase/firestore"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection, doc, runTransaction } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
 import { Layers, Building2, Calendar, Save, Loader2, User } from "lucide-react"
 import { format, parse, addMonths, lastDayOfMonth, setDate } from "date-fns"
 import { MultiClientSearchSelect } from "@/components/clients/multi-client-search-select"
+import { getProcessDocumentId } from "@/lib/process-generation"
+
+const getCompetenceKey = (value: any) => {
+  if (!value) return ""
+  if (typeof value === "string") return value.slice(0, 7)
+  if (typeof value.toDate === "function") return format(value.toDate(), "yyyy-MM")
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? "" : format(date, "yyyy-MM")
+}
 
 export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOpenChange: (v: boolean) => void }) {
   const firestore = useFirestore()
@@ -38,6 +47,9 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
 
   const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
   const { data: team = [] } = useCollection(usersQuery)
+
+  const processesQuery = useMemoFirebase(() => collection(firestore, "processes"), [firestore])
+  const { data: existingProcesses = [] } = useCollection(processesQuery)
 
   const [formData, setFormData] = useState({
     modeloId: "",
@@ -61,6 +73,11 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
       return
     }
 
+    if (formData.clientIds.length > 500) {
+      toast({ title: "Limite excedido", description: "Gere no máximo 500 processos por vez.", variant: "destructive" })
+      return
+    }
+
     setIsSaving(true)
     try {
       const model = selectedModel
@@ -73,8 +90,8 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
         const [year, month, day] = formData.customDeadline.split("-")
         finalDueDateStr = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0).toISOString()
       } else {
-        const day = model.prazoFixo || 20
-        let dueDate = setDate(competenceDate, day)
+        const day = Number(model.prazoFixo) || 20
+        let dueDate = competenceDate
         
         if (model.competencia === 'mes_anterior') {
           dueDate = addMonths(dueDate, 1) 
@@ -82,53 +99,95 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
           dueDate = addMonths(dueDate, -1)
         }
 
-        const lastDay = lastDayOfMonth(dueDate)
-        if (dueDate > lastDay) dueDate = lastDay
+        const lastDay = lastDayOfMonth(dueDate).getDate()
+        dueDate = setDate(dueDate, Math.min(Math.max(day, 1), lastDay))
         finalDueDateStr = dueDate.toISOString()
       }
 
-      formData.clientIds.forEach(clientId => {
+      const selectedClients = formData.clientIds.map(clientId => {
         const client = (clients || []).find(c => c.id === clientId)
-        if (!client) return
+        if (!client) throw new Error(`Cliente não localizado: ${clientId}`)
+        return client
+      })
 
-        const id = Math.random().toString(36).substr(2, 9)
-        const processRef = doc(firestore, "processes", id)
+      const duplicateClients: any[] = []
+      const eligibleClients = selectedClients.filter(client => {
+        const duplicateKey = getProcessDocumentId(model.id, client.id, formData.competencia, isSporadic ? formData.customDeadline : undefined)
+        const duplicate = (existingProcesses || []).some(existing => {
+          if (existing.duplicateKey === duplicateKey) return true
+          const sameModel = existing.modeloId
+            ? existing.modeloId === model.id
+            : String(existing.nomeProcesso || "").trim().toLowerCase() === String(model.nome || "").trim().toLowerCase()
+          const sameBase = sameModel
+            && existing.clienteId === client.id
+            && getCompetenceKey(existing.competencia) === formData.competencia
+          if (!sameBase) return false
+          return !isSporadic || String(existing.prazo || "").slice(0, 10) === formData.customDeadline
+        })
+        if (duplicate) duplicateClients.push(client)
+        return !duplicate
+      })
 
-        let finalResponsible = formData.responsavelId === "Padrao" 
-          ? (model.responsavelPadraoId !== "Geral" ? model.responsavelPadraoId : (client.accountingContactUserId || "Geral"))
-          : formData.responsavelId
+      if (eligibleClients.length === 0) {
+        toast({
+          title: "Nenhum processo criado",
+          description: `Todos os ${duplicateClients.length} processos já existem para esta competência.`,
+          variant: "destructive"
+        })
+        return
+      }
 
-        const newProcess = {
-          id,
-          modeloId: model.id,
-          clienteId: client.id,
-          nomeProcesso: model.nome,
-          situacao: "a_fazer",
-          departamento: model.departamento || "Geral",
-          responsavelId: finalResponsible,
-          prazo: finalDueDateStr,
-          prazoMeta: finalDueDateStr,
-          competencia: competenceDate.toISOString(),
-          criadoEm: new Date().toISOString(),
-          tarefas: (model.tarefas || []).map((t: any) => ({
-            id: Math.random().toString(36).substr(2, 5),
-            modeloTarefaId: t.id,
-            titulo: t.titulo,
-            situacao: "a_fazer"
-          }))
+      const createdAt = new Date().toISOString()
+
+      await runTransaction(firestore, async transaction => {
+        const processEntries = eligibleClients.map(client => {
+          const duplicateKey = getProcessDocumentId(model.id, client.id, formData.competencia, isSporadic ? formData.customDeadline : undefined)
+          return { client, duplicateKey, processRef: doc(firestore, "processes", duplicateKey) }
+        })
+        const snapshots = await Promise.all(processEntries.map(entry => transaction.get(entry.processRef)))
+        if (snapshots.some(snapshot => snapshot.exists())) {
+          throw new Error("Um dos processos foi criado por outro usuário durante esta operação.")
         }
 
-        setDocumentNonBlocking(processRef, newProcess, { merge: true })
+        processEntries.forEach(({ client, duplicateKey, processRef }) => {
+          const finalResponsible = formData.responsavelId === "Padrao"
+            ? (model.responsavelPadraoId !== "Geral" ? model.responsavelPadraoId : (client.accountingContactUserId || "Geral"))
+            : formData.responsavelId
+
+          transaction.set(processRef, {
+            id: processRef.id,
+            duplicateKey,
+            modeloId: model.id,
+            clienteId: client.id,
+            nomeProcesso: model.nome,
+            situacao: "a_fazer",
+            departamento: model.departamento || "Geral",
+            responsavelId: finalResponsible,
+            prazo: finalDueDateStr,
+            prazoMeta: finalDueDateStr,
+            competencia: competenceDate.toISOString(),
+            competenciaKey: formData.competencia,
+            criadoEm: createdAt,
+            origemCriacao: "AVULSO",
+            tarefas: (model.tarefas || []).map((t: any) => ({
+              id: crypto.randomUUID(),
+              modeloTarefaId: t.id,
+              titulo: t.titulo,
+              situacao: "a_fazer"
+            }))
+          })
+        })
       })
       
       toast({ 
         title: "Geração em Lote Concluída!", 
-        description: `${formData.clientIds.length} processos foram criados com sucesso.` 
+        description: `${eligibleClients.length} processos criados${duplicateClients.length > 0 ? `; ${duplicateClients.length} duplicados ignorados` : ""}.`
       })
       onOpenChange(false)
       setFormData({ modeloId: "", clientIds: [], competencia: format(new Date(), "yyyy-MM"), responsavelId: "Padrao", customDeadline: "" })
-    } catch (e) {
-      toast({ title: "Erro ao criar", description: "Houve uma falha na geração dos processos.", variant: "destructive" })
+    } catch (error) {
+      console.error("Falha ao gerar processos em lote:", error)
+      toast({ title: "Nenhum processo foi criado", description: "A geração foi cancelada porque o Firestore não confirmou todas as gravações.", variant: "destructive" })
     } finally {
       setIsSaving(false)
     }
@@ -205,14 +264,14 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
 
             {isSporadic && (
               <div className="space-y-2 border-t pt-4">
-                <Label className="text-[10px] font-black uppercase text-[#1FA67A] tracking-widest flex items-center gap-2">
-                  <Calendar className="h-3 w-3 text-[#1FA67A]" /> Prazo / Vencimento do Processo
+                <Label className="text-[10px] font-black uppercase text-[#2563EB] tracking-widest flex items-center gap-2">
+                  <Calendar className="h-3 w-3 text-[#2563EB]" /> Prazo / Vencimento do Processo
                 </Label>
                 <Input 
                   type="date" 
                   value={formData.customDeadline} 
                   onChange={(e) => setFormData({...formData, customDeadline: e.target.value})}
-                  className="border-[#1FA67A] focus-visible:ring-[#1FA67A] h-11 font-bold text-[#2C4156]"
+                  className="border-[#2563EB] focus-visible:ring-[#2563EB] h-11 font-bold text-[#2C4156]"
                 />
                 <p className="text-[10px] font-bold text-[#98A7AA] uppercase">Por se tratar de um fluxo esporádico, defina o prazo real de entrega.</p>
               </div>
@@ -223,7 +282,7 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
         <DialogFooter className="bg-[#F7F7F7] p-6 border-t shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="font-bold uppercase text-xs border-[#D2D7DB]">Cancelar</Button>
           <Button 
-            className="bg-[#1FA67A] hover:bg-[#1FA67A]/90 font-black uppercase text-xs px-8 shadow-lg shadow-emerald-500/20" 
+            className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-8 shadow-lg shadow-blue-500/20" 
             onClick={handleCreate}
             disabled={isSaving}
           >

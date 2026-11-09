@@ -41,11 +41,11 @@ export function ProcurationTab({ clientId }: ProcurationTabProps) {
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
-                  <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                  <CheckCircle2 className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">Status Atual</p>
-                  <p className="text-xl font-bold text-emerald-700">Procuração Ativa</p>
+                  <p className="text-xl font-bold text-blue-700">Procuração Ativa</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-6 text-sm">
@@ -57,7 +57,7 @@ export function ProcurationTab({ clientId }: ProcurationTabProps) {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-muted-foreground">Vencimento</Label>
-                  <p className="font-bold flex items-center gap-1 text-emerald-600">
+                  <p className="font-bold flex items-center gap-1 text-blue-600">
                     <Calendar className="h-3 w-3" /> 31/12/2024
                   </p>
                 </div>

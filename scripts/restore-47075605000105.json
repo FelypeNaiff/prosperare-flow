@@ -1,0 +1,34 @@
+{
+  "apiData": {
+    "cnpj": "47075605000105",
+    "uf": "AP",
+    "cep": "68902336",
+    "razao_social": "M C M VALENTE",
+    "nome_fantasia": "TORNADO - COMERCIO, SERVICO E SONORIZACAO",
+    "cnae_fiscal_descricao": "Atividades de sonorização e de iluminação",
+    "data_inicio_atividade": "2022-07-08",
+    "descricao_situacao_cadastral": "INAPTA",
+    "descricao_motivo_situacao_cadastral": "OMISSAO DE DECLARACOES",
+    "opcao_pelo_simples": true
+  },
+  "payload": {
+    "corporateName": "M C M VALENTE",
+    "nomeFantasia": "TORNADO - COMERCIO, SERVICO E SONORIZACAO",
+    "cnpj": "47.075.605/0001-05",
+    "taxRegime": "Simples Nacional",
+    "companyStatus": "INAPTA",
+    "status": "ATIVO",
+    "email": "",
+    "phone": "",
+    "city": "MACAPA",
+    "state": "AP",
+    "zipCode": "68902336",
+    "address": "",
+    "neighborhood": "MUCA",
+    "openingDate": "2022-07-08",
+    "primaryCnae": "Atividades de sonorização e de iluminação",
+    "companyStatusReason": "OMISSAO DE DECLARACOES",
+    "source": "brasilapi",
+    "fetchedAt": "2026-06-22T00:00:00.000Z"
+  }
+}

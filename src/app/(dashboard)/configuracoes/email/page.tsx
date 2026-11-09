@@ -19,7 +19,7 @@ export default function EmailConfigPage() {
         <p className="text-[#98A7AA] font-medium">Configure como o sistema envia notificações e documentos aos clientes.</p>
       </div>
 
-      <Alert className="bg-[#7ED6B5]/20 border-[#1FA67A]/20 text-[#1FA67A]">
+      <Alert className="bg-[#7ED6B5]/20 border-[#2563EB]/20 text-[#2563EB]">
         <CheckCircle2 className="h-5 w-5" />
         <AlertTitle className="font-bold">E-mail de disparo verificado</AlertTitle>
         <AlertDescription>Seu servidor SMTP está conectado e as mensagens estão sendo entregues.</AlertDescription>
@@ -43,7 +43,7 @@ export default function EmailConfigPage() {
         <Card className="border-[#D2D7DB]">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Repeat className="h-5 w-5 text-[#1FA67A]" />
+              <Repeat className="h-5 w-5 text-[#2563EB]" />
               Régua de Envio
             </CardTitle>
           </CardHeader>
@@ -69,7 +69,7 @@ export default function EmailConfigPage() {
               </Select>
             </div>
             <p className="text-[10px] text-[#98A7AA] italic">O sistema enviará até que o cliente confirme a leitura.</p>
-            <Button className="w-full bg-[#1FA67A] font-bold">Salvar Configuração</Button>
+            <Button className="w-full bg-[#2563EB] font-bold">Salvar Configuração</Button>
           </CardContent>
         </Card>
       </div>

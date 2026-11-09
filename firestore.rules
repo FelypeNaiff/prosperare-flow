@@ -1,10 +1,48 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Auditoria: Regra global de acesso para usuários autenticados
-    // Garante que o sistema opere sem bloqueios de permissão durante a transição de UID
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function currentUser() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isStaff() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && currentUser().status == 'ATIVO'
+        && currentUser().profile != 'CLIENTE';
+    }
+
+    function canManageAccess() {
+      return isStaff()
+        && currentUser().profile in ['ADMINISTRADOR', 'SÓCIO'];
+    }
+
+    // Identidades: colaboradores podem consultar a equipe para atribuição de
+    // tarefas. Clientes visualizam somente o próprio cadastro. Alterações de
+    // perfil, status e vínculos ficam restritas à administração.
+    match /users/{userId} {
+      allow read: if isStaff() || (isSignedIn() && request.auth.uid == userId);
+      allow create, update, delete: if canManageAccess();
+    }
+
+    // Perfis determinam acesso a módulos sensíveis e não podem ser alterados
+    // por quem apenas consome essas permissões.
+    match /accessProfiles/{profileId} {
+      allow read: if isStaff();
+      allow create, update, delete: if canManageAccess();
+    }
+
+    // Compatibilidade temporária: as coleções operacionais serão segmentadas
+    // por perfil e empresa nas próximas etapas. Users e accessProfiles ficam
+    // fora deste fallback para que as regras específicas acima prevaleçam.
+    match /{topLevelCollection}/{document=**} {
+      allow read, write: if isSignedIn()
+        && topLevelCollection != 'users'
+        && topLevelCollection != 'accessProfiles';
     }
   }
 }

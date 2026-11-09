@@ -37,7 +37,7 @@ export default function LiberacaoPage() {
   if (isUserLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F7F7F7]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#1FA67A]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" />
       </div>
     )
   }
@@ -48,17 +48,17 @@ export default function LiberacaoPage() {
         
         <div className="flex flex-col items-center text-center space-y-4">
           <div className="relative">
-            <div className="w-24 h-24 bg-white rounded-[2.5rem] shadow-2xl flex items-center justify-center border-4 border-[#1FA67A]">
+            <div className="w-24 h-24 bg-white rounded-[2.5rem] shadow-2xl flex items-center justify-center border-4 border-[#2563EB]">
               <TrendingUp className="w-12 h-12 text-[#2C4156]" />
             </div>
-            <div className="absolute -top-2 -right-2 bg-[#1FA67A] text-white p-1.5 rounded-full shadow-lg border-4 border-[#F7F7F7]">
+            <div className="absolute -top-2 -right-2 bg-[#2563EB] text-white p-1.5 rounded-full shadow-lg border-4 border-[#F7F7F7]">
               <ShieldCheck className="h-4 w-4" />
             </div>
           </div>
           
           <div className="space-y-1">
             <h1 className="text-3xl font-black text-[#2C4156] tracking-tighter uppercase">
-              Sessão <span className="text-[#1FA67A]">Liberada</span>
+              Sessão <span className="text-[#2563EB]">Liberada</span>
             </h1>
             <p className="text-[10px] font-black text-[#98A7AA] uppercase tracking-[0.3em]">Operador: {userData?.fullName || user.email}</p>
           </div>
@@ -79,7 +79,7 @@ export default function LiberacaoPage() {
 
               <div className="flex items-start gap-4">
                 <div className="mt-1 bg-[#7ED6B5]/20 p-2 rounded-xl">
-                  <ShieldCheck className="h-5 w-5 text-[#1FA67A]" />
+                  <ShieldCheck className="h-5 w-5 text-[#2563EB]" />
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-[#2C4156] uppercase">Permissões Verificadas</h3>
@@ -92,7 +92,7 @@ export default function LiberacaoPage() {
               <Button 
                 onClick={handleRelease}
                 disabled={isReleasing}
-                className="w-full h-16 bg-[#1FA67A] hover:bg-[#1FA67A]/90 text-white font-black text-sm uppercase tracking-[0.2em] shadow-xl shadow-emerald-500/20 rounded-2xl gap-3 transition-all group"
+                className="w-full h-16 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-black text-sm uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 rounded-2xl gap-3 transition-all group"
               >
                 {isReleasing ? (
                   <Loader2 className="h-6 w-6 animate-spin" />

@@ -33,7 +33,7 @@ export function DigitalCertificateTab({ clientId }: DigitalCertificateTabProps) 
 
     if (isBefore(validade, hoje)) return { label: 'Vencido', color: 'bg-red-500' }
     if (dias <= 30) return { label: 'Vencendo', color: 'bg-yellow-500 text-black' }
-    return { label: 'Válido', color: 'bg-emerald-500' }
+    return { label: 'Válido', color: 'bg-blue-500' }
   }
 
   return (
