@@ -56,7 +56,12 @@ export default function NfsePage() {
       </div>
 
       {isModalOpen && company && (
-        <EmissaoNfseModal clienteId={company.id} clienteNome={company.corporateName} clienteCpfCnpj={company.cnpj} onClose={() => setIsModalOpen(false)} />
+        <EmissaoNfseModal
+          prestadorId={company.id}
+          prestadorNome={company.corporateName}
+          prestadorCnpj={company.cnpj}
+          onClose={() => setIsModalOpen(false)}
+        />
       )}
     </div>
   );

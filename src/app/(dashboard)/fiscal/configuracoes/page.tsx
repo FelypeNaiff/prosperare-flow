@@ -29,12 +29,13 @@ export default function FiscalConfiguracoesPage() {
             <select
               id="ambiente-sefin"
               name="ambienteSefin"
-              defaultValue="1"
+              value="PRODUCAO_RESTRITA"
+              disabled
               className="mt-1 w-full rounded-md border border-zinc-300 p-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
             >
-              <option value="1">Produção</option>
-              <option value="2">Homologação (Testes)</option>
+              <option value="PRODUCAO_RESTRITA">Produção restrita (desenvolvimento)</option>
             </select>
+            <p className="mt-2 text-xs text-zinc-500">Produção não pode ser habilitada pelo navegador nesta fase.</p>
           </div>
 
           <div>

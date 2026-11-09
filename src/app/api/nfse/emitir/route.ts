@@ -2,16 +2,18 @@ import { NextResponse } from 'next/server';
 
 import { FiscalAuthorizationError } from '@/lib/fiscal/authorization';
 import {
+  blockRealNfseTransmission,
+  NfseDomainError,
+  prepareInternalNfseDraft,
+  type InternalNfsePreparationInput,
+} from '@/lib/nfse/domain';
+import {
   recordFiscalAudit,
   requireFirebaseToken,
-  requireFiscalPermission,
+  requireInternalNfsePermission,
 } from '@/lib/fiscal/server';
 
 export const runtime = 'nodejs';
-
-interface EmitirNfseBody {
-  clientId?: string;
-}
 
 // A emissão real permanece bloqueada até a homologação da integração oficial e
 // a disponibilização de um cofre de segredos no servidor. PFX e senha nunca
@@ -22,13 +24,19 @@ export async function POST(request: Request) {
 
   try {
     token = await requireFirebaseToken(request);
-    const body = (await request.json()) as EmitirNfseBody;
+    const body = (await request.json()) as InternalNfsePreparationInput;
     clientId = typeof body.clientId === 'string' ? body.clientId : '';
     if (!clientId) {
       return NextResponse.json({ success: false, error: 'Empresa não informada.' }, { status: 400 });
     }
 
-    await requireFiscalPermission(token.uid, clientId, 'emitir');
+    const { company } = await requireInternalNfsePermission(token.uid, clientId);
+    prepareInternalNfseDraft(body, {
+      clientId,
+      corporateName: String(company.corporateName || company.companyName || company.razaoSocial || ''),
+      cnpj: String(company.cnpj || ''),
+    });
+    const blocked = blockRealNfseTransmission();
     await recordFiscalAudit({
       actorUid: token.uid,
       actorEmail: token.email,
@@ -37,13 +45,7 @@ export async function POST(request: Request) {
       result: 'BLOQUEADO_503',
     });
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Emissão fiscal indisponível até a homologação da integração oficial.',
-      },
-      { status: 503 },
-    );
+    return NextResponse.json({ success: false, state: blocked.state, error: blocked.error }, { status: blocked.status });
   } catch (error) {
     if (token && clientId) {
       await recordFiscalAudit({
@@ -56,6 +58,9 @@ export async function POST(request: Request) {
     }
     if (error instanceof FiscalAuthorizationError) {
       return NextResponse.json({ success: false, error: error.message }, { status: error.status });
+    }
+    if (error instanceof NfseDomainError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
     return NextResponse.json({ success: false, error: 'Erro interno na autorização fiscal.' }, { status: 500 });
   }

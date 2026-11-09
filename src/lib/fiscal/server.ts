@@ -7,6 +7,7 @@ import { adminAuth, adminFirestore } from '@/lib/firebase-admin';
 import {
   FiscalAuthorizationError,
   authorizeFiscalOperation,
+  authorizeInternalNfseOperation,
   fullFiscalPermissions,
   isVerifiedAdministrator,
 } from './authorization';
@@ -135,6 +136,25 @@ export async function requireFiscalPermission(
   }
   authorizeFiscalOperation(user, access, operation);
   return user;
+}
+
+export async function requireInternalNfsePermission(uid: string, clientId: string) {
+  const user = await getFiscalUser(uid);
+  const accessSnapshot = await adminFirestore
+    .collection('userCompanyAccess')
+    .doc(`${uid}_${clientId}`)
+    .get();
+  const access = accessSnapshot.exists
+    ? ({ id: accessSnapshot.id, ...accessSnapshot.data() } as UserCompanyAccess)
+    : null;
+  const companySnapshot = await adminFirestore.collection('clients').doc(clientId).get();
+  if (!companySnapshot.exists) throw new FiscalAuthorizationError('Empresa não encontrada.', 404);
+
+  authorizeInternalNfseOperation(user, access, clientId);
+  return {
+    user,
+    company: { id: companySnapshot.id, ...companySnapshot.data() } as Record<string, unknown> & { id: string },
+  };
 }
 
 export async function requireCompanyAccess(uid: string, clientId: string) {

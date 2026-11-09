@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   FiscalAuthorizationError,
   authorizeFiscalOperation,
+  authorizeInternalNfseOperation,
   fullFiscalPermissions,
 } from './authorization';
 import type { FiscalUser, UserCompanyAccess } from './types';
@@ -67,4 +68,50 @@ test('usuário não autenticado recebe 401', () => {
     () => authorizeFiscalOperation(null, null, 'consultar'),
     (error) => error instanceof FiscalAuthorizationError && error.status === 401,
   );
+});
+
+test('funcionário autorizado pode preparar emissão interna', () => {
+  const employeeAccess = { ...access('funcionario'), kind: 'FUNCIONARIO' as const };
+  assert.doesNotThrow(() => authorizeInternalNfseOperation(user('funcionario', 'ASSISTENTE'), employeeAccess, companyId));
+});
+
+test('funcionário sem permissão de emissão é negado', () => {
+  const employeeAccess = {
+    ...access('funcionario', { ...fullFiscalPermissions(), emitir: false }),
+    kind: 'FUNCIONARIO' as const,
+  };
+  assert.throws(() => authorizeInternalNfseOperation(user('funcionario', 'ASSISTENTE'), employeeAccess, companyId), FiscalAuthorizationError);
+});
+
+test('cliente é negado na emissão interna mesmo com emitir true', () => {
+  assert.throws(() => authorizeInternalNfseOperation(user('cliente', 'CLIENTE'), access('cliente'), companyId), /restrita à equipe/);
+});
+
+test('administrador fiscal explícito preserva acesso interno transversal', () => {
+  assert.doesNotThrow(() => authorizeInternalNfseOperation({ ...user('admin', 'ADMINISTRADOR'), fiscalAdmin: true }, null, companyId));
+});
+
+test('empresa não vinculada é negada na emissão interna', () => {
+  assert.throws(() => authorizeInternalNfseOperation(user('funcionario', 'ASSISTENTE'), null, companyId), FiscalAuthorizationError);
+});
+
+test('vínculo inativo é negado na emissão interna', () => {
+  const inactive = { ...access('funcionario'), kind: 'FUNCIONARIO' as const, status: 'INATIVO' as const };
+  assert.throws(() => authorizeInternalNfseOperation(user('funcionario', 'ASSISTENTE'), inactive, companyId), FiscalAuthorizationError);
+});
+
+test('funcionário inativo é negado na emissão interna', () => {
+  const inactiveUser = { ...user('funcionario', 'ASSISTENTE'), status: 'INATIVO' };
+  const employeeAccess = { ...access('funcionario'), kind: 'FUNCIONARIO' as const };
+  assert.throws(() => authorizeInternalNfseOperation(inactiveUser, employeeAccess, companyId), /Usuário inativo/);
+});
+
+test('vínculo de outra empresa não autoriza acesso cruzado', () => {
+  const crossCompany = {
+    ...access('funcionario'),
+    id: 'funcionario_empresa-2',
+    clientId: 'empresa-2',
+    kind: 'FUNCIONARIO' as const,
+  };
+  assert.throws(() => authorizeInternalNfseOperation(user('funcionario', 'ASSISTENTE'), crossCompany, companyId), /Acesso cruzado/);
 });
