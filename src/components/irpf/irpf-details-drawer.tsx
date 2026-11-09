@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { 
   Sheet, 
   SheetContent, 
@@ -72,11 +72,9 @@ const DEFAULT_STAGES = [
 
 export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
   const firestore = useFirestore()
-  const [showGovPass, setShowGovPass] = useState(false)
   const [activeTags, setActiveTags] = useState<string[]>([])
   const [isPaid, setIsPaid] = useState(false)
-  const [editData, setEditData] = useState({ name: "", cpf: "", govPass: "", value: 0, notes: "" })
-  const govPassRef = useRef<HTMLInputElement>(null)
+  const [editData, setEditData] = useState({ name: "", cpf: "", value: 0, notes: "" })
 
   const stagesQuery = useMemoFirebase(() => query(collection(firestore, "irpf_stages"), orderBy("order", "asc")), [firestore])
   const { data: dbStages } = useCollection(stagesQuery)
@@ -89,7 +87,6 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
       setEditData({
         name: declaration.name || "",
         cpf: declaration.cpf || "",
-        govPass: declaration.govPass || "",
         value: declaration.value || 0,
         notes: declaration.notes || ""
       })
@@ -234,32 +231,6 @@ export function IrpfDetailsDrawer({ open, onOpenChange, declaration }: any) {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <Label className="text-[11px] font-black text-[#5E6C84] uppercase tracking-wider">Senha GOV.BR</Label>
-                <div className="flex gap-2">
-                  <div className="flex-1 border border-[#D2D7DB] rounded p-1 flex items-center justify-between bg-white overflow-hidden focus-within:ring-2 ring-primary/20 transition-all">
-                    <input
-                      ref={govPassRef}
-                      type={showGovPass ? "text" : "password"}
-                      value={editData.govPass}
-                      onChange={(e) => setEditData({...editData, govPass: e.target.value})}
-                      className="flex-1 bg-transparent text-xs font-mono font-bold px-2 outline-none w-full border-none focus:ring-0 text-[#172B4D]"
-                      placeholder="Senha Gov.br"
-                    />
-                    <div className="flex gap-1 shrink-0 px-1">
-                      <button onClick={() => govPassRef.current?.focus()} className="text-[#5E6C84] hover:bg-gray-100 p-1 rounded-md transition-colors" title="Editar">
-                        <Edit2 className="h-3.5 w-3.5" />
-                      </button>
-                      <button onClick={() => setShowGovPass(!showGovPass)} className="text-[#5E6C84] hover:bg-gray-100 p-1 rounded-md transition-colors" title={showGovPass ? "Ocultar" : "Mostrar"}>
-                        {showGovPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                      </button>
-                      <button onClick={() => copyToClipboard(editData.govPass, "Senha")} className="text-[#5E6C84] hover:bg-gray-100 p-1 rounded-md transition-colors" title="Copiar">
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
 
             <Separator />

@@ -40,6 +40,7 @@ import { format, parseISO, isBefore, addDays, isValid, differenceInDays } from "
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { addCanvasToOfficialPdf } from "@/lib/official-letterhead"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 const ALVARA_TYPES = [
   "Bombeiro",
@@ -56,11 +57,8 @@ export default function AlvarasPage() {
   const [editingItem, setEditingItem] = useState<any>(null)
   const [activeClientName, setActiveClientName] = useState("")
 
-  const alvarasQuery = useMemoFirebase(() => userLoaded ? collection(firestore, "alvaras") : null, [firestore, userLoaded])
-  const { data: alvaras = [], isLoading: alvarasLoading } = useCollection(alvarasQuery)
-
-  const clientsQuery = useMemoFirebase(() => userLoaded ? collection(firestore, "clients") : null, [firestore, userLoaded])
-  const { data: clients = [], isLoading: clientsLoading } = useCollection(clientsQuery)
+  const { data: alvaras = [], isLoading: alvarasLoading } = useAuthorizedCompanyCollection(firestore, "alvaras", "canonicalClientId", userLoaded)
+  const { data: clients = [], isLoading: clientsLoading } = useAuthorizedCompanyCollection(firestore, "clients", "__name__", userLoaded)
 
   const [formData, setFormData] = useState({
     id: "",
@@ -204,6 +202,7 @@ export default function AlvarasPage() {
       const payload: any = {
         ...formData,
         id,
+        canonicalClientId: formData.clienteId,
         updatedAt: new Date().toISOString()
       }
       

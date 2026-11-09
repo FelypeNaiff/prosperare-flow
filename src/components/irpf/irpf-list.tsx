@@ -16,10 +16,11 @@ import { Eye, Edit, Trash2, FileText, Copy, DollarSign, CheckCircle2, XCircle, L
 import { formatCurrency } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import { useFirestore, useCollection, useMemoFirebase, useUser, deleteDocumentNonBlocking } from "@/firebase"
-import { collection, query, where, doc } from "firebase/firestore"
+import { useFirestore, useUser, deleteDocumentNonBlocking } from "@/firebase"
+import { doc } from "firebase/firestore"
 import { useState } from "react"
 import { IrpfDetailsDrawer } from "./irpf-details-drawer"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export function IrpfList({ 
   searchTerm, 
@@ -38,12 +39,8 @@ export function IrpfList({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   // Consulta individualizada: Filtra apenas declarações do colaborador operacional atual
-  const irpfQuery = useMemoFirebase(() => 
-    selectedUser?.id ? query(collection(firestore, "irpf_declarations"), where("responsibleId", "==", selectedUser.id)) : null,
-    [firestore, selectedUser?.id]
-  )
-  
-  const { data: declarations = [], isLoading } = useCollection(irpfQuery)
+  const { data: authorizedDeclarations = [], isLoading } = useAuthorizedCompanyCollection(firestore, "irpf_declarations")
+  const declarations = authorizedDeclarations.filter((item: any) => item.responsibleId === selectedUser?.id)
 
   const filtered = (declarations || []).filter(d => {
     const matchesSearch = d.name?.toLowerCase().includes(searchTerm.toLowerCase()) || d.cpf?.includes(searchTerm);

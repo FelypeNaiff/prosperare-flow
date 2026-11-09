@@ -59,18 +59,18 @@ import {
   useFirestore, 
   useCollection, 
   useMemoFirebase, 
-  setDocumentNonBlocking, 
-  deleteDocumentNonBlocking,
-  updateDocumentNonBlocking
+  useUser
 } from "@/firebase"
-import { collection, doc } from "firebase/firestore"
-import { firebaseConfig } from "@/firebase/config"
+import { collection } from "firebase/firestore"
 import { sendPasswordResetEmail } from "firebase/auth"
 import { auth } from "@/firebase"
 import { formatCNPJ, cn } from "@/lib/utils"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
+import { authenticatedFiscalFetch } from "@/lib/fiscal/client"
 
 export default function LoginClientePage() {
   const firestore = useFirestore()
+  const { user: authenticatedUser } = useUser()
   const [searchTerm, setSearchTerm] = useState("")
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
@@ -80,8 +80,7 @@ export default function LoginClientePage() {
   const { data: users = [], isLoading: loadingUsers } = useCollection(usersQuery)
 
   // Buscar empresas clientes reais para vinculação
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: clients = [], isLoading: loadingClients } = useCollection(clientsQuery)
+  const { data: clients = [], isLoading: loadingClients } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
 
   const [newLogin, setNewLogin] = useState({
     fullName: "",
@@ -166,57 +165,23 @@ export default function LoginClientePage() {
       return
     }
 
-    const firstClient = selectedClients[0]
-    const empresasVinculadas = selectedClients.map(c => ({
-      cnpj: c.cnpj || "",
-      companyName: c.nomeFantasia || c.razaoSocial || "",
-      razaoSocial: c.razaoSocial || c.nomeFantasia || ""
-    }))
-
     setIsRegistering(true)
     try {
-      // Cria o usuário na autenticação do Firebase através do endpoint REST para não deslogar o admin atual
-      const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`, {
+      if (!authenticatedUser) throw new Error("Sessão administrativa ausente.")
+      const response = await authenticatedFiscalFetch(authenticatedUser, "/api/admin/client-logins", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          fullName: newLogin.fullName,
           email: newLogin.email.trim().toLowerCase(),
           password: newLogin.password,
-          returnSecureToken: false
+          clientIds: newLogin.clientIds
         })
       })
-
       if (!response.ok) {
-        const errData = await response.json()
-        let msg = errData.error?.message || "Erro desconhecido ao registrar credencial."
-        if (msg === "EMAIL_EXISTS") {
-          msg = "Este endereço de e-mail já está cadastrado no sistema."
-        } else if (msg === "WEAK_PASSWORD") {
-          msg = "A senha deve ter pelo menos 6 caracteres."
-        } else if (msg === "INVALID_EMAIL") {
-          msg = "O formato do e-mail informado é inválido."
-        }
-        throw new Error(msg)
+        const payload = await response.json().catch(() => ({}))
+        throw new Error(payload.error || "Falha ao criar login.")
       }
-
-      const resData = await response.json()
-      const localId = resData.localId // ID do usuário gerado pelo Firebase Auth
-
-      // Grava no Firestore na coleção de users
-      const userRef = doc(firestore, "users", localId)
-      const userData = {
-        id: localId,
-        fullName: newLogin.fullName.toUpperCase(),
-        email: newLogin.email.trim().toLowerCase(),
-        profile: "CLIENTE",
-        status: "ATIVO",
-        cnpj: firstClient.cnpj || "",
-        companyName: firstClient.nomeFantasia || firstClient.razaoSocial || "",
-        empresasVinculadas,
-        createdAt: new Date().toISOString()
-      }
-
-      setDocumentNonBlocking(userRef, userData, { merge: true })
       
       setIsAddOpen(false)
       setNewLogin({ fullName: "", email: "", password: "", clientIds: [] })
@@ -270,22 +235,16 @@ export default function LoginClientePage() {
         return
       }
 
-      const firstClient = selectedClients[0]
-      const empresasVinculadas = selectedClients.map(c => ({
-        cnpj: c.cnpj || "",
-        companyName: c.nomeFantasia || c.razaoSocial || "",
-        razaoSocial: c.razaoSocial || c.nomeFantasia || ""
-      }))
-
-      const userRef = doc(firestore, "users", editingUser.id)
-      const updateData = {
-        fullName: editForm.fullName.toUpperCase(),
-        cnpj: firstClient.cnpj || "",
-        companyName: firstClient.nomeFantasia || firstClient.razaoSocial || "",
-        empresasVinculadas
+      if (!authenticatedUser) throw new Error("Sessão administrativa ausente.")
+      const response = await authenticatedFiscalFetch(authenticatedUser, "/api/admin/client-logins", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: editingUser.id, fullName: editForm.fullName, clientIds: editForm.clientIds })
+      })
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}))
+        throw new Error(payload.error || "Falha ao atualizar login.")
       }
-
-      updateDocumentNonBlocking(userRef, updateData)
       
       setIsEditOpen(false)
       setEditingUser(null)
@@ -298,12 +257,19 @@ export default function LoginClientePage() {
     }
   }
 
-  const handleToggleStatus = (user: any) => {
-    const userRef = doc(firestore, "users", user.id)
+  const handleToggleStatus = async (user: any) => {
     const newStatus = user.status === 'INATIVO' ? 'ATIVO' : 'INATIVO'
-    
-    updateDocumentNonBlocking(userRef, { status: newStatus })
-    toast({ title: "Status Atualizado", description: `O acesso de ${user.fullName} está agora ${newStatus}.` })
+    try {
+      if (!authenticatedUser) throw new Error("Sessão administrativa ausente.")
+      const response = await authenticatedFiscalFetch(authenticatedUser, "/api/admin/client-logins", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, status: newStatus })
+      })
+      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || "Falha ao alterar status.")
+      toast({ title: "Status Atualizado", description: `O acesso de ${user.fullName} está agora ${newStatus}.` })
+    } catch (error: any) {
+      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" })
+    }
   }
 
   const handlePasswordReset = async (email: string) => {
@@ -316,10 +282,16 @@ export default function LoginClientePage() {
     }
   }
 
-  const handleDeleteLogin = (id: string) => {
+  const handleDeleteLogin = async (id: string) => {
     if (confirm("Deseja realmente remover esta credencial de acesso do cliente? O usuário não conseguirá mais entrar no portal.")) {
-      deleteDocumentNonBlocking(doc(firestore, "users", id))
-      toast({ title: "Acesso Removido", variant: "destructive" })
+      try {
+        if (!authenticatedUser) throw new Error("Sessão administrativa ausente.")
+        const response = await authenticatedFiscalFetch(authenticatedUser, `/api/admin/client-logins?userId=${encodeURIComponent(id)}`, { method: "DELETE" })
+        if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || "Falha ao excluir login.")
+        toast({ title: "Acesso Removido", variant: "destructive" })
+      } catch (error: any) {
+        toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" })
+      }
     }
   }
 

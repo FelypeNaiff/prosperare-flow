@@ -14,6 +14,7 @@ import { collection, doc } from "firebase/firestore"
 import { ClientSearchSelect } from "@/components/clients/client-search-select"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export function AsoReferralForm() {
   const firestore = useFirestore()
@@ -21,8 +22,7 @@ export function AsoReferralForm() {
   const [isPreviewMode, setIsPreviewOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: clients = [] } = useCollection(clientsQuery)
+  const { data: clients = [] } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
 
   const [formData, setFormData] = useState({
     clientId: "",
@@ -82,13 +82,17 @@ export function AsoReferralForm() {
   }
 
   const handleSaveToHistory = () => {
-    if (!formData.empresa) return
+    if (!formData.empresa || !formData.clientId) {
+      toast({ title: "Empresa vinculada obrigatória", description: "Documentos manuais podem ser gerados, mas só entram no histórico após selecionar uma empresa autorizada.", variant: "destructive" })
+      return
+    }
     setIsSaving(true)
     
     const id = Math.random().toString(36).substr(2, 9)
     const docData = {
       id,
-      clientId: formData.clientId || "manual",
+      clientId: formData.clientId,
+      canonicalClientId: formData.clientId,
       clientName: formData.empresa,
       type: "ENCAMINHAMENTO ASO",
       title: `ASO: ${formData.nomeFuncionario}`,

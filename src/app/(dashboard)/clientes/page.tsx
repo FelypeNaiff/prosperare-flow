@@ -71,6 +71,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import * as XLSX from 'xlsx'
 import { addCanvasToOfficialPdf } from "@/lib/official-letterhead"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export default function ClientesPage() {
   const firestore = useFirestore()
@@ -93,11 +94,7 @@ export default function ClientesPage() {
   const [filterResponsible, setFilterResponsible] = useState<string>("todos")
   const [filterStatus, setFilterStatus] = useState<string>("todos")
   
-  const clientsQuery = useMemoFirebase(() => 
-    userLoaded ? collection(firestore, "clients") : null, 
-    [firestore, userLoaded]
-  )
-  const { data: clients = [], isLoading } = useCollection(clientsQuery)
+  const { data: clients = [], isLoading } = useAuthorizedCompanyCollection(firestore, "clients", "__name__", userLoaded)
 
   const responsibles = useMemo(() => {
     const list = (clients || []).map(c => c.accountingContactUserId || "Geral")

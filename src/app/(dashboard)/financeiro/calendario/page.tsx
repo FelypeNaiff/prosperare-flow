@@ -36,6 +36,7 @@ import {
   parseISO
 } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export default function FinanceiroCalendarioPage() {
   const firestore = useFirestore()
@@ -53,11 +54,7 @@ export default function FinanceiroCalendarioPage() {
   )
   const { data: payables = [], isLoading: loadingPayables } = useCollection(payablesQuery)
 
-  const receivablesQuery = useMemoFirebase(() => 
-    userLoaded ? collection(firestore, "receivables") : null, 
-    [firestore, userLoaded]
-  )
-  const { data: receivables = [], isLoading: loadingReceivables } = useCollection(receivablesQuery)
+  const { data: receivables = [], isLoading: loadingReceivables } = useAuthorizedCompanyCollection(firestore, "receivables", "canonicalClientId", userLoaded)
 
   const calendarDays = useMemo(() => {
     if (!currentDate) return []

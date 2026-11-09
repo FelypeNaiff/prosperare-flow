@@ -1,0 +1,39 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "generated_documents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "canonicalClientId", "order": "ASCENDING" },
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clientId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "processes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clienteId", "order": "ASCENDING" },
+        { "fieldPath": "nomeProcesso", "order": "ASCENDING" },
+        { "fieldPath": "situacao", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

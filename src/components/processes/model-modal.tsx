@@ -49,6 +49,7 @@ import { doc, collection, setDoc } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export function ProcessModelModal({ open, onOpenChange, model }: any) {
   const firestore = useFirestore()
@@ -56,8 +57,7 @@ export function ProcessModelModal({ open, onOpenChange, model }: any) {
   const [activeTab, setActiveTab] = useState("geral")
   const [searchTerm, setSearchTerm] = useState("")
 
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: allClients } = useCollection(clientsQuery)
+  const { data: allClients } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
 
   const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
   const { data: team = [] } = useCollection(usersQuery)

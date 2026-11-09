@@ -36,6 +36,7 @@ import {
 } from "@/firebase"
 import { collection, doc, writeBatch } from "firebase/firestore"
 import { formatCNPJ } from "@/lib/utils"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 interface EmployeeRow {
   nome: string;
@@ -58,8 +59,7 @@ export default function LotesPage() {
   const [gridData, setGridData] = useState<EmployeeRow[]>([])
 
   // Buscar clientes cadastrados para vincular o lote
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: clients = [], isLoading: loadingClients } = useCollection(clientsQuery)
+  const { data: clients = [], isLoading: loadingClients } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
 
   // Adicionar linha em branco no Grid
   const handleAddRow = () => {
@@ -266,6 +266,7 @@ export default function LotesPage() {
           salarioBase: Number(row.salarioBase) || 0,
           status: row.status,
           clientId: client.id,
+          canonicalClientId: client.id,
           clientName: client.nomeFantasia || client.razaoSocial,
           clientCnpj: client.cnpj,
           createdAt: new Date().toISOString(),

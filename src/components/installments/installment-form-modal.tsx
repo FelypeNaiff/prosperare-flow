@@ -26,13 +26,13 @@ import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } 
 import { collection, doc } from "firebase/firestore"
 
 import React from 'react'
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export function InstallmentFormModal({ open, onOpenChange, clientId: initialClientId, initialData }: any) {
   const firestore = useFirestore()
   const [loading, setLoading] = useState(false)
 
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: clients = [] } = useCollection(clientsQuery)
+  const { data: clients = [] } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
 
   const [formData, setFormData] = useState({
     clientId: initialData?.clientId || initialClientId || "",
@@ -91,6 +91,7 @@ export function InstallmentFormModal({ open, onOpenChange, clientId: initialClie
     const data = {
       ...formData,
       id,
+      canonicalClientId: formData.clientId,
       clientName: client?.corporateName || "Cliente Avulso",
       createdAt: initialData?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),

@@ -55,6 +55,7 @@ import { collection, doc } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
 import { ClientSearchSelect } from "@/components/clients/client-search-select"
 import { cn, numberToExtensoBRL } from "@/lib/utils"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 interface CnaeItem {
   code: string;
@@ -214,8 +215,7 @@ export default function AlteracaoSocietariaPage() {
   const [processLabel, setProcessLabel] = useState<string>("")
 
   // Fetch all societary alterations
-  const alterationsQuery = useMemoFirebase(() => collection(firestore, "societaryAlterations"), [firestore])
-  const { data: allAlterations = [], isLoading: loadingAlterations } = useCollection(alterationsQuery)
+  const { data: allAlterations = [], isLoading: loadingAlterations } = useAuthorizedCompanyCollection(firestore, "societaryAlterations")
 
   // Filter alterations for the selected client
   const clientAlterations = useMemo(() => {
@@ -250,6 +250,7 @@ export default function AlteracaoSocietariaPage() {
     const dataToSave: any = {
       id: alterationId,
       clientId: selectedClientId,
+      canonicalClientId: selectedClientId,
       clientName: currentClient.corporateName || currentClient.razaoSocial || "",
       label: finalLabel,
       status: status,
@@ -388,8 +389,7 @@ export default function AlteracaoSocietariaPage() {
   }, [])
 
   // Load clients
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: clients = [], isLoading: loadingClients } = useCollection(clientsQuery)
+  const { data: clients = [], isLoading: loadingClients } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
 
   // Current client object
   const currentClient = useMemo(() => {

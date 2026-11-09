@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/hooks/use-toast"
 import { useFirestore, useUser, setDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, doc, query, orderBy } from "firebase/firestore"
+import { ClientCombobox } from "@/components/shared/client-combobox"
 
 export function IrpfDeclarationModal({ open, onOpenChange }: any) {
   const { selectedUser } = useUser()
@@ -33,9 +34,9 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
 
   const [formData, setFormData] = useState({
     name: "",
+    clientId: "",
     cpf: "",
     birthDate: "",
-    govPass: "",
     phone: "",
     email: "",
     year: "2026",
@@ -45,8 +46,8 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
   })
 
   const handleSave = () => {
-    if (!formData.name || !formData.cpf) {
-      toast({ title: "Erro", description: "Preencha o nome e o CPF do contribuinte.", variant: "destructive" })
+    if (!formData.clientId || !formData.name || !formData.cpf) {
+      toast({ title: "Erro", description: "Selecione a empresa e preencha nome e CPF.", variant: "destructive" })
       return
     }
 
@@ -62,6 +63,7 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
 
     const declarationData = {
       ...formData,
+      canonicalClientId: formData.clientId,
       id,
       responsibleId: selectedUser.id,
       status: defaultStatus,
@@ -76,7 +78,7 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
     
     onOpenChange(false)
     setFormData({
-      name: "", cpf: "", birthDate: "", govPass: "", phone: "", email: "",
+      name: "", clientId: "", cpf: "", birthDate: "", phone: "", email: "",
       year: "2026", type: "simplificada", value: 0, notes: ""
     })
     
@@ -101,6 +103,10 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
             <div className="col-span-2 space-y-4">
               <h4 className="text-[10px] font-black text-[#2563EB] uppercase tracking-[0.2em] border-b border-[#2563EB]/20 pb-1">Dados do Contribuinte</h4>
               <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Empresa autorizada</Label>
+                  <ClientCombobox value={formData.clientId} onChange={(clientId) => setFormData({ ...formData, clientId })} />
+                </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Nome Completo</Label>
                   <Input 
@@ -125,16 +131,6 @@ export function IrpfDeclarationModal({ open, onOpenChange }: any) {
                     type="date" 
                     value={formData.birthDate}
                     onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
-                    className="border-[#D2D7DB]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Senha GOV.BR</Label>
-                  <Input 
-                    type="password" 
-                    placeholder="Senha do acesso gov.br" 
-                    value={formData.govPass}
-                    onChange={(e) => setFormData({...formData, govPass: e.target.value})}
                     className="border-[#D2D7DB]"
                   />
                 </div>

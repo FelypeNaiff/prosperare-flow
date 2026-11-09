@@ -13,20 +13,16 @@ import {
   BarChart3
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
-import { collection, query, where } from "firebase/firestore"
+import { useFirestore, useUser } from "@/firebase"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export function IrpfDashboard() {
   const { selectedUser } = useUser()
   const firestore = useFirestore()
   
   // Consulta filtrada pelo ID do colaborador operacional (selectedUser)
-  const irpfQuery = useMemoFirebase(() => 
-    selectedUser?.id ? query(collection(firestore, "irpf_declarations"), where("responsibleId", "==", selectedUser.id)) : null,
-    [firestore, selectedUser?.id]
-  )
-  
-  const { data: declarations = [] } = useCollection(irpfQuery)
+  const { data: authorizedDeclarations = [] } = useAuthorizedCompanyCollection(firestore, "irpf_declarations")
+  const declarations = authorizedDeclarations.filter((item: any) => item.responsibleId === selectedUser?.id)
 
   const stats = {
     total: declarations?.length || 0,

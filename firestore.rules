@@ -1,48 +1,221 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isSignedIn() {
-      return request.auth != null;
+    function signedIn() { return request.auth != null; }
+    function userExists() { return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
+    function userData() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function rawProfile() {
+      let user = userData();
+      return user.get('profile', user.get('role', ''));
+    }
+    function profileId(profile) {
+      return profile == 'ADMINISTRADOR' ? 'administrador'
+        : profile == 'SÓCIO' || profile == 'SOCIO' ? 'socio'
+        : profile == 'SUPERVISOR' ? 'supervisor'
+        : profile == 'CONTADOR_GESTOR' ? 'contador_gestor'
+        : profile == 'ASSISTENTE' ? 'assistente'
+        : profile;
+    }
+    function active() { return userExists() && userData().get('status', 'INATIVO') == 'ATIVO'; }
+    function clientUser() { return active() && rawProfile() == 'CLIENTE'; }
+    function staff() {
+      let profile = rawProfile();
+      return active() && profile != 'CLIENTE' && profile != '';
+    }
+    function officeAdmin() {
+      let profile = rawProfile();
+      return active() && profile in ['ADMINISTRADOR', 'SÓCIO', 'SOCIO'];
+    }
+    function fiscalAdmin() {
+      let user = userData();
+      let profile = user.get('profile', user.get('role', ''));
+      return active()
+        && profile in ['ADMINISTRADOR', 'SÓCIO', 'SOCIO']
+        && user.get('fiscalAdmin', false) == true;
+    }
+    function permission(name) {
+      let profile = rawProfile();
+      let id = profileId(profile);
+      return active() && profile != 'CLIENTE' && profile != ''
+        && (profile in ['ADMINISTRADOR', 'SÓCIO', 'SOCIO']
+          || (exists(/databases/$(database)/documents/accessProfiles/$(id))
+            && get(/databases/$(database)/documents/accessProfiles/$(id)).data
+              .get('permissions', {}).get(name, false) == true));
+    }
+    function linkId(clientId) { return request.auth.uid + '_' + clientId; }
+    function companyAccess(clientId) {
+      let id = linkId(clientId);
+      let access = get(/databases/$(database)/documents/userCompanyAccess/$(id)).data;
+      return signedIn() && clientId != ''
+        && exists(/databases/$(database)/documents/userCompanyAccess/$(id))
+        && access.get('userId', '') == request.auth.uid
+        && access.get('clientId', '') == clientId
+        && access.get('status', 'INATIVO') == 'ATIVO';
+    }
+    function fiscalPermission(clientId, name) {
+      return fiscalAdmin() || (active() && companyAccess(clientId)
+        && get(/databases/$(database)/documents/userCompanyAccess/$(linkId(clientId))).data
+          .get('fiscalPermissions', {}).get(name, false) == true);
+    }
+    function companyId(data) {
+      return data.get('canonicalClientId', data.get('clientId', data.get('clienteId', '')));
+    }
+    function companyRead(data, modulePermission) {
+      return fiscalAdmin() || (permission(modulePermission) && companyAccess(companyId(data)));
+    }
+    function companyWrite(data, modulePermission) {
+      return fiscalAdmin() || (permission(modulePermission) && companyAccess(companyId(data)));
+    }
+    function safeUserCreate() {
+      return officeAdmin()
+        && request.resource.data.get('fiscalAdmin', false) == false
+        && !(request.resource.data.get('profile', request.resource.data.get('role', '')) in ['ADMINISTRADOR', 'SÓCIO', 'SOCIO']);
+    }
+    function safeUserUpdate() {
+      return officeAdmin()
+        && request.resource.data.get('profile', '') == resource.data.get('profile', '')
+        && request.resource.data.get('role', '') == resource.data.get('role', '')
+        && request.resource.data.get('fiscalAdmin', false) == resource.data.get('fiscalAdmin', false);
     }
 
-    function currentUser() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
-    function isStaff() {
-      return isSignedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && currentUser().status == 'ATIVO'
-        && currentUser().profile != 'CLIENTE';
-    }
-
-    function canManageAccess() {
-      return isStaff()
-        && currentUser().profile in ['ADMINISTRADOR', 'SÓCIO'];
-    }
-
-    // Identidades: colaboradores podem consultar a equipe para atribuição de
-    // tarefas. Clientes visualizam somente o próprio cadastro. Alterações de
-    // perfil, status e vínculos ficam restritas à administração.
     match /users/{userId} {
-      allow read: if isStaff() || (isSignedIn() && request.auth.uid == userId);
-      allow create, update, delete: if canManageAccess();
+      allow get: if staff() || (signedIn() && request.auth.uid == userId);
+      allow list: if staff();
+      allow create: if safeUserCreate();
+      allow update: if safeUserUpdate();
+      allow delete: if officeAdmin() && request.auth.uid != userId;
+    }
+    match /accessProfiles/{profile} {
+      allow read: if staff();
+      allow write: if false; // Somente API Admin SDK auditada.
+    }
+    match /userCompanyAccess/{id} {
+      allow read: if fiscalAdmin() || (signedIn() && resource.data.get('userId', '') == request.auth.uid);
+      allow write: if false; // Somente API Admin SDK auditada.
+    }
+    match /clients/{clientId} {
+      allow read: if (permission('view_clients') && companyAccess(clientId))
+        || fiscalPermission(clientId, 'consultar');
+      allow create: if fiscalAdmin();
+      allow update: if fiscalAdmin() || (permission('edit_clients') && companyAccess(clientId));
+      allow delete: if fiscalAdmin() || (permission('delete_clients') && companyAccess(clientId));
+    }
+    match /clientAccesses/{id} {
+      allow read: if fiscalAdmin() || (permission('view_passwords') && companyAccess(resource.data.get('clientId', '')));
+      allow create: if fiscalAdmin();
+      allow update, delete: if fiscalAdmin();
+    }
+    match /tasks/{taskId} {
+      allow read: if companyRead(resource.data, 'view_tasks');
+      allow create: if companyWrite(request.resource.data, 'manage_tasks');
+      allow update: if companyWrite(resource.data, 'manage_tasks') && companyWrite(request.resource.data, 'manage_tasks');
+      allow delete: if companyWrite(resource.data, 'manage_tasks');
+      match /comments/{commentId} {
+        allow read: if companyRead(get(/databases/$(database)/documents/tasks/$(taskId)).data, 'view_tasks');
+        allow write: if companyWrite(get(/databases/$(database)/documents/tasks/$(taskId)).data, 'manage_tasks');
+      }
+    }
+    match /processes/{id} {
+      allow read: if companyRead(resource.data, 'view_tasks');
+      allow create: if companyWrite(request.resource.data, 'manage_tasks');
+      allow update, delete: if companyWrite(resource.data, 'manage_tasks');
+    }
+    match /alvaras/{id} {
+      allow read: if companyRead(resource.data, 'processos');
+      allow create: if companyWrite(request.resource.data, 'processos');
+      allow update, delete: if companyWrite(resource.data, 'processos');
+    }
+    match /certidoes/{id} {
+      allow read: if companyRead(resource.data, 'processos');
+      allow create: if companyWrite(request.resource.data, 'processos');
+      allow update, delete: if companyWrite(resource.data, 'processos');
+    }
+    match /certifications/{id} {
+      allow read: if companyRead(resource.data, 'processos');
+      allow create: if companyWrite(request.resource.data, 'processos');
+      allow update, delete: if companyWrite(resource.data, 'processos');
+    }
+    match /contracts/{id} {
+      allow read: if companyRead(resource.data, 'financeiro');
+      allow create: if companyWrite(request.resource.data, 'financeiro');
+      allow update, delete: if companyWrite(resource.data, 'financeiro');
+    }
+    match /receivables/{id} {
+      allow read: if companyRead(resource.data, 'financeiro');
+      allow create: if companyWrite(request.resource.data, 'financeiro');
+      allow update, delete: if companyWrite(resource.data, 'financeiro');
+    }
+    match /payables/{id} { allow read, write: if fiscalAdmin(); }
+    match /installments/{id} {
+      allow read: if companyRead(resource.data, 'financeiro');
+      allow create: if companyWrite(request.resource.data, 'financeiro');
+      allow update, delete: if companyWrite(resource.data, 'financeiro');
+    }
+    match /funcionarios/{id} {
+      allow read: if companyRead(resource.data, 'funcionarios');
+      allow create: if companyWrite(request.resource.data, 'funcionarios');
+      allow update: if companyWrite(resource.data, 'funcionarios') && companyWrite(request.resource.data, 'funcionarios');
+      allow delete: if companyWrite(resource.data, 'funcionarios');
+    }
+    match /generated_documents/{id} {
+      allow read: if companyRead(resource.data, 'docs_flow');
+      allow create: if companyWrite(request.resource.data, 'docs_flow');
+      allow update, delete: if companyWrite(resource.data, 'docs_flow');
+    }
+    match /notifications/{id} {
+      allow read: if staff() && resource.data.get('userId', '') == request.auth.uid;
+      allow create: if staff() && request.resource.data.get('userId', '') != '';
+      allow update: if staff() && resource.data.get('userId', '') == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if false;
     }
 
-    // Perfis determinam acesso a módulos sensíveis e não podem ser alterados
-    // por quem apenas consome essas permissões.
-    match /accessProfiles/{profileId} {
-      allow read: if isStaff();
-      allow create, update, delete: if canManageAccess();
+    // Catálogos operacionais sem dados de uma empresa específica.
+    match /processoModelos/{id} { allow read: if permission('processos'); allow write: if permission('manage_groups'); }
+    match /obligation_groups/{id} { allow read: if permission('processos'); allow write: if permission('manage_groups'); }
+    match /irpf_stages/{id} { allow read: if permission('processos'); allow write: if officeAdmin(); }
+    match /officeSettings/{id} { allow read: if signedIn(); allow write: if permission('configuracoes'); }
+    match /settings/{id} { allow read: if staff(); allow write: if permission('configuracoes'); }
+    match /letterheadAssets/{id} { allow read: if staff(); allow write: if permission('configuracoes'); }
+
+    // Fluxos sem clientId confiável permanecem administrativos até normalização.
+    match /societaryOpenings/{id} {
+      allow read: if officeAdmin() || (permission('processos')
+        && resource.data.get('createdBy', '') == request.auth.uid);
+      allow create: if permission('processos')
+        && request.resource.data.get('createdBy', '') == request.auth.uid;
+      allow update: if officeAdmin() || (permission('processos')
+        && resource.data.get('createdBy', '') == request.auth.uid
+        && request.resource.data.get('createdBy', '') == request.auth.uid);
+      allow delete: if officeAdmin() || (permission('processos')
+        && resource.data.get('createdBy', '') == request.auth.uid);
+    }
+    match /societaryAlterations/{id} {
+      allow read: if companyRead(resource.data, 'processos');
+      allow create: if companyWrite(request.resource.data, 'processos');
+      allow update: if companyWrite(resource.data, 'processos') && companyWrite(request.resource.data, 'processos');
+      allow delete: if companyWrite(resource.data, 'processos');
+    }
+    match /analisesFiscais/{id} { allow read, write: if fiscalAdmin(); }
+    match /irpf_declarations/{id} {
+      allow read: if !resource.data.keys().hasAny(['govPass']) && companyRead(resource.data, 'irpf');
+      allow create: if !request.resource.data.keys().hasAny(['govPass']) && companyWrite(request.resource.data, 'irpf');
+      allow update: if !request.resource.data.keys().hasAny(['govPass'])
+        && companyWrite(resource.data, 'irpf') && companyWrite(request.resource.data, 'irpf');
+      allow delete: if companyWrite(resource.data, 'irpf');
     }
 
-    // Compatibilidade temporária: as coleções operacionais serão segmentadas
-    // por perfil e empresa nas próximas etapas. Users e accessProfiles ficam
-    // fora deste fallback para que as regras específicas acima prevaleçam.
-    match /{topLevelCollection}/{document=**} {
-      allow read, write: if isSignedIn()
-        && topLevelCollection != 'users'
-        && topLevelCollection != 'accessProfiles';
+    match /fiscalCredentialMetadata/{id} {
+      allow read: if fiscalPermission(resource.data.get('clientId', ''), 'consultar');
+      allow write: if false;
     }
+    match /fiscalAuditLogs/{id} { allow read, write: if false; }
+    match /adminAuditLogs/{id} { allow read, write: if false; }
+    match /taskAuditLogs/{id} { allow read: if officeAdmin(); allow write: if staff(); }
+    match /processAuditLogs/{id} { allow read: if officeAdmin(); allow write: if staff(); }
+    match /financeAuditLogs/{id} { allow read: if fiscalAdmin(); allow write: if permission('financeiro'); }
+
+    // Sem fallback: qualquer coleção/operação não listada é negada.
+    match /{document=**} { allow read, write: if false; }
   }
 }

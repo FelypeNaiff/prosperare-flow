@@ -44,7 +44,8 @@ import {
 } from "@/components/ui/accordion"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, useUser } from "@/firebase"
+import { authenticatedFiscalFetch } from "@/lib/fiscal/client"
 import { collection, doc, deleteDoc, setDoc, updateDoc } from "firebase/firestore"
 
 const MODULE_PERMISSIONS = [
@@ -52,6 +53,8 @@ const MODULE_PERMISSIONS = [
   { id: 'processos', label: 'Fluxo de Produção (Processos, Kanban)', desc: 'Acesso ao Kanban de Processos, Checklist, Parcelamentos e Certidões.' },
   { id: 'societario', label: 'Societário (Abertura, Alteração, Baixa)', desc: 'Acesso aos fluxos do societário.' },
   { id: 'docs_flow', label: 'Docs Flow (Documentos, Cofre)', desc: 'Acesso ao Gerador de Documentos, Histórico e Cofre de Senhas.' },
+  { id: 'funcionarios', label: 'Funcionários (Cadastro e lotações)', desc: 'Acesso aos registros trabalhistas vinculados às empresas autorizadas.', restricted: true },
+  { id: 'irpf', label: 'IRPF (Declarações)', desc: 'Acesso às declarações das empresas atribuídas.', restricted: true },
   { id: 'financeiro', label: 'Financeiro (Contas a Receber/Pagar, Fluxo)', desc: 'Acesso à gestão financeira completa do escritório.', restricted: true },
   { id: 'equipe', label: 'Gestão de Equipe (Membros, Departamentos)', desc: 'Acesso às configurações de colaboradores, departamentos e privilégios.', restricted: true },
   { id: 'configuracoes', label: 'Configurações (Meus Dados, Integrações)', desc: 'Acesso ao menu de configurações do escritório.', restricted: true },
@@ -210,6 +213,7 @@ const DEFAULT_PROFILES = [
 export default function PermissoesPage() {
   const router = useRouter()
   const firestore = useFirestore()
+  const { user: authenticatedUser } = useUser()
 
   // Estados dos Colaboradores
   const [selectedUser, setSelectedUser] = useState<any>(null)
@@ -236,18 +240,17 @@ export default function PermissoesPage() {
 
   // Auto-seed de perfis padrão se a coleção estiver vazia
   useEffect(() => {
-    if (!isLoadingProfiles && (dbProfiles || []).length === 0) {
-      DEFAULT_PROFILES.forEach((profile) => {
-        const profileRef = doc(firestore, "accessProfiles", profile.id)
-        setDocumentNonBlocking(profileRef, profile, { merge: true })
-      })
+    if (!isLoadingProfiles && (dbProfiles || []).length === 0 && authenticatedUser) {
+      Promise.all(DEFAULT_PROFILES.map((profile) => authenticatedFiscalFetch(authenticatedUser, "/api/admin/access-profiles", {
+        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profile),
+      }))).catch(() => toast({ title: "Acesso negado", description: "Somente um administrador fiscal pode inicializar perfis.", variant: "destructive" }))
       toast({ 
         title: "Perfis Inicializados!", 
         description: "Os perfis padrão foram criados no banco de dados.",
         className: "bg-[#2563EB] text-white border-none"
       })
     }
-  }, [isLoadingProfiles, dbProfiles, firestore])
+  }, [isLoadingProfiles, dbProfiles, authenticatedUser])
 
   // Handlers para colaboradores
   const handleOpenPerms = (user: any) => {
@@ -260,8 +263,21 @@ export default function PermissoesPage() {
     if (!selectedUser) return
     
     try {
-      const userRef = doc(firestore, "users", selectedUser.id)
-      await updateDoc(userRef, { profile: selectedCollabProfile })
+      if (!authenticatedUser) throw new Error("Sessão não autenticada")
+      const response = await authenticatedFiscalFetch(authenticatedUser, "/api/admin/fiscal-access", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "setProfile",
+          userId: selectedUser.id,
+          profile: selectedCollabProfile,
+          fiscalAdmin: false,
+        }),
+      })
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}))
+        throw new Error(payload.error || "Não foi possível alterar o perfil")
+      }
       setIsModalOpen(false)
       toast({ 
         title: "Perfil Atualizado!", 
@@ -316,8 +332,6 @@ export default function PermissoesPage() {
 
     try {
       const id = selectedProfile ? selectedProfile.id : profileForm.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_")
-      const profileRef = doc(firestore, "accessProfiles", id)
-      
       const data = {
         id,
         name: profileForm.name.toUpperCase().trim(),
@@ -325,7 +339,11 @@ export default function PermissoesPage() {
         permissions: profileForm.permissions
       }
 
-      await setDoc(profileRef, data, { merge: true })
+      if (!authenticatedUser) throw new Error("Sessão não autenticada")
+      const response = await authenticatedFiscalFetch(authenticatedUser, "/api/admin/access-profiles", {
+        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
+      })
+      if (!response.ok) throw new Error("Operação não autorizada")
       setIsProfileModalOpen(false)
       toast({
         title: selectedProfile ? "Perfil Atualizado!" : "Perfil Criado!",
@@ -346,8 +364,9 @@ export default function PermissoesPage() {
 
     if (confirm(`Deseja realmente excluir o perfil ${profile.name}? Colaboradores vinculados a este perfil perderão os acessos customizados.`)) {
       try {
-        const profileRef = doc(firestore, "accessProfiles", profile.id)
-        await deleteDoc(profileRef)
+        if (!authenticatedUser) throw new Error("Sessão não autenticada")
+        const response = await authenticatedFiscalFetch(authenticatedUser, `/api/admin/access-profiles?id=${encodeURIComponent(profile.id)}`, { method: "DELETE" })
+        if (!response.ok) throw new Error("Operação não autorizada")
         toast({ title: "Perfil removido!", variant: "destructive" })
       } catch (error) {
         toast({ title: "Erro", description: "Erro ao remover perfil de acesso.", variant: "destructive" })

@@ -55,6 +55,7 @@ import {
 } from "@/firebase"
 import { collection, doc } from "firebase/firestore"
 import { formatCNPJ, cn } from "@/lib/utils"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 interface EmployeeForm {
   matricula: string
@@ -118,12 +119,10 @@ export default function FuncionariosPage() {
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   // Buscar funcionários cadastrados do banco real
-  const empsQuery = useMemoFirebase(() => collection(firestore, "funcionarios"), [firestore])
-  const { data: emps = [], isLoading } = useCollection(empsQuery)
+  const { data: emps = [], isLoading } = useAuthorizedCompanyCollection(firestore, "funcionarios")
 
   // Buscar clientes do banco real
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: clients = [] } = useCollection(clientsQuery)
+  const { data: clients = [] } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
 
   const selectedClientInfo = (clients || []).find((c: any) => c.id === newEmp.clientId)
   const editClientInfo = (clients || []).find((c: any) => c.id === editFormData.clientId)
@@ -171,6 +170,7 @@ export default function FuncionariosPage() {
     const empData = {
       ...newEmp,
       id: empId,
+      canonicalClientId: client.id,
       status: calculatedStatus,
       clientName: client.nomeFantasia || client.razaoSocial || "Empresa Vinculada",
       clientCnpj: client.cnpj || "",
@@ -232,6 +232,7 @@ export default function FuncionariosPage() {
     const empRef = doc(firestore, "funcionarios", selectedEmp.id)
     updateDocumentNonBlocking(empRef, {
       ...editFormData,
+      canonicalClientId: editFormData.clientId,
       status: calculatedStatus,
       clientName: client.nomeFantasia || client.razaoSocial || "Empresa Vinculada",
       clientCnpj: client.cnpj || "",

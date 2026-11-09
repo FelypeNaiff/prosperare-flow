@@ -15,7 +15,8 @@ import { Button } from "@/components/ui/button"
 import { IrpfDetailsDrawer } from "./irpf-details-drawer"
 import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase, useUser, updateDocumentNonBlocking } from "@/firebase"
-import { collection, query, where, doc, orderBy } from "firebase/firestore"
+import { collection, query, doc, orderBy } from "firebase/firestore"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 const AVAILABLE_TAGS = [
   { name: 'AGUARDANDO RETORNO...', color: 'bg-[#F2B705] text-white' },
@@ -51,11 +52,8 @@ export function IrpfKanban({ searchTerm, filtroPagamento = "Todos" }: { searchTe
   const columns = (dbStages && dbStages.length > 0) ? dbStages : DEFAULT_COLUMNS
 
   // Consulta individualizada: Filtra apenas declarações do colaborador operacional atual
-  const irpfQuery = useMemoFirebase(() => 
-    selectedUser?.id ? query(collection(firestore, "irpf_declarations"), where("responsibleId", "==", selectedUser.id)) : null,
-    [firestore, selectedUser?.id]
-  )
-  const { data: declarations, isLoading: loadingDecls } = useCollection(irpfQuery)
+  const { data: authorizedDeclarations, isLoading: loadingDecls } = useAuthorizedCompanyCollection(firestore, "irpf_declarations")
+  const declarations = authorizedDeclarations.filter((item: any) => item.responsibleId === selectedUser?.id)
 
   const filteredCards = (declarations || []).filter(c => {
     const matchesSearch = c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || c.cpf?.includes(searchTerm);

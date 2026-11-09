@@ -14,26 +14,20 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
-import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { useUser, useAuth } from "@/firebase"
 import { initiateLogout } from "@/firebase/non-blocking-login"
 import { usePathname, useRouter } from "next/navigation"
-import { collection } from "firebase/firestore"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useAccessibleCompanies } from "@/hooks/use-accessible-companies"
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const { user, selectedUser, isUserLoading, isAuthChecking, userLoaded } = useUser()
   const auth = useAuth()
-  const firestore = useFirestore()
   const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
 
-  // Lista de empresas para os administradores selecionarem
-  const clientsQuery = useMemoFirebase(() => 
-    userLoaded ? collection(firestore, "clients") : null, 
-    [firestore, userLoaded]
-  )
-  const { data: clients = [] } = useCollection(clientsQuery)
+  const { companies: clients } = useAccessibleCompanies()
 
   // Estado para armazenar o CNPJ ativo de operação
   const [activeCompanyCnpj, setActiveCompanyCnpj] = useState<string>("")
@@ -54,43 +48,27 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     }
   }, [mounted, user, selectedUser, userLoaded, router, pathname])
 
-  // Define empresa ativa com base no selectedUser ou na primeira empresa da lista (para admin)
   useEffect(() => {
-    if (selectedUser) {
-      if (selectedUser.cnpj) {
-        const savedClientCnpj = localStorage.getItem("portal_client_active_cnpj")
-        const savedClientCompany = localStorage.getItem("portal_client_active_company")
-        
-        if (selectedUser.empresasVinculadas && selectedUser.empresasVinculadas.length > 1 && savedClientCnpj) {
-          setActiveCompanyCnpj(savedClientCnpj)
-          setActiveCompanyName(savedClientCompany || "Sua Empresa")
-        } else {
-          setActiveCompanyCnpj(selectedUser.cnpj)
-          setActiveCompanyName(selectedUser.companyName || selectedUser.razaoSocial || "Sua Empresa")
-        }
-      } else if (clients && clients.length > 0) {
-        // Se for admin, tenta carregar o CNPJ do localStorage ou pega a primeira empresa do banco
-        const savedCnpj = localStorage.getItem("portal_admin_active_cnpj")
-        const activeClient = clients.find(c => c.cnpj === savedCnpj) || clients[0]
-        setActiveCompanyCnpj(activeClient.cnpj || "")
-        setActiveCompanyName(activeClient.nomeFantasia || activeClient.razaoSocial || "Empresa Demo")
-      } else {
-        // Fallback absoluto caso não existam clientes cadastrados
-        setActiveCompanyCnpj("12.345.678/0001-90")
-        setActiveCompanyName("Padaria Central Ltda")
-      }
-    }
-  }, [selectedUser, clients])
+    if (!clients.length) return
+    const savedId = sessionStorage.getItem("portal_active_client_id")
+    const activeClient = clients.find(c => c.id === savedId) || clients[0]
+    sessionStorage.setItem("portal_active_client_id", activeClient.id)
+    setActiveCompanyCnpj(activeClient.cnpj || "")
+    setActiveCompanyName(activeClient.tradeName || activeClient.corporateName)
+    window.dispatchEvent(new CustomEvent("portalCompanyChanged", {
+      detail: { cnpj: activeClient.cnpj, clientId: activeClient.id, client: activeClient }
+    }))
+  }, [clients])
 
-  const handleCompanyChange = (cnpj: string) => {
-    const client = (clients || []).find(c => c.cnpj === cnpj)
+  const handleCompanyChange = (clientId: string) => {
+    const client = (clients || []).find(c => c.id === clientId)
     if (client) {
-      setActiveCompanyCnpj(cnpj)
-      setActiveCompanyName(client.nomeFantasia || client.razaoSocial || "Empresa Selecionada")
-      localStorage.setItem("portal_admin_active_cnpj", cnpj)
+      setActiveCompanyCnpj(client.cnpj)
+      setActiveCompanyName(client.tradeName || client.corporateName)
+      sessionStorage.setItem("portal_active_client_id", client.id)
       
       // Despacha um evento personalizado para atualizar as páginas filhas em tempo real
-      window.dispatchEvent(new CustomEvent("portalCompanyChanged", { detail: { cnpj, client } }))
+      window.dispatchEvent(new CustomEvent("portalCompanyChanged", { detail: { cnpj: client.cnpj, clientId: client.id, client } }))
     }
   }
 
@@ -116,7 +94,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   if (!user || (!selectedUser && pathname !== "/escolha-usuario")) return null
 
   const pathSegments = pathname.split('/').filter(Boolean)
-  const isClientUser = !!selectedUser?.cnpj
+  const isClientUser = selectedUser?.profile === 'CLIENTE' || selectedUser?.role === 'CLIENTE'
 
   return (
     <SidebarProvider>
@@ -145,14 +123,14 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             {!isClientUser && clients && clients.length > 0 && (
               <div className="flex items-center gap-2 ml-4">
                 <Building2 className="h-4 w-4 text-blue-600 shrink-0" />
-                <Select value={activeCompanyCnpj} onValueChange={handleCompanyChange}>
+                <Select value={clients.find(c => c.cnpj === activeCompanyCnpj)?.id || ''} onValueChange={handleCompanyChange}>
                   <SelectTrigger className="h-9 min-w-[200px] border-slate-200 text-xs font-bold text-slate-700">
                     <SelectValue placeholder="Selecione a empresa..." />
                   </SelectTrigger>
                   <SelectContent>
                     {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.cnpj} className="text-xs font-semibold">
-                        {c.nomeFantasia || c.razaoSocial} ({c.cnpj})
+                      <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
+                        {c.tradeName || c.corporateName} ({c.cnpj})
                       </SelectItem>
                     ))}
                   </SelectContent>

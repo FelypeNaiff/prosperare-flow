@@ -62,6 +62,7 @@ import { format, addMonths, subMonths, startOfMonth, endOfMonth } from "date-fns
 import { ptBR } from "date-fns/locale"
 import { ClientCombobox } from "@/components/shared/client-combobox"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export default function ContasAReceberPage() {
   const firestore = useFirestore()
@@ -87,22 +88,14 @@ export default function ContasAReceberPage() {
     invalidReasons: string[]
   } | null>(null)
 
-  const receivablesQuery = useMemoFirebase(() => {
+  const { data: authorizedItems = [], isLoading } = useAuthorizedCompanyCollection(firestore, "receivables")
+  const items = useMemo(() => {
     const firstDay = format(startOfMonth(selectedCompetence), "yyyy-MM-dd")
     const lastDay = format(endOfMonth(selectedCompetence), "yyyy-MM-dd")
-    return query(
-      collection(firestore, "receivables"),
-      where("data", ">=", firstDay),
-      where("data", "<=", lastDay)
-    )
-  }, [firestore, selectedCompetence])
-  const { data: items = [], isLoading } = useCollection(receivablesQuery)
-
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: clients = [] } = useCollection(clientsQuery)
-
-  const contractsQuery = useMemoFirebase(() => collection(firestore, "contracts"), [firestore])
-  const { data: contracts = [] } = useCollection(contractsQuery)
+    return authorizedItems.filter((item) => item.data >= firstDay && item.data <= lastDay)
+  }, [authorizedItems, selectedCompetence])
+  const { data: clients = [] } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
+  const { data: contracts = [] } = useAuthorizedCompanyCollection(firestore, "contracts")
 
   const [newAccount, setNewAccount] = useState({
     descricao: "",
@@ -223,6 +216,7 @@ export default function ContasAReceberPage() {
     const accountData = {
       ...newAccount,
       id,
+      canonicalClientId: newAccount.clientId,
       cliente: selectedClient?.corporateName || "Cliente Avulso",
       createdAt: new Date().toISOString()
     }
@@ -320,19 +314,46 @@ export default function ContasAReceberPage() {
     const reader = new FileReader()
     reader.onload = (e) => {
       const text = e.target?.result as string
-      const lines = text.split(/\r?\n/)
+      const lines = text.split(/\r?\n/).filter((line) => line.trim())
+      const separator = lines[0]?.includes(';') ? ';' : ','
+      const headers = (lines[0] || '').split(separator).map((header) => header.trim().toLowerCase())
+      const clientIdIndex = headers.indexOf('clientid')
+      const cnpjIndex = headers.indexOf('cnpj')
+      if (clientIdIndex < 0 && cnpjIndex < 0) {
+        toast({
+          title: "Importação bloqueada",
+          description: "O CSV deve conter a coluna clientId ou CNPJ. Nomes não são usados para vincular empresas.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const normalizeCnpj = (value: string) => value.replace(/\D/g, '')
       let count = 0
+      let skipped = 0
 
       lines.forEach((line, index) => {
         if (index === 0 || !line.trim()) return
-        const parts = line.split(/[;,]/)
+        const parts = line.split(separator)
         if (parts.length >= 2) {
+          const requestedId = clientIdIndex >= 0 ? parts[clientIdIndex]?.trim() : ''
+          const requestedCnpj = cnpjIndex >= 0 ? normalizeCnpj(parts[cnpjIndex] || '') : ''
+          const matches = (clients || []).filter((client: any) =>
+            requestedId ? client.id === requestedId : requestedCnpj && normalizeCnpj(client.cnpj || '') === requestedCnpj,
+          )
+          if (matches.length !== 1) {
+            skipped++
+            return
+          }
+          const client = matches[0]
           const id = Math.random().toString(36).substr(2, 9)
           const docRef = doc(firestore, "receivables", id)
           const data = {
             id,
             descricao: parts[0]?.trim().toUpperCase() || "HONORÁRIO IMPORTADO",
-            cliente: parts[1]?.trim().toUpperCase() || "CLIENTE AVULSO",
+            clientId: client.id,
+            canonicalClientId: client.id,
+            cliente: client.corporateName || client.nomeFantasia || client.razaoSocial || client.id,
             pagamento: parts[2]?.trim() || "PIX",
             data: parts[3]?.trim() || new Date().toISOString().split('T')[0],
             valor: parseFloat(parts[4]?.replace(',', '.') || "0"),
@@ -345,7 +366,11 @@ export default function ContasAReceberPage() {
         }
       })
 
-      toast({ title: "Honorários Importados", description: `${count} registros processados com sucesso.` })
+      toast({
+        title: "Importação concluída",
+        description: `${count} registros vinculados; ${skipped} ignorados por empresa ausente ou ambígua.`,
+        variant: skipped ? "destructive" : "default",
+      })
     }
     reader.readAsText(file)
     if (fileInputRef.current) fileInputRef.current.value = ""
@@ -441,6 +466,7 @@ export default function ContasAReceberPage() {
         generationId,
         contractId: contract.id,
         clientId: contract.clientId,
+        canonicalClientId: contract.clientId,
         cliente: contract.clientName || "CLIENTE AVULSO",
         descricao: `HONORARIO - ${servicesLabel}`.toUpperCase(),
         pagamento: "PIX",

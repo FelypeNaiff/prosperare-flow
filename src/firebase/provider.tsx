@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, doc, setDoc } from 'firebase/firestore';
+import { Firestore } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { auth as authInstance, firestore as firestoreInstance, firebaseApp as appInstance } from './init';
 
@@ -51,32 +51,6 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     // 2. Ouvinte de Autenticação (Acesso Mestre)
     const unsubscribeAuth = onAuthStateChanged(authInstance, (firebaseUser) => {
       if (firebaseUser) {
-        // Provisionamento automático para administradores semente
-        const seedAdmins = [
-          'pscsucesso@gmail.com', 
-          'felypenaiff01@gmail.com', 
-          'thalyssonluiz@gmail.com',
-          'cpgama79@gmail.com',
-          'marrypassosmarques@gmail.com',
-          'thalyssonluiz20@gmail.com'
-        ];
-        if (seedAdmins.includes(firebaseUser.email || "")) {
-          const name = firebaseUser.email?.includes('felype') ? 'FELYPE NAIFF' : 
-                       firebaseUser.email?.includes('thalysson') ? 'THALYSSON LUIZ' : 
-                       firebaseUser.email?.includes('cpgama79') ? 'CP GAMA' :
-                       firebaseUser.email?.includes('marrypassosmarques') ? 'MARRY PASSOS' : 'ADMINISTRADOR GERAL';
-          
-          const userRef = doc(firestoreInstance, "users", firebaseUser.uid);
-          setDoc(userRef, {
-            id: firebaseUser.uid,
-            fullName: name,
-            email: firebaseUser.email,
-            profile: 'ADMINISTRADOR',
-            status: 'ATIVO',
-            createdAt: new Date().toISOString()
-          }, { merge: true });
-        }
-
         setState(prev => ({
           ...prev,
           user: firebaseUser,

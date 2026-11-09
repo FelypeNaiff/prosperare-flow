@@ -62,6 +62,7 @@ import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking
 import { collection, doc } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
 import React from "react"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export default function ParcelamentosPage() {
   const firestore = useFirestore()
@@ -78,8 +79,7 @@ export default function ParcelamentosPage() {
   const [statusFilter, setStatusFilter] = useState("Todos")
   const [orgaoFilter, setOrgaoFilter] = useState("Todos")
 
-  const installmentsQuery = useMemoFirebase(() => collection(firestore, "installments"), [firestore])
-  const { data: installments = [], isLoading } = useCollection(installmentsQuery)
+  const { data: installments = [], isLoading } = useAuthorizedCompanyCollection(firestore, "installments")
 
   const filteredData = useMemo(() => {
     return (installments || []).filter(i => {

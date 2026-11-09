@@ -56,8 +56,8 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase"
-import { collection, doc } from "firebase/firestore"
+import { useFirestore, useCollection, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase"
+import { collection, doc, query, where } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
 import { cn, numberToExtensoBRL } from "@/lib/utils"
 import { addCanvasToOfficialPdf } from "@/lib/official-letterhead"
@@ -69,6 +69,7 @@ interface CnaeItem {
 
 export default function AberturaSocietariaPage() {
   const firestore = useFirestore()
+  const { user, userData } = useUser()
   const [isGenerating, setIsGenerating] = useState(false)
   const [openPartnerIndex, setOpenPartnerIndex] = useState<number | null>(0)
   
@@ -89,7 +90,14 @@ export default function AberturaSocietariaPage() {
   const [isObjetoSocialEdited, setIsObjetoSocialEdited] = useState(false)
 
   // Fetch all company openings
-  const openingsQuery = useMemoFirebase(() => collection(firestore, "societaryOpenings"), [firestore])
+  const openingsQuery = useMemoFirebase(() => {
+    const profile = String(userData?.profile || userData?.role || '').toUpperCase()
+    return ['ADMINISTRADOR', 'SÓCIO', 'SOCIO'].includes(profile)
+      ? collection(firestore, "societaryOpenings")
+      : user?.uid
+        ? query(collection(firestore, "societaryOpenings"), where("createdBy", "==", user.uid))
+        : null
+  }, [firestore, user?.uid, userData?.profile, userData?.role])
   const { data: allOpenings = [], isLoading: loadingOpenings } = useCollection(openingsQuery)
 
   // Filter openings (all drafts)
@@ -365,9 +373,11 @@ export default function AberturaSocietariaPage() {
     
     const openingId = currentOpeningId || doc(collection(firestore, "societaryOpenings")).id
     const openingDocRef = doc(firestore, "societaryOpenings", openingId)
+    const existing = (allOpenings || []).find((opening: any) => opening.id === openingId)
 
     const dataToSave: any = {
       id: openingId,
+      createdBy: existing?.createdBy || user?.uid || "",
       label: finalLabel,
       status: status,
       dadosGerais: dadosGerais,
@@ -382,7 +392,6 @@ export default function AberturaSocietariaPage() {
       updatedAt: new Date().toISOString()
     }
 
-    const existing = (allOpenings || []).find((alt: any) => alt.id === openingId)
     if (existing) {
       dataToSave.createdAt = existing.createdAt || dataToSave.createdAt
     }

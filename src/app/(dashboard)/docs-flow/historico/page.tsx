@@ -33,6 +33,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser, deleteDocumentNo
 import { collection, doc, query, orderBy } from "firebase/firestore"
 import { format } from "date-fns"
 import { toast } from "@/hooks/use-toast"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export default function DocsFlowHistoricoPage() {
   const router = useRouter()
@@ -40,11 +41,8 @@ export default function DocsFlowHistoricoPage() {
   const { userLoaded } = useUser()
   const [searchTerm, setSearchTerm] = useState("")
 
-  const docsQuery = useMemoFirebase(() => 
-    userLoaded ? query(collection(firestore, "generated_documents"), orderBy("createdAt", "desc")) : null,
-    [firestore, userLoaded]
-  )
-  const { data: documents = [], isLoading } = useCollection(docsQuery)
+  const { data: unsortedDocuments = [], isLoading } = useAuthorizedCompanyCollection(firestore, "generated_documents", "canonicalClientId", userLoaded)
+  const documents = [...unsortedDocuments].sort((a: any, b: any) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
 
   const filteredDocs = (documents || []).filter(d => 
     d.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 

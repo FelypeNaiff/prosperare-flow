@@ -29,28 +29,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/hooks/use-toast"
-import { 
-  useFirestore, 
-  useCollection, 
-  useMemoFirebase, 
-  useUser,
-  setDocumentNonBlocking
-} from "@/firebase"
-import { collection, doc, query, where } from "firebase/firestore"
+import { useUser } from "@/firebase"
+import { authenticatedFiscalFetch } from "@/lib/fiscal/client"
 import { addDays, format, parseISO, isValid } from "date-fns"
 import { cn } from "@/lib/utils"
 
 export default function FeriasPortalPage() {
-  const firestore = useFirestore()
-  const { selectedUser } = useUser()
+  const { user } = useUser()
+  const [clientId, setClientId] = useState("")
   const [cnpj, setCnpj] = useState("")
   const [companyName, setCompanyName] = useState("")
   const [isSaving, setIsSaving] = useState(false)
 
   // Estados do formulário
-  const [selectedEmpresa, setSelectedEmpresa] = useState("empresa2") // Default to ELETRO LTDA
+  const [selectedEmpresa, setSelectedEmpresa] = useState("")
   const [lotacaoSetor, setLotacaoSetor] = useState("GERAL")
-  const [selectedFuncionario, setSelectedFuncionario] = useState("func1")
+  const [selectedFuncionario, setSelectedFuncionario] = useState("")
   const [dataInicio, setDataInicio] = useState("")
   const [diasGozo, setDiasGozo] = useState(30)
   const [abonoPecuniario, setAbonoPecuniario] = useState(false)
@@ -109,45 +103,56 @@ export default function FeriasPortalPage() {
     const handleCnpjChange = (e: any) => {
       if (e.detail?.cnpj) {
         setCnpj(e.detail.cnpj)
-        if (e.detail.client) {
-          setCompanyName(e.detail.client.nomeFantasia || e.detail.client.razaoSocial || "")
-        }
+        if (e.detail.clientId) { setClientId(e.detail.clientId); setSelectedEmpresa(e.detail.clientId) }
+        if (e.detail.client) setCompanyName(e.detail.client.tradeName || e.detail.client.corporateName || "")
       }
     }
     window.addEventListener("portalCompanyChanged", handleCnpjChange)
     return () => window.removeEventListener("portalCompanyChanged", handleCnpjChange)
   }, [])
 
-  // Buscar solicitações de férias existentes da empresa ativa
-  const tasksQuery = useMemoFirebase(() => 
-    cnpj ? query(
-      collection(firestore, "tasks"), 
-      where("clientId", "==", cnpj), 
-      where("origem", "==", "PORTAL_CLIENTE"), 
-      where("tipo", "==", "FERIAS")
-    ) : null,
-    [firestore, cnpj]
-  )
-  const { data: rawRequests = [], isLoading: loadingTasks } = useCollection(tasksQuery)
+  const [rawRequests, setRawRequests] = useState<any[]>([])
+  const [employees, setEmployees] = useState<any[]>([])
+  const [loadingTasks, setLoadingTasks] = useState(true)
+
+  useEffect(() => {
+    const activeClientId = sessionStorage.getItem("portal_active_client_id") || ""
+    if (activeClientId) { setClientId(activeClientId); setSelectedEmpresa(activeClientId) }
+  }, [])
+
+  const loadPortalData = async () => {
+    if (!user || !clientId) return
+    setLoadingTasks(true)
+    try {
+      const response = await authenticatedFiscalFetch(user, `/api/portal/company-data?clientId=${encodeURIComponent(clientId)}&type=FERIAS`)
+      if (!response.ok) throw new Error("Acesso negado")
+      const payload = await response.json()
+      setRawRequests(payload.requests || [])
+      setEmployees(payload.employees || [])
+    } catch {
+      setRawRequests([]); setEmployees([])
+      toast({ title: "Acesso negado", description: "Não foi possível carregar os dados desta empresa.", variant: "destructive" })
+    } finally { setLoadingTasks(false) }
+  }
+  useEffect(() => { void loadPortalData() }, [user, clientId])
 
   const requests = (rawRequests || []).sort((a: any, b: any) => 
     new Date(b.createdAt || "").getTime() - new Date(a.createdAt || "").getTime()
   )
 
   // Mocks de dados solicitados
-  const MOCK_EMPRESAS = [
-    { id: "empresa1", label: "1 - PROSPERARE LTDA (04.536.819/0001-90)", name: "PROSPERARE LTDA", cnpj: "04.536.819/0001-90", lotacoes: ["GERAL", "ADMINISTRATIVO", "PRODUÇÃO"] },
-    { id: "empresa2", label: "2 - ELETRO LTDA (12.345.678/0001-90)", name: "ELETRO LTDA", cnpj: "12.345.678/0001-90", lotacoes: ["GERAL", "FINANCEIRO", "TECNOLOGIA"] }
-  ]
+  const MOCK_EMPRESAS = [{ id: clientId, label: `${companyName} (${cnpj})`, name: companyName, cnpj, lotacoes: ["GERAL"] }]
 
   const activeCompanyObj = MOCK_EMPRESAS.find(e => e.id === selectedEmpresa)
   const availableLotacoes = activeCompanyObj?.lotacoes || ["GERAL"]
 
-  const MOCK_FUNCIONARIOS = [
-    { id: "func1", label: "Matrícula 1 - CARLOS EDUARDO SILVA (01.01 - GERAL)", name: "CARLOS EDUARDO SILVA", matricula: "1", setor: "GERAL" },
-    { id: "func2", label: "Matrícula 2 - ANA MARIA DE SOUZA (01.02 - GERÊNCIA)", name: "ANA MARIA DE SOUZA", matricula: "2", setor: "GERÊNCIA" },
-    { id: "func3", label: "Matrícula 3 - PEDRO ALVES DE LIMA (01.01 - GERAL)", name: "PEDRO ALVES DE LIMA", matricula: "3", setor: "GERAL" }
-  ]
+  const MOCK_FUNCIONARIOS = employees.map((employee) => ({
+    id: employee.id,
+    label: `${employee.matricula || employee.id} - ${employee.nome} (${employee.lotacao || employee.setor || "GERAL"})`,
+    name: employee.nome,
+    matricula: employee.matricula || employee.id,
+    setor: employee.lotacao || employee.setor || "GERAL",
+  }))
 
   // Ações rápidos de dias de gozo
   const QUICK_DAYS = [30, 20, 15, 10]
@@ -168,9 +173,6 @@ export default function FeriasPortalPage() {
       const selectedCompanyObj = MOCK_EMPRESAS.find(e => e.id === selectedEmpresa)
       const selectedEmpObj = MOCK_FUNCIONARIOS.find(f => f.id === selectedFuncionario)
 
-      const id = Math.random().toString(36).substr(2, 9)
-      const taskRef = doc(firestore, "tasks", id)
-
       const notesHtml = `
         Solicitação de Férias criada via Portal do Cliente.
         Funcionário: ${selectedEmpObj?.name || "Funcionário"}
@@ -184,16 +186,12 @@ export default function FeriasPortalPage() {
       `.trim()
 
       const taskData = {
-        id,
-        clientId: selectedCompanyObj?.cnpj || cnpj || "12.345.678/0001-90",
-        clientName: selectedCompanyObj?.name || companyName || "ELETRO LTDA",
+        clientName: selectedCompanyObj?.name || companyName,
         title: `SOLICITAÇÃO DE FÉRIAS - ${selectedEmpObj?.name || "Funcionário"}`,
         responsibleId: "Geral",
         responsibleName: "Departamento Pessoal",
         notes: notesHtml,
         status: "pendente",
-        origem: "PORTAL_CLIENTE",
-        tipo: "FERIAS",
         departamento: "DP",
         funcionarioNome: selectedEmpObj?.name || "Funcionário",
         dataInicio: dataInicio,
@@ -204,11 +202,13 @@ export default function FeriasPortalPage() {
         diasAbono: abonoPecuniario ? 10 : 0,
         adiantamento13: adiantamento13,
         observacoes: observacoes,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
       }
-
-      setDocumentNonBlocking(taskRef, taskData, { merge: true })
+      if (!user || !clientId) throw new Error("Sessão ou empresa inválida")
+      const response = await authenticatedFiscalFetch(user, "/api/portal/company-data", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId, type: "FERIAS", data: taskData }),
+      })
+      if (!response.ok) throw new Error("Solicitação não autorizada")
       
       toast({ title: "Solicitação Enviada!", description: `A demanda de férias para ${selectedEmpObj?.name} foi enviada ao Departamento Pessoal.` })
       
@@ -218,6 +218,7 @@ export default function FeriasPortalPage() {
       setAbonoPecuniario(false)
       setAdiantamento13(false)
       setObservacoes("")
+      await loadPortalData()
     } catch (e) {
       toast({ title: "Erro", description: "Falha ao enviar a solicitação.", variant: "destructive" })
     } finally {

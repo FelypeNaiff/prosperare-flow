@@ -48,6 +48,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export default function CofreSenhasPage() {
   const { userData, isUserLoading } = useUser()
@@ -70,12 +71,10 @@ export default function CofreSenhasPage() {
   })
 
   // Fetch clients
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: clients = [], isLoading: isClientsLoading } = useCollection(clientsQuery)
+  const { data: clients = [], isLoading: isClientsLoading } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
 
   // Fetch accesses
-  const accessesQuery = useMemoFirebase(() => collection(firestore, "clientAccesses"), [firestore])
-  const { data: accesses = [], isLoading: isAccessesLoading } = useCollection(accessesQuery)
+  const { data: accesses = [], isLoading: isAccessesLoading } = useAuthorizedCompanyCollection(firestore, "clientAccesses", "clientId")
 
   const isRestricted = userData?.profile === 'ASSISTENTE'
 

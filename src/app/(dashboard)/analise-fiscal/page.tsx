@@ -22,6 +22,7 @@ import { collection, doc } from "firebase/firestore"
 import { cn } from "@/lib/utils"
 import { analyzeFiscalDocument, type FiscalAnalysis } from "@/ai/flows/analyze-fiscal-document-flow"
 import { generateFiscalReportPdf, compressImage, type Letterhead } from "@/lib/fiscal-report-pdf"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 const DOC_TYPES = [
   "Relatório de Situação Fiscal (Receita Federal / PGFN - e-CAC)",
@@ -50,10 +51,8 @@ export default function AnaliseFiscalIAPage() {
   const { user, userData } = useUser() as any
 
   // ---- Dados ----
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: clients = [] } = useCollection(clientsQuery)
-  const historyQuery = useMemoFirebase(() => collection(firestore, "analisesFiscais"), [firestore])
-  const { data: history = [] } = useCollection(historyQuery)
+  const { data: clients = [] } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
+  const { data: history = [] } = useAuthorizedCompanyCollection(firestore, "analisesFiscais")
 
   const lhRef = useMemoFirebase(() => doc(firestore, "settings", "papelTimbrado"), [firestore])
   const headerRef = useMemoFirebase(() => doc(firestore, "letterheadAssets", "header"), [firestore])
@@ -119,7 +118,7 @@ export default function AnaliseFiscalIAPage() {
     if (!analysis) return
     const id = savedId || Math.random().toString(36).slice(2, 11)
     setDocumentNonBlocking(doc(firestore, "analisesFiscais", id), {
-      id, analysis, docType, clientId: clientId || null,
+      id, analysis, docType, clientId: clientId || null, canonicalClientId: clientId || null,
       clientName: selectedClient?.corporateName || analysis.contribuinteNome,
       fileNames: files.map(f => f.name),
       createdAt: new Date().toISOString(),

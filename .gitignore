@@ -23,6 +23,9 @@
 # misc
 .DS_Store
 *.pem
+*.pfx
+*.p12
+*.key
 desktop.ini
 
 # debug
@@ -43,6 +46,6 @@ next-env.d.ts
 
 # firebase
 firebase-debug.log
-firestore-debug.log/public/sw.js
-/public/workbox-*.js
+/firestore-debug.log
 /public/sw.js
+/public/workbox-*.js

@@ -84,6 +84,7 @@ export function LicensesTab({ clientId }: LicensesTabProps) {
       ...formData,
       id,
       clienteId: clientId,
+      canonicalClientId: clientId,
       createdAt: formData.id ? undefined : new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }

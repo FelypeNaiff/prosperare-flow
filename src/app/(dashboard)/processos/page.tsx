@@ -51,6 +51,7 @@ import { ProcessDetailsDrawer } from "@/components/processes/process-details-dra
 import { CreateProcessModal } from "@/components/processes/create-process-modal"
 import { format, parseISO, addMonths, subMonths, startOfMonth, isValid } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 const safeFormatDate = (dateVal: any, fmt: string, options?: any) => {
   if (!dateVal) return '';
@@ -166,17 +167,8 @@ export default function ProcessosPage() {
 
   const [isBatchUpdating, setIsBatchUpdating] = useState(false)
 
-  const processesQuery = useMemoFirebase(() => 
-    userLoaded ? query(collection(firestore, "processes"), orderBy("prazo", "asc")) : null, 
-    [firestore, userLoaded]
-  )
-  const { data: rawProcesses = [], isLoading } = useCollection(processesQuery)
-
-  const clientsQuery = useMemoFirebase(() => 
-    userLoaded ? collection(firestore, "clients") : null, 
-    [firestore, userLoaded]
-  )
-  const { data: clients = [] } = useCollection(clientsQuery)
+  const { data: rawProcesses = [], isLoading } = useAuthorizedCompanyCollection(firestore, "processes", "canonicalClientId", userLoaded)
+  const { data: clients = [] } = useAuthorizedCompanyCollection(firestore, "clients", "__name__", userLoaded)
 
   const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
   const { data: team = [] } = useCollection(usersQuery)
@@ -194,7 +186,7 @@ export default function ProcessosPage() {
 
     const selected = selectedIds
       .map(id => (rawProcesses || []).find(process => process.id === id))
-      .filter(Boolean)
+      .filter((process): process is NonNullable<typeof process> => process != null)
 
     if (selected.length !== selectedIds.length) {
       toast({ title: "Seleção desatualizada", description: "Atualize a página e selecione os processos novamente.", variant: "destructive" })

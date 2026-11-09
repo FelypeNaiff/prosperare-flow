@@ -60,6 +60,7 @@ import {
 import { collection, doc } from "firebase/firestore"
 import { format, parseISO, isBefore, addDays, isValid, differenceInDays } from "date-fns"
 import { addCanvasToOfficialPdf } from "@/lib/official-letterhead"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 const CND_TYPES = [
   "Federal",
@@ -74,11 +75,8 @@ export default function CertidoesPage() {
   const { userLoaded } = useUser()
   const [searchTerm, setSearchTerm] = useState("")
 
-  const certidoesQuery = useMemoFirebase(() => userLoaded ? collection(firestore, "certidoes") : null, [firestore, userLoaded])
-  const { data: certidoes = [], isLoading: certsLoading } = useCollection(certidoesQuery)
-
-  const clientsQuery = useMemoFirebase(() => userLoaded ? collection(firestore, "clients") : null, [firestore, userLoaded])
-  const { data: clients = [], isLoading: clientsLoading } = useCollection(clientsQuery)
+  const { data: certidoes = [], isLoading: certsLoading } = useAuthorizedCompanyCollection(firestore, "certidoes", "canonicalClientId", userLoaded)
+  const { data: clients = [], isLoading: clientsLoading } = useAuthorizedCompanyCollection(firestore, "clients", "__name__", userLoaded)
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
@@ -252,6 +250,7 @@ export default function CertidoesPage() {
       const payload = {
         id,
         clienteId: client.id,
+        canonicalClientId: client.id,
         tipo: "Federal",
         emissao: data.dataEmissao || "",
         validade: data.dataValidade || "",
@@ -313,6 +312,7 @@ export default function CertidoesPage() {
           const payload = {
             id,
             clienteId: client.id,
+            canonicalClientId: client.id,
             tipo: "Federal",
             emissao: data.dataEmissao || "",
             validade: data.dataValidade || "",
@@ -349,6 +349,7 @@ export default function CertidoesPage() {
       const payload: any = {
         ...formData,
         id,
+        canonicalClientId: formData.clienteId,
         updatedAt: new Date().toISOString()
       }
       

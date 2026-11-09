@@ -17,6 +17,7 @@ import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, startOfW
 import { ptBR } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { TicketDetailsDrawer } from "@/components/atendimentos/ticket-details-drawer"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export default function AgendaDemandasPage() {
   const firestore = useFirestore()
@@ -29,11 +30,8 @@ export default function AgendaDemandasPage() {
   const [filtroPrazo, setFiltroPrazo] = useState("todas") // todas, atrasadas, hoje, no_prazo
 
   // Queries
-  const tasksQuery = useMemoFirebase(() => userLoaded ? collection(firestore, "tasks") : null, [firestore, userLoaded])
-  const { data: rawTasks = [], isLoading } = useCollection(tasksQuery)
-
-  const clientsQuery = useMemoFirebase(() => userLoaded ? collection(firestore, "clients") : null, [firestore, userLoaded])
-  const { data: clients = [] } = useCollection(clientsQuery)
+  const { data: rawTasks = [], isLoading } = useAuthorizedCompanyCollection(firestore, "tasks", "canonicalClientId", userLoaded)
+  const { data: clients = [] } = useAuthorizedCompanyCollection(firestore, "clients", "__name__", userLoaded)
 
   const usersQuery = useMemoFirebase(() => userLoaded ? collection(firestore, "users") : null, [firestore, userLoaded])
   const { data: team = [] } = useCollection(usersQuery)

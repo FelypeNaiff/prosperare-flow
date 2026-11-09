@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { 
+import {
   Layers, 
   Plus, 
   Edit, 
@@ -60,6 +60,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { format, parse, lastDayOfMonth, setDate } from "date-fns"
 import { getProcessDocumentId } from "@/lib/process-generation"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export default function GruposObrigacoesPage() {
   const firestore = useFirestore()
@@ -82,8 +83,7 @@ export default function GruposObrigacoesPage() {
   const templatesQuery = useMemoFirebase(() => collection(firestore, "processoModelos"), [firestore])
   const { data: templates = [] } = useCollection(templatesQuery)
 
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: allClients = [] } = useCollection(clientsQuery)
+  const { data: allClients = [] } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
 
   const [formData, setFormData] = useState({
     name: "",
@@ -269,6 +269,7 @@ export default function GruposObrigacoesPage() {
             groupId: selectedGroupForGen.id,
             groupName: selectedGroupForGen.name,
             clienteId: client.id,
+            canonicalClientId: client.id,
             nomeProcesso: modelRef.title || model.nome,
             situacao: "a_fazer",
             departamento: selectedGroupForGen.dept || model.departamento || "Fiscal",

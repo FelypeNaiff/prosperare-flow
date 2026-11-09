@@ -24,6 +24,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog"
 import Link from "next/link"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export default function UnifiedCalendarPage() {
   const firestore = useFirestore()
@@ -36,18 +37,10 @@ export default function UnifiedCalendarPage() {
     ticket: true
   })
 
-  // Queries
-  const alvarasQuery = useMemoFirebase(() => userLoaded ? collection(firestore, "alvaras") : null, [firestore, userLoaded])
-  const { data: alvaras = [], isLoading: load1 } = useCollection(alvarasQuery)
-
-  const certidoesQuery = useMemoFirebase(() => userLoaded ? collection(firestore, "certidoes") : null, [firestore, userLoaded])
-  const { data: certidoes = [], isLoading: load2 } = useCollection(certidoesQuery)
-
-  const tasksQuery = useMemoFirebase(() => userLoaded ? collection(firestore, "tasks") : null, [firestore, userLoaded])
-  const { data: tasks = [], isLoading: load3 } = useCollection(tasksQuery)
-
-  const clientsQuery = useMemoFirebase(() => userLoaded ? collection(firestore, "clients") : null, [firestore, userLoaded])
-  const { data: clients = [] } = useCollection(clientsQuery)
+  const { data: alvaras = [], isLoading: load1 } = useAuthorizedCompanyCollection(firestore, "alvaras", "canonicalClientId", userLoaded)
+  const { data: certidoes = [], isLoading: load2 } = useAuthorizedCompanyCollection(firestore, "certidoes", "canonicalClientId", userLoaded)
+  const { data: tasks = [], isLoading: load3 } = useAuthorizedCompanyCollection(firestore, "tasks", "canonicalClientId", userLoaded)
+  const { data: clients = [] } = useAuthorizedCompanyCollection(firestore, "clients", "__name__", userLoaded)
 
   const isLoading = load1 || load2 || load3
 

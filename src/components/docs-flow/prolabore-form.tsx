@@ -13,6 +13,7 @@ import { collection, doc } from "firebase/firestore"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { cn } from "@/lib/utils"
 import { ClientSearchSelect } from "@/components/clients/client-search-select"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export function ProlaboreForm() {
   const firestore = useFirestore()
@@ -21,8 +22,7 @@ export function ProlaboreForm() {
   const [isSaving, setIsSaving] = useState(false)
   const [docType, setDocType] = useState<"prolabore" | "contracheque">("contracheque")
   
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: clients = [], isLoading } = useCollection(clientsQuery)
+  const { data: clients = [], isLoading } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
 
   const [formData, setFormData] = useState({
     clientId: "",
@@ -75,13 +75,17 @@ export function ProlaboreForm() {
   }
 
   const handleSaveToHistory = () => {
-    if (!formData.empresa) return
+    if (!formData.empresa || !formData.clientId) {
+      toast({ title: "Empresa vinculada obrigatória", description: "Selecione uma empresa autorizada para salvar no histórico.", variant: "destructive" })
+      return
+    }
     setIsSaving(true)
     
     const id = Math.random().toString(36).substr(2, 9)
     const docData = {
       id,
-      clientId: formData.clientId || "manual",
+      clientId: formData.clientId,
+      canonicalClientId: formData.clientId,
       clientName: formData.empresa,
       type: docType === 'prolabore' ? "PRO-LABORE (DECLARAÇÃO)" : "PRO-LABORE (RECIBO)",
       title: `${docType.toUpperCase()}: ${formData.socio}`,

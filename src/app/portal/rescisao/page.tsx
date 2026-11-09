@@ -36,20 +36,14 @@ import {
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/hooks/use-toast"
-import { 
-  useFirestore, 
-  useCollection, 
-  useMemoFirebase, 
-  useUser,
-  setDocumentNonBlocking
-} from "@/firebase"
-import { collection, doc, query, where } from "firebase/firestore"
+import { useUser } from "@/firebase"
+import { authenticatedFiscalFetch } from "@/lib/fiscal/client"
 import { format, parseISO } from "date-fns"
 import { cn } from "@/lib/utils"
 
 export default function RescisaoPortalPage() {
-  const firestore = useFirestore()
-  const { selectedUser } = useUser()
+  const { user } = useUser()
+  const [clientId, setClientId] = useState("")
   const [cnpj, setCnpj] = useState("")
   const [companyName, setCompanyName] = useState("")
   const [isAddOpen, setIsAddOpen] = useState(false)
@@ -66,33 +60,40 @@ export default function RescisaoPortalPage() {
     const handleCnpjChange = (e: any) => {
       if (e.detail?.cnpj) {
         setCnpj(e.detail.cnpj)
-        if (e.detail.client) {
-          setCompanyName(e.detail.client.nomeFantasia || e.detail.client.razaoSocial || "")
-        }
+        if (e.detail.clientId) setClientId(e.detail.clientId)
+        if (e.detail.client) setCompanyName(e.detail.client.tradeName || e.detail.client.corporateName || "")
       }
     }
     window.addEventListener("portalCompanyChanged", handleCnpjChange)
     return () => window.removeEventListener("portalCompanyChanged", handleCnpjChange)
   }, [])
 
-  // Buscar funcionários ativos da empresa atual
-  const empsQuery = useMemoFirebase(() => 
-    cnpj ? query(collection(firestore, "funcionarios"), where("clientCnpj", "==", cnpj), where("status", "==", "ATIVO")) : null, 
-    [firestore, cnpj]
-  )
-  const { data: emps = [], isLoading: loadingEmps } = useCollection(empsQuery)
+  const [emps, setEmps] = useState<any[]>([])
+  const [rawRequests, setRawRequests] = useState<any[]>([])
+  const [loadingTasks, setLoadingTasks] = useState(true)
+  const [loadingEmps, setLoadingEmps] = useState(true)
 
-  // Buscar solicitações de rescisão na coleção de tarefas
-  const tasksQuery = useMemoFirebase(() => 
-    cnpj ? query(
-      collection(firestore, "tasks"), 
-      where("clientId", "==", cnpj), 
-      where("origem", "==", "PORTAL_CLIENTE"), 
-      where("tipo", "==", "RESCISAO")
-    ) : null,
-    [firestore, cnpj]
-  )
-  const { data: rawRequests = [], isLoading: loadingTasks } = useCollection(tasksQuery)
+  useEffect(() => {
+    const activeClientId = sessionStorage.getItem("portal_active_client_id") || ""
+    if (activeClientId) setClientId(activeClientId)
+  }, [])
+
+  const loadPortalData = async () => {
+    if (!user || !clientId) return
+    setLoadingTasks(true); setLoadingEmps(true)
+    try {
+      const response = await authenticatedFiscalFetch(user, `/api/portal/company-data?clientId=${encodeURIComponent(clientId)}&type=RESCISAO`)
+      if (!response.ok) throw new Error("Acesso negado")
+      const payload = await response.json()
+      setRawRequests(payload.requests || [])
+      setEmps(payload.employees || [])
+    } catch {
+      setRawRequests([]); setEmps([])
+      toast({ title: "Acesso negado", description: "Não foi possível carregar os dados desta empresa.", variant: "destructive" })
+    } finally { setLoadingTasks(false); setLoadingEmps(false) }
+  }
+
+  useEffect(() => { void loadPortalData() }, [user, clientId])
 
   const requests = (rawRequests || []).sort((a: any, b: any) => 
     new Date(b.createdAt || "").getTime() - new Date(a.createdAt || "").getTime()
@@ -106,7 +107,7 @@ export default function RescisaoPortalPage() {
   })
 
   const handleCreateRequest = async () => {
-    if (!cnpj) {
+    if (!clientId) {
       toast({ title: "Erro", description: "Selecione uma empresa válida.", variant: "destructive" })
       return
     }
@@ -123,9 +124,6 @@ export default function RescisaoPortalPage() {
 
     setIsSaving(true)
     try {
-      const id = Math.random().toString(36).substr(2, 9)
-      const taskRef = doc(firestore, "tasks", id)
-
       const notesHtml = `
         Solicitação de Rescisão criada via Portal do Cliente.
         Funcionário: ${emp.nome} (CPF: ${emp.cpf})
@@ -134,30 +132,29 @@ export default function RescisaoPortalPage() {
       `.trim()
 
       const taskData = {
-        id,
-        clientId: cnpj,
         clientName: companyName || emp.clientName,
         title: `SOLICITAÇÃO DE RESCISÃO - ${emp.nome}`,
         responsibleId: "Geral",
         responsibleName: "Departamento Pessoal",
         notes: notesHtml,
         status: "pendente", // PENDENTE
-        origem: "PORTAL_CLIENTE",
-        tipo: "RESCISAO",
         departamento: "DP",
         funcionarioId: emp.id,
         funcionarioNome: emp.nome,
         tipoAviso: newRequest.tipoAviso,
         dataInicioAviso: newRequest.dataInicioAviso,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
       }
-
-      setDocumentNonBlocking(taskRef, taskData, { merge: true })
+      if (!user) throw new Error("Sessão não autenticada")
+      const response = await authenticatedFiscalFetch(user, "/api/portal/company-data", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId, type: "RESCISAO", data: taskData }),
+      })
+      if (!response.ok) throw new Error("Solicitação não autorizada")
       
       setIsAddOpen(false)
       setNewRequest({ funcionarioId: "", tipoAviso: "trabalhado", dataInicioAviso: "" })
       toast({ title: "Solicitação Enviada!", description: `A demanda de rescisão para ${emp.nome} foi enviada ao Departamento Pessoal.` })
+      await loadPortalData()
     } catch (e) {
       toast({ title: "Erro", description: "Falha ao enviar a solicitação.", variant: "destructive" })
     } finally {

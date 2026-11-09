@@ -26,6 +26,7 @@ import { Layers, Building2, Calendar, Save, Loader2, User } from "lucide-react"
 import { format, parse, addMonths, lastDayOfMonth, setDate } from "date-fns"
 import { MultiClientSearchSelect } from "@/components/clients/multi-client-search-select"
 import { getProcessDocumentId } from "@/lib/process-generation"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 const getCompetenceKey = (value: any) => {
   if (!value) return ""
@@ -42,14 +43,12 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
   const modelsQuery = useMemoFirebase(() => collection(firestore, "processoModelos"), [firestore])
   const { data: models = [] } = useCollection(modelsQuery)
 
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: clients = [] } = useCollection(clientsQuery)
+  const { data: clients = [] } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
 
   const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore])
   const { data: team = [] } = useCollection(usersQuery)
 
-  const processesQuery = useMemoFirebase(() => collection(firestore, "processes"), [firestore])
-  const { data: existingProcesses = [] } = useCollection(processesQuery)
+  const { data: existingProcesses = [] } = useAuthorizedCompanyCollection(firestore, "processes")
 
   const [formData, setFormData] = useState({
     modeloId: "",
@@ -159,6 +158,7 @@ export function CreateProcessModal({ open, onOpenChange }: { open: boolean, onOp
             duplicateKey,
             modeloId: model.id,
             clienteId: client.id,
+            canonicalClientId: client.id,
             nomeProcesso: model.nome,
             situacao: "a_fazer",
             departamento: model.departamento || "Geral",

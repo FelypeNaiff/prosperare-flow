@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
 import { collection, query, where, orderBy, limit, getDocs, doc } from "firebase/firestore"
 import { ClientSearchSelect } from "@/components/clients/client-search-select"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export function RevenueDeclarationForm() {
   const firestore = useFirestore()
@@ -21,8 +22,7 @@ export function RevenueDeclarationForm() {
   const [isPreviewMode, setIsPreviewOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: clients = [] } = useCollection(clientsQuery)
+  const { data: clients = [] } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
 
   const [formData, setFormData] = useState({
     clientId: "",
@@ -73,7 +73,7 @@ export function RevenueDeclarationForm() {
       try {
         const q = query(
           collection(firestore, "generated_documents"),
-          where("clientId", "==", clientId),
+          where("canonicalClientId", "==", clientId),
           where("type", "==", "FATURAMENTO 12 MESES"),
           orderBy("createdAt", "desc"),
           limit(1)
@@ -116,13 +116,17 @@ export function RevenueDeclarationForm() {
   }
 
   const handleSaveToHistory = () => {
-    if (!formData.empresa) return
+    if (!formData.empresa || !formData.clientId) {
+      toast({ title: "Empresa vinculada obrigatória", description: "Selecione uma empresa autorizada para salvar no histórico.", variant: "destructive" })
+      return
+    }
     setIsSaving(true)
     
     const id = Math.random().toString(36).substr(2, 9)
     const docData = {
       id,
-      clientId: formData.clientId || "manual",
+      clientId: formData.clientId,
+      canonicalClientId: formData.clientId,
       clientName: formData.empresa,
       type: "FATURAMENTO 12 MESES",
       title: `RELATÓRIO 12 MESES - ${rows[0].periodo} A ${rows[11].periodo}`,

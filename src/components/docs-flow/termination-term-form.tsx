@@ -14,6 +14,7 @@ import { collection, doc } from "firebase/firestore"
 import { format, parseISO, isValid } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { ClientSearchSelect } from "@/components/clients/client-search-select"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export function TerminationTermForm() {
   const firestore = useFirestore()
@@ -21,8 +22,7 @@ export function TerminationTermForm() {
   const [isPreviewMode, setIsPreviewOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: clients = [] } = useCollection(clientsQuery)
+  const { data: clients = [] } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
 
   const [formData, setFormData] = useState({
     clientId: "",
@@ -77,13 +77,17 @@ export function TerminationTermForm() {
   }
 
   const handleSaveToHistory = () => {
-    if (!formData.empresa) return
+    if (!formData.empresa || !formData.clientId) {
+      toast({ title: "Empresa vinculada obrigatória", description: "Selecione uma empresa autorizada para salvar no histórico.", variant: "destructive" })
+      return
+    }
     setIsSaving(true)
     
     const id = Math.random().toString(36).substr(2, 9)
     const docData = {
       id,
-      clientId: formData.clientId || "manual",
+      clientId: formData.clientId,
+      canonicalClientId: formData.clientId,
       clientName: formData.empresa,
       type: "RESCISÃO (TERMO)",
       title: `RESCISÃO: ${formData.funcionario}`,

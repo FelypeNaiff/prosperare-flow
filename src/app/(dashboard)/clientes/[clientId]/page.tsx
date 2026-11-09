@@ -101,6 +101,7 @@ export default function DetalhesClientePage() {
         for (const process of groupInfo.processes) {
           const newTask = {
             clientId: client.id,
+            canonicalClientId: client.id,
             clientName: client.corporateName,
             title: `${process.title} - Competência ${monthYearLabel}`,
             status: 'todo',

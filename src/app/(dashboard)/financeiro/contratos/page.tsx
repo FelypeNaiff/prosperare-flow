@@ -53,6 +53,7 @@ import { ClientCombobox } from "@/components/shared/client-combobox"
 import { TAX_REGIMES, buildContract, buildContractData, normalizeRegime } from "@/lib/contract-templates"
 import { useLetterhead, letterheadToDataUrl } from "@/hooks/use-letterhead"
 import { BlocksRenderer, LetterheadSheet, printWithLetterhead } from "@/components/shared/official-document"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 function findSocioAdm(client: any) {
   const qsa = client?.qsa || []
@@ -75,11 +76,8 @@ export default function ContatosPage() {
   const { letterhead } = useLetterhead()
   const sheetRef = useRef<HTMLDivElement>(null)
 
-  const contractsQuery = useMemoFirebase(() => collection(firestore, "contracts"), [firestore])
-  const { data: contracts = [], isLoading } = useCollection(contractsQuery)
-
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: clients = [] } = useCollection(clientsQuery)
+  const { data: contracts = [], isLoading } = useAuthorizedCompanyCollection(firestore, "contracts")
+  const { data: clients = [] } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
 
   const [formData, setFormData] = useState({
     clientId: "",
@@ -147,6 +145,7 @@ export default function ContatosPage() {
     const contractData = {
       ...formData,
       id,
+      canonicalClientId: formData.clientId,
       employeeCount: Number(formData.employeeCount ?? 0),
       clientName: client?.corporateName || "Empresa não identificada",
       clientCnpj: client?.cnpj || "00.000.000/0000-00",
@@ -170,6 +169,7 @@ export default function ContatosPage() {
         descricao: `HONORÁRIO CONTÁBIL - ${servicosResumo} (${formData.employeeCount ?? 0} FUNC)`.toUpperCase(),
         cliente: client?.corporateName || "Cliente Avulso",
         clientId: formData.clientId,
+        canonicalClientId: formData.clientId,
         pagamento: "PIX",
         data: vencimentoStr,
         valor: Number(formData.value),
@@ -203,7 +203,7 @@ export default function ContatosPage() {
   const handleDownloadDocx = async (contract: any) => {
     setIsGeneratingDocx(true)
     try {
-      const client = (clients || []).find((c: any) => c.id === contract.clientId) || {}
+      const client: any = (clients || []).find((c: any) => c.id === contract.clientId) || {}
       const socio = findSocioAdm(client)
       const imageDataUrl = await letterheadToDataUrl(letterhead.imageDataUrl)
 

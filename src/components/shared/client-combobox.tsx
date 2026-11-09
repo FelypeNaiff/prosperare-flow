@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 interface ClientComboboxProps {
   value: string;
@@ -36,8 +37,7 @@ export function ClientCombobox({
   const inputRef = React.useRef<HTMLInputElement>(null)
   
   const firestore = useFirestore()
-  const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore])
-  const { data: clients = [] } = useCollection(clientsQuery)
+  const { data: clients = [] } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
 
   const clientesFiltrados = React.useMemo(() => {
     if (!searchTerm || searchTerm.trim() === "") return clients || []

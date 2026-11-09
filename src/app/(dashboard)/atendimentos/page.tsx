@@ -58,6 +58,7 @@ import { ClientCombobox } from "@/components/shared/client-combobox"
 import { TemplateSearchSelect } from "@/components/atendimentos/template-search-select"
 import { TicketDetailsDrawer } from "@/components/atendimentos/ticket-details-drawer"
 import { buildTaskAssignmentNotificationKey } from "@/lib/notifications"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 import {
   Table,
   TableBody,
@@ -89,18 +90,10 @@ export default function AtendimentosPage() {
     }
   }
 
-  const tasksQuery = useMemoFirebase(() => 
-    userLoaded ? collection(firestore, "tasks") : null, 
-    [firestore, userLoaded]
-  )
-  const { data: rawTickets, isLoading: loadingTickets } = useCollection(tasksQuery)
+  const { data: rawTickets, isLoading: loadingTickets } = useAuthorizedCompanyCollection(firestore, "tasks", "canonicalClientId", userLoaded)
   const tickets = (rawTickets || []).filter((t: any) => ['novo', 'aberto', 'atendimento', 'pendente', 'em_andamento', 'concluido'].includes(t.status) || !t.status)
 
-  const clientsQuery = useMemoFirebase(() => 
-    userLoaded ? collection(firestore, "clients") : null, 
-    [firestore, userLoaded]
-  )
-  const { data: clients = [] } = useCollection(clientsQuery)
+  const { data: clients = [] } = useAuthorizedCompanyCollection(firestore, "clients", "__name__", userLoaded)
 
   const usersQuery = useMemoFirebase(() => 
     userLoaded ? collection(firestore, "users") : null, 
@@ -146,6 +139,7 @@ export default function AtendimentosPage() {
     const ticketData = {
       id,
       clientId: newTicket.clientId,
+      canonicalClientId: newTicket.clientId,
       clientName: client?.corporateName || "Empresa Avulsa",
       templateId: newTicket.templateId || null,
       title,

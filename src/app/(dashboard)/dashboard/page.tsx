@@ -24,40 +24,17 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { parseISO, isBefore, differenceInDays, startOfMonth, endOfMonth, isWithinInterval, subMonths, format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, Line } from "recharts"
+import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 export default function DashboardPage() {
   const firestore = useFirestore()
   const { userLoaded } = useUser()
   
-  // Conexão com Coleções Reais
-  const clientsQuery = useMemoFirebase(() => 
-    userLoaded ? collection(firestore, "clients") : null, 
-    [firestore, userLoaded]
-  )
-  const { data: clients, isLoading: loadingClients } = useCollection(clientsQuery)
-  
-  const processesQuery = useMemoFirebase(() => 
-    userLoaded ? collection(firestore, "processes") : null, 
-    [firestore, userLoaded]
-  )
-  const { data: processes } = useCollection(processesQuery)
-
-  const receivablesQuery = useMemoFirebase(() => 
-    userLoaded ? collection(firestore, "receivables") : null, 
-    [firestore, userLoaded]
-  )
-  const { data: receivables } = useCollection(receivablesQuery)
-
-  const alvarasQuery = useMemoFirebase(() => 
-    userLoaded ? collection(firestore, "alvaras") : null, 
-    [firestore, userLoaded]
-  )
-  const { data: alvaras } = useCollection(alvarasQuery)
-
-  const certidoesQuery = useMemoFirebase(() => 
-    userLoaded ? collection(firestore, "certidoes") : null, 
-    [firestore, userLoaded]
-  )
-  const { data: certidoes } = useCollection(certidoesQuery)
+  // Consultas segmentadas por todas as empresas autorizadas do usuário.
+  const { data: clients, isLoading: loadingClients } = useAuthorizedCompanyCollection(firestore, "clients", "__name__", userLoaded)
+  const { data: processes } = useAuthorizedCompanyCollection(firestore, "processes", "canonicalClientId", userLoaded)
+  const { data: receivables } = useAuthorizedCompanyCollection(firestore, "receivables", "canonicalClientId", userLoaded)
+  const { data: alvaras } = useAuthorizedCompanyCollection(firestore, "alvaras", "canonicalClientId", userLoaded)
+  const { data: certidoes } = useAuthorizedCompanyCollection(firestore, "certidoes", "canonicalClientId", userLoaded)
 
   // Lógica de Cálculo de Indicadores
   const stats = useMemo(() => {

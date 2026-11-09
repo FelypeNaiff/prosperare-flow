@@ -164,37 +164,7 @@ export default function LoginPage() {
       const userDocRef = doc(firestore, "users", firebaseUser.uid)
       let userDoc = await getDoc(userDocRef)
 
-      const seedAdmins = [
-        'pscsucesso@gmail.com', 
-        'felypenaiff01@gmail.com', 
-        'thalyssonluiz@gmail.com',
-        'cpgama79@gmail.com',
-        'marrypassosmarques@gmail.com',
-        'thalyssonluiz20@gmail.com'
-      ]
-
       let data = userDoc.exists() ? userDoc.data() : null
-
-      // Provisão automática para os administradores do sistema
-      if (!data && seedAdmins.includes(firebaseUser.email || "")) {
-        const name = firebaseUser.email?.includes('felype') ? 'FELYPE NAIFF' : 
-                     firebaseUser.email?.includes('thalysson') ? 'THALYSSON LUIZ' : 
-                     firebaseUser.email?.includes('cpgama79') ? 'CP GAMA' :
-                     firebaseUser.email?.includes('marrypassosmarques') ? 'MARRY PASSOS' : 'ADMINISTRADOR GERAL'
-
-        const { setDoc } = await import("firebase/firestore")
-        await setDoc(userDocRef, {
-          id: firebaseUser.uid,
-          fullName: name,
-          email: firebaseUser.email,
-          profile: 'ADMINISTRADOR',
-          status: 'ATIVO',
-          createdAt: new Date().toISOString()
-        }, { merge: true })
-
-        userDoc = await getDoc(userDocRef)
-        data = userDoc.data() ?? null
-      }
 
       if (data) {
         const role = (data.role || data.profile || '').toUpperCase()
