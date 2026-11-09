@@ -2,6 +2,7 @@
 
 import type { User } from 'firebase/auth';
 import type { AccessibleCompany } from './types';
+import type { PublicCertificateMetadata } from './credentials';
 
 export async function authenticatedFiscalFetch(
   user: User,
@@ -12,6 +13,19 @@ export async function authenticatedFiscalFetch(
   const headers = new Headers(init?.headers);
   headers.set('Authorization', `Bearer ${token}`);
   return fetch(input, { ...init, headers });
+}
+
+export async function fetchCertificateMetadata(
+  user: User,
+  clientId: string,
+): Promise<PublicCertificateMetadata[]> {
+  const response = await authenticatedFiscalFetch(
+    user,
+    `/api/fiscal/credenciais?clientId=${encodeURIComponent(clientId)}`,
+  );
+  if (!response.ok) throw new Error('Não foi possível consultar os metadados do certificado.');
+  const payload = (await response.json()) as { certificates: PublicCertificateMetadata[] };
+  return payload.certificates;
 }
 
 export async function fetchAccessibleCompanies(user: User): Promise<AccessibleCompany[]> {

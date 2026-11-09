@@ -36,18 +36,3 @@ export interface AccessibleCompany {
   cnpj: string;
   fiscalPermissions: FiscalPermissions;
 }
-
-export interface FiscalCredentialMetadata {
-  id: string;
-  clientId: string;
-  type: 'CERTIFICADO_A1' | 'PROCURACAO';
-  label: string;
-  holderDocument?: string;
-  issuer?: string;
-  representedDocument?: string;
-  validFrom?: string;
-  expiresAt: string;
-  status: 'ATIVO' | 'EXPIRADO' | 'REVOGADO';
-  createdAt: string;
-  updatedAt: string;
-}
