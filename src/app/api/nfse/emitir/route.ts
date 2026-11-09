@@ -6,6 +6,10 @@ import { assinarDps } from '@/services/nfse/nfe-nacional.service';
 
 export const runtime = 'nodejs';
 
+// Deve permanecer falso até a autenticação, a autorização multiempresa, o
+// armazenamento seguro do certificado e a integração oficial serem homologados.
+const EMISSAO_FISCAL_HABILITADA = false;
+
 interface EmitirNfseBody {
   serie: string;
   numero: string;
@@ -70,6 +74,17 @@ function transmitirComMtls(
 }
 
 export async function POST(request: Request) {
+  if (!EMISSAO_FISCAL_HABILITADA) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          'Emissão fiscal indisponível até a homologação da autenticação e da integração oficial.',
+      },
+      { status: 503 },
+    );
+  }
+
   try {
     const body = (await request.json()) as Partial<EmitirNfseBody>;
     const {

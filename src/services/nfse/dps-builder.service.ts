@@ -29,7 +29,7 @@ export function gerarXmlDps(dados: DadosDps): string {
       ? `<CNPJ>${documentoTomador}</CNPJ>`
       : `<CPF>${documentoTomador}</CPF>`;
 
-  const idDps = escaparXml(`DPS${dados.serie}${dados.numero}`);
+  const idDps = escaparXml(`ID${dados.serie}${dados.numero}`);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00">
