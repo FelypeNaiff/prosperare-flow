@@ -1,6 +1,6 @@
 # Checklist de infraestrutura fiscal de produção
 
-Este documento consolida as pendências das Sprints 3.2C a 3.2G. O
+Este documento consolida as pendências das Sprints 3.2C a 3.2H. O
 protótipo local não provisiona nem valida nenhum destes recursos.
 
 ## BLOQUEADORES PARA PRODUÇÃO
@@ -81,6 +81,26 @@ As informações históricas de Console (App Hosting, Cloud Run, service account
 Secret Manager, faturamento e orçamentos) são **A CONFIRMAR** e não constituem
 evidência atual de controle implementado. O App Hosting existente não será
 migrado nesta etapa. Estimativas de custo não constituem orçamento aprovado.
+
+## Inventário da Sprint 3.2H
+
+O inventário detalhado está em
+`docs/sprint-3-2h-infrastructure-inventory.md`. Como não houve consulta autorizada
+ao estado atual do Google Cloud, permanecem **NÃO VERIFICADOS** ou
+**HISTÓRICO — A CONFIRMAR**:
+
+- projeto, backend, região, branch e runtime efetivos do App Hosting;
+- serviços/revisões Cloud Run, ingress, CPU, memória, concorrência e escala;
+- service accounts, chaves e bindings IAM atuais;
+- buckets, key rings/keys, segredos fiscais e suas políticas;
+- localização/configuração efetiva do Firestore, PITR e backups;
+- Logging, Data Access, sinks, retenção, métricas e alertas;
+- vínculo de faturamento, budgets, limites e destinatários atuais.
+
+Antes de qualquer recurso, executar somente inventário read-only aprovado e
+registrar evidência datada. Depois, aprovar ADR de ambientes/região e baseline de
+IaC sem `apply`. Nenhum item histórico pode ser marcado como implementado sem
+essa reconfirmação.
 
 ## Evidências locais da Sprint 3.2F — não produtivas
 
