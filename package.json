@@ -6,7 +6,7 @@
     "dev": "next dev",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "test:authorization": "tsx --test src/lib/fiscal/authorization.test.ts src/lib/fiscal/access-profile-permissions.test.ts src/lib/fiscal/credentials.test.ts",
+    "test:authorization": "tsx --test src/lib/fiscal/authorization.test.ts src/lib/fiscal/access-profile-permissions.test.ts src/lib/fiscal/credentials.test.ts src/lib/fiscal/vault/vault.test.ts",
     "test:rules": "firebase emulators:exec --only firestore --project prosperare-sprint-2-1-test \"tsx --test src/lib/fiscal/firestore.rules.test.ts\"",
     "test:multiempresa": "tsx --test src/lib/fiscal/company-query.test.ts src/lib/fiscal/migration.test.ts",
     "test:nfse": "tsx --test src/lib/nfse/domain.test.ts",
