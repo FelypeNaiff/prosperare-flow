@@ -1,6 +1,6 @@
 # Checklist de infraestrutura fiscal de produção
 
-Este documento consolida as pendências das Sprints 3.2C a 3.2F. O
+Este documento consolida as pendências das Sprints 3.2C a 3.2G. O
 protótipo local não provisiona nem valida nenhum destes recursos.
 
 ## BLOQUEADORES PARA PRODUÇÃO
@@ -48,6 +48,39 @@ homologação real.
   segredos e logs independentes para desenvolvimento, homologação e produção.
 - [ ] **PENDENTE — Revisão de segurança e LGPD:** threat model, retenção,
   consentimento/mandato, resposta a incidentes e aprovação independente.
+- [ ] **PENDENTE — Inventário reconfirmado:** registrar projeto, billing account,
+  backend App Hosting, branch de deploy, região, runtime, revisão Cloud Run,
+  service accounts, CPU, memória, concorrência, timeout e escalonamento atuais.
+- [ ] **PENDENTE — Banco distribuído fiscal:** decidir localização e isolamento do
+  Firestore para grants, nonces, metadados e idempotência; criação condicional,
+  consistência, TTL lógico e limpeza devem ser testados entre instâncias. O TTL
+  não substitui verificação de expiração nem operação atômica de consumo único.
+- [ ] **PENDENTE — Pipeline e cadeia de suprimentos:** imagem imutável, Artifact
+  Registry, SBOM, SCA, proveniência, promoção entre ambientes e rollback.
+- [ ] **PENDENTE — Idempotência de emissão:** chave de negócio, state machine,
+  reconciliação com o provedor e política segura de retry antes de homologar.
+- [ ] **PENDENTE — Kill switch e autorização de produção:** manter HTTP 503 até
+  aceite formal, canário, rollback, plantão e autorização humana registrada.
+
+## Gates da Sprint 3.2G
+
+O plano detalhado está em `docs/sprint-3-2g-fiscal-infrastructure-plan.md`.
+Antes de qualquer implementação, devem ser aprovados:
+
+- projetos e responsáveis por desenvolvimento, homologação e produção;
+- região fiscal e impacto do tráfego entre `us-central1` e
+  `southamerica-east1`, entendida apenas como preferência inicial;
+- datastore de grants/nonces, RPO/RTO, retenção e recuperação;
+- KMS software ou HSM, rotação e separação de funções, reconhecendo que KMS
+  protege o armazenamento mas não substitui a chave privada ICP-Brasil do A1;
+- limites iniciais de Cloud Run, SLO e orçamento;
+- bibliotecas PKCS#12/XMLDSIG e política de vulnerabilidades;
+- municípios/provedores de homologação e responsáveis pela liberação.
+
+As informações históricas de Console (App Hosting, Cloud Run, service account,
+Secret Manager, faturamento e orçamentos) são **A CONFIRMAR** e não constituem
+evidência atual de controle implementado. O App Hosting existente não será
+migrado nesta etapa. Estimativas de custo não constituem orçamento aprovado.
 
 ## Evidências locais da Sprint 3.2F — não produtivas
 
