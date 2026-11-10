@@ -1,6 +1,6 @@
 # Checklist de infraestrutura fiscal de produção
 
-Este documento consolida as pendências das Sprints 3.2C a 3.2H. O
+Este documento consolida as pendências das Sprints 3.2C a 3.2I. O
 protótipo local não provisiona nem valida nenhum destes recursos.
 
 ## BLOQUEADORES PARA PRODUÇÃO
@@ -101,6 +101,31 @@ Antes de qualquer recurso, executar somente inventário read-only aprovado e
 registrar evidência datada. Depois, aprovar ADR de ambientes/região e baseline de
 IaC sem `apply`. Nenhum item histórico pode ser marcado como implementado sem
 essa reconfirmação.
+
+## Evidências remotas da Sprint 3.2I
+
+O relatório completo está em
+`docs/sprint-3-2i-remote-infrastructure-inventory.md`. Foram confirmados somente:
+
+- projeto `studio-4435305402-8a684`, número `74851282547`, ativo;
+- App Hosting `prosperare-flow-oficial` em `us-central1`, conectado ao repositório
+  esperado e associado à service account padrão do App Hosting;
+- referência gerenciada ao Cloud Run homônimo em `us-central1`, sem confirmação
+  de CPU, memória, concorrência, escala, ingress, IAM, revisão ou tráfego;
+- identificador não fiscal `GEMINI_API_KEY`, sem acesso ao payload;
+- banco Firestore `(default)` Native Standard em `us-central1`, com PITR e delete
+  protection desabilitados e sem agenda de backup;
+- dois bancos `ai-studio-*`, um em `us-central1` e outro em `us-west1`, cuja
+  finalidade, responsabilidade e custo precisam ser classificados.
+
+Continuam **NÃO VERIFICADOS**: branch e rollouts do App Hosting, inventário total
+do Cloud Run, service accounts/IAM, buckets, KMS, inventário completo de segredos,
+TTL Firestore, Logging/Data Access, Monitoring, billing e budgets. A ausência de
+ferramenta/permissão não comprova inexistência.
+
+Nenhum item bloqueador foi concluído por este inventário. Antes de configurar
+qualquer recurso, complementar IAM e policy/ingress do Cloud Run em consulta
+somente leitura autorizada. HTTP 503 e kill switch permanecem obrigatórios.
 
 ## Evidências locais da Sprint 3.2F — não produtivas
 
