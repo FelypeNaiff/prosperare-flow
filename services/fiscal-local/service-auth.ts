@@ -4,9 +4,9 @@ import { z } from 'zod';
 import { fiscalPurposeSchema, type FiscalPurpose } from './contracts';
 
 const claimsSchema = z.object({
-  issuer: z.literal('prosperare-local-synthetic-authority'),
+  issuer: z.string().min(1).max(200),
   subject: z.string().min(1).max(128),
-  audience: z.string().min(1).max(128),
+  audience: z.string().min(1).max(200),
   expiresAt: z.number().int().positive(),
   issuedAt: z.number().int().nonnegative(),
   purpose: fiscalPurposeSchema,
@@ -16,8 +16,20 @@ const claimsSchema = z.object({
 
 export type SyntheticServiceClaims = z.infer<typeof claimsSchema>;
 
+export interface ServiceIdentityVerificationContext {
+  expectedAudience: string;
+  expectedPurpose: FiscalPurpose;
+  nowEpochSeconds: number;
+}
+
+export interface VerifiedServiceIdentity extends SyntheticServiceClaims {}
+
+export interface ServiceIdentityVerifier {
+  verify(token: string, context: ServiceIdentityVerificationContext): Promise<VerifiedServiceIdentity>;
+}
+
 export class ServiceAuthenticationError extends Error {
-  constructor(public readonly code: 'AUTHENTICATION_INVALID' | 'AUTHENTICATION_EXPIRED' | 'AUDIENCE_MISMATCH') {
+  constructor(public readonly code: 'AUTHENTICATION_INVALID' | 'AUTHENTICATION_EXPIRED' | 'AUDIENCE_MISMATCH' | 'IDENTITY_NOT_ALLOWED') {
     super(code);
     this.name = 'ServiceAuthenticationError';
   }
@@ -45,12 +57,7 @@ export function issueSyntheticServiceToken(input: {
   return `${payload}.${signature(payload, secret).toString('base64url')}`;
 }
 
-export function verifySyntheticServiceToken(
-  token: string,
-  secret: Uint8Array,
-  expectedAudience: string,
-  nowEpochSeconds: number,
-): SyntheticServiceClaims {
+function verifySignatureAndParse(token: string, secret: Uint8Array): SyntheticServiceClaims {
   const parts = token.split('.');
   if (parts.length !== 2) throw new ServiceAuthenticationError('AUTHENTICATION_INVALID');
   const [payload, providedSignature] = parts;
@@ -60,14 +67,29 @@ export function verifySyntheticServiceToken(
     if (expected.length !== provided.length || !timingSafeEqual(expected, provided)) {
       throw new ServiceAuthenticationError('AUTHENTICATION_INVALID');
     }
-    const claims = claimsSchema.parse(JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')));
-    if (claims.audience !== expectedAudience) throw new ServiceAuthenticationError('AUDIENCE_MISMATCH');
-    if (claims.expiresAt <= nowEpochSeconds || claims.issuedAt > nowEpochSeconds + 30) {
-      throw new ServiceAuthenticationError('AUTHENTICATION_EXPIRED');
-    }
-    return claims;
+    return claimsSchema.parse(JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')));
   } catch (error) {
     if (error instanceof ServiceAuthenticationError) throw error;
     throw new ServiceAuthenticationError('AUTHENTICATION_INVALID');
+  }
+}
+
+export class SyntheticServiceIdentityVerifier implements ServiceIdentityVerifier {
+  constructor(private readonly config: {
+    secret: Uint8Array;
+    expectedIssuer: string;
+    allowedSubjects: ReadonlySet<string>;
+  }) {}
+
+  async verify(token: string, context: ServiceIdentityVerificationContext): Promise<VerifiedServiceIdentity> {
+    const claims = verifySignatureAndParse(token, this.config.secret);
+    if (claims.issuer !== this.config.expectedIssuer) throw new ServiceAuthenticationError('AUTHENTICATION_INVALID');
+    if (claims.audience !== context.expectedAudience) throw new ServiceAuthenticationError('AUDIENCE_MISMATCH');
+    if (claims.expiresAt <= context.nowEpochSeconds || claims.issuedAt > context.nowEpochSeconds + 30) {
+      throw new ServiceAuthenticationError('AUTHENTICATION_EXPIRED');
+    }
+    if (claims.purpose !== context.expectedPurpose) throw new ServiceAuthenticationError('AUTHENTICATION_INVALID');
+    if (!this.config.allowedSubjects.has(claims.subject)) throw new ServiceAuthenticationError('IDENTITY_NOT_ALLOWED');
+    return claims;
   }
 }

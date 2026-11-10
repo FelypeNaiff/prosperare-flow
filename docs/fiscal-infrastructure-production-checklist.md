@@ -1,6 +1,6 @@
 # Checklist de infraestrutura fiscal de produção
 
-Este documento consolida as pendências das Sprints 3.2C, 3.2D e 3.2E. O
+Este documento consolida as pendências das Sprints 3.2C a 3.2F. O
 protótipo local não provisiona nem valida nenhum destes recursos.
 
 ## BLOQUEADORES PARA PRODUÇÃO
@@ -48,3 +48,22 @@ homologação real.
   segredos e logs independentes para desenvolvimento, homologação e produção.
 - [ ] **PENDENTE — Revisão de segurança e LGPD:** threat model, retenção,
   consentimento/mandato, resposta a incidentes e aprovação independente.
+
+## Evidências locais da Sprint 3.2F — não produtivas
+
+As abstrações abaixo foram demonstradas exclusivamente com dados sintéticos e
+adaptadores em memória. Elas não alteram o estado **PENDENTE** dos controles
+Google Cloud listados acima:
+
+- contrato desacoplado para futura verificação de identidade OIDC;
+- validação sintética de issuer, audience, subject, expiração e finalidade;
+- armazenamento atômico local de nonce com TTL e rejeição concorrente;
+- interface de persistência de grants com expiração, revogação e escopo;
+- grants vinculados a identidade de serviço, empresa, ator, permissão e nonce;
+- eventos estruturados sem token, segredo ou nonce bruto;
+- falha fechada quando stores sintéticos ficam indisponíveis.
+
+Para múltiplas instâncias do Cloud Run ainda é **PENDENTE** selecionar e aprovar
+um armazenamento compartilhado com criação condicional atômica e expiração por
+TTL para nonces e grants. Nenhum controle deve ser declarado implementado em
+produção com base nestes testes locais.
