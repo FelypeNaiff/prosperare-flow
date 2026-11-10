@@ -1,6 +1,6 @@
 # Checklist de infraestrutura fiscal de produção
 
-Este documento consolida as pendências das Sprints 3.2C a 3.2I. O
+Este documento consolida as pendências das Sprints 3.2C a 3.2J-A. O
 protótipo local não provisiona nem valida nenhum destes recursos.
 
 ## BLOQUEADORES PARA PRODUÇÃO
@@ -126,6 +126,29 @@ ferramenta/permissão não comprova inexistência.
 Nenhum item bloqueador foi concluído por este inventário. Antes de configurar
 qualquer recurso, complementar IAM e policy/ingress do Cloud Run em consulta
 somente leitura autorizada. HTTP 503 e kill switch permanecem obrigatórios.
+
+## Inventário complementar da Sprint 3.2J-A
+
+O relatório está em `docs/sprint-3-2j-a-cloud-security-inventory.md`. As
+evidências Firebase foram reconfirmadas sem divergência, mas o complemento
+Google Cloud permaneceu limitado porque:
+
+- `gcloud` não está instalado no PATH nem nos caminhos usuais verificados;
+- o Console disponível exigiu login e nenhuma autenticação nova foi iniciada;
+- IAM, policy/ingress e recursos detalhados do Cloud Run continuam **NÃO
+  VERIFICADOS**;
+- Storage, KMS, Audit Logs/Data Access, Monitoring, billing e budgets continuam
+  **NÃO VERIFICADOS**;
+- ausência de visibilidade não comprova inexistência ou configuração segura.
+
+PITR e delete protection permanecem remotamente confirmados como desabilitados
+nos três bancos Firestore; o banco padrão continua sem agenda de backup. Isso é
+risco documentado, não autorização para alterar configuração.
+
+Antes da 3.2J-B, obter export somente leitura aprovado de Cloud Run/IAM e dos
+demais domínios pendentes. Não instalar ferramenta, autenticar conta, ativar API
+ou iniciar 3.2J-B sem autorização específica. Todos os bloqueadores de produção
+permanecem abertos.
 
 ## Evidências locais da Sprint 3.2F — não produtivas
 
