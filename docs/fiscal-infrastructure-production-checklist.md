@@ -192,6 +192,29 @@ segurança confirmados; distinguem urgência de tratamento e natureza da evidên
 Cada gate exige autorização humana própria e permanece **PENDENTE**. Nenhum gate
 foi executado nesta Sprint. HTTP 503 e kill switch continuam obrigatórios.
 
+### Planejamento do Gate 1 — Sprint 3.2K
+
+O plano de separação está em
+`docs/sprint-3-2k-gate1-project-separation.md`. Ele propõe manter o Firebase App
+Hosting atual sem migração e criar futuramente, após aprovações próprias, uma
+fronteira entre o FLOW e um projeto/repositório FISCAL isolado.
+
+- [x] inventário local e destino proposto dos componentes fiscais documentados;
+- [x] responsabilidades FLOW/FISCAL e contrato versionado propostos;
+- [x] OIDC, IAM mínimo, grants, nonce, idempotência e continuidade planejados;
+- [x] migração gradual, critérios de aceite e reversão documentados;
+- [ ] ambientes/projetos, owners, região, RPO/RTO, SLO e orçamento aprovados;
+- [ ] repositório FISCAL ou qualquer recurso criado;
+- [ ] Gate 2 autorizado.
+
+Esses itens concluídos são somente evidência documental. O **Gate 1 permanece
+PENDENTE de aprovação humana** conforme a definição acima e não autoriza o Gate
+2. TTL continua sendo apenas limpeza: não substitui verificação de expiração nem
+operação atômica. KMS protegerá a criptografia por envelope, mas não substitui a
+chave privada ICP-Brasil. `southamerica-east1` continua preferência inicial, não
+decisão. Custos continuam estimativas, não orçamento aprovado. HTTP 503 e kill
+switch permanecem obrigatórios.
+
 ## Evidências locais da Sprint 3.2F — não produtivas
 
 As abstrações abaixo foram demonstradas exclusivamente com dados sintéticos e
