@@ -215,6 +215,26 @@ chave privada ICP-Brasil. `southamerica-east1` continua preferência inicial, n�
 decisão. Custos continuam estimativas, não orçamento aprovado. HTTP 503 e kill
 switch permanecem obrigatórios.
 
+### Preparação do Gate 2A — contratos e prontidão de extração
+
+O diagnóstico está em `docs/sprint-3-2k-gate2a-extraction-readiness.md`.
+
+- [x] dependências, imports cruzados e consumidores fiscais inventariados;
+- [x] responsabilidades e estrutura lógica dos repositórios propostas;
+- [x] contrato interno v1 conceitual e testes de isolamento planejados;
+- [x] organização futura de IaC documentada sem arquivo executável;
+- [ ] contrato OpenAPI/JSON Schema implementado e aprovado;
+- [ ] helper autenticado genérico desacoplado do namespace fiscal;
+- [ ] repositório `prosperare-fiscal` ou projeto Google Cloud criado;
+- [ ] Gate 2B autorizado.
+
+Os itens concluídos são somente documentação. O Gate 2A não executou extração,
+migração ou provisionamento e **não autoriza o Gate 2B**. O FISCAL não poderá
+confiar somente no `companyId` recebido: deverá validar grant persistido vinculado
+a empresa, subject OIDC, operação e nonce. FLOW deve iniciar e manter login,
+empresas, usuários, permissões e processos mesmo com FISCAL indisponível. HTTP
+503 e kill switch permanecem obrigatórios.
+
 ## Evidências locais da Sprint 3.2F — não produtivas
 
 As abstrações abaixo foram demonstradas exclusivamente com dados sintéticos e
