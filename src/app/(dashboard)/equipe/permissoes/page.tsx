@@ -45,7 +45,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, useUser } from "@/firebase"
-import { authenticatedFiscalFetch } from "@/lib/fiscal/client"
+import { authenticatedFetch } from "@/lib/http/authenticated-fetch"
 import { collection, doc, deleteDoc, setDoc, updateDoc } from "firebase/firestore"
 
 const MODULE_PERMISSIONS = [
@@ -241,7 +241,7 @@ export default function PermissoesPage() {
   // Auto-seed de perfis padrão se a coleção estiver vazia
   useEffect(() => {
     if (!isLoadingProfiles && (dbProfiles || []).length === 0 && authenticatedUser) {
-      Promise.all(DEFAULT_PROFILES.map((profile) => authenticatedFiscalFetch(authenticatedUser, "/api/admin/access-profiles", {
+      Promise.all(DEFAULT_PROFILES.map((profile) => authenticatedFetch(authenticatedUser, "/api/admin/access-profiles", {
         method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profile),
       }))).catch(() => toast({ title: "Acesso negado", description: "Somente um administrador fiscal pode inicializar perfis.", variant: "destructive" }))
       toast({ 
@@ -264,7 +264,7 @@ export default function PermissoesPage() {
     
     try {
       if (!authenticatedUser) throw new Error("Sessão não autenticada")
-      const response = await authenticatedFiscalFetch(authenticatedUser, "/api/admin/fiscal-access", {
+      const response = await authenticatedFetch(authenticatedUser, "/api/admin/fiscal-access", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -340,7 +340,7 @@ export default function PermissoesPage() {
       }
 
       if (!authenticatedUser) throw new Error("Sessão não autenticada")
-      const response = await authenticatedFiscalFetch(authenticatedUser, "/api/admin/access-profiles", {
+      const response = await authenticatedFetch(authenticatedUser, "/api/admin/access-profiles", {
         method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
       })
       if (!response.ok) throw new Error("Operação não autorizada")
@@ -365,7 +365,7 @@ export default function PermissoesPage() {
     if (confirm(`Deseja realmente excluir o perfil ${profile.name}? Colaboradores vinculados a este perfil perderão os acessos customizados.`)) {
       try {
         if (!authenticatedUser) throw new Error("Sessão não autenticada")
-        const response = await authenticatedFiscalFetch(authenticatedUser, `/api/admin/access-profiles?id=${encodeURIComponent(profile.id)}`, { method: "DELETE" })
+        const response = await authenticatedFetch(authenticatedUser, `/api/admin/access-profiles?id=${encodeURIComponent(profile.id)}`, { method: "DELETE" })
         if (!response.ok) throw new Error("Operação não autorizada")
         toast({ title: "Perfil removido!", variant: "destructive" })
       } catch (error) {

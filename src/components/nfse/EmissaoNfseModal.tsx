@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useUser } from '@/firebase';
-import { authenticatedFiscalFetch } from '@/lib/fiscal/client';
+import { authenticatedFetch } from '@/lib/http/authenticated-fetch';
 
 const emissaoNfseSchema = z.object({
   tomadorNome: z.string().trim().min(2, 'Informe o nome do tomador.'),
@@ -86,7 +86,7 @@ export function EmissaoNfseModal({
     setIsSubmitting(true);
     setServerMessage(null);
     try {
-      const response = await authenticatedFiscalFetch(user, '/api/nfse/emitir', {
+      const response = await authenticatedFetch(user, '/api/nfse/emitir', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

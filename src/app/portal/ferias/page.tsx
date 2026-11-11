@@ -30,7 +30,7 @@ import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/hooks/use-toast"
 import { useUser } from "@/firebase"
-import { authenticatedFiscalFetch } from "@/lib/fiscal/client"
+import { authenticatedFetch } from "@/lib/http/authenticated-fetch"
 import { addDays, format, parseISO, isValid } from "date-fns"
 import { cn } from "@/lib/utils"
 
@@ -124,7 +124,7 @@ export default function FeriasPortalPage() {
     if (!user || !clientId) return
     setLoadingTasks(true)
     try {
-      const response = await authenticatedFiscalFetch(user, `/api/portal/company-data?clientId=${encodeURIComponent(clientId)}&type=FERIAS`)
+      const response = await authenticatedFetch(user, `/api/portal/company-data?clientId=${encodeURIComponent(clientId)}&type=FERIAS`)
       if (!response.ok) throw new Error("Acesso negado")
       const payload = await response.json()
       setRawRequests(payload.requests || [])
@@ -204,7 +204,7 @@ export default function FeriasPortalPage() {
         observacoes: observacoes,
       }
       if (!user || !clientId) throw new Error("Sessão ou empresa inválida")
-      const response = await authenticatedFiscalFetch(user, "/api/portal/company-data", {
+      const response = await authenticatedFetch(user, "/api/portal/company-data", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clientId, type: "FERIAS", data: taskData }),
       })

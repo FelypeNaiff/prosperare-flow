@@ -66,7 +66,7 @@ import { sendPasswordResetEmail } from "firebase/auth"
 import { auth } from "@/firebase"
 import { formatCNPJ, cn } from "@/lib/utils"
 import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
-import { authenticatedFiscalFetch } from "@/lib/fiscal/client"
+import { authenticatedFetch } from "@/lib/http/authenticated-fetch"
 
 export default function LoginClientePage() {
   const firestore = useFirestore()
@@ -168,7 +168,7 @@ export default function LoginClientePage() {
     setIsRegistering(true)
     try {
       if (!authenticatedUser) throw new Error("Sessão administrativa ausente.")
-      const response = await authenticatedFiscalFetch(authenticatedUser, "/api/admin/client-logins", {
+      const response = await authenticatedFetch(authenticatedUser, "/api/admin/client-logins", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -236,7 +236,7 @@ export default function LoginClientePage() {
       }
 
       if (!authenticatedUser) throw new Error("Sessão administrativa ausente.")
-      const response = await authenticatedFiscalFetch(authenticatedUser, "/api/admin/client-logins", {
+      const response = await authenticatedFetch(authenticatedUser, "/api/admin/client-logins", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: editingUser.id, fullName: editForm.fullName, clientIds: editForm.clientIds })
@@ -261,7 +261,7 @@ export default function LoginClientePage() {
     const newStatus = user.status === 'INATIVO' ? 'ATIVO' : 'INATIVO'
     try {
       if (!authenticatedUser) throw new Error("Sessão administrativa ausente.")
-      const response = await authenticatedFiscalFetch(authenticatedUser, "/api/admin/client-logins", {
+      const response = await authenticatedFetch(authenticatedUser, "/api/admin/client-logins", {
         method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.id, status: newStatus })
       })
@@ -286,7 +286,7 @@ export default function LoginClientePage() {
     if (confirm("Deseja realmente remover esta credencial de acesso do cliente? O usuário não conseguirá mais entrar no portal.")) {
       try {
         if (!authenticatedUser) throw new Error("Sessão administrativa ausente.")
-        const response = await authenticatedFiscalFetch(authenticatedUser, `/api/admin/client-logins?userId=${encodeURIComponent(id)}`, { method: "DELETE" })
+        const response = await authenticatedFetch(authenticatedUser, `/api/admin/client-logins?userId=${encodeURIComponent(id)}`, { method: "DELETE" })
         if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || "Falha ao excluir login.")
         toast({ title: "Acesso Removido", variant: "destructive" })
       } catch (error: any) {

@@ -37,7 +37,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/hooks/use-toast"
 import { useUser } from "@/firebase"
-import { authenticatedFiscalFetch } from "@/lib/fiscal/client"
+import { authenticatedFetch } from "@/lib/http/authenticated-fetch"
 import { format, parseISO } from "date-fns"
 import { cn } from "@/lib/utils"
 
@@ -82,7 +82,7 @@ export default function RescisaoPortalPage() {
     if (!user || !clientId) return
     setLoadingTasks(true); setLoadingEmps(true)
     try {
-      const response = await authenticatedFiscalFetch(user, `/api/portal/company-data?clientId=${encodeURIComponent(clientId)}&type=RESCISAO`)
+      const response = await authenticatedFetch(user, `/api/portal/company-data?clientId=${encodeURIComponent(clientId)}&type=RESCISAO`)
       if (!response.ok) throw new Error("Acesso negado")
       const payload = await response.json()
       setRawRequests(payload.requests || [])
@@ -145,7 +145,7 @@ export default function RescisaoPortalPage() {
         dataInicioAviso: newRequest.dataInicioAviso,
       }
       if (!user) throw new Error("Sessão não autenticada")
-      const response = await authenticatedFiscalFetch(user, "/api/portal/company-data", {
+      const response = await authenticatedFetch(user, "/api/portal/company-data", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clientId, type: "RESCISAO", data: taskData }),
       })
