@@ -1,6 +1,6 @@
 # Checklist de infraestrutura fiscal de produção
 
-Este documento consolida as pendências das Sprints 3.2C a 3.2J-A. O
+Este documento consolida as pendências das Sprints 3.2C a 3.2J-B. O
 protótipo local não provisiona nem valida nenhum destes recursos.
 
 ## BLOQUEADORES PARA PRODUÇÃO
@@ -149,6 +149,48 @@ Antes da 3.2J-B, obter export somente leitura aprovado de Cloud Run/IAM e dos
 demais domínios pendentes. Não instalar ferramenta, autenticar conta, ativar API
 ou iniciar 3.2J-B sem autorização específica. Todos os bloqueadores de produção
 permanecem abertos.
+
+## Consolidação manual da Sprint 3.2J-B
+
+O relatório está em `docs/sprint-3-2j-b-console-verified-inventory.md`. As
+evidências abaixo foram **VERIFICADAS MANUALMENTE NO CONSOLE — EVIDÊNCIA
+INFORMADA** e não reconfirmadas por consulta nesta execução:
+
+- Cloud Run gerenciado em `us-central1`, primeira geração, HTTPS/porta 8080,
+  autenticação IAM, ingress `Todos`, 1 vCPU, 512 MiB, concorrência 80, min 0,
+  max 20 e timeout 300 s;
+- ingress `Todos` não comprova invocação anônima; policy IAM e caminhos de acesso
+  ainda exigem revisão específica;
+- divergência entre max 20 implantado e `maxInstances: 1` no repositório;
+- três service accounts ativas (App Hosting, Compute padrão e Firebase Admin SDK)
+  com coluna de chaves indicando nenhuma chave; roles/bindings completos seguem
+  pendentes e nenhuma identidade fiscal exclusiva foi identificada;
+- nenhum bucket listado no projeto consultado;
+- Cloud KMS apresentou opção `Ativar`, indicando API aparentemente não habilitada
+  no projeto; nada foi ativado;
+- Data Access padrão exibiu Admin Read, Data Read e Data Write desativados, sem
+  isenções padrão; policies específicas/herdadas e Admin Activity são separados;
+- Monitoring exibiu zero alertas disparados/reconhecidos e nenhuma policy listada;
+- billing vinculado e budgets são evidência histórica/manual, mas custos,
+  cobertura e destinatários continuam não verificados.
+
+Nenhum bloqueador é considerado implementado por este inventário. A divergência
+de escala não foi corrigida e os bancos existentes não foram alterados.
+As prioridades P0/P1 do relatório não representam automaticamente incidentes de
+segurança confirmados; distinguem urgência de tratamento e natureza da evidência.
+
+### Gates documentais para a Sprint 3.2K
+
+- [ ] Gate 1 — ambientes, região, custos e responsabilidades aprovados;
+- [ ] Gate 2 — IaC e plan revisados, sem `apply`;
+- [ ] Gate 3 — SA fiscal exclusiva, sem chave JSON;
+- [ ] Gate 4 — IAM mínimo e OIDC entre serviços;
+- [ ] Gate 5 — Cloud Run fiscal privado;
+- [ ] Gate 6 — Storage, KMS e persistência distribuída;
+- [ ] Gate 7 — auditoria, monitoramento, alertas e recuperação.
+
+Cada gate exige autorização humana própria e permanece **PENDENTE**. Nenhum gate
+foi executado nesta Sprint. HTTP 503 e kill switch continuam obrigatórios.
 
 ## Evidências locais da Sprint 3.2F — não produtivas
 
