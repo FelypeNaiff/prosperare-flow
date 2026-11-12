@@ -12,7 +12,7 @@
     "test:nfse": "tsx --test src/lib/nfse/domain.test.ts",
     "test:authenticated-fetch": "tsx --test src/lib/http/authenticated-fetch.test.ts",
     "test:fiscal-contract": "tsx --test contracts/fiscal/v1.test.ts",
-    "test:fiscal-service": "tsx --test services/fiscal-local/fiscal-service.test.ts",
+    "test:fiscal-service": "tsx --test services/fiscal-local/*.test.ts",
     "test:security": "npm run test:authenticated-fetch && npm run test:fiscal-contract && npm run test:authorization && npm run test:nfse && npm run test:multiempresa && npm run test:rules",
     "migration:sprint-2-2:dry-run": "tsx scripts/sprint-2-2-migration.ts",
     "build": "next build",

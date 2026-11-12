@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import type { FiscalAuditEvent } from './audit-events';
@@ -12,7 +11,6 @@ import { callLocalFiscalService } from './internal-client';
 import { createIsolatedFiscalService } from './isolated-fiscal-service';
 import { InMemoryAtomicNonceStore, type NonceStore } from './nonce-store';
 import { issueSyntheticServiceToken, SyntheticServiceIdentityVerifier } from './service-auth';
-import { blockRealNfseTransmission } from '../../src/lib/nfse/domain';
 
 const secret = Buffer.from('synthetic-test-secret-with-at-least-32-bytes');
 const now = 1_800_000_000;
@@ -267,11 +265,4 @@ test('serviço e servidor permanecem bloqueados em produção', () => {
   assert.throws(() => createLocalFiscalHttpServer(async () => ({
     status: 200, body: { success: false, code: 'PRODUCTION_BLOCKED', message: 'blocked' },
   }), 'production'), /bloqueado em produção/i);
-});
-
-test('bloqueios HTTP 503 de emissão e upload permanecem presentes', () => {
-  assert.equal(blockRealNfseTransmission().status, 503);
-  const uploadRoute = readFileSync('src/app/api/fiscal/credenciais/route.ts', 'utf8');
-  assert.match(uploadRoute, /\{ status: 503 \}/);
-  assert.match(uploadRoute, /upload de certificados permanecem desabilitados/i);
 });
