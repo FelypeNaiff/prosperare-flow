@@ -60,6 +60,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { format, parse, lastDayOfMonth, setDate } from "date-fns"
 import { getProcessDocumentId } from "@/lib/process-generation"
+import { resolveGroupGenerationReferences } from "@/lib/group-process-generation"
 import { useAuthorizedCompanyCollection } from "@/hooks/use-authorized-company-collection"
 
 export default function GruposObrigacoesPage() {
@@ -81,9 +82,13 @@ export default function GruposObrigacoesPage() {
   const { data: groups = [], isLoading } = useCollection(groupsQuery)
 
   const templatesQuery = useMemoFirebase(() => collection(firestore, "processoModelos"), [firestore])
-  const { data: templates = [] } = useCollection(templatesQuery)
+  const { data: templates = [], isLoading: templatesLoading, error: templatesError } = useCollection(templatesQuery)
 
-  const { data: allClients = [] } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
+  const {
+    data: allClients = [],
+    isLoading: clientsLoading,
+    error: clientsError,
+  } = useAuthorizedCompanyCollection(firestore, "clients", "__name__")
 
   const [formData, setFormData] = useState({
     name: "",
@@ -119,6 +124,16 @@ export default function GruposObrigacoesPage() {
        c.cnpj?.includes(searchNova))
     )
   }, [allClients, formData.clientesVinculados, searchNova])
+
+  const generationResolution = useMemo(() => {
+    if (!selectedGroupForGen) return null
+    return resolveGroupGenerationReferences({
+      clientIds: selectedGroupForGen.clientesVinculados || [],
+      modelReferences: selectedGroupForGen.processes || [],
+      clients: allClients || [],
+      templates: templates || [],
+    })
+  }, [allClients, selectedGroupForGen, templates])
 
   const handleOpenModal = (group?: any) => {
     setSearchVinculadas('')
@@ -181,42 +196,49 @@ export default function GruposObrigacoesPage() {
   const handleGenerateProcessos = async () => {
     if (!selectedGroupForGen || !genCompetencia) return
 
+    if (clientsLoading || templatesLoading) {
+      toast({
+        title: "Aguarde a sincronização",
+        description: "Os clientes e modelos ainda estão sendo carregados.",
+      })
+      return
+    }
+    if (clientsError || templatesError) {
+      toast({
+        variant: "destructive",
+        title: "Falha na sincronização",
+        description: "Não foi possível validar todos os vínculos do grupo. Recarregue a página.",
+      })
+      return
+    }
+
     setIsGenerating(true)
     try {
       const competenceDate = parse(genCompetencia, "yyyy-MM", new Date())
       const competenceKey = format(competenceDate, "yyyy-MM")
 
-      const clientsToProcess = selectedGroupForGen.clientesVinculados || []
-      const candidates: Array<{ client: any; model: any; modelRef: any; duplicateKey: string }> = []
-      const invalidReferences: string[] = []
+      const resolution = resolveGroupGenerationReferences({
+        clientIds: selectedGroupForGen.clientesVinculados || [],
+        modelReferences: selectedGroupForGen.processes || [],
+        clients: allClients || [],
+        templates: templates || [],
+      })
+      const candidates = resolution.candidates.map(({ client, model, modelRef }) => ({
+        client,
+        model,
+        modelRef,
+        duplicateKey: getProcessDocumentId(model.id, client.id, competenceKey),
+      }))
+      const ignoredReferences =
+        resolution.missingClientIds.length + resolution.missingModelReferences.length
 
-      for (const clientId of clientsToProcess) {
-        const client = (allClients || []).find(c => c.id === clientId)
-        if (!client) {
-          invalidReferences.push(`Cliente ${clientId}`)
-          continue
-        }
-
-        for (const modelRef of (selectedGroupForGen.processes || [])) {
-          const model = (templates || []).find(t => t.id === modelRef.templateId)
-          if (!model) {
-            invalidReferences.push(`Modelo ${modelRef.templateId || modelRef.title}`)
-            continue
-          }
-          candidates.push({
-            client,
-            model,
-            modelRef,
-            duplicateKey: getProcessDocumentId(model.id, client.id, competenceKey)
-          })
-        }
-      }
-
-      if (invalidReferences.length > 0) {
+      if (candidates.length === 0) {
         toast({
           variant: "destructive",
-          title: "Vínculos inválidos no grupo",
-          description: `${invalidReferences.length} vínculo(s) não foram localizado(s). Corrija o grupo antes de gerar.`
+          title: "Nenhum vínculo válido",
+          description: ignoredReferences > 0
+            ? `${ignoredReferences} vínculo(s) estão indisponíveis. Revise os clientes e modelos do grupo.`
+            : "Vincule ao menos um cliente e um modelo antes de gerar.",
         })
         return
       }
@@ -243,7 +265,10 @@ export default function GruposObrigacoesPage() {
       })
 
       if (eligibleCandidates.length === 0) {
-        toast({ title: "Nenhum processo criado", description: `Os ${duplicates.size} processos deste grupo já existem para ${competenceKey}.` })
+        const ignoredMessage = ignoredReferences > 0
+          ? ` ${ignoredReferences} vínculo(s) indisponível(is) também foram ignorados.`
+          : ""
+        toast({ title: "Nenhum processo criado", description: `Os ${duplicates.size} processos válidos deste grupo já existem para ${competenceKey}.${ignoredMessage}` })
         return
       }
 
@@ -259,7 +284,7 @@ export default function GruposObrigacoesPage() {
         }
 
         entries.forEach(({ client, model, modelRef, duplicateKey, processRef }) => {
-          const requestedDay = parseInt(modelRef.dueDay) || 20
+          const requestedDay = parseInt(modelRef.dueDay ?? "") || 20
           const dueDay = Math.min(Math.max(requestedDay, 1), lastDayOfMonth(competenceDate).getDate())
           const dueDate = setDate(competenceDate, dueDay)
           transaction.set(processRef, {
@@ -292,7 +317,7 @@ export default function GruposObrigacoesPage() {
 
       toast({
         title: "Geração concluída!",
-        description: `${eligibleCandidates.length} processos criados${duplicates.size > 0 ? `; ${duplicates.size} duplicados ignorados` : ""}.`
+        description: `${eligibleCandidates.length} processos criados${duplicates.size > 0 ? `; ${duplicates.size} duplicados ignorados` : ""}${ignoredReferences > 0 ? `; ${ignoredReferences} vínculos indisponíveis ignorados` : ""}.`
       })
       setIsGenModalOpen(false)
     } catch (error) {
@@ -697,9 +722,24 @@ export default function GruposObrigacoesPage() {
                 <span className="text-[10px] font-black uppercase">Abrangência</span>
               </div>
               <p className="text-xs font-bold text-[#39586D]">
-                Esta ação criará tarefas para os {selectedGroupForGen?.clientesVinculados?.length || 0} clientes vinculados a este grupo.
+                {clientsLoading || templatesLoading
+                  ? "Validando clientes e modelos vinculados..."
+                  : `Esta ação criará tarefas para os ${generationResolution?.validClientCount || 0} clientes válidos vinculados a este grupo.`}
               </p>
             </div>
+
+            {!clientsLoading && !templatesLoading && generationResolution && (
+              generationResolution.missingClientIds.length > 0
+              || generationResolution.missingModelReferences.length > 0
+            ) && (
+              <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 flex gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+                <p className="text-[10px] font-bold text-amber-800 leading-relaxed uppercase">
+                  {generationResolution.missingClientIds.length
+                    + generationResolution.missingModelReferences.length} vínculo(s) indisponível(is) serão ignorados. Os demais processos poderão ser gerados normalmente.
+                </p>
+              </div>
+            )}
 
             <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 flex gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
@@ -714,7 +754,7 @@ export default function GruposObrigacoesPage() {
             <Button 
               className="bg-[#2563EB] hover:bg-[#2563EB]/90 font-black uppercase text-xs px-8 shadow-lg" 
               onClick={handleGenerateProcessos}
-              disabled={isGenerating}
+              disabled={isGenerating || clientsLoading || templatesLoading || Boolean(clientsError || templatesError)}
             >
               {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <PlayCircle className="h-4 w-4 mr-2" />}
               Gerar Processos Agora
