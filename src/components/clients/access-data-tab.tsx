@@ -2,7 +2,14 @@
 "use client"
 
 import { useState } from "react"
-import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
+import {
+  useUser,
+  useFirestore,
+  useCollection,
+  useMemoFirebase,
+  setDocumentNonBlocking,
+  deleteDocumentNonBlocking,
+} from "@/firebase"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +23,7 @@ import {
   Lock, 
   ShieldCheck,
   Globe,
+  Pencil,
   Trash2,
   Loader2
 } from "lucide-react"
@@ -29,6 +37,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface AccessDataTabProps {
   clientId: string;
@@ -39,6 +57,9 @@ export function AccessDataTab({ clientId }: AccessDataTabProps) {
   const firestore = useFirestore()
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingAccess, setEditingAccess] = useState<any>(null)
+  const [accessToDelete, setAccessToDelete] = useState<any>(null)
+  const [showFormPassword, setShowFormPassword] = useState(false)
   
   const [newAccess, setNewAccess] = useState({
     site: "",
@@ -63,20 +84,71 @@ export function AccessDataTab({ clientId }: AccessDataTabProps) {
 
   const isRestricted = userData?.profile === 'ASSISTENTE'
 
+  const resetAccessForm = () => {
+    setEditingAccess(null)
+    setShowFormPassword(false)
+    setNewAccess({ site: "", url: "", login: "", pass: "" })
+  }
+
+  const handleNewAccess = () => {
+    resetAccessForm()
+    setIsModalOpen(true)
+  }
+
+  const handleEditAccess = (access: any) => {
+    setEditingAccess(access)
+    setShowFormPassword(false)
+    setNewAccess({
+      site: access.site || "",
+      url: access.url || "",
+      login: access.login || "",
+      pass: access.pass || "",
+    })
+    setIsModalOpen(true)
+  }
+
+  const handleModalOpenChange = (open: boolean) => {
+    setIsModalOpen(open)
+    if (!open) resetAccessForm()
+  }
+
   const handleSaveAccess = () => {
     if (!newAccess.site || !newAccess.login || !newAccess.pass) {
       toast({ title: "Erro", description: "Preencha os campos obrigatórios.", variant: "destructive" })
       return
     }
 
-    const id = Math.random().toString(36).substr(2, 9)
+    const id = editingAccess?.id || Math.random().toString(36).substr(2, 9)
     const docRef = doc(firestore, "clientAccesses", id)
     
-    setDocumentNonBlocking(docRef, { ...newAccess, id, clientId, createdAt: new Date().toISOString() }, { merge: true })
+    setDocumentNonBlocking(docRef, {
+      ...newAccess,
+      id,
+      clientId,
+      createdAt: editingAccess?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }, { merge: true })
     
     setIsModalOpen(false)
-    setNewAccess({ site: "", url: "", login: "", pass: "" })
-    toast({ title: "Acesso Salvo!", description: "Os dados foram armazenados no cofre seguro." })
+    resetAccessForm()
+    toast({
+      title: editingAccess ? "Acesso Atualizado!" : "Acesso Salvo!",
+      description: editingAccess
+        ? "Os dados de acesso foram atualizados."
+        : "Os dados foram armazenados no cofre seguro.",
+    })
+  }
+
+  const handleDeleteAccess = () => {
+    if (!accessToDelete?.id) return
+    deleteDocumentNonBlocking(doc(firestore, "clientAccesses", accessToDelete.id))
+    setShowPasswords(prev => {
+      const next = { ...prev }
+      delete next[accessToDelete.id]
+      return next
+    })
+    setAccessToDelete(null)
+    toast({ title: "Acesso Removido", description: "A credencial foi excluída do cofre." })
   }
 
   const togglePassword = (id: string) => {
@@ -116,7 +188,7 @@ export function AccessDataTab({ clientId }: AccessDataTabProps) {
 
       <div className="flex justify-between items-center">
         <h3 className="font-black text-[#2C4156] uppercase text-sm tracking-widest">Cofre de Senhas e Acessos</h3>
-        <Button size="sm" className="gap-2 bg-[#2563EB] hover:bg-[#2563EB]/90 font-bold" onClick={() => setIsModalOpen(true)}>
+        <Button size="sm" className="gap-2 bg-[#2563EB] hover:bg-[#2563EB]/90 font-bold" onClick={handleNewAccess}>
           <Plus className="h-4 w-4" /> Novo Acesso
         </Button>
       </div>
@@ -175,7 +247,24 @@ export function AccessDataTab({ clientId }: AccessDataTabProps) {
                 </div>
 
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-[#E74C3C]">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-[#98A7AA] hover:text-[#2563EB]"
+                    title="Editar acesso"
+                    aria-label={`Editar acesso ${access.site}`}
+                    onClick={() => handleEditAccess(access)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-[#E74C3C]"
+                    title="Excluir acesso"
+                    aria-label={`Excluir acesso ${access.site}`}
+                    onClick={() => setAccessToDelete(access)}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -189,10 +278,12 @@ export function AccessDataTab({ clientId }: AccessDataTabProps) {
         )}
       </div>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="text-[#2C4156] font-black uppercase tracking-tight">Novo Acesso Seguro</DialogTitle>
+            <DialogTitle className="text-[#2C4156] font-black uppercase tracking-tight">
+              {editingAccess ? "Editar Acesso Seguro" : "Novo Acesso Seguro"}
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
@@ -209,15 +300,49 @@ export function AccessDataTab({ clientId }: AccessDataTabProps) {
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-[#98A7AA]">Senha</Label>
-              <Input type="password" value={newAccess.pass} onChange={(e) => setNewAccess({...newAccess, pass: e.target.value})} />
+              <div className="relative">
+                <Input
+                  type={showFormPassword ? "text" : "password"}
+                  value={newAccess.pass}
+                  onChange={(e) => setNewAccess({...newAccess, pass: e.target.value})}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  aria-label={showFormPassword ? "Ocultar senha" : "Mostrar senha"}
+                  onClick={() => setShowFormPassword(current => !current)}
+                  className="absolute right-3 top-2.5 text-[#98A7AA] hover:text-[#2C4156]"
+                >
+                  {showFormPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-            <Button className="bg-[#2563EB] font-bold" onClick={handleSaveAccess}>Salvar no Cofre</Button>
+            <Button variant="outline" onClick={() => handleModalOpenChange(false)}>Cancelar</Button>
+            <Button className="bg-[#2563EB] font-bold" onClick={handleSaveAccess}>
+              {editingAccess ? "Salvar Alterações" : "Salvar no Cofre"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={Boolean(accessToDelete)} onOpenChange={(open) => !open && setAccessToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir acesso do cofre?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação removerá permanentemente a credencial “{accessToDelete?.site}”. Ela não poderá ser recuperada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-[#E74C3C] hover:bg-[#C0392B]" onClick={handleDeleteAccess}>
+              Excluir acesso
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
